@@ -108,6 +108,15 @@ export interface CosmeticDef {
   description: string;
 }
 
+/** Mã quà tặng phần thưởng tiền tệ (chỉ lưu mã băm). */
+export interface GiftRewardDef {
+  id: string;
+  codeHash: string;
+  label: string;
+  diamonds?: number;
+  gold?: number;
+}
+
 export interface ShopItemDef {
   id: string;
   name: string;

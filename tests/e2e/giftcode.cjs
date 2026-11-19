@@ -40,6 +40,13 @@ async function redeem(p, code) {
     console.log(`• ${code} → ${id}: OK`);
   }
   await p.screenshot({ path: `${out}/gift-hub.png` });
+  // mã 2000 kim cương
+  const gems0 = (await save()).diamonds;
+  await redeem(p, 'kimcuong2000');
+  const gems1 = (await save()).diamonds;
+  if (gems1 !== gems0 + 2000) errs.push(`Mã kim cương sai: ${gems0} → ${gems1}`);
+  else console.log(`• kimcuong2000 → +2000 💎 (${gems0} → ${gems1})`);
+  await p.screenshot({ path: `${out}/gift-diamonds.png` });
   // dùng lại mã
   const before = (await save()).redeemedCodes.length;
   await redeem(p, 'pine2606');
@@ -52,7 +59,7 @@ async function redeem(p, code) {
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'));
   await p.waitForTimeout(500);
   await redeem(p, 'sai-ma-123');
-  if ((await save()).redeemedCodes.length !== 2) errs.push('Mã sai được chấp nhận');
+  if ((await save()).redeemedCodes.length !== 3) errs.push('Mã sai được chấp nhận');
   else console.log('• Mã sai: bị từ chối đúng');
   await b.close();
   if (errs.length) { console.error('LỖI:\n' + errs.join('\n')); process.exit(1); }

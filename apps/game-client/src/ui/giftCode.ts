@@ -34,6 +34,23 @@ export function openGiftCode(scene: Phaser.Scene, onDone?: () => void) {
     m.close();
     if (r.character) celebrate(scene, r.character.id, onDone);
     else if (r.rod) celebrateRod(scene, r.rod.id, onDone);
+    else if (r.reward) {
+      Sfx.catchFanfare(true);
+      scene.cameras.main.flash(400, 120, 220, 255);
+      scene.add
+        .particles(640, 300, "p_spark", {
+          speed: { min: 150, max: 420 },
+          lifespan: 1000,
+          scale: { start: 1.3, end: 0 },
+          tint: [0x40c4ff, 0xffffff, 0x80d8ff],
+          quantity: 40,
+          stopAfter: 40,
+          blendMode: Phaser.BlendModes.ADD,
+        })
+        .setDepth(960);
+      toast(scene, `🎁 Nhận ${r.reward.label}! 💎`, COLORS.green);
+      onDone?.();
+    }
   };
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") submit();

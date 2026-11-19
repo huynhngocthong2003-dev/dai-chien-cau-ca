@@ -4,8 +4,9 @@ import { RODS } from "./rods.ts";
 import { FISHES } from "./fishes.ts";
 import { ZONES } from "./zones.ts";
 import { COSMETICS, SHOP_ITEMS } from "./cosmetics.ts";
+import { GIFT_REWARDS } from "./giftcodes.ts";
 
-export { CHARACTERS, RODS, FISHES, ZONES, COSMETICS, SHOP_ITEMS };
+export { CHARACTERS, RODS, FISHES, ZONES, COSMETICS, SHOP_ITEMS, GIFT_REWARDS };
 
 export const CATALOG: GameCatalog = { characters: CHARACTERS, rods: RODS, fishes: FISHES, zones: ZONES };
 

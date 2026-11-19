@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.1] – 2026-11-19
+### Thêm
+- Mã quà tặng tiền tệ: `kimcuong2000` nhận 2.000 kim cương (một lần mỗi tài khoản, ghi sổ giao dịch).
+
 ## [0.6.0] – 2026-11-19 – Thời trang 5 bậc, cánh & sừng, chọn nhiều để bán
 ### Thêm
 - **Kho Cá – Chọn nhiều**: ô tích ✓ trên từng con cá, Chọn cả trang / Chọn tất cả / Chọn cá Thường / Bỏ chọn, xem tổng vàng và nguyên liệu, Bán hoặc Phân giải hàng loạt (xác nhận 2 lần nếu có cá quý / đã nâng cấp; cá khóa không chọn được).

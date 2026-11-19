@@ -32,7 +32,7 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { CATALOG, CHARACTERS, CHARACTER_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHARACTERS, CHARACTER_BY_ID, GIFT_REWARDS, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 import * as Online from "./online.ts";
@@ -180,7 +180,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   }
 
   redeem(code: string) {
-    return this.run(redeemGiftCode(this._save, code, { characters: CHARACTERS, rods: RODS }, Date.now()));
+    return this.run(redeemGiftCode(this._save, code, { characters: CHARACTERS, rods: RODS, rewards: GIFT_REWARDS }, Date.now()));
   }
 
   /** Đồ đang mặc của nhân vật (để vẽ). */

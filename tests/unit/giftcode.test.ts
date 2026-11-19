@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { buildLoadout, characterStats, createNewSave, hashGiftCode, redeemGiftCode } from "@dccc/shared";
-import { CATALOG, CHARACTERS, CHARACTER_BY_ID, RODS, ROD_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHARACTERS, CHARACTER_BY_ID, GIFT_REWARDS, RODS, ROD_BY_ID } from "@dccc/game-data";
 import { rodStats } from "@dccc/shared";
 import { parseSave } from "@dccc/validation";
 
@@ -47,6 +47,7 @@ describe("Mã quà tặng", () => {
       expect(src.includes("pine2606"), f).toBe(false);
       expect(src.includes("sapphire2601"), f).toBe(false);
       expect(src.includes("ruby2602"), f).toBe(false);
+      expect(src.includes("kimcuong2000"), f).toBe(false);
     }
     expect(hashGiftCode("pine2606")).not.toContain("pine");
   });
@@ -92,5 +93,19 @@ describe("Cần Huyết Ma Long (LR)", () => {
       expect(top.rareRate).toBeGreaterThan(o.rareRate);
       expect(top.antiSnap).toBeGreaterThan(o.antiSnap);
     }
+  });
+});
+
+describe("Mã 2000 kim cương", () => {
+  const cat = { characters: CHARACTERS, rods: RODS, rewards: GIFT_REWARDS };
+  it("kimcuong2000 cộng đúng 2000 kim cương, ghi sổ, chỉ dùng một lần", () => {
+    const s0 = fresh();
+    const r = redeemGiftCode(s0, "KimCuong2000", cat, Date.now());
+    expect(r.ok && r.reward?.diamonds).toBe(2000);
+    if (!r.ok) return;
+    expect(r.save.diamonds).toBe(s0.diamonds + 2000);
+    expect(r.save.ledger.some((l) => l.currency === "diamonds" && l.amount === 2000)).toBe(true);
+    expect(redeemGiftCode(r.save, "kimcuong2000", cat, Date.now()).ok).toBe(false);
+    expect(parseSave(JSON.parse(JSON.stringify(r.save))).ok).toBe(true);
   });
 });

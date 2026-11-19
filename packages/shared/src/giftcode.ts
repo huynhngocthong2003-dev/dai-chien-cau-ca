@@ -3,7 +3,7 @@
  * Lưu ý: băm phía client chỉ giấu mã khỏi người đọc code; Giai đoạn 4 việc
  * đổi mã chuyển lên server (Edge Function) để kiểm soát hoàn toàn.
  */
-import type { CharacterDef, RodDef } from "./types.ts";
+import type { CharacterDef, GiftRewardDef, RodDef } from "./types.ts";
 import { addLedger, clone, newCharProgress, newRodProgress, type ActionResult, type PlayerSave } from "./save.ts";
 
 const SALT = "dccc:gift:v1:";
@@ -35,13 +35,13 @@ export function hash53x2(str: string): string {
   return round(7) + round(1337).slice(0, 12);
 }
 
-export type RedeemResult = ActionResult & { character?: CharacterDef; rod?: RodDef };
+export type RedeemResult = ActionResult & { character?: CharacterDef; rod?: RodDef; reward?: GiftRewardDef };
 
 /** Đổi mã: mở khóa nhân vật / cần câu có unlock.kind === "code" khớp mã băm. Mỗi mã dùng một lần. */
 export function redeemGiftCode(
   save: PlayerSave,
   code: string,
-  catalog: { characters: CharacterDef[]; rods: RodDef[] },
+  catalog: { characters: CharacterDef[]; rods: RodDef[]; rewards?: GiftRewardDef[] },
   now: number,
 ): RedeemResult {
   const norm = normalizeCode(code);
@@ -50,9 +50,23 @@ export function redeemGiftCode(
   if (save.redeemedCodes.includes(h)) return { ok: false, error: "Bạn đã dùng mã này rồi" };
   const char = catalog.characters.find((c) => c.unlock.kind === "code" && c.unlock.codeHash === h);
   const rod = char ? undefined : catalog.rods.find((r) => r.unlock.kind === "code" && r.unlock.codeHash === h);
-  if (!char && !rod) return { ok: false, error: "Mã không đúng hoặc đã hết hạn" };
+  const reward = char || rod ? undefined : catalog.rewards?.find((g) => g.codeHash === h);
+  if (!char && !rod && !reward) return { ok: false, error: "Mã không đúng hoặc đã hết hạn" };
   const s = clone(save);
   s.redeemedCodes.push(h);
+  if (reward) {
+    const tx = `gift_${h.slice(0, 16)}`;
+    if (reward.diamonds) {
+      s.diamonds += reward.diamonds;
+      addLedger(s, tx, "diamonds", reward.diamonds, `gift_code:${reward.id}`, now);
+    }
+    if (reward.gold) {
+      s.gold += reward.gold;
+      addLedger(s, tx, "gold", reward.gold, `gift_code:${reward.id}`, now);
+    }
+    s.updatedAt = now;
+    return { ok: true, save: s, reward };
+  }
   if (char && !s.characters[char.id]) s.characters[char.id] = newCharProgress();
   if (rod && !s.rods[rod.id]) s.rods[rod.id] = newRodProgress();
   addLedger(s, `gift_${h.slice(0, 16)}`, "diamonds", 0, `gift_code:${(char ?? rod)!.id}`, now);
