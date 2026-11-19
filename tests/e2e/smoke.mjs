@@ -88,8 +88,23 @@ for (let round = 1; round <= 4 && result !== "caught"; round++) {
   step(`Kết quả ván ${round}: ${result}`);
   await page.waitForTimeout(2200);
   await shot(`05-result-${round}`);
-  if (result !== "caught") await page.keyboard.press("Enter");
+  if (result !== "caught") await page.keyboard.press("Space");
   await page.waitForTimeout(400);
+  if (result !== "caught") {
+    const mode = await page.evaluate(() => window.__game.scene.getScene("Fishing").mode);
+    if (mode !== "idle") errors.push(`Space không bấm được "Câu tiếp" (mode=${mode})`);
+  }
+}
+// Space ở bảng kết quả khi đã bắt được cá
+if (result === "caught") {
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(600);
+  const mode = await page.evaluate(() => window.__game.scene.getScene("Fishing").mode);
+  if (mode !== "idle") errors.push(`Space không bấm được "Câu tiếp" sau khi bắt cá (mode=${mode})`);
+  else step('Space → "Câu tiếp" hoạt động');
+  // quay lại bảng kết quả để các bước sau bấm "Xem Kho Cá"
+  await page.evaluate(() => { const f = window.__game.scene.getScene("Fishing"); f.mode = "result"; f.showResult("caught"); });
+  await page.waitForTimeout(500);
 }
 
 const save = await page.evaluate(() => JSON.parse(localStorage.getItem("dccc_save_v1") ?? "null"));

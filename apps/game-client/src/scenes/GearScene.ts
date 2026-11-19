@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { menuBackdrop } from "../ui/backdrop.ts";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
 import { canAfford, canUnlock, type CharRarity, type Cost, type UnlockCondition } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
@@ -69,7 +70,7 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
   create() {
     this.input.enabled = true;
     fadeIn(this);
-    this.add.rectangle(0, 0, 1280, 720, 0x0b2a4a).setOrigin(0);
+    menuBackdrop(this);
     new TopBar(this, { title: this.title, onBack: () => goTo(this, "Hub") });
     this.selectedId = GameState.save[this.field];
     this.render();
@@ -93,10 +94,21 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
       const sel = it.id === this.selectedId;
       const g = this.add.graphics();
       const rc = hexToInt(CHAR_RARITY_COLOR[it.rarity]);
-      g.fillStyle(sel ? 0x2a5a8a : 0x10294a, 0.95).fillRoundedRect(x, y, cw, ch, 14);
-      g.fillStyle(rc, 0.25).fillRoundedRect(x, y, cw, ch * 0.35, 14);
-      g.lineStyle(sel ? 4 : 3, rc).strokeRoundedRect(x, y, cw, ch, 14);
+      const top = Phaser.Display.Color.IntegerToColor(rc).clone().darken(25).color;
+      // bóng đổ + nền chuyển màu theo độ hiếm + ánh bóng
+      g.fillStyle(0x000000, 0.35).fillRoundedRect(x + 3, y + 5, cw, ch, 14);
+      g.fillGradientStyle(top, top, sel ? 0x2a5a8a : 0x0d2340, sel ? 0x2a5a8a : 0x0d2340, 0.95);
+      g.fillRoundedRect(x, y, cw, ch, 14);
+      g.fillStyle(0xffffff, 0.12).fillRoundedRect(x + 5, y + 4, cw - 10, ch * 0.22, 10);
+      g.lineStyle(sel ? 5 : 3, sel ? 0xffeb3b : rc).strokeRoundedRect(x, y, cw, ch, 14);
+      g.lineStyle(2, 0x1b1530).strokeRoundedRect(x - 2, y - 2, cw + 4, ch + 4, 15);
       c.add(g);
+      if (it.rarity === "UR" || it.rarity === "LR") {
+        const glow = this.add.graphics();
+        glow.lineStyle(6, rc, 0.6).strokeRoundedRect(x - 4, y - 4, cw + 8, ch + 8, 16);
+        c.add(glow);
+        this.tweens.add({ targets: glow, alpha: 0.15, duration: 800, yoyo: true, repeat: -1 });
+      }
       const icon = this.cardIcon(it, x + cw / 2, y + ch * 0.45, cw, ch);
       if (!isOwned) (icon as unknown as Phaser.GameObjects.Components.Tint).setTint?.(0x333a44);
       c.add(icon);

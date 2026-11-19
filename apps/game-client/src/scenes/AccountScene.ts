@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { menuBackdrop } from "../ui/backdrop.ts";
 import { CHARACTER_BY_ID } from "@dccc/game-data";
 import { playerNameSchema } from "@dccc/validation";
 import { GameState } from "../state/GameState.ts";
@@ -29,7 +30,7 @@ export class AccountScene extends Phaser.Scene {
   create() {
     this.input.enabled = true;
     fadeIn(this);
-    this.add.rectangle(0, 0, 1280, 720, 0x0b2a4a).setOrigin(0);
+    menuBackdrop(this);
     new TopBar(this, { title: "Tài Khoản", onBack: () => goTo(this, "Hub") });
     this.render();
   }

@@ -35,6 +35,18 @@ async function start() {
     scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
+
+  // Điện thoại (đặc biệt khi mở dạng ứng dụng toàn màn hình): kích thước màn hình
+  // có thể đổi sau khi game khởi động → đo lại nhiều lần để khung game luôn vừa.
+  const refresh = () => game.scale.refresh();
+  const refreshSoon = () => [50, 300, 800].forEach((ms) => setTimeout(refresh, ms));
+  window.addEventListener("resize", refreshSoon);
+  window.addEventListener("orientationchange", refreshSoon);
+  window.visualViewport?.addEventListener("resize", refreshSoon);
+  document.addEventListener("fullscreenchange", refreshSoon);
+  document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && refreshSoon());
+  window.addEventListener("pageshow", refreshSoon);
+  refreshSoon();
 }
 
 void start();

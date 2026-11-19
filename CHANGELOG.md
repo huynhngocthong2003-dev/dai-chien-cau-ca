@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0] – 2026-11-19 – Môi trường, bục câu, thoại bựa, giao diện mới
+### Thêm
+- **Rác dưới nước** (12% mỗi lần câu): chai nhựa, bọc nilông, dép, lon nước, lưới rách – kèm lời nhắn "♻ Mọi người hãy tái chế để bảo vệ môi trường nhé!".
+- **Tái chế** rác thành 🌿 Điểm Môi Trường; đổi **Bộ Bảo Vệ Môi Trường màu xanh lá** (mũ, áo, khăn, cánh) trong Cửa Hàng → tab ♻ Môi Trường.
+- **Bục câu theo khu**, càng về sau càng xịn: gỗ → tre nhiệt đới → đá pha lê → hắc thạch dung nham → băng → cẩm thạch vàng nạm ngọc.
+- **Thoại bựa**: khi cá cắn (rác / cá nhỏ / cá to – Boss / troll), khi tung kỹ năng (theo từng nhân vật và theo nhóm kỹ năng), câu khoe cá có tên + cân nặng; hiện 40–60% số lần, tránh lặp.
+- **Hiệu ứng kỹ năng bùng nổ**: bong bóng thoại, rung + phóng to giật, vệt tốc độ, sóng xung kích, sét đánh, nổ hạt, chữ tượng thanh, sao choáng, băng, lửa, nốt nhạc.
+- **Sự kiện Tân Thủ**: nhận 500 kim cương (một lần mỗi tài khoản).
+- **Giao diện**: nền đáy biển cho các màn menu, nút sảnh dùng hình vẽ của game, thẻ nhân vật / cần câu chuyển màu theo độ hiếm, thẻ UR/LR phát sáng.
+- Space / Enter để "Câu tiếp".
+### Sửa
+- Tỉ lệ cá: Cá Chép Hóa Rồng (Sử Thi) ở Bến Câu Tân Thủ ra 1,2% (ít hơn cả Boss 2,2%) → nay ~3,7%, Boss 1,6%. Test bắt buộc thứ tự độ hiếm ở mọi khu.
+- Điện thoại / mở dạng ứng dụng: khung game tràn màn hình, mất nút quay lại → nằm trong vùng an toàn và tự đo lại kích thước.
+- Save phiên bản 5 (rác, điểm môi trường, sự kiện đã nhận) có chuyển đổi tự động.
+
 ## [0.6.1] – 2026-11-19
 ### Thêm
 - Mã quà tặng tiền tệ: `kimcuong2000` nhận 2.000 kim cương (một lần mỗi tài khoản, ghi sổ giao dịch).

@@ -100,7 +100,7 @@ export interface CosmeticDef {
   name: string;
   slot: CosmeticSlot;
   tier: CosmeticTier;
-  price: { currency: "gold" | "diamonds"; amount: number };
+  price: { currency: "gold" | "diamonds" | "eco"; amount: number };
   /** Hình dạng hiển thị theo ô trang bị. */
   visual: { kind: HatKind | OutfitKind | AccessoryKind | WingKind | HornKind; color: string; accent: string };
   /** Chỉ số phụ – tăng theo bậc, vẫn giữ mức không pay-to-win. */
@@ -109,6 +109,25 @@ export interface CosmeticDef {
 }
 
 /** Mã quà tặng phần thưởng tiền tệ (chỉ lưu mã băm). */
+/** Rác câu nhầm – tái chế thành Điểm Môi Trường. */
+export interface JunkDef {
+  id: string;
+  name: string;
+  kind: "bottle" | "sandal" | "bag" | "can" | "net";
+  ecoPoints: number;
+  weight: number;
+  color: string;
+}
+
+/** Sự kiện nhận quà (mỗi tài khoản nhận một lần). */
+export interface GameEventDef {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  reward: { diamonds?: number; gold?: number; stones?: number; bossTickets?: number };
+}
+
 export interface GiftRewardDef {
   id: string;
   codeHash: string;

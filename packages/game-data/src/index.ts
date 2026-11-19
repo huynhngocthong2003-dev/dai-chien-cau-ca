@@ -5,8 +5,11 @@ import { FISHES } from "./fishes.ts";
 import { ZONES } from "./zones.ts";
 import { COSMETICS, SHOP_ITEMS } from "./cosmetics.ts";
 import { GIFT_REWARDS } from "./giftcodes.ts";
+import { ECO_MESSAGE, JUNK } from "./junk.ts";
+import { EVENTS } from "./events.ts";
 
-export { CHARACTERS, RODS, FISHES, ZONES, COSMETICS, SHOP_ITEMS, GIFT_REWARDS };
+export { CHARACTERS, RODS, FISHES, ZONES, COSMETICS, SHOP_ITEMS, GIFT_REWARDS, JUNK, ECO_MESSAGE, EVENTS };
+export const JUNK_BY_ID = new Map(JUNK.map((j) => [j.id, j]));
 
 export const CATALOG: GameCatalog = { characters: CHARACTERS, rods: RODS, fishes: FISHES, zones: ZONES };
 

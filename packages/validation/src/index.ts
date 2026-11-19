@@ -42,6 +42,8 @@ export const playerSaveSchema = z.object({
   bossTicketDay: z.string().max(10),
   wardrobe: z.record(id, z.number().int().min(1).max(99)),
   redeemedCodes: z.array(z.string().regex(/^[0-9a-f]{20,32}$/)).max(200),
+  claimedEvents: z.array(id).max(500),
+  eco: z.object({ points: nonNegInt, junk: z.record(id, z.number().int().min(1).max(100000)), recycled: nonNegInt }),
   fishes: z.array(ownedFishSchema).max(1000),
   stats: z.object({
     totalCaught: nonNegInt,
@@ -54,7 +56,7 @@ export const playerSaveSchema = z.object({
   ledger: z.array(
     z.object({
       txId: id,
-      currency: z.enum(["gold", "diamonds", "xp", "stones", "soul", "bossTickets"]),
+      currency: z.enum(["gold", "diamonds", "xp", "stones", "soul", "bossTickets", "eco"]),
       amount: z.number().int(),
       reason: z.string().max(128),
       at: timestamp,

@@ -1,11 +1,12 @@
 import Phaser from "phaser";
-import type { AccessoryKind, CharacterDef, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
+import type { AccessoryKind, CharacterDef, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, JunkDef, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
 import { TIER_COLOR, TIER_ORDER } from "@dccc/game-config";
 import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
 import { COSMETIC_BY_ID } from "@dccc/game-data";
 import { FISH_H, FISH_W, drawFish, drawFishSilhouette } from "./FishArt.ts";
 import { CHAR_H, CHAR_W, defaultLook, drawAura, drawCharacter, type Look } from "./CharacterArt.ts";
 import { WORLD_H, WORLD_W, drawDock, drawZoneBackground } from "./Backgrounds.ts";
+import { drawJunk } from "./JunkArt.ts";
 
 /** Tạo texture từ hàm vẽ Canvas 2D (chỉ tạo một lần, lazy). */
 function canvasTexture(
@@ -121,8 +122,13 @@ export function zoneTexture(scene: Phaser.Scene, z: ZoneDef): string {
   return canvasTexture(scene, `zone_${z.id}`, WORLD_W, WORLD_H, (ctx) => drawZoneBackground(ctx, z));
 }
 
-export function dockTexture(scene: Phaser.Scene): string {
-  return canvasTexture(scene, "dock", 340, 360, (ctx) => drawDock(ctx, 340, 360));
+/** Bục câu theo kiểu khu vực (0..5). */
+export function dockTexture(scene: Phaser.Scene, style = 0): string {
+  return canvasTexture(scene, `dock_${style}`, 340, 360, (ctx) => drawDock(ctx, 340, 360, style));
+}
+
+export function junkTexture(scene: Phaser.Scene, j: JunkDef): string {
+  return canvasTexture(scene, `junk_${j.id}`, FISH_W, FISH_H, (ctx) => drawJunk(ctx, j));
 }
 
 /** Các texture nhỏ dùng cho hạt hiệu ứng. */

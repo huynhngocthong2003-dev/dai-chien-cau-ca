@@ -2,7 +2,7 @@ import { ECONOMY, PROGRESSION } from "@dccc/game-config";
 import type { CharacterDef, CosmeticSlot, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
 import { sumPassive } from "./loadout.ts";
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /** Kim cương thưởng: mỗi lần lên cấp, lần đầu bắt một loài, mỗi lần bắt Boss. */
 export const DIAMOND_REWARDS = { levelUp: 10, newSpecies: 3, boss: 5 };
@@ -49,7 +49,14 @@ export interface Materials {
   bossTickets: number;
 }
 
-export type Currency = "gold" | "diamonds" | "xp" | "stones" | "soul" | "bossTickets";
+export type Currency = "gold" | "diamonds" | "xp" | "stones" | "soul" | "bossTickets" | "eco";
+
+/** Bảo vệ môi trường: rác đang giữ, điểm tái chế, tổng đã tái chế. */
+export interface EcoState {
+  points: number;
+  junk: Record<string, number>;
+  recycled: number;
+}
 
 export interface LedgerEntry {
   txId: string;
@@ -77,6 +84,9 @@ export interface PlayerSave {
   wardrobe: Record<string, number>;
   /** Mã băm của các mã quà đã đổi. */
   redeemedCodes: string[];
+  eco: EcoState;
+  /** Sự kiện đã nhận quà. */
+  claimedEvents: string[];
   /** Ngày (YYYY-MM-DD) đã hồi vé Boss gần nhất. */
   bossTicketDay: string;
   fishes: OwnedFish[];
@@ -122,6 +132,8 @@ export function createNewSave(playerId: string, name: string, catalog: GameCatal
     materials: { stones: 0, soul: 0, bossTickets: 3 },
     wardrobe: {},
     redeemedCodes: [],
+    eco: { points: 0, junk: {}, recycled: 0 },
+    claimedEvents: [],
     bossTicketDay: "",
     fishes: [],
     stats: { totalCaught: 0, bossesCaught: 0, escaped: 0, snapped: 0, heaviestKg: 0, species: {} },

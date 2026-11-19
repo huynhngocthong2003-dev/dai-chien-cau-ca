@@ -18,7 +18,15 @@
   :root { --bg: #0b2a4a; --fg: #fff8e1; --accent: #ffc107; color-scheme: dark; }
   html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
   body { background: radial-gradient(ellipse at 50% 30%, #1d5b8f 0%, var(--bg) 70%); font-family: "Baloo 2", system-ui, sans-serif; }
-  #game { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  /* Khung game nằm trong vùng an toàn (tránh tai thỏ / camera / thanh điều hướng) */
+  #game {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    right: env(safe-area-inset-right, 0px);
+    bottom: env(safe-area-inset-bottom, 0px);
+    left: env(safe-area-inset-left, 0px);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
   #game canvas { display: block; }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 22px; font-weight: 700; letter-spacing: .02em; pointer-events: none; }
   #rotate { position: fixed; inset: 0; z-index: 10; display: none; flex-direction: column; gap: 12px; align-items: center; justify-content: center; text-align: center; padding: 24px; background: var(--bg); font-size: 20px; font-weight: 700; }

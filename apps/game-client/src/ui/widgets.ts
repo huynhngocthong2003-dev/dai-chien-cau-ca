@@ -36,6 +36,8 @@ export interface ButtonOpts {
   color?: number;
   fontSize?: number;
   icon?: string;
+  /** Texture dùng làm biểu tượng (ưu tiên hơn icon chữ). */
+  iconKey?: string;
   disabled?: boolean;
   badge?: string;
   sub?: string;
@@ -62,8 +64,14 @@ export class Button extends Phaser.GameObjects.Container {
     this.bg = scene.add.graphics();
     this.add(this.bg);
     const fs = o.fontSize ?? Math.min(28, Math.round(h * 0.42));
-    const hasIcon = !!o.icon;
-    if (hasIcon && h >= 80) {
+    const hasIcon = !!o.icon || !!o.iconKey;
+    if (o.iconKey && h >= 80) {
+      const img = scene.add.image(0, -h * 0.1, o.iconKey);
+      const k = Math.min((w * 0.62) / img.width, (h * 0.58) / img.height);
+      img.setScale(k);
+      this.add(img);
+      this.label = txt(scene, 0, h * 0.3, text, Math.round(fs * 0.8), { align: "center" }).setOrigin(0.5);
+    } else if (hasIcon && h >= 80) {
       const icon = scene.add.text(0, -h * 0.14, o.icon!, { fontSize: `${Math.round(h * 0.4)}px`, fontFamily: FONT, padding: { top: 6 } }).setOrigin(0.5);
       this.add(icon);
       this.label = txt(scene, 0, h * 0.28, text, Math.round(fs * 0.8), { align: "center" }).setOrigin(0.5);

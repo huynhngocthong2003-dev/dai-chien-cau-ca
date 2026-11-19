@@ -72,7 +72,9 @@ export const FISHING = {
   strugglePhaseMs: [900, 2200] as [number, number],
   /** Hệ số cast: lực thả mạnh -> cá ở xa hơn nhưng tăng chút tỷ lệ hiếm. */
   castRareBonusMax: 0.25,
-  bossBaseChance: 0.02,
+  bossBaseChance: 0.015,
+  /** Xác suất vớt phải rác (trước khi xét cá). */
+  junkChance: 0.12,
 };
 
 export const PROGRESSION = {

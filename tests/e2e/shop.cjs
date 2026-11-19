@@ -55,7 +55,7 @@ const { chromium } = pw;
   await p.mouse.click(74 + 5*118, 116); // tab Vật Phẩm
   await p.waitForTimeout(400);
   await p.screenshot({ path: out + '/s4-items.png' });
-  await p.mouse.click(74 + 6*118, 116); // tab Chợ
+  await p.mouse.click(74 + 7*118, 116); // tab Chợ
   await p.waitForTimeout(400);
   await p.screenshot({ path: out + '/s5-market.png' });
   const save = await p.evaluate(() => JSON.parse(localStorage.getItem('dccc_save_v1')));

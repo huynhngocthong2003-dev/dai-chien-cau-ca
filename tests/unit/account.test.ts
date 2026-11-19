@@ -39,7 +39,8 @@ describe("Mã sao lưu", () => {
 
   it("phát hiện mã bị sửa, bị cắt, hoặc không phải mã", async () => {
     const code = await encodeBackup(played());
-    const tampered = code.slice(0, -10) + (code.endsWith("A") ? "B" : "A") + code.slice(-9);
+    const pos = code.length - 10;
+    const tampered = code.slice(0, pos) + (code[pos] === "A" ? "B" : "A") + code.slice(pos + 1);
     expect((await decodeBackup(tampered)).ok).toBe(false);
     expect((await decodeBackup(code.slice(0, code.length - 30))).ok).toBe(false);
     expect((await decodeBackup("xin chào")).ok).toBe(false);

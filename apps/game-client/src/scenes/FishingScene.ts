@@ -1,12 +1,15 @@
 import Phaser from "phaser";
 import { FISHING, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
-import { CHARACTER_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CHARACTER_BY_ID, ECO_MESSAGE, FISH_BY_ID, JUNK, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import {
   FishingSession,
   Rng,
   chooseFish,
   huntBoss,
+  junkAsFish,
   randomSeed,
+  rollJunk,
+  type JunkDef,
   rollWeight,
   catchRewards,
   fishPower,
@@ -16,7 +19,9 @@ import {
   type ZoneDef,
 } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
-import { auraTexture, characterTexture, dockTexture, fishTexture, ornamentTexture, reelTexture, zoneTexture } from "../art/textures.ts";
+import { auraTexture, characterTexture, dockTexture, fishTexture, junkTexture, ornamentTexture, reelTexture, zoneTexture } from "../art/textures.ts";
+import { playSkillFx, speechBubble } from "../ui/skillFx.ts";
+import { CATCH_LINES, hookPool, pickLine } from "../ui/quotes.ts";
 import { HORIZON } from "../art/Backgrounds.ts";
 import { addAmbience } from "../art/ambience.ts";
 import { addFashionFx } from "../art/fashionFx.ts";
@@ -38,6 +43,8 @@ export class FishingScene extends Phaser.Scene {
   private mode: Mode = "idle";
   private session: FishingSession | null = null;
   private fishDef: FishDef | null = null;
+  /** Rác vớt nhầm (nếu lần này không phải cá). */
+  private junk: JunkDef | null = null;
   private weightKg = 0;
 
   // hiển thị
@@ -107,7 +114,7 @@ export class FishingScene extends Phaser.Scene {
     this.water = this.add.graphics().setDepth(2);
     addAmbience(this, this.zone);
     this.addWeather();
-    this.add.image(0, HORIZON - 42, dockTexture(this)).setOrigin(0).setDepth(3);
+    this.add.image(0, HORIZON - 42, dockTexture(this, Math.max(0, ZONES.findIndex((z) => z.id === this.zone.id)))).setOrigin(0).setDepth(3);
     const awakened = !!GameState.save.characters[char.id]?.awakened;
     this.aura = this.add.image(190, 388, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.1).setAlpha(awakened ? 0.45 : 0).setDepth(3);
     if (awakened) this.tweens.add({ targets: this.aura, alpha: 0.2, scale: 1.2, duration: 900, yoyo: true, repeat: -1 });
@@ -336,14 +343,19 @@ export class FishingScene extends Phaser.Scene {
     this.ripple(this.castX, HORIZON);
     const seed = randomSeed();
     const rng = new Rng(seed);
-    const fish = this.bossHunt ? huntBoss(FISH_BY_ID.get(this.zone.bossId)!) : chooseFish(this.zone, FISH_BY_ID, this.loadout, power, rng);
+    this.junk = this.bossHunt ? null : rollJunk(rng, JUNK, FISHING.junkChance);
+    const fish = this.junk
+      ? junkAsFish(this.junk)
+      : this.bossHunt
+        ? huntBoss(FISH_BY_ID.get(this.zone.bossId)!)
+        : chooseFish(this.zone, FISH_BY_ID, this.loadout, power, rng);
     this.fishDef = fish;
     this.weightKg = rollWeight(fish, rng);
     this.session = new FishingSession({ fish, loadout: this.loadout, seed: rng.int(1, 2 ** 31) });
     this.mode = "fishing";
     this.nibbleAt = this.t + Phaser.Math.Between(700, 1500);
     this.hint.setText("Đang chờ cá cắn… Bấm khi phao chìm hẳn!");
-    this.fishImg.setTexture(fishTexture(this, fish));
+    this.fishImg.setTexture(this.junk ? junkTexture(this, this.junk) : fishTexture(this, fish));
     const dw = 150 * fish.appearance.scale;
     this.fishImg.setDisplaySize(dw, dw * 0.625).setVisible(false);
   }
@@ -478,7 +490,11 @@ export class FishingScene extends Phaser.Scene {
         this.fishX = this.castX;
         this.fishY = HORIZON + 95;
         this.fishImg.setVisible(true).setPosition(this.fishX, this.fishY);
-        this.fishNameT.setText(`${f.name} · ${FISH_RARITY_LABEL[f.rarity]}`);
+        this.fishNameT.setText(this.junk ? `♻ Rác: ${this.junk.name}` : `${f.name} · ${FISH_RARITY_LABEL[f.rarity]}`);
+        {
+          const line = pickLine(hookPool(!!this.junk, f.rarity), this.junk || f.rarity === "boss" ? 0.6 : 0.4);
+          if (line) speechBubble(this, 230, 238, line);
+        }
         this.splash(this.castX, HORIZON, 18);
         this.cameras.main.shake(180, 0.006);
         if (f.rarity === "boss") this.flashAlert("BOSS XUẤT HIỆN!", "#ff3d00", 64);
@@ -492,7 +508,7 @@ export class FishingScene extends Phaser.Scene {
         }
         break;
       case "jump":
-        this.fishJump();
+        if (!this.junk) this.fishJump();
         break;
       case "crit":
         Sfx.crit();
@@ -541,6 +557,15 @@ export class FishingScene extends Phaser.Scene {
     this.tweens.add({ targets: this.hero, scale: 1.08, duration: 120, yoyo: true });
     this.flashAlert(this.loadout.active.name.toUpperCase(), char.appearance.aura, 54);
     this.sparks(this.fishX, this.fishY, hexToInt(char.appearance.aura));
+    playSkillFx(this, {
+      heroX: 190,
+      heroY: 388,
+      fishX: this.fishX,
+      fishY: this.fishY,
+      color: hexToInt(char.appearance.aura),
+      charId: char.id,
+      effects: this.loadout.active.effects,
+    });
     const dmg = hpBefore - s.fishHp;
     if (dmg > 0) this.floatText(`-${formatNum(dmg)}`, this.fishX, this.fishY - 50, "#ff8a80");
   }
@@ -579,7 +604,7 @@ export class FishingScene extends Phaser.Scene {
     this.mode = "landing";
     Sfx.setReeling(false);
     const f = this.fishDef!;
-    const res = GameState.catchFish(FISH_BY_ID.get(f.id)!, this.weightKg, this.zone.id, this.bossHunt);
+    const res = this.junk ? GameState.catchJunk(this.junk) : GameState.catchFish(FISH_BY_ID.get(f.id)!, this.weightKg, this.zone.id, this.bossHunt);
     this.hud.setVisible(false);
     this.hint.setText("");
     this.fishImg.clearTint().setAlpha(1).setDepth(6);
@@ -622,6 +647,27 @@ export class FishingScene extends Phaser.Scene {
     this.resultC = c;
     c.add(this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.55).setOrigin(0).setInteractive());
     const f = this.fishDef;
+    if (kind === "caught" && this.junk) {
+      const j = this.junk;
+      c.add(panel(this, 340, 110, 600, 520, 0.96, 0x0f3d24));
+      c.add(txt(this, 640, 150, "BẠN VỚT ĐƯỢC RÁC!", 40, { color: "#b9f6ca", align: "center" }).setOrigin(0.5));
+      const img = this.add.image(640, 280, junkTexture(this, j)).setScale(0.1);
+      c.add(img);
+      this.tweens.add({ targets: img, scale: 0.75, duration: 450, ease: "Back.easeOut" });
+      this.tweens.add({ targets: img, angle: 8, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      c.add(txt(this, 640, 386, j.name, 34, { color: "#ffffff", align: "center" }).setOrigin(0.5));
+      c.add(txt(this, 640, 424, `Tái chế được +${j.ecoPoints} 🌿 Điểm Môi Trường · Đã cất vào túi rác`, 19, { align: "center", weight: "700", color: "#c8e6c9" }).setOrigin(0.5));
+      const msg = txt(this, 640, 482, ECO_MESSAGE, 26, { color: "#69f0ae", align: "center", wrap: 560 }).setOrigin(0.5);
+      c.add(msg);
+      this.tweens.add({ targets: msg, scale: 1.06, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      Sfx.coin();
+      c.add(new Button(this, 520, 570, 210, 66, "Câu tiếp", { color: COLORS.orange, fontSize: 26, sub: "Space / Enter", onClick: () => this.again() }));
+      c.add(new Button(this, 760, 570, 210, 66, "♻ Tái chế", { color: COLORS.green, fontSize: 26, onClick: () => goTo(this, "Shop", { tab: "eco" }) }));
+      c.setAlpha(0);
+      this.tweens.add({ targets: c, alpha: 1, duration: 220 });
+      this.bindAgainKeys();
+      return;
+    }
     if (kind === "caught" && f) {
       const rare = ["epic", "legendary", "mythic", "boss"].includes(f.rarity);
       const col = hexToInt(FISH_RARITY_COLOR[f.rarity]);
@@ -637,6 +683,8 @@ export class FishingScene extends Phaser.Scene {
       this.tweens.add({ targets: img, scale: f.appearance.scale >= 1.5 ? 0.95 : 0.85, duration: 500, ease: "Back.easeOut" });
       this.tweens.add({ targets: img, y: 290, duration: 1200, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
       c.add(txt(this, 640, 410, f.name, 36, { color: FISH_RARITY_COLOR[f.rarity], align: "center" }).setOrigin(0.5));
+      const brag = pickLine(CATCH_LINES, 0.5, { ca: f.name, kg: String(this.weightKg) });
+      if (brag) c.add(txt(this, 640, 528, `“${brag}”`, 17, { color: "#fff59d", align: "center", wrap: 560, weight: "700" }).setOrigin(0.5));
       c.add(txt(this, 640, 448, `${FISH_RARITY_LABEL[f.rarity]} · ${this.weightKg} kg · Lực chiến ${formatNum(fishPower(f))}`, 22, { align: "center", weight: "700" }).setOrigin(0.5));
       const r = catchRewards(f, this.loadout.passives, this.bossHunt);
       c.add(
@@ -663,7 +711,7 @@ export class FishingScene extends Phaser.Scene {
       c.add(txt(this, 640, 370, msg[1]!, 20, { align: "center", wrap: 440, weight: "700" }).setOrigin(0.5));
     }
     const by = kind === "caught" ? 570 : 470;
-    c.add(new Button(this, 520, by, 210, 66, "Câu tiếp", { color: COLORS.orange, fontSize: 28, onClick: () => this.again() }));
+    c.add(new Button(this, 520, by, 210, 66, "Câu tiếp", { color: COLORS.orange, fontSize: 26, sub: "Space / Enter", onClick: () => this.again() }));
     c.add(new Button(this, 760, by, 210, 66, kind === "caught" ? "Xem Kho Cá" : "Về sảnh", {
       color: COLORS.blue,
       fontSize: 26,
@@ -671,7 +719,28 @@ export class FishingScene extends Phaser.Scene {
     }));
     c.setAlpha(0);
     this.tweens.add({ targets: c, alpha: 1, duration: 220 });
-    this.input.keyboard?.once("keydown-ENTER", () => this.again());
+    this.bindAgainKeys();
+  }
+
+  /** Enter hoặc Space ở bảng kết quả = "Câu tiếp". */
+  private bindAgainKeys() {
+    const kb = this.input.keyboard;
+    if (!kb) return;
+    const go = () => {
+      kb.off("keydown-ENTER", go);
+      kb.off("keydown-SPACE", go);
+      // đợi nhả phím để lần nhấn Space này không bị tính là bắt đầu lấy lực
+      this.time.delayedCall(0, () => this.again());
+    };
+    // bỏ qua lần nhấn đang giữ từ lúc kéo cá
+    this.time.delayedCall(350, () => {
+      kb.on("keydown-ENTER", go);
+      kb.on("keydown-SPACE", go);
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      kb.off("keydown-ENTER", go);
+      kb.off("keydown-SPACE", go);
+    });
   }
 
   private again() {

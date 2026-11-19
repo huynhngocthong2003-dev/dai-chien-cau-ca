@@ -35,6 +35,11 @@ export function migrateSave(raw: unknown): unknown {
     s.redeemedCodes = [];
     s.version = 4;
   }
+  if (s.version === 4) {
+    s.eco = { points: 0, junk: {}, recycled: 0 };
+    s.claimedEvents = [];
+    s.version = 5;
+  }
   if (s.version !== SAVE_VERSION) return s;
   return s;
 }

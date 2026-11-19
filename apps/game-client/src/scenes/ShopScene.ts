@@ -1,9 +1,10 @@
 import Phaser from "phaser";
+import { menuBackdrop } from "../ui/backdrop.ts";
 import { TIER_COLOR, TIER_LABEL } from "@dccc/game-config";
-import { CHARACTER_BY_ID, COSMETICS, SHOP_ITEMS } from "@dccc/game-data";
-import { SELL_BACK_RATE, freeCopies, type CosmeticDef, type CosmeticSlot, type ShopItemDef } from "@dccc/shared";
+import { CHARACTER_BY_ID, COSMETICS, ECO_MESSAGE, JUNK, JUNK_BY_ID, SHOP_ITEMS } from "@dccc/game-data";
+import { SELL_BACK_RATE, freeCopies, junkCount, recyclePreview, type CosmeticDef, type CosmeticSlot, type ShopItemDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
-import { characterTexture, cosmeticTexture } from "../art/textures.ts";
+import { characterTexture, cosmeticTexture, junkTexture } from "../art/textures.ts";
 import { addFashionFx } from "../art/fashionFx.ts";
 import { Button, fadeIn, formatNum, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
@@ -11,7 +12,7 @@ import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
 import { Sfx } from "../audio/Sfx.ts";
 
-type Tab = CosmeticSlot | "items" | "market";
+type Tab = CosmeticSlot | "items" | "eco" | "market";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "hat", label: "🎩 Mũ" },
@@ -20,11 +21,16 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "wings", label: "🪽 Cánh" },
   { id: "horns", label: "🦄 Sừng" },
   { id: "items", label: "🎁 Vật Phẩm" },
+  { id: "eco", label: "♻ Môi Trường" },
   { id: "market", label: "🤝 Chợ" },
 ];
 
-function priceText(p: { currency: "gold" | "diamonds"; amount: number }) {
-  return `${p.currency === "gold" ? "🪙" : "💎"} ${formatNum(p.amount)}`;
+function curIcon(c: "gold" | "diamonds" | "eco") {
+  return c === "gold" ? "🪙" : c === "eco" ? "🌿" : "💎";
+}
+
+function priceText(p: { currency: "gold" | "diamonds" | "eco"; amount: number }) {
+  return `${curIcon(p.currency)} ${formatNum(p.amount)}`;
 }
 
 /** Cửa hàng: trang phục, trang sức, vật phẩm; phòng thử đồ bên phải. */
@@ -46,7 +52,7 @@ export class ShopScene extends Phaser.Scene {
   create() {
     this.input.enabled = true;
     fadeIn(this);
-    this.add.rectangle(0, 0, 1280, 720, 0x0b2a4a).setOrigin(0);
+    menuBackdrop(this);
     new TopBar(this, { title: "Cửa Hàng", onBack: () => goTo(this, "Hub") });
     this.tabBtns = TABS.map(
       (t, i) =>
@@ -70,11 +76,13 @@ export class ShopScene extends Phaser.Scene {
     this.body = c;
     if (this.tab === "market") return this.renderMarket(c);
     if (this.tab === "items") return this.renderItems(c);
-    const list = COSMETICS.filter((it) => it.slot === this.tab);
+    const eco = this.tab === "eco";
+    if (eco) this.renderEcoBanner(c);
+    const list = eco ? COSMETICS.filter((it) => it.price.currency === "eco") : COSMETICS.filter((it) => it.slot === this.tab && it.price.currency !== "eco");
     if (!this.selected || !list.some((x) => x.id === this.selected)) this.selected = list[0]!.id;
     list.forEach((it, i) => {
       const x = 16 + (i % 5) * 165;
-      const y = 152 + Math.floor(i / 5) * 278;
+      const y = (eco ? 430 : 152) + Math.floor(i / 5) * 278;
       const owned = GameState.save.wardrobe[it.id] ?? 0;
       const tc = TIER_COLOR[it.tier];
       this.card(c, x, y, 158, 268, it.id === this.selected, tc, () => {
@@ -148,7 +156,7 @@ export class ShopScene extends Phaser.Scene {
     wear.on("disabled-click", () => toast(this, owned ? "Nhân vật khác đang mặc hết số món này" : "Hãy mua trước khi mặc"));
     c.add(wear);
     const refund = Math.floor(it.price.amount * SELL_BACK_RATE);
-    const sell = new Button(this, 1150, 608, 190, 54, `Bán ${it.price.currency === "gold" ? "🪙" : "💎"}${formatNum(refund)}`, {
+    const sell = new Button(this, 1150, 608, 190, 54, `Bán ${curIcon(it.price.currency)}${formatNum(refund)}`, {
       color: COLORS.blue,
       fontSize: 20,
       disabled: free < 1,
@@ -163,6 +171,50 @@ export class ShopScene extends Phaser.Scene {
     sell.on("disabled-click", () => toast(this, owned ? "Hãy tháo ra trước khi bán" : "Bạn chưa có món này"));
     c.add(sell);
     c.add(txt(this, 1058, 668, "Đổi đồ cho nhân vật khác: chọn nhân vật ở mục Nhân Vật", 13, { align: "center", color: COLORS.textDim }).setOrigin(0.5));
+  }
+
+  /** Túi rác + tái chế + điểm môi trường. */
+  private renderEcoBanner(c: Phaser.GameObjects.Container) {
+    const s = GameState.save;
+    const g = this.add.graphics();
+    g.fillStyle(0x0f3d24, 0.95).fillRoundedRect(16, 152, 820, 264, 18);
+    g.lineStyle(3, 0x69f0ae).strokeRoundedRect(16, 152, 820, 264, 18);
+    c.add(g);
+    c.add(txt(this, 36, 170, `🌿 Điểm Môi Trường: ${s.eco.points}`, 26, { color: "#b9f6ca" }));
+    c.add(txt(this, 36, 206, `Đã tái chế tổng cộng ${s.eco.recycled} món rác`, 16, { weight: "700", color: "#c8e6c9" }));
+    const msg = txt(this, 816, 176, ECO_MESSAGE, 18, { color: "#69f0ae", align: "right", wrap: 380 }).setOrigin(1, 0);
+    c.add(msg);
+    // túi rác
+    JUNK.forEach((j, i) => {
+      const x = 36 + i * 120;
+      const n = s.eco.junk[j.id] ?? 0;
+      const cg = this.add.graphics();
+      cg.fillStyle(0x0a2a18, 1).fillRoundedRect(x, 240, 110, 100, 12);
+      cg.lineStyle(2, n ? 0x69f0ae : 0x2e5d40).strokeRoundedRect(x, 240, 110, 100, 12);
+      c.add(cg);
+      c.add(this.add.image(x + 55, 280, junkTexture(this, j)).setDisplaySize(96, 60).setAlpha(n ? 1 : 0.35));
+      c.add(txt(this, x + 55, 326, `${j.name} ×${n}`, 12, { align: "center", weight: "700" }).setOrigin(0.5));
+    });
+    const total = recyclePreview(s, JUNK_BY_ID);
+    const count = junkCount(s);
+    const rb = new Button(this, 720, 370, 210, 64, count ? `♻ Tái chế (+${total})` : "♻ Tái chế", {
+      color: COLORS.green,
+      fontSize: 22,
+      disabled: count === 0,
+      onClick: () => {
+        const r = GameState.recycle();
+        if (!r.ok) return toast(this, r.error, COLORS.red);
+        Sfx.levelUp();
+        this.add
+          .particles(720, 370, "p_leaf", { speed: { min: 120, max: 360 }, lifespan: 1200, quantity: 40, stopAfter: 40, scale: { start: 2, end: 0.5 }, rotate: { min: 0, max: 360 } })
+          .setDepth(50);
+        toast(this, `Đã tái chế ${r.items} món rác → +${r.points} 🌿 Điểm Môi Trường. Cảm ơn bạn!`, COLORS.green);
+        this.render();
+      },
+    });
+    rb.on("disabled-click", () => toast(this, "Chưa có rác. Khi câu cá thỉnh thoảng sẽ vớt được rác – hãy mang về tái chế!"));
+    c.add(rb);
+    c.add(txt(this, 36, 360, "Đổi điểm lấy Bộ Bảo Vệ Môi Trường màu xanh lá bên dưới 👇", 16, { weight: "700", color: "#c8e6c9" }));
   }
 
   private renderItems(c: Phaser.GameObjects.Container) {

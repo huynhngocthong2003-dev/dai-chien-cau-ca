@@ -1,8 +1,8 @@
 import Phaser from "phaser";
-import { CHARACTER_BY_ID, FISH_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CHARACTER_BY_ID, COSMETICS, EVENTS, FISH_BY_ID, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import { playerNameSchema } from "@dccc/validation";
 import { GameState } from "../state/GameState.ts";
-import { auraTexture, characterTexture, dockTexture, fishTexture, zoneTexture } from "../art/textures.ts";
+import { auraTexture, characterHeadTexture, characterTexture, cosmeticTexture, dockTexture, fishSilhouetteTexture, fishTexture, rodIconTexture, zoneTexture } from "../art/textures.ts";
 import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -17,7 +17,6 @@ const COMING: Record<string, string> = {
   pvp: "Đấu Cá online (1v1, 3v3) sẽ mở ở Giai đoạn 4 – cần server Colyseus.",
   spin: "Vòng Quay & Gacha sẽ mở ở Giai đoạn 3.",
   quest: "Nhiệm vụ ngày/tuần & điểm danh sẽ mở ở Giai đoạn 3.",
-  event: "Sự kiện cộng đồng sẽ mở ở Giai đoạn 5.",
   rank: "Bảng xếp hạng online sẽ mở ở Giai đoạn 5.",
   clan: "Hội Câu Cá sẽ mở ở Giai đoạn 5.",
 };
@@ -50,7 +49,7 @@ export class HubScene extends Phaser.Scene {
     this.time.delayedCall(800, leap);
     this.time.addEvent({ delay: 6500, loop: true, callback: leap });
 
-    this.add.image(0, 330, dockTexture(this)).setOrigin(0).setDepth(-5);
+    this.add.image(0, 330, dockTexture(this, Math.max(0, ZONES.findIndex((z) => z.id === zone.id)))).setOrigin(0).setDepth(-5);
     const char = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
     const aura = this.add.image(190, 384, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.25).setAlpha(0.55).setDepth(-5);
     const hero = this.add.image(190, 384, characterTexture(this, char, GameState.equipOf(char.id))).setOrigin(0.5, 1).setScale(1.15).setDepth(-4);
@@ -96,17 +95,23 @@ export class HubScene extends Phaser.Scene {
 
     // Lưới tính năng
     panel(this, 836, 96, 428, 610, 0.72);
-    const items: { icon: string; label: string; color: number; act: () => void; locked?: string; badge?: string }[] = [
-      { icon: "🧑", label: "Nhân Vật", color: COLORS.blue, act: () => goTo(this, "Characters") },
-      { icon: "🎣", label: "Cần Câu", color: COLORS.blue, act: () => goTo(this, "Rods") },
-      { icon: "🐟", label: "Kho Cá", color: COLORS.blue, act: () => goTo(this, "Inventory"), badge: s.fishes.length ? String(s.fishes.length) : undefined },
-      { icon: "🛒", label: "Cửa Hàng", color: COLORS.orange, act: () => goTo(this, "Shop") },
-      { icon: "📖", label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
+    const eventsLeft = EVENTS.filter((e) => !s.claimedEvents.includes(e.id)).length;
+    const charIcon = characterHeadTexture(this, char, GameState.equipOf(char.id));
+    const rodIcon = rodIconTexture(this, ROD_BY_ID.get(s.selectedRodId)!);
+    const fishIcon = fishTexture(this, FISH_BY_ID.get("f_ca_chep")!);
+    const bookIcon = fishSilhouetteTexture(this, FISH_BY_ID.get("f_boss_hoa_nguc_bao_ngu")!);
+    const shopIcon = cosmeticTexture(this, CHARACTER_BY_ID.get("c_be_tom")!, COSMETICS.find((c) => c.id === "w_canh_thien_than")!.id);
+    const items: { icon: string; iconKey?: string; label: string; color: number; act: () => void; locked?: string; badge?: string }[] = [
+      { icon: "🧑", iconKey: charIcon, label: "Nhân Vật", color: COLORS.blue, act: () => goTo(this, "Characters") },
+      { icon: "🎣", iconKey: rodIcon, label: "Cần Câu", color: COLORS.blue, act: () => goTo(this, "Rods") },
+      { icon: "🐟", iconKey: fishIcon, label: "Kho Cá", color: COLORS.blue, act: () => goTo(this, "Inventory"), badge: s.fishes.length ? String(s.fishes.length) : undefined },
+      { icon: "🛒", iconKey: shopIcon, label: "Cửa Hàng", color: COLORS.orange, act: () => goTo(this, "Shop") },
+      { icon: "📖", iconKey: bookIcon, label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
       { icon: "⚙️", label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
       { icon: "⚔️", label: "Đấu Cá", color: COLORS.red, act: () => {}, locked: "pvp" },
       { icon: "🎡", label: "Vòng Quay", color: COLORS.purple, act: () => {}, locked: "spin" },
       { icon: "📜", label: "Nhiệm Vụ", color: COLORS.purple, act: () => {}, locked: "quest" },
-      { icon: "🎉", label: "Sự Kiện", color: COLORS.purple, act: () => {}, locked: "event" },
+      { icon: "🎉", label: "Sự Kiện", color: COLORS.orange, act: () => this.openEvents(), badge: eventsLeft ? "!" : undefined },
       { icon: "🏆", label: "Xếp Hạng", color: COLORS.purple, act: () => {}, locked: "rank" },
       { icon: "🛡️", label: "Hội", color: COLORS.purple, act: () => {}, locked: "clan" },
     ];
@@ -118,6 +123,7 @@ export class HubScene extends Phaser.Scene {
       const b = new Button(this, bx, by, 126, 120, it.label, {
         color: it.color,
         icon: it.icon,
+        iconKey: it.iconKey,
         disabled: !!it.locked,
         badge: it.locked ? "🔒" : it.badge,
         onClick: it.act,
@@ -142,6 +148,42 @@ export class HubScene extends Phaser.Scene {
       quantity: 26,
       stopAfter: 26,
     }).setDepth(-6);
+  }
+
+  private openEvents() {
+    const m = modal(this, 760, 460, "🎉 Sự Kiện", () => this.time.delayedCall(160, () => this.scene.restart()));
+    EVENTS.forEach((ev, i) => {
+      const y = m.y + 110 + i * 150;
+      const got = GameState.save.claimedEvents.includes(ev.id);
+      const g = this.add.graphics();
+      g.fillStyle(0x1a3d66, 1).fillRoundedRect(m.x + 30, y - 50, m.w - 60, 130, 16);
+      g.lineStyle(3, got ? 0x607d8b : 0xffc107).strokeRoundedRect(m.x + 30, y - 50, m.w - 60, 130, 16);
+      m.root.add(g);
+      const ic = this.add.text(m.x + 90, y + 14, ev.icon, { fontSize: "60px", padding: { top: 10 } }).setOrigin(0.5);
+      m.root.add(ic);
+      if (!got) this.tweens.add({ targets: ic, scale: 1.15, angle: 8, duration: 500, yoyo: true, repeat: -1 });
+      m.root.add(txt(this, m.x + 140, y - 36, ev.name, 26, { color: COLORS.textGold }));
+      m.root.add(txt(this, m.x + 140, y + 2, ev.description, 16, { weight: "700", wrap: 380 }));
+      const btn = new Button(this, m.x + m.w - 120, y + 14, 170, 60, got ? "Đã nhận ✓" : `Nhận 💎${ev.reward.diamonds ?? ""}`, {
+        color: COLORS.orange,
+        fontSize: 22,
+        disabled: got,
+        onClick: () => {
+          const r = GameState.claimEvent(ev);
+          if (!r.ok) return toast(this, r.error, COLORS.red);
+          Sfx.catchFanfare(true);
+          this.cameras.main.flash(300, 120, 220, 255);
+          this.add
+            .particles(btn.x, btn.y, "p_spark", { speed: { min: 150, max: 420 }, lifespan: 900, scale: { start: 1.3, end: 0 }, tint: [0x40c4ff, 0xffffff, 0xffd54f], quantity: 40, stopAfter: 40, blendMode: Phaser.BlendModes.ADD })
+            .setDepth(1000);
+          toast(this, `🎁 Đã nhận ${ev.reward.diamonds} kim cương! Chúc bạn câu được nhiều cá khủng!`, COLORS.green);
+          btn.setText("Đã nhận ✓").setDisabled(true);
+        },
+      });
+      btn.on("disabled-click", () => toast(this, "Bạn đã nhận quà sự kiện này rồi"));
+      m.root.add(btn);
+    });
+    m.root.add(txt(this, m.x + m.w / 2, m.y + m.h - 40, "Sự kiện mới sẽ được cập nhật thường xuyên!", 16, { color: COLORS.textDim, align: "center", weight: "700" }).setOrigin(0.5));
   }
 
   private openSettings() {
@@ -221,6 +263,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.6.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.7.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

@@ -2,6 +2,7 @@ import type { CosmeticDef, ShopItemDef } from "@dccc/shared";
 
 const g = (amount: number) => ({ currency: "gold" as const, amount });
 const d = (amount: number) => ({ currency: "diamonds" as const, amount });
+const e = (amount: number) => ({ currency: "eco" as const, amount });
 
 /** Quần áo, mũ, trang sức. Chỉ số phụ nhỏ (≤ 8%) để không pay-to-win. */
 export const COSMETICS: CosmeticDef[] = [
@@ -48,6 +49,11 @@ export const COSMETICS: CosmeticDef[] = [
   { id: "n_sung_rong_vang", name: "Sừng Rồng Vàng", slot: "horns", tier: "legendary", price: d(250), visual: { kind: "dragon", color: "#ffc107", accent: "#ff6f00" }, bonus: [{ kind: "boss_damage", value: 0.08 }, { kind: "pull_bonus", value: 0.05 }], description: "+8% sát thương Boss, +5% lực kéo." },
   { id: "n_hao_quang_thanh", name: "Hào Quang Thánh", slot: "horns", tier: "legendary", price: d(250), visual: { kind: "halo", color: "#ffeb3b", accent: "#ffffff" }, bonus: [{ kind: "xp_bonus", value: 0.08 }, { kind: "luck_bonus", value: 5 }], description: "+8% kinh nghiệm, +5 may mắn." },
   { id: "n_sung_than_sam", name: "Sừng Thần Sấm", slot: "horns", tier: "divine", price: d(700), visual: { kind: "thunder", color: "#ffee58", accent: "#2979ff" }, bonus: [{ kind: "crit", chance: 0.1, multiplier: 2 }, { kind: "tension_gain_reduce", value: 0.1 }], description: "10% chí mạng x2, lực căng tăng chậm hơn 10%. Sét chạy quanh." },
+  // ---- Bộ Bảo Vệ Môi Trường (đổi bằng Điểm Môi Trường từ rác tái chế)
+  { id: "h_mu_la_xanh", name: "Mũ Lá Xanh", slot: "hat", tier: "superior", price: e(15), visual: { kind: "cap", color: "#2e7d32", accent: "#b9f6ca" }, bonus: [{ kind: "luck_bonus", value: 3 }], description: "Bộ Bảo Vệ Môi Trường. +3 may mắn." },
+  { id: "o_ao_xanh_moi_truong", name: "Áo Chiến Binh Xanh", slot: "outfit", tier: "superior", price: e(30), visual: { kind: "overalls", color: "#43a047", accent: "#ffffff" }, bonus: [{ kind: "xp_bonus", value: 0.05 }], description: "Bộ Bảo Vệ Môi Trường. +5% kinh nghiệm." },
+  { id: "a_khan_la_xanh", name: "Khăn Lá Tái Chế", slot: "accessory", tier: "superior", price: e(10), visual: { kind: "scarf", color: "#66bb6a", accent: "#ffffff" }, bonus: [{ kind: "tension_decay_bonus", value: 0.05 }], description: "Bộ Bảo Vệ Môi Trường. Lực căng giảm nhanh hơn 5%." },
+  { id: "w_canh_la_xanh", name: "Cánh Lá Xanh", slot: "wings", tier: "superior", price: e(45), visual: { kind: "butterfly", color: "#69f0ae", accent: "#1b5e20" }, bonus: [{ kind: "gold_bonus", value: 0.05 }], description: "Bộ Bảo Vệ Môi Trường. +5% vàng." },
 ];
 
 /** Vật phẩm tiêu hao bán trong cửa hàng. */

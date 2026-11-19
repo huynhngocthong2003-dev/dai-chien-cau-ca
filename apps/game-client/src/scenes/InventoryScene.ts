@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { menuBackdrop } from "../ui/backdrop.ts";
 import { ECONOMY, FISH_RARITY_COLOR, FISH_RARITY_LABEL, RARITY_ORDER } from "@dccc/game-config";
 import { FISHES, FISH_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { canAfford, decomposeValue, evolveFodder, fishMaxLevel, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type OwnedFish } from "@dccc/shared";
@@ -49,8 +50,7 @@ export class InventoryScene extends Phaser.Scene {
   create() {
     this.input.enabled = true;
     fadeIn(this);
-    this.add.rectangle(0, 0, 1280, 720, 0x0b2a4a).setOrigin(0);
-    this.add.image(640, 400, "p_ray").setTint(0x1d5b8f).setAlpha(0.15).setScale(18, 1.4);
+    menuBackdrop(this);
     new TopBar(this, { title: "Kho Cá", onBack: () => goTo(this, "Hub") });
     this.tabBtns = [
       new Button(this, 110, 116, 190, 50, "🐟 Kho Cá", { color: COLORS.blue, fontSize: 22, onClick: () => this.switchTab("bag") }),

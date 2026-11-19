@@ -1,6 +1,9 @@
 import Phaser from "phaser";
 import {
   applyCatch,
+  applyJunkCatch,
+  claimEvent,
+  recycleAll,
   decideSync,
   decodeBackup,
   encodeBackup,
@@ -27,12 +30,14 @@ import {
   type CosmeticSlot,
   type ShopItemDef,
   type FishDef,
+  type GameEventDef,
+  type JunkDef,
   type Loadout,
   type RodDef,
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { CATALOG, CHARACTERS, CHARACTER_BY_ID, GIFT_REWARDS, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHARACTERS, CHARACTER_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 import * as Online from "./online.ts";
@@ -155,6 +160,18 @@ class GameStateStore extends Phaser.Events.EventEmitter {
       if (res.levelUps) this.emit("level-up", this._save.level);
     }
     return res;
+  }
+
+  catchJunk(j: JunkDef) {
+    return this.run(applyJunkCatch(this._save, j, uid("j"), Date.now()));
+  }
+
+  claimEvent(ev: GameEventDef) {
+    return this.run(claimEvent(this._save, ev, uid("ev"), Date.now()));
+  }
+
+  recycle() {
+    return this.run(recycleAll(this._save, JUNK_BY_ID, uid("rc"), Date.now()));
   }
 
   recordFail(kind: "escaped" | "snapped") {

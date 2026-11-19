@@ -11,14 +11,19 @@ export const SELL_BACK_RATE = 0.5;
 /** Tối đa mỗi món trong tủ đồ. */
 export const MAX_COSMETIC_COPIES = 12;
 
-function canPay(s: PlayerSave, p: { currency: "gold" | "diamonds"; amount: number }): string | null {
-  const have = p.currency === "gold" ? s.gold : s.diamonds;
-  if (have < p.amount) return p.currency === "gold" ? `Cần ${p.amount.toLocaleString("vi-VN")} vàng` : `Cần ${p.amount} kim cương`;
-  return null;
+type Price = { currency: "gold" | "diamonds" | "eco"; amount: number };
+
+function canPay(s: PlayerSave, p: Price): string | null {
+  const have = p.currency === "gold" ? s.gold : p.currency === "eco" ? s.eco.points : s.diamonds;
+  if (have >= p.amount) return null;
+  if (p.currency === "gold") return `Cần ${p.amount.toLocaleString("vi-VN")} vàng`;
+  if (p.currency === "eco") return `Cần ${p.amount} Điểm Môi Trường – hãy tái chế rác`;
+  return `Cần ${p.amount} kim cương`;
 }
 
-function charge(s: PlayerSave, p: { currency: "gold" | "diamonds"; amount: number }, txId: string, reason: string, now: number) {
+function charge(s: PlayerSave, p: Price, txId: string, reason: string, now: number) {
   if (p.currency === "gold") s.gold -= p.amount;
+  else if (p.currency === "eco") s.eco.points -= p.amount;
   else s.diamonds -= p.amount;
   addLedger(s, txId, p.currency, -p.amount, reason, now);
 }
@@ -84,6 +89,7 @@ export function sellCosmetic(save: PlayerSave, item: CosmeticDef, txId: string, 
   s.wardrobe[item.id] = (s.wardrobe[item.id] ?? 0) - 1;
   if (s.wardrobe[item.id] === 0) delete s.wardrobe[item.id];
   if (item.price.currency === "gold") s.gold += refund;
+  else if (item.price.currency === "eco") s.eco.points += refund;
   else s.diamonds += refund;
   addLedger(s, txId, item.price.currency, refund, `sell_cosmetic:${item.id}`, now);
   markTx(s, txId);
