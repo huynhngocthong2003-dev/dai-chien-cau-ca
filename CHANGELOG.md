@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.12.0] – 2026-11-19 – Hiệu ứng kỹ năng theo từng tướng, trang duyệt nạp
+### Thêm
+- **Hiệu ứng kỹ năng riêng cho 14 nhân vật** đúng mô tả: Giật Cần (vệt quất cần), Thả Dây (dây xoắn lỏng), Gió Thuận (luồng gió + lá + thuyền buồm), Móc Sắt (mỏ neo sắt + xích), Ảnh Phân Thân (phân thân + phi tiêu), Ca Khúc Biển (sóng âm + nốt nhạc), Lưới Thép (lưới thép + tia hàn), **Long Trảo (bàn vuốt rồng 4 móng vồ xuống + 3 vết cào)**, Đóng Băng (mặt nước đóng băng + tinh thể), Lửa Hỏa Ngục (cột lửa), Triều Cường (sóng thần cuộn), Lôi Phạt (mây giông + sét liên hoàn), Bình Minh Rực Lửa (mặt trời mọc + lông phượng), Thiên Biến Vạn Hóa (gậy như ý + đàn khỉ).
+- **Tướng càng hiếm hiệu ứng càng hoành tráng**: N/R băng tên chiêu · SR cắt cảnh anime (chân dung lớn + dải màu) · SSR/UR/LR **đổi cả nền trời và mặt nước** (lãnh địa riêng: Long Cung, cực quang băng, hỏa ngục, đại dương đêm trăng, bão sét, bình minh, thiên đình mây vàng) · LR thêm khung vàng phát sáng.
+- **Trang duyệt nạp riêng** `admin.html` (mở trên điện thoại/máy tính): đăng nhập tài khoản quản trị, xem lệnh Chờ duyệt / Đã duyệt / Đã nhận / Từ chối, thống kê doanh thu, duyệt bằng 1 chạm (có hỏi lại).
+
 ## [0.11.1] – 2026-11-19
 ### Sửa
 - **Database đã được triển khai lên Supabase** (hồ sơ, bạn bè, Đấu Sinh Tử người chơi, hội, xếp hạng, nạp, ghép trận) + hàm máy chủ `death-match`; hồ sơ công khai của người chơi cũ đã được tạo sẵn để **tìm tên & kết bạn** ngay.

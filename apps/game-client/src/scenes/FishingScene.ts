@@ -632,6 +632,8 @@ export class FishingScene extends Phaser.Scene {
       color: hexToInt(char.appearance.aura),
       charId: char.id,
       effects: this.loadout.active.effects,
+      skillName: this.loadout.active.name,
+      heroKey: this.hero.texture.key,
     });
     const dmg = hpBefore - s.fishHp;
     if (dmg > 0) this.floatText(`-${formatNum(dmg)}`, this.fishX, this.fishY - 50, "#ff8a80");

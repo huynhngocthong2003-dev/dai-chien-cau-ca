@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Duyệt nạp – Đại Chiến Câu Cá</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="./favicon.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<style>
+  :root { --bg: #0b2a4a; --card: #123a63; --line: #2b5d8f; --text: #fff8e1; --dim: #a9c4e0; --ok: #43a047; --bad: #e53935; --gold: #ffc107; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 16px max(16px, env(safe-area-inset-left)) 40px; }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 4px 0 14px; display: flex; gap: 10px; align-items: center; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  input { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--line); background: #fff8e1; color: #1b1530; font-size: 16px; margin: 6px 0 10px; }
+  button { cursor: pointer; border: 0; border-radius: 10px; padding: 11px 16px; font-weight: 700; font-size: 15px; color: #fff; background: #1e88e5; }
+  button.ok { background: var(--ok); } button.bad { background: var(--bad); } button.ghost { background: transparent; border: 1px solid var(--line); }
+  button:disabled { opacity: .5; cursor: default; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tabs button { background: transparent; border: 1px solid var(--line); }
+  .tabs button.on { background: var(--gold); color: #1b1530; border-color: var(--gold); }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+  .code { font: 700 20px ui-monospace, Menlo, monospace; color: #ffeb3b; letter-spacing: .5px; }
+  .meta { color: var(--dim); font-size: 14px; }
+  .actions { display: flex; gap: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .stat b { display: block; font-size: 22px; color: var(--gold); }
+  .msg { padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; background: #1b4d2a; }
+  .msg.err { background: #5a1a1a; }
+  .hidden { display: none; }
+  @media (max-width: 560px) { .row { grid-template-columns: 1fr; } .actions button { flex: 1; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>🛠 Duyệt nạp · Đại Chiến Câu Cá</h1>
+  <div id="msg" class="msg hidden"></div>
+  <section id="login" class="card hidden">
+    <p class="meta">Đăng nhập bằng tài khoản game có quyền quản trị.</p>
+    <label>Email<input id="email" type="email" autocomplete="username"></label>
+    <label>Mật khẩu<input id="pass" type="password" autocomplete="current-password"></label>
+    <button id="btnLogin">Đăng nhập</button>
+  </section>
+  <section id="app" class="hidden">
+    <div class="card stats" id="stats"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="list"></div>
+    <p class="meta">Chỉ duyệt khi sao kê ngân hàng có <b>đúng số tiền</b> và <b>đúng nội dung DCCC…</b>. Trang tự làm mới mỗi 20 giây.
+      <button class="ghost" id="btnLogout" style="margin-left:8px">Đăng xuất</button></p>
+  </section>
+</main>
+<script type="module" src="/src/admin/main.ts"></script>
+</body>
+</html>

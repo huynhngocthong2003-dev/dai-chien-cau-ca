@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { ActiveEffect } from "@dccc/shared";
 import { txt } from "./widgets.ts";
 import { pickLine, skillPool } from "./quotes.ts";
+import { signatureFx } from "./signatureFx.ts";
 
 /** Câu thoại "bựa" vui nhộn khi tung kỹ năng – mỗi nhân vật vài câu, chọn ngẫu nhiên. */
 export const SKILL_QUOTES: Record<string, string[]> = {
@@ -49,6 +50,9 @@ interface FxOpts {
   color: number;
   charId: string;
   effects: ActiveEffect[];
+  skillName?: string;
+  /** Texture nhân vật (để vẽ phân thân…). */
+  heroKey?: string;
 }
 
 /** Bong bóng thoại cạnh nhân vật. */
@@ -67,7 +71,7 @@ export function speechBubble(scene: Phaser.Scene, x: number, y: number, text: st
   scene.tweens.add({ targets: c, alpha: 0, delay: 2200, duration: 300, onComplete: () => c.destroy() });
 }
 
-function shockwaves(scene: Phaser.Scene, x: number, y: number, color: number, n = 3) {
+export function shockwaves(scene: Phaser.Scene, x: number, y: number, color: number, n = 3) {
   for (let i = 0; i < n; i++) {
     const r = scene.add.circle(x, y, 20).setStrokeStyle(8 - i * 2, i === 0 ? 0xffffff : color, 1).setDepth(85);
     scene.tweens.add({ targets: r, scale: 9 + i * 3, alpha: 0, duration: 650 + i * 150, delay: i * 90, ease: "Cubic.easeOut", onComplete: () => r.destroy() });
@@ -86,7 +90,7 @@ function speedLines(scene: Phaser.Scene, color: number) {
   scene.tweens.add({ targets: g, alpha: 0, duration: 500, onComplete: () => g.destroy() });
 }
 
-function lightning(scene: Phaser.Scene, x: number, y: number, color: number) {
+export function lightning(scene: Phaser.Scene, x: number, y: number, color: number) {
   const g = scene.add.graphics().setDepth(86).setBlendMode(Phaser.BlendModes.ADD);
   for (const [w, c] of [[12, color], [5, 0xffffff]] as const) {
     g.lineStyle(w, c, 1);
@@ -104,7 +108,7 @@ function lightning(scene: Phaser.Scene, x: number, y: number, color: number) {
   scene.tweens.add({ targets: g, alpha: 0, duration: 380, onComplete: () => g.destroy() });
 }
 
-function burst(scene: Phaser.Scene, x: number, y: number, tex: string, tint: number[], n = 50, speed = 520) {
+export function burst(scene: Phaser.Scene, x: number, y: number, tex: string, tint: number[], n = 50, speed = 520) {
   scene.add
     .particles(x, y, tex, {
       speed: { min: speed * 0.3, max: speed },
@@ -119,13 +123,13 @@ function burst(scene: Phaser.Scene, x: number, y: number, tex: string, tint: num
     .setDepth(87);
 }
 
-function comicWord(scene: Phaser.Scene, x: number, y: number, word: string, color: string) {
+export function comicWord(scene: Phaser.Scene, x: number, y: number, word: string, color: string) {
   const t = txt(scene, x, y, word, 64, { color, stroke: 12 }).setOrigin(0.5).setDepth(92).setScale(3).setAngle(Phaser.Math.Between(-14, 14));
   scene.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
   scene.tweens.add({ targets: t, alpha: 0, y: y - 60, delay: 900, duration: 400, onComplete: () => t.destroy() });
 }
 
-function stunStars(scene: Phaser.Scene, x: number, y: number) {
+export function stunStars(scene: Phaser.Scene, x: number, y: number) {
   const stars = [0, 1, 2, 3].map(() => txt(scene, x, y, "★", 34, { color: "#ffeb3b" }).setOrigin(0.5).setDepth(88));
   let t = 0;
   const ev = scene.time.addEvent({
@@ -145,6 +149,8 @@ function stunStars(scene: Phaser.Scene, x: number, y: number) {
 /** Hiệu ứng bùng nổ khi tung kỹ năng: thoại vui + rung + sóng xung kích + hạt + chữ tượng thanh. */
 export function playSkillFx(scene: Phaser.Scene, o: FxOpts) {
   const cam = scene.cameras.main;
+  // hiệu ứng riêng của nhân vật (có thì giảm bớt hiệu ứng chung cho đỡ rối)
+  const sig = signatureFx(scene, { ...o, skillName: o.skillName ?? "", heroKey: o.heroKey });
   // ~50% câu riêng của nhân vật, còn lại dùng bộ thoại theo nhóm kỹ năng
   const line = Math.random() < 0.5 ? pickQuote(o.charId) : (pickLine(skillPool(o.effects)) ?? pickQuote(o.charId));
   speechBubble(scene, o.heroX + 40, o.heroY - 150, line);
@@ -160,6 +166,7 @@ export function playSkillFx(scene: Phaser.Scene, o: FxOpts) {
   const kinds = new Set(o.effects.map((e) => e.kind));
   const main = o.effects[0]?.kind ?? "damage_pct";
   const words = BOOM[main] ?? BOOM.damage_pct!;
+  if (sig) return;
   comicWord(scene, o.fishX + Phaser.Math.Between(-30, 30), o.fishY - 110, words[Math.floor(Math.random() * words.length)]!, "#ffeb3b");
   if (kinds.has("damage_pct") || kinds.has("stun") || kinds.has("double_damage")) {
     lightning(scene, o.fishX, o.fishY, o.color);

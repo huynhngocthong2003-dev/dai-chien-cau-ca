@@ -15,7 +15,7 @@ insert into public.admins (user_id) select id from auth.users where email = 'EMA
 ```
 
 ## Duyệt lệnh
-1. Mở game bằng tài khoản quản trị → ô 💎 → nút **🛠 Duyệt nạp**.
+1. Mở **https://huynhngocthong2003-dev.github.io/dai-chien-cau-ca/admin.html** (đăng nhập tài khoản game có quyền quản trị) – hoặc trong game: ô 💎 → nút **🛠 Duyệt nạp**.
 2. So với sao kê ACB: **đúng số tiền + đúng nội dung `DCCC…`** → bấm **✅ Duyệt** 2 lần. Sai/không thấy tiền → **✖ Từ chối**.
 3. Mỗi lệnh chỉ được nhận đúng 1 lần (máy chủ đánh dấu), người chơi không tự duyệt được.
 

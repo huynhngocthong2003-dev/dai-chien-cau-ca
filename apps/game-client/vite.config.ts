@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => ({
     outDir: mode === "single" ? "dist-single" : "dist",
     target: "es2022",
     chunkSizeWarningLimit: 2000,
+    // bản web thường có thêm trang duyệt nạp cho chủ game (admin.html)
+    rollupOptions: mode === "single" ? undefined : { input: { main: "index.html", admin: "admin.html" } },
   },
   server: { port: 5173 },
 }));
