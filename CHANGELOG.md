@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.13.1] – 2026-11-19
+### Thêm
+- Nhân vật / cần câu **LR**: khung **cầu vồng 7 sắc** chạy vòng quanh thẻ (màu trôi liên tục, có quầng sáng), chữ "LR" tô cầu vồng; bảng chi tiết nhân vật LR và màn nhận nhân vật LR từ mã quà cũng viền cầu vồng + tia sáng 7 sắc.
+
 ## [0.13.0] – 2026-11-19 – Nhạc nền
 ### Thêm
 - **Nhạc nền tự soạn** (WebAudio, không dùng file nhạc → nhẹ, không lo bản quyền): Sảnh vui tươi (Đô trưởng ngũ cung), Câu cá êm đềm âm hưởng dân ca (La thứ ngũ cung), Săn Boss căng thẳng, Đấu Sinh Tử dồn dập có trống, các màn khác nhẹ nhàng. Chuyển bài mượt khi đổi màn.

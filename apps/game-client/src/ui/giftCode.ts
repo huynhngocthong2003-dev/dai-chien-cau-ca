@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { screenRect } from "./wide.ts";
+import { RAINBOW, rainbowFrame, rainbowText } from "./rainbow.ts";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
 import { CHARACTER_BY_ID, ROD_BY_ID } from "@dccc/game-data";
 import { GameState } from "../state/GameState.ts";
@@ -68,7 +69,9 @@ function celebrate(scene: Phaser.Scene, charId: string, onDone?: () => void) {
     root.add(screenRect(scene, 0x000000, 0.75).setInteractive());
     const rays = scene.add.container(640, 330);
     const col = Phaser.Display.Color.HexStringToColor(CHAR_RARITY_COLOR[ch.rarity]).color;
-    for (let i = 0; i < 16; i++) rays.add(scene.add.image(0, 0, "p_ray").setOrigin(0.5, 0).setAngle(i * 22.5).setTint(col).setAlpha(0.6).setBlendMode(Phaser.BlendModes.ADD));
+    // LR: tia sáng 7 sắc cầu vồng
+    const lr = ch.rarity === "LR";
+    for (let i = 0; i < 16; i++) rays.add(scene.add.image(0, 0, "p_ray").setOrigin(0.5, 0).setAngle(i * 22.5).setTint(lr ? RAINBOW[i % RAINBOW.length]! : col).setAlpha(0.6).setBlendMode(Phaser.BlendModes.ADD));
     root.add(rays);
     scene.tweens.add({ targets: rays, angle: 360, duration: 12000, repeat: -1 });
     const aura = scene.add.image(640, 470, auraTexture(scene, ch)).setOrigin(0.5, 1).setScale(1.8).setAlpha(0.9);
@@ -76,7 +79,12 @@ function celebrate(scene: Phaser.Scene, charId: string, onDone?: () => void) {
     root.add([aura, hero]);
     scene.tweens.add({ targets: hero, scale: 1.6, duration: 600, ease: "Back.easeOut" });
     scene.tweens.add({ targets: aura, scale: 2.1, alpha: 0.5, duration: 900, yoyo: true, repeat: -1 });
-    root.add(txt(scene, 640, 90, `${ch.rarity} · NHÂN VẬT MỚI!`, 44, { color: CHAR_RARITY_COLOR[ch.rarity], align: "center" }).setOrigin(0.5));
+    const title = txt(scene, 640, 90, `${ch.rarity} · NHÂN VẬT MỚI!`, 44, { color: CHAR_RARITY_COLOR[ch.rarity], align: "center" }).setOrigin(0.5);
+    if (lr) {
+      rainbowText(title);
+      rainbowFrame(scene, root, 330, 40, 620, 560, 24, 7);
+    }
+    root.add(title);
     root.add(txt(scene, 640, 520, ch.name, 52, { color: "#ffd54f", align: "center" }).setOrigin(0.5));
     root.add(txt(scene, 640, 568, `${ch.title} · ${ch.active.name}`, 24, { align: "center" }).setOrigin(0.5));
     for (let i = 0; i < 5; i++) {

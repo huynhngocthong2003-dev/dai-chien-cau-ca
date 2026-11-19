@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { rainbowFrame, rainbowText } from "../ui/rainbow.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
 import { canAfford, canUnlock, type CharRarity, type Cost, type UnlockCondition } from "@dccc/shared";
@@ -103,7 +104,10 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
       g.lineStyle(sel ? 5 : 3, sel ? 0xffeb3b : rc).strokeRoundedRect(x, y, cw, ch, 14);
       g.lineStyle(2, 0x1b1530).strokeRoundedRect(x - 2, y - 2, cw + 4, ch + 4, 15);
       c.add(g);
-      if (it.rarity === "UR" || it.rarity === "LR") {
+      if (it.rarity === "LR") {
+        // LR: khung cầu vồng 7 sắc chạy vòng
+        rainbowFrame(this, c, x - 3, y - 3, cw + 6, ch + 6, 16, 5);
+      } else if (it.rarity === "UR") {
         const glow = this.add.graphics();
         glow.lineStyle(6, rc, 0.6).strokeRoundedRect(x - 4, y - 4, cw + 8, ch + 8, 16);
         c.add(glow);
@@ -112,7 +116,9 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
       const icon = this.cardIcon(it, x + cw / 2, y + ch * 0.45, cw, ch);
       if (!isOwned) (icon as unknown as Phaser.GameObjects.Components.Tint).setTint?.(0x333a44);
       c.add(icon);
-      c.add(txt(this, x + 8, y + 4, it.rarity, 18, { color: CHAR_RARITY_COLOR[it.rarity] }));
+      const rt = txt(this, x + 8, y + 4, it.rarity, 18, { color: CHAR_RARITY_COLOR[it.rarity] });
+      if (it.rarity === "LR") rainbowText(rt);
+      c.add(rt);
       c.add(txt(this, x + cw / 2, y + ch - 16, it.name, 15, { align: "center", weight: "700" }).setOrigin(0.5));
       if (isOwned) c.add(txt(this, x + cw / 2, y + ch - 36, this.cardBadge(it), 14, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
       if (equipped) c.add(txt(this, x + cw - 6, y + 4, "✔", 20, { color: "#69f0ae" }).setOrigin(1, 0));

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { rainbowFrame, rainbowText } from "../ui/rainbow.ts";
 import { CHAR_RARITY_COLOR, TIER_COLOR } from "@dccc/game-config";
 import { CHARACTERS, COSMETICS } from "@dccc/game-data";
 import { charMaxLevel, characterStats, freeCopies, nextCharAction, scaledActiveSkill, type CharacterDef, type CosmeticSlot } from "@dccc/shared";
@@ -53,7 +54,13 @@ export class CharacterScene extends GearScene<CharacterDef> {
     if (owned) addFashionFx(this, img, 960, 188, 0.85, GameState.equipOf(c.id), 1, d);
     const rc = CHAR_RARITY_COLOR[c.rarity];
     if (owned) d.add(new Button(this, 912, 122, 104, 44, "👕 Đồ", { color: COLORS.purple, fontSize: 20, onClick: () => this.openWardrobe(c) }));
-    d.add(txt(this, 1046, 112, c.rarity, 26, { color: rc }));
+    const rlab = txt(this, 1046, 112, c.rarity, 26, { color: rc });
+    if (c.rarity === "LR") {
+      rainbowText(rlab);
+      // khung cầu vồng quanh bảng chi tiết nhân vật LR
+      rainbowFrame(this, d, 852, 92, 412, 614, 18, 5);
+    }
+    d.add(rlab);
     d.add(txt(this, 1046, 142, c.name, 30, { color: COLORS.textGold, wrap: 210 }));
     d.add(txt(this, 1046, 182, c.title, 17, { weight: "700", color: COLORS.textDim, wrap: 210 }));
     d.add(
