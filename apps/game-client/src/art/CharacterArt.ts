@@ -1,5 +1,6 @@
-import type { AccessoryKind, CharacterAppearance, HatKind, OutfitKind } from "@dccc/shared";
+import type { AccessoryKind, CharacterAppearance, HatKind, HornKind, OutfitKind, WingKind } from "@dccc/shared";
 import { OUTLINE, rgba, shade } from "./color.ts";
+import { drawHorns, drawSparkles, drawWings, type Part } from "./FashionArt.ts";
 
 export const CHAR_W = 200;
 export const CHAR_H = 240;
@@ -9,6 +10,12 @@ export interface Look {
   hat: { kind: HatKind; color: string; accent: string };
   outfit: { kind: OutfitKind; color: string; accent: string };
   accessory: { kind: AccessoryKind; color: string; accent: string };
+  wings: Part<WingKind> | null;
+  horns: Part<HornKind> | null;
+  /** Màu phát sáng theo bậc thời trang cao nhất đang mặc (null = không). */
+  glow: string | null;
+  /** Số lấp lánh tĩnh (bậc càng cao càng nhiều). */
+  sparkle: number;
 }
 
 export function defaultLook(a: CharacterAppearance): Look {
@@ -16,6 +23,10 @@ export function defaultLook(a: CharacterAppearance): Look {
     hat: { kind: a.hat, color: a.hat === "straw" ? "#f2c94c" : a.hat === "pirate" ? "#212121" : a.outfit, accent: a.hat === "straw" ? a.outfit : a.accent },
     outfit: { kind: a.outfitKind, color: a.outfit, accent: a.accent },
     accessory: { kind: "none", color: "#ffffff", accent: "#ffffff" },
+    wings: null,
+    horns: null,
+    glow: null,
+    sparkle: 0,
   };
 }
 
@@ -904,12 +915,23 @@ export function drawCharacter(
     drawFace(ctx, a);
     drawFaceAccessory(ctx, a, look.accessory);
     drawHat(ctx, look.hat);
+    if (look.horns) drawHorns(ctx, look.horns, CX, HEAD_Y, HEAD_R, look.glow);
     ctx.restore();
+    if (look.sparkle) drawSparkles(ctx, look.glow ?? "#ffffff", Math.ceil(look.sparkle / 2), CHAR_W, CHAR_H);
     return;
+  }
+  // hào quang thời trang bậc cao
+  if (look.glow) {
+    const g = ctx.createRadialGradient(CX, BODY_Y - 40, 10, CX, BODY_Y - 40, 120);
+    g.addColorStop(0, rgba(look.glow, 0.45));
+    g.addColorStop(1, rgba(look.glow, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, CHAR_W, CHAR_H);
   }
   // bóng đổ
   ctx.fillStyle = "rgba(0,0,0,0.22)";
   ctx.fill(ellipse(CX, 230, 52, 8));
+  if (look.wings) drawWings(ctx, look.wings, CX, BODY_Y - 26, look.glow);
   drawTail(ctx, a);
   // chân
   const legColor = a.species === "panda" ? a.mark : a.species === "chicken" ? "#ffb300" : a.fur;
@@ -944,4 +966,6 @@ export function drawCharacter(
   drawFace(ctx, a);
   drawFaceAccessory(ctx, a, look.accessory);
   drawHat(ctx, look.hat);
+  if (look.horns) drawHorns(ctx, look.horns, CX, HEAD_Y, HEAD_R, look.glow);
+  if (look.sparkle) drawSparkles(ctx, look.glow ?? "#ffffff", look.sparkle, CHAR_W, CHAR_H);
 }

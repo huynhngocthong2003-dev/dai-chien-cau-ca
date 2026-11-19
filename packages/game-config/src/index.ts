@@ -94,3 +94,28 @@ export const ECONOMY = {
   sellWeightFactor: 0.4,
   inventoryLimit: 200,
 };
+
+/** Bậc thời trang. */
+export const TIER_ORDER = ["common", "rare", "superior", "legendary", "divine"] as const;
+export const TIER_LABEL: Record<(typeof TIER_ORDER)[number], string> = {
+  common: "Thường",
+  rare: "Hiếm",
+  superior: "Cực Phẩm",
+  legendary: "Huyền Thoại",
+  divine: "Thần Phẩm",
+};
+export const TIER_COLOR: Record<(typeof TIER_ORDER)[number], string> = {
+  common: "#b0bec5",
+  rare: "#42a5f5",
+  superior: "#ba68c8",
+  legendary: "#ffa000",
+  divine: "#ff1744",
+};
+/** Trần chỉ số phụ (giá trị %) của một món theo bậc – chống pay-to-win. */
+export const TIER_BONUS_CAP: Record<(typeof TIER_ORDER)[number], number> = {
+  common: 0.03,
+  rare: 0.05,
+  superior: 0.08,
+  legendary: 0.1,
+  divine: 0.15,
+};

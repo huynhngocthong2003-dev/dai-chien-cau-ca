@@ -19,6 +19,7 @@ import { GameState } from "../state/GameState.ts";
 import { auraTexture, characterTexture, dockTexture, fishTexture, ornamentTexture, reelTexture, zoneTexture } from "../art/textures.ts";
 import { HORIZON } from "../art/Backgrounds.ts";
 import { addAmbience } from "../art/ambience.ts";
+import { addFashionFx } from "../art/fashionFx.ts";
 import { hexToInt, parseHex } from "../art/color.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -111,6 +112,7 @@ export class FishingScene extends Phaser.Scene {
     this.aura = this.add.image(190, 388, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.1).setAlpha(awakened ? 0.45 : 0).setDepth(3);
     if (awakened) this.tweens.add({ targets: this.aura, alpha: 0.2, scale: 1.2, duration: 900, yoyo: true, repeat: -1 });
     this.hero = this.add.image(190, 388, characterTexture(this, char, GameState.equipOf(char.id))).setOrigin(0.5, 1).setScale(0.95).setDepth(4);
+    addFashionFx(this, this.hero, 190, 263, 0.95, GameState.equipOf(char.id), 4);
     this.tweens.add({ targets: this.hero, scaleY: 0.97, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     this.rodG = this.add.graphics().setDepth(5);
     const rodDef = ROD_BY_ID.get(GameState.save.selectedRodId)!;

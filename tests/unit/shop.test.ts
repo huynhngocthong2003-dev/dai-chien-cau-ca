@@ -15,6 +15,7 @@ import {
 } from "@dccc/shared";
 import { CATALOG, CHARACTERS, CHARACTER_BY_ID, COSMETICS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, SHOP_ITEM_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
+import { TIER_BONUS_CAP } from "@dccc/game-config";
 
 const rich = (): PlayerSave => ({ ...createNewSave("p", "A", CATALOG, 1), gold: 1_000_000, diamonds: 10_000 });
 let n = 0;
@@ -29,11 +30,22 @@ describe("Dữ liệu thú cưng & trang phục", () => {
     expect(CHARACTERS.every((c) => !!c.appearance.species)).toBe(true);
     expect(new Set(CHARACTERS.map((c) => c.appearance.species)).size).toBeGreaterThanOrEqual(8);
   });
-  it("có đủ 3 ô trang bị, ID duy nhất, chỉ số phụ nhỏ", () => {
-    expect(new Set(COSMETICS.map((c) => c.slot))).toEqual(new Set(["hat", "outfit", "accessory"]));
+  it("có đủ 5 ô trang bị, ID duy nhất, chỉ số phụ không vượt trần theo bậc", () => {
+    expect(new Set(COSMETICS.map((c) => c.slot))).toEqual(new Set(["hat", "outfit", "accessory", "wings", "horns"]));
     expect(new Set(COSMETICS.map((c) => c.id)).size).toBe(COSMETICS.length);
     for (const c of COSMETICS)
-      for (const b of c.bonus) if ("value" in b && b.kind !== "luck_bonus" && b.kind !== "snap_threshold") expect(b.value).toBeLessThanOrEqual(0.08);
+      for (const b of c.bonus) if ("value" in b && b.kind !== "luck_bonus" && b.kind !== "snap_threshold") expect(b.value, c.id).toBeLessThanOrEqual(TIER_BONUS_CAP[c.tier]);
+  });
+  it("đủ 4 bậc cao: Hiếm, Cực Phẩm, Huyền Thoại, Thần Phẩm; bậc cao có nhiều chỉ số hơn và đắt hơn", () => {
+    for (const t of ["rare", "superior", "legendary", "divine"] as const) expect(COSMETICS.some((c) => c.tier === t), t).toBe(true);
+    const avg = (t: string) => {
+      const l = COSMETICS.filter((c) => c.tier === t);
+      return l.reduce((s, c) => s + c.bonus.length, 0) / l.length;
+    };
+    expect(avg("divine")).toBeGreaterThan(avg("rare"));
+    const minDivine = Math.min(...COSMETICS.filter((c) => c.tier === "divine" && c.price.currency === "diamonds").map((c) => c.price.amount));
+    const maxRare = Math.max(...COSMETICS.filter((c) => c.tier === "rare" && c.price.currency === "diamonds").map((c) => c.price.amount), 0);
+    expect(minDivine).toBeGreaterThan(maxRare);
   });
 });
 
@@ -96,6 +108,16 @@ describe("Tủ đồ", () => {
     const extra = equipmentPassives(s.characters.c_be_tom!.equip, COSMETIC_BY_ID);
     const l = buildLoadout(CHARACTER_BY_ID.get("c_be_tom")!, s.characters.c_be_tom!, ROD_BY_ID.get("r_tre")!, s.rods.r_tre!, extra);
     expect(l.passives.some((p) => p.kind === "luck_bonus" && p.value === 5)).toBe(true);
+  });
+  it("mặc cánh và sừng, lưu được qua schema", () => {
+    const w = COSMETIC_BY_ID.get("w_canh_thien_than")!;
+    const h = COSMETIC_BY_ID.get("n_hao_quang_thanh")!;
+    let s = ok(buyCosmetic(rich(), w, tx(), 1));
+    s = ok(buyCosmetic(s, h, tx(), 1));
+    s = ok(equipCosmetic(s, "c_be_tom", "wings", w, 1));
+    s = ok(equipCosmetic(s, "c_be_tom", "horns", h, 1));
+    const back = parseSave(JSON.parse(JSON.stringify(s)));
+    expect(back.ok && back.save.characters.c_be_tom!.equip).toEqual({ wings: w.id, horns: h.id });
   });
   it("save có tủ đồ vượt schema", () => {
     let s = ok(buyCosmetic(rich(), COSMETIC_BY_ID.get("o_ao_hawaii")!, tx(), 1));

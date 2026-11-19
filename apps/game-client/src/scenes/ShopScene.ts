@@ -1,9 +1,10 @@
 import Phaser from "phaser";
-import { CHAR_RARITY_COLOR } from "@dccc/game-config";
+import { TIER_COLOR, TIER_LABEL } from "@dccc/game-config";
 import { CHARACTER_BY_ID, COSMETICS, SHOP_ITEMS } from "@dccc/game-data";
 import { SELL_BACK_RATE, freeCopies, type CosmeticDef, type CosmeticSlot, type ShopItemDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { characterTexture, cosmeticTexture } from "../art/textures.ts";
+import { addFashionFx } from "../art/fashionFx.ts";
 import { Button, fadeIn, formatNum, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -14,8 +15,10 @@ type Tab = CosmeticSlot | "items" | "market";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "hat", label: "🎩 Mũ" },
-  { id: "outfit", label: "👕 Quần Áo" },
+  { id: "outfit", label: "👕 Áo" },
   { id: "accessory", label: "💍 Trang Sức" },
+  { id: "wings", label: "🪽 Cánh" },
+  { id: "horns", label: "🦄 Sừng" },
   { id: "items", label: "🎁 Vật Phẩm" },
   { id: "market", label: "🤝 Chợ" },
 ];
@@ -47,9 +50,9 @@ export class ShopScene extends Phaser.Scene {
     new TopBar(this, { title: "Cửa Hàng", onBack: () => goTo(this, "Hub") });
     this.tabBtns = TABS.map(
       (t, i) =>
-        new Button(this, 92 + i * 166, 116, 156, 50, t.label, {
+        new Button(this, 74 + i * 118, 116, 112, 50, t.label, {
           color: COLORS.blue,
-          fontSize: 20,
+          fontSize: 17,
           onClick: () => {
             this.tab = t.id;
             this.selected = null;
@@ -70,18 +73,21 @@ export class ShopScene extends Phaser.Scene {
     const list = COSMETICS.filter((it) => it.slot === this.tab);
     if (!this.selected || !list.some((x) => x.id === this.selected)) this.selected = list[0]!.id;
     list.forEach((it, i) => {
-      const x = 16 + (i % 4) * 206;
-      const y = 152 + Math.floor(i / 4) * 274;
+      const x = 16 + (i % 5) * 165;
+      const y = 152 + Math.floor(i / 5) * 278;
       const owned = GameState.save.wardrobe[it.id] ?? 0;
-      this.card(c, x, y, 198, 264, it.id === this.selected, CHAR_RARITY_COLOR[it.rarity], () => {
+      const tc = TIER_COLOR[it.tier];
+      this.card(c, x, y, 158, 268, it.id === this.selected, tc, () => {
         this.selected = it.id;
         this.render();
       });
-      c.add(this.add.image(x + 99, y + 112, cosmeticTexture(this, CHARACTER_BY_ID.get("c_be_tom")!, it.id)).setDisplaySize(150, 180));
-      c.add(txt(this, x + 10, y + 6, it.rarity, 18, { color: CHAR_RARITY_COLOR[it.rarity] }));
-      if (owned) c.add(txt(this, x + 188, y + 6, `×${owned}`, 18, { color: "#69f0ae" }).setOrigin(1, 0));
-      c.add(txt(this, x + 99, y + 216, it.name, 17, { align: "center", wrap: 186 }).setOrigin(0.5));
-      c.add(txt(this, x + 99, y + 244, priceText(it.price), 18, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
+      const icon = this.add.image(x + 79, y + 118, cosmeticTexture(this, CHARACTER_BY_ID.get("c_be_tom")!, it.id)).setDisplaySize(132, 158);
+      c.add(icon);
+      if (it.tier === "divine" || it.tier === "legendary") this.tweens.add({ targets: icon, y: y + 112, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      c.add(txt(this, x + 8, y + 6, TIER_LABEL[it.tier], 15, { color: tc }));
+      if (owned) c.add(txt(this, x + 150, y + 6, `×${owned}`, 16, { color: "#69f0ae" }).setOrigin(1, 0));
+      c.add(txt(this, x + 79, y + 214, it.name, 15, { align: "center", wrap: 150 }).setOrigin(0.5));
+      c.add(txt(this, x + 79, y + 248, priceText(it.price), 17, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
     });
     this.renderCosmeticDetail(c, COSMETICS.find((x) => x.id === this.selected)!);
   }
@@ -108,8 +114,9 @@ export class ShopScene extends Phaser.Scene {
     c.add(txt(this, 1058, 176, "Phòng thử đồ", 18, { color: COLORS.textDim, align: "center" }).setOrigin(0.5));
     const img = this.add.image(1058, 400, characterTexture(this, char, equip)).setOrigin(0.5, 1).setScale(0.95);
     c.add(img);
+    addFashionFx(this, img, 1058, 290, 0.95, equip, 0, c);
     this.tweens.add({ targets: img, scaleY: 0.98, duration: 800, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-    c.add(txt(this, 1058, 420, it.name, 26, { color: CHAR_RARITY_COLOR[it.rarity], align: "center" }).setOrigin(0.5));
+    c.add(txt(this, 1058, 420, `${it.name} · ${TIER_LABEL[it.tier]}`, 20, { color: TIER_COLOR[it.tier], align: "center", wrap: 390 }).setOrigin(0.5));
     c.add(txt(this, 1058, 452, it.description, 17, { align: "center", wrap: 380, weight: "700" }).setOrigin(0.5));
     const owned = s.wardrobe[it.id] ?? 0;
     const free = freeCopies(s, it.id);

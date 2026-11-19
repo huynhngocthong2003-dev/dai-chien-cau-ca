@@ -89,17 +89,21 @@ export interface CharacterAppearance {
   aura: string; // màu hào quang khi dùng kỹ năng
 }
 
-export type CosmeticSlot = "hat" | "outfit" | "accessory";
+export type CosmeticSlot = "hat" | "outfit" | "accessory" | "wings" | "horns";
+export type WingKind = "fluffy" | "butterfly" | "angel" | "demon" | "phoenix" | "dragon";
+export type HornKind = "devil" | "unicorn" | "dragon" | "halo" | "thunder";
+/** Bậc thời trang: càng cao càng nhiều chỉ số phụ và hiệu ứng. */
+export type CosmeticTier = "common" | "rare" | "superior" | "legendary" | "divine";
 
 export interface CosmeticDef {
   id: string;
   name: string;
   slot: CosmeticSlot;
-  rarity: CharRarity;
+  tier: CosmeticTier;
   price: { currency: "gold" | "diamonds"; amount: number };
   /** Hình dạng hiển thị theo ô trang bị. */
-  visual: { kind: HatKind | OutfitKind | AccessoryKind; color: string; accent: string };
-  /** Chỉ số phụ nhỏ – thiết kế để không pay-to-win. */
+  visual: { kind: HatKind | OutfitKind | AccessoryKind | WingKind | HornKind; color: string; accent: string };
+  /** Chỉ số phụ – tăng theo bậc, vẫn giữ mức không pay-to-win. */
   bonus: PassiveEffect[];
   description: string;
 }

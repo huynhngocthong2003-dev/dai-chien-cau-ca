@@ -28,6 +28,10 @@ export class InventoryScene extends Phaser.Scene {
   private detailC?: Phaser.GameObjects.Container;
   private selectedUid: string | null = null;
   private tabBtns: Button[] = [];
+  /** Chế độ chọn nhiều để bán / phân giải. */
+  private selectMode = false;
+  private picked = new Set<string>();
+  private confirmArmed: "sell" | "decompose" | null = null;
 
   constructor() {
     super("Inventory");
@@ -35,6 +39,9 @@ export class InventoryScene extends Phaser.Scene {
 
   init(data: { tab?: "bag" | "collection" }) {
     this.tab = data.tab ?? "bag";
+    this.selectMode = false;
+    this.picked = new Set();
+    this.confirmArmed = null;
     this.page = 0;
     this.selectedUid = null;
   }
@@ -55,6 +62,8 @@ export class InventoryScene extends Phaser.Scene {
   private switchTab(t: "bag" | "collection") {
     this.tab = t;
     this.page = 0;
+    this.selectMode = false;
+    this.picked.clear();
     this.selectedUid = null;
     this.render();
   }
@@ -69,6 +78,7 @@ export class InventoryScene extends Phaser.Scene {
 
   private render() {
     this.tabBtns[0]!.setColor(this.tab === "bag" ? COLORS.orange : COLORS.blue);
+    if (this.tab !== "bag") this.tabBtns[0]!.setText("🐟 Kho Cá");
     this.tabBtns[1]!.setColor(this.tab === "collection" ? COLORS.orange : COLORS.blue);
     this.gridC?.destroy(true);
     const c = this.add.container(0, 0);
@@ -77,12 +87,31 @@ export class InventoryScene extends Phaser.Scene {
     else this.renderCollection(c);
   }
 
-  private cell(c: Phaser.GameObjects.Container, x: number, y: number, w: number, h: number, f: FishDef, seen: boolean, selected: boolean, label: string, onClick: () => void) {
+  private cell(
+    c: Phaser.GameObjects.Container,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    f: FishDef,
+    seen: boolean,
+    selected: boolean,
+    label: string,
+    onClick: () => void,
+    check?: "on" | "off" | "locked",
+  ) {
     const g = this.add.graphics();
     const col = hexToInt(FISH_RARITY_COLOR[f.rarity]);
-    g.fillStyle(selected ? 0x2a5a8a : 0x10294a, 0.95).fillRoundedRect(x, y, w, h, 12);
-    g.lineStyle(selected ? 4 : 2.5, seen ? col : 0x455a64).strokeRoundedRect(x, y, w, h, 12);
+    g.fillStyle(check === "on" ? 0x1b5e20 : selected ? 0x2a5a8a : 0x10294a, 0.95).fillRoundedRect(x, y, w, h, 12);
+    g.lineStyle(check === "on" ? 4 : selected ? 4 : 2.5, check === "on" ? 0x69f0ae : seen ? col : 0x455a64).strokeRoundedRect(x, y, w, h, 12);
     c.add(g);
+    if (check) {
+      const b = this.add.graphics();
+      b.fillStyle(check === "on" ? 0x43a047 : check === "locked" ? 0x455a64 : 0xffffff, 1).fillRoundedRect(x + 6, y + 6, 28, 28, 7);
+      b.lineStyle(2.5, 0x1b1530).strokeRoundedRect(x + 6, y + 6, 28, 28, 7);
+      c.add(b);
+      if (check !== "off") c.add(txt(this, x + 20, y + 21, check === "on" ? "✓" : "🔒", check === "on" ? 22 : 14, { align: "center" }).setOrigin(0.5));
+    }
     c.add(this.add.image(x + w / 2, y + h * 0.42, seen ? fishTexture(this, f) : fishSilhouetteTexture(this, f)).setDisplaySize(w * 0.9, w * 0.56));
     c.add(txt(this, x + w / 2, y + h - 14, label, 13, { align: "center", weight: "700", color: seen ? FISH_RARITY_COLOR[f.rarity] : COLORS.textDim }).setOrigin(0.5));
     const z = this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true });
@@ -98,7 +127,8 @@ export class InventoryScene extends Phaser.Scene {
     const per = 18;
     const pages = Math.max(1, Math.ceil(list.length / per));
     this.page = Math.min(this.page, pages - 1);
-    c.add(txt(this, 440, 116, `${list.length}/${ECONOMY.inventoryLimit} con cá`, 22, { color: COLORS.textGold }).setOrigin(0, 0.5));
+    this.tabBtns[0]!.setText(`🐟 Kho Cá ${list.length}/${ECONOMY.inventoryLimit}`);
+    for (const uid of [...this.picked]) if (!list.some((o) => o.uid === uid && !o.locked)) this.picked.delete(uid);
     if (list.length === 0) {
       c.add(txt(this, 430, 380, "Kho cá đang trống.\nHãy ra bến câu vài con nhé!", 30, { align: "center" }).setOrigin(0.5));
       c.add(new Button(this, 430, 500, 260, 72, "Đi câu cá", { color: COLORS.orange, fontSize: 28, onClick: () => goTo(this, "Zone") }));
@@ -110,26 +140,125 @@ export class InventoryScene extends Phaser.Scene {
       const f = FISH_BY_ID.get(o.fishId)!;
       const x = 24 + (i % 6) * 136;
       const y = 152 + Math.floor(i / 6) * 160;
-      this.cell(c, x, y, 128, 150, f, true, o.uid === this.selectedUid, `${o.locked ? "🔒" : ""}${f.name}\nLv.${o.level} ${"★".repeat(o.stars)}`, () => {
-        this.selectedUid = o.uid;
-        this.render();
-      });
+      const label = `${o.locked ? "🔒" : ""}${f.name}\nLv.${o.level} ${"★".repeat(o.stars)}`;
+      if (this.selectMode) {
+        const check = o.locked ? "locked" : this.picked.has(o.uid) ? "on" : "off";
+        this.cell(c, x, y, 128, 150, f, true, false, label, () => {
+          if (o.locked) return toast(this, "Cá đang khóa – mở khóa để chọn bán");
+          if (this.picked.has(o.uid)) this.picked.delete(o.uid);
+          else this.picked.add(o.uid);
+          this.confirmArmed = null;
+          this.render();
+        }, check);
+      } else {
+        this.cell(c, x, y, 128, 150, f, true, o.uid === this.selectedUid, label, () => {
+          this.selectedUid = o.uid;
+          this.render();
+        });
+      }
     });
     if (pages > 1) {
       c.add(new Button(this, 300, 680, 120, 48, "◀", { color: COLORS.blue, disabled: this.page === 0, onClick: () => ((this.page -= 1), this.render()) }));
       c.add(txt(this, 430, 680, `Trang ${this.page + 1}/${pages}`, 22).setOrigin(0.5));
       c.add(new Button(this, 560, 680, 120, 48, "▶", { color: COLORS.blue, disabled: this.page >= pages - 1, onClick: () => ((this.page += 1), this.render()) }));
     }
+    c.add(
+      new Button(this, 560, 116, 190, 50, this.selectMode ? "✕ Thoát chọn" : "☑ Chọn nhiều", {
+        color: this.selectMode ? COLORS.red : COLORS.purple,
+        fontSize: 20,
+        onClick: () => {
+          this.selectMode = !this.selectMode;
+          this.picked.clear();
+          this.confirmArmed = null;
+          this.render();
+        },
+      }),
+    );
+    if (this.selectMode) {
+      this.renderPickPanel(list, list.slice(this.page * per, this.page * per + per));
+      return;
+    }
     const commons = list.filter((o) => FISH_BY_ID.get(o.fishId)!.rarity === "common" && !o.locked && o.level === 1 && o.stars === 1);
     const total = commons.reduce((s, o) => s + fishSellPrice(FISH_BY_ID.get(o.fishId)!, o.weightKg), 0);
-    const sellAll = new Button(this, 720, 116, 230, 50, `Bán cá Thường (${commons.length})`, {
+    const sellAll = new Button(this, 760, 116, 170, 50, `Bán cá Thường (${commons.length})`, {
       color: COLORS.green,
-      fontSize: 20,
+      fontSize: 16,
       disabled: commons.length === 0,
       onClick: () => this.sell(commons.map((o) => o.uid), total),
     });
     c.add(sellAll);
     this.renderDetail(list.find((o) => o.uid === this.selectedUid) ?? null);
+  }
+
+  /** Bảng bên phải khi chọn nhiều: tổng giá, chọn nhanh, bán / phân giải hàng loạt. */
+  private renderPickPanel(all: OwnedFish[], pageItems: OwnedFish[]) {
+    const d = this.detailPanel();
+    const picked = all.filter((o) => this.picked.has(o.uid));
+    let gold = 0;
+    let stones = 0;
+    let soul = 0;
+    let precious = 0;
+    for (const o of picked) {
+      const f = FISH_BY_ID.get(o.fishId)!;
+      gold += fishSellPrice(f, o.weightKg);
+      const v = decomposeValue(f, o);
+      stones += v.stones;
+      soul += v.soul;
+      if (["epic", "legendary", "mythic", "boss"].includes(f.rarity) || o.level > 1 || o.stars > 1) precious++;
+    }
+    d.add(txt(this, 1058, 130, "☑ Chọn nhiều", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+    d.add(txt(this, 1058, 176, `Đã chọn ${picked.length} con cá`, 24, { align: "center" }).setOrigin(0.5));
+    d.add(
+      txt(this, 1058, 236, `Bán được: 🪙 ${formatNum(gold)}\nPhân giải: 🔷 ${formatNum(stones)}${soul ? `   🔮 ${soul}` : ""}`, 21, { align: "center", weight: "700" })
+        .setOrigin(0.5)
+        .setLineSpacing(6),
+    );
+    if (precious) d.add(txt(this, 1058, 292, `⚠ Có ${precious} con quý / đã nâng cấp`, 16, { align: "center", color: "#ffab91", weight: "700" }).setOrigin(0.5));
+    const pickable = (l: OwnedFish[]) => l.filter((o) => !o.locked).map((o) => o.uid);
+    const quick = (x: number, y: number, label: string, fn: () => void) =>
+      d.add(new Button(this, x, y, 186, 48, label, { color: COLORS.blue, fontSize: 17, onClick: () => ((this.confirmArmed = null), fn(), this.render()) }));
+    quick(962, 344, "Chọn cả trang", () => pickable(pageItems).forEach((u) => this.picked.add(u)));
+    quick(1154, 344, "Chọn tất cả", () => pickable(all).forEach((u) => this.picked.add(u)));
+    quick(962, 402, "Chọn cá Thường", () =>
+      all.filter((o) => !o.locked && FISH_BY_ID.get(o.fishId)!.rarity === "common").forEach((o) => this.picked.add(o.uid)),
+    );
+    quick(1154, 402, "Bỏ chọn hết", () => this.picked.clear());
+    const act = (kind: "sell" | "decompose") => {
+      const uids = [...this.picked];
+      if (!uids.length) return toast(this, "Hãy chọn ít nhất 1 con cá");
+      if (precious && this.confirmArmed !== kind) {
+        this.confirmArmed = kind;
+        this.render();
+        return toast(this, `Trong số cá đã chọn có ${precious} con quý hoặc đã nâng cấp. Bấm lần nữa để xác nhận.`);
+      }
+      this.confirmArmed = null;
+      if (kind === "sell") this.sell(uids, gold);
+      else {
+        const r = GameState.decompose(uids);
+        if (!r.ok) return toast(this, r.error, COLORS.red);
+        Sfx.coin();
+        toast(this, `Đã phân giải ${uids.length} con: +${stones} Đá Nâng Cấp${soul ? `, +${soul} Mảnh Linh Hồn` : ""}`, COLORS.green);
+      }
+      this.picked.clear();
+      this.render();
+    };
+    d.add(
+      new Button(this, 1058, 520, 340, 62, this.confirmArmed === "sell" ? "Bấm lần nữa để bán!" : `💰 Bán ${picked.length} con`, {
+        color: COLORS.green,
+        fontSize: 24,
+        disabled: picked.length === 0,
+        onClick: () => act("sell"),
+      }),
+    );
+    d.add(
+      new Button(this, 1058, 600, 340, 62, this.confirmArmed === "decompose" ? "Bấm lần nữa để phân giải!" : `🔷 Phân giải ${picked.length} con`, {
+        color: COLORS.orange,
+        fontSize: 24,
+        disabled: picked.length === 0,
+        onClick: () => act("decompose"),
+      }),
+    );
+    d.add(txt(this, 1058, 668, "Cá đã khóa 🔒 không thể chọn", 14, { align: "center", color: COLORS.textDim }).setOrigin(0.5));
   }
 
   private sell(uids: string[], expected: number) {

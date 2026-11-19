@@ -1,12 +1,11 @@
 import Phaser from "phaser";
-import { CHAR_RARITY_COLOR } from "@dccc/game-config";
+import { CHAR_RARITY_COLOR, TIER_COLOR } from "@dccc/game-config";
 import { CHARACTERS, COSMETICS } from "@dccc/game-data";
-import { charMaxLevel, characterStats, nextCharAction, scaledActiveSkill, type CharacterDef } from "@dccc/shared";
+import { charMaxLevel, characterStats, freeCopies, nextCharAction, scaledActiveSkill, type CharacterDef, type CosmeticSlot } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
-import { auraTexture, characterHeadTexture, characterTexture } from "../art/textures.ts";
+import { auraTexture, characterHeadTexture, characterTexture, cosmeticTexture } from "../art/textures.ts";
 import { Button, goTo, modal, toast, txt } from "../ui/widgets.ts";
-import { freeCopies, type CosmeticSlot } from "@dccc/shared";
-import { cosmeticTexture } from "../art/textures.ts";
+import { addFashionFx } from "../art/fashionFx.ts";
 import { Sfx } from "../audio/Sfx.ts";
 import { COLORS } from "../ui/theme.ts";
 import { GearScene, unlockText, type DevInfo } from "./GearScene.ts";
@@ -51,6 +50,7 @@ export class CharacterScene extends GearScene<CharacterDef> {
     const img = this.add.image(960, 300, characterTexture(this, c, GameState.equipOf(c.id))).setScale(0.85).setOrigin(0.5, 1);
     if (!owned) img.setTint(0x333a44);
     d.add(img);
+    if (owned) addFashionFx(this, img, 960, 188, 0.85, GameState.equipOf(c.id), 1, d);
     const rc = CHAR_RARITY_COLOR[c.rarity];
     if (owned) d.add(new Button(this, 912, 122, 104, 44, "👕 Đồ", { color: COLORS.purple, fontSize: 20, onClick: () => this.openWardrobe(c) }));
     d.add(txt(this, 1046, 112, c.rarity, 26, { color: rc }));
@@ -76,34 +76,39 @@ export class CharacterScene extends GearScene<CharacterDef> {
   }
 
   private openWardrobe(c: CharacterDef) {
-    const m = modal(this, 1080, 600, `Tủ Đồ · ${c.name}`, () => this.render());
+    const m = modal(this, 1120, 640, `Tủ Đồ · ${c.name}`, () => this.render());
     const build = () => {
       const body = this.add.container(0, 0);
       m.root.add(body);
       const equip = GameState.equipOf(c.id);
-      body.add(this.add.image(m.x + 140, m.y + 420, characterTexture(this, c, equip)).setOrigin(0.5, 1).setScale(1.05));
+      const hero = this.add.image(m.x + 150, m.y + 440, characterTexture(this, c, equip)).setOrigin(0.5, 1).setScale(1.1);
+      body.add(hero);
+      addFashionFx(this, hero, m.x + 150, m.y + 295, 1.1, equip, 1, body);
       const rows: { slot: CosmeticSlot; label: string }[] = [
         { slot: "hat", label: "Mũ" },
         { slot: "outfit", label: "Áo" },
         { slot: "accessory", label: "Trang sức" },
+        { slot: "wings", label: "Cánh" },
+        { slot: "horns", label: "Sừng" },
       ];
       rows.forEach((r, ri) => {
-        const y = m.y + 120 + ri * 150;
-        body.add(txt(this, m.x + 290, y + 12, r.label, 20, { color: COLORS.textGold }).setOrigin(0, 0.5));
+        const y = m.y + 110 + ri * 102;
+        body.add(txt(this, m.x + 300, y, r.label, 19, { color: COLORS.textGold }).setOrigin(0, 0.5));
         const owned = COSMETICS.filter((it) => it.slot === r.slot && (GameState.save.wardrobe[it.id] ?? 0) > 0);
         const opts = [null, ...owned];
-        opts.slice(0, 7).forEach((it, i) => {
-          const x = m.x + 450 + i * 88;
+        opts.slice(0, 8).forEach((it, i) => {
+          const x = m.x + 440 + i * 84;
           const on = (equip[r.slot] ?? null) === (it?.id ?? null);
           const usable = !it || on || freeCopies(GameState.save, it.id) > 0;
+          const border = on ? 0x69f0ae : it ? Phaser.Display.Color.HexStringToColor(TIER_COLOR[it.tier]).color : 0x5fb3ff;
           const g = this.add.graphics();
-          g.fillStyle(on ? 0x2a5a8a : 0x0a1628, 0.95).fillRoundedRect(x - 42, y - 40, 84, 104, 12);
-          g.lineStyle(on ? 4 : 2, on ? 0x69f0ae : usable ? 0x5fb3ff : 0x455a64).strokeRoundedRect(x - 42, y - 40, 84, 104, 12);
+          g.fillStyle(on ? 0x2a5a8a : 0x0a1628, 0.95).fillRoundedRect(x - 38, y - 44, 76, 92, 12);
+          g.lineStyle(on ? 4 : 2.5, usable ? border : 0x455a64).strokeRoundedRect(x - 38, y - 44, 76, 92, 12);
           body.add(g);
-          if (it) body.add(this.add.image(x, y + 4, cosmeticTexture(this, CHARACTERS[0]!, it.id)).setDisplaySize(70, 84).setAlpha(usable ? 1 : 0.4));
-          else body.add(txt(this, x, y + 6, "✕", 34, { color: COLORS.textDim }).setOrigin(0.5));
-          body.add(txt(this, x, y + 52, it ? it.name : "Không", 11, { align: "center", wrap: 80, weight: "700" }).setOrigin(0.5));
-          const z = this.add.zone(x, y + 12, 84, 104).setInteractive({ useHandCursor: true });
+          if (it) body.add(this.add.image(x, y - 6, cosmeticTexture(this, CHARACTERS[0]!, it.id)).setDisplaySize(62, 74).setAlpha(usable ? 1 : 0.4));
+          else body.add(txt(this, x, y - 6, "✕", 30, { color: COLORS.textDim }).setOrigin(0.5));
+          body.add(txt(this, x, y + 36, it ? it.name : "Không", 10, { align: "center", wrap: 72, weight: "700" }).setOrigin(0.5));
+          const z = this.add.zone(x, y, 76, 92).setInteractive({ useHandCursor: true });
           z.on("pointerup", () => {
             Sfx.click();
             if (on) return;
@@ -114,9 +119,9 @@ export class CharacterScene extends GearScene<CharacterDef> {
           });
           body.add(z);
         });
-        if (owned.length === 0) body.add(txt(this, m.x + 490, y + 4, "Chưa có món nào – mua ở Cửa Hàng", 16, { color: COLORS.textDim, weight: "700" }).setOrigin(0, 0.5));
+        if (owned.length === 0) body.add(txt(this, m.x + 500, y, "Chưa có – mua ở Cửa Hàng", 15, { color: COLORS.textDim, weight: "700" }).setOrigin(0, 0.5));
       });
-      body.add(new Button(this, m.x + 140, m.y + 500, 220, 56, "🛒 Cửa Hàng", { color: COLORS.orange, fontSize: 22, onClick: () => goTo(this, "Shop") }));
+      body.add(new Button(this, m.x + 150, m.y + 560, 220, 56, "🛒 Cửa Hàng", { color: COLORS.orange, fontSize: 22, onClick: () => goTo(this, "Shop") }));
     };
     build();
   }

@@ -8,6 +8,7 @@ import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
 import { addAmbience } from "../art/ambience.ts";
+import { addFashionFx } from "../art/fashionFx.ts";
 import { openGiftCode } from "../ui/giftCode.ts";
 import { htmlOverlay } from "../ui/htmlOverlay.ts";
 
@@ -53,6 +54,7 @@ export class HubScene extends Phaser.Scene {
     const char = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
     const aura = this.add.image(190, 384, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.25).setAlpha(0.55).setDepth(-5);
     const hero = this.add.image(190, 384, characterTexture(this, char, GameState.equipOf(char.id))).setOrigin(0.5, 1).setScale(1.15).setDepth(-4);
+    addFashionFx(this, hero, 190, 232, 1.15, GameState.equipOf(char.id), -4);
     // tàn lửa bay lên quanh nhân vật
     this.add
       .particles(190, 360, "p_ember", {
@@ -219,6 +221,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.5.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.6.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

@@ -2,6 +2,7 @@ import { CHARACTERS, COSMETICS, FISHES, ZONES } from "@dccc/game-data";
 import { FISH_H, FISH_W, drawFish } from "../src/art/FishArt.ts";
 import { CHAR_H, CHAR_W, defaultLook, drawAura, drawCharacter } from "../src/art/CharacterArt.ts";
 import type { AccessoryKind, HatKind, OutfitKind } from "@dccc/shared";
+import { resolveLook } from "../src/art/textures.ts";
 import { drawDock, drawZoneBackground } from "../src/art/Backgrounds.ts";
 
 const mode = new URLSearchParams(location.search).get("mode") ?? "fish";
@@ -67,6 +68,21 @@ if (mode === "fish") {
   ctx.scale(1.55, 1.55);
   drawCharacter(ctx, CHARACTERS[0]!.appearance, { headOnly: true });
   ctx.restore();
+} else if (mode === "fashion") {
+  const list = COSMETICS.filter((x) => x.slot === "wings" || x.slot === "horns" || x.tier === "divine");
+  c.width = 7 * CHAR_W;
+  c.height = 2 * CHAR_H;
+  list.forEach((it, i) => {
+    const equip = { [it.slot]: it.id };
+    const look = resolveLook(CHARACTERS[i % CHARACTERS.length]!, equip);
+    ctx.save();
+    ctx.translate((i % 7) * CHAR_W, Math.floor(i / 7) * CHAR_H);
+    drawCharacter(ctx, CHARACTERS[i % CHARACTERS.length]!.appearance, { look });
+    ctx.fillStyle = "#fff";
+    ctx.font = "12px sans-serif";
+    ctx.fillText(`${it.name} (${it.tier})`, 4, 12);
+    ctx.restore();
+  });
 } else if (mode === "cos") {
   c.width = 8 * CHAR_W;
   c.height = 3 * CHAR_H;

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0] – 2026-11-19 – Thời trang 5 bậc, cánh & sừng, chọn nhiều để bán
+### Thêm
+- **Kho Cá – Chọn nhiều**: ô tích ✓ trên từng con cá, Chọn cả trang / Chọn tất cả / Chọn cá Thường / Bỏ chọn, xem tổng vàng và nguyên liệu, Bán hoặc Phân giải hàng loạt (xác nhận 2 lần nếu có cá quý / đã nâng cấp; cá khóa không chọn được).
+- **5 bậc thời trang**: Thường, Hiếm, Cực Phẩm, Huyền Thoại, Thần Phẩm. Bậc càng cao càng nhiều chỉ số phụ (có trần theo bậc) và hiệu ứng: Cực Phẩm phát sáng; Huyền Thoại thêm lấp lánh bay lên; Thần Phẩm thêm hạt cầu vồng và quả cầu ánh sáng bay vòng quanh.
+- **Ô trang bị Cánh** (Gà Con, Bướm Pha Lê, Thiên Thần, Ác Ma, Phượng Hoàng Thần, Long Thần) và **Sừng** (Quỷ Nhỏ, Kỳ Lân, Rồng Vàng, Hào Quang Thánh, Thần Sấm).
+- Đồ Thần Phẩm cho mũ / áo / trang sức: Vương Miện Thần Thánh, Thần Giáp Cửu Long, Ngọc Bội Thần Hải.
+- Cửa Hàng 7 tab, lưới 5 cột, nhãn bậc có màu; Tủ Đồ 5 hàng; hiệu ứng thời trang ở sảnh, cảnh câu, màn Nhân Vật.
+### Sửa
+- Kính Râm (Hiếm) giảm từ +8% xuống +5% cho đúng trần bậc Hiếm.
+
 ## [0.5.0] – 2026-11-19 – Tài khoản, sao lưu, cần siêu cấp, toàn màn hình
 ### Thêm
 - **Tài khoản online** (Supabase Auth): tạo tài khoản / đăng nhập bằng email + mật khẩu, tự đồng bộ tiến trình, giữ đăng nhập khi tải lại, đăng xuất. Bật bằng 2 biến `SUPABASE_URL`, `SUPABASE_ANON_KEY` (xem `docs/ACCOUNTS_SETUP.md`).
