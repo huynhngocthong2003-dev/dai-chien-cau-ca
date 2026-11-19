@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { FISHING, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
-import { CHARACTER_BY_ID, ECO_MESSAGE, FISH_BY_ID, JUNK, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
+import { CHARACTER_BY_ID, ECO_MESSAGE, FISH_BY_ID, FISH_FORMS, JUNK, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import {
   FishingSession,
   Rng,
@@ -9,6 +9,8 @@ import {
   junkAsFish,
   randomSeed,
   rollJunk,
+  rollEvoDrop,
+  type FishFormDef,
   type JunkDef,
   rollWeight,
   catchRewards,
@@ -605,6 +607,12 @@ export class FishingScene extends Phaser.Scene {
     Sfx.setReeling(false);
     const f = this.fishDef!;
     const res = this.junk ? GameState.catchJunk(this.junk) : GameState.catchFish(FISH_BY_ID.get(f.id)!, this.weightKg, this.zone.id, this.bossHunt);
+    // vật phẩm tiến hóa đột biến – tỉ lệ rất thấp
+    let evo: FishFormDef | null = null;
+    if (res.ok && !this.junk) {
+      evo = rollEvoDrop(new Rng(randomSeed()), FISH_FORMS, f.rarity === "boss");
+      if (evo && !GameState.grantEvoItem(evo.itemId).ok) evo = null;
+    }
     this.hud.setVisible(false);
     this.hint.setText("");
     this.fishImg.clearTint().setAlpha(1).setDepth(6);
@@ -626,8 +634,35 @@ export class FishingScene extends Phaser.Scene {
       onComplete: () => {
         this.fishImg.setVisible(false);
         this.showResult("caught", res.ok ? undefined : res.error);
+        if (evo) this.time.delayedCall(500, () => this.showEvoDrop(evo));
       },
     });
+  }
+
+  /** Thông báo rơi vật phẩm tiến hóa cực hiếm. */
+  private showEvoDrop(form: FishFormDef) {
+    const col = hexToInt(form.glow);
+    Sfx.catchFanfare(true);
+    this.cameras.main.flash(500, (col >> 16) & 255, (col >> 8) & 255, col & 255);
+    const c = this.add.container(640, 300).setDepth(1200);
+    const g = this.add.graphics();
+    g.fillStyle(0x0a0a1e, 0.92).fillRoundedRect(-330, -120, 660, 240, 24);
+    g.lineStyle(5, col).strokeRoundedRect(-330, -120, 660, 240, 24);
+    const icon = this.add.text(-230, 0, form.itemIcon, { fontSize: "96px", padding: { top: 16 } }).setOrigin(0.5);
+    c.add([
+      g,
+      this.add.particles(-230, 0, "p_spark", { speed: { min: 60, max: 260 }, lifespan: 1100, frequency: 60, scale: { start: 1.2, end: 0 }, tint: [col, 0xffffff], blendMode: Phaser.BlendModes.ADD }),
+      icon,
+      txt(this, -130, -70, form.divine ? "✨ THẦN VẬT XUẤT THẾ! ✨" : "💠 VẬT PHẨM CỰC HIẾM!", 30, { color: form.glow }),
+      txt(this, -130, -24, form.itemName, 34, { color: "#ffffff" }),
+      txt(this, -130, 22, `Dùng trong Kho Cá → 🧬 Thể đột biến
+ để biến cá sang ${form.name}`, 18, { weight: "700", color: COLORS.textDim }),
+    ]);
+    c.setScale(0.2);
+    this.tweens.add({ targets: c, scale: 1, duration: 420, ease: "Back.easeOut" });
+    this.tweens.add({ targets: icon, angle: { from: -12, to: 12 }, duration: 500, yoyo: true, repeat: -1 });
+    this.time.delayedCall(3600, () => this.tweens.add({ targets: c, alpha: 0, duration: 300, onComplete: () => c.destroy() }));
+    c.setInteractive(new Phaser.Geom.Rectangle(-330, -120, 660, 240), Phaser.Geom.Rectangle.Contains).on("pointerup", () => c.destroy());
   }
 
   private endRound(kind: "missed" | "escaped" | "snapped") {

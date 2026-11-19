@@ -213,9 +213,13 @@ describe("Nâng cấp dữ liệu lưu", () => {
     const r = parseSave(v1);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.save.version).toBe(5);
+    expect(r.save.version).toBe(6);
     expect(r.save.eco).toEqual({ points: 0, junk: {}, recycled: 0 });
     expect(r.save.claimedEvents).toEqual([]);
+    expect(r.save.roasted).toEqual([]);
+    expect(r.save.showcase).toEqual([]);
+    expect(r.save.evoItems).toEqual({});
+    expect(r.save.defense).toEqual([]);
     expect(r.save.redeemedCodes).toEqual([]);
     expect(r.save.wardrobe).toEqual({});
     expect(r.save.level).toBe(7);

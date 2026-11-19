@@ -1,12 +1,12 @@
 import Phaser from "phaser";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { ECONOMY, FISH_RARITY_COLOR, FISH_RARITY_LABEL, RARITY_ORDER } from "@dccc/game-config";
-import { FISHES, FISH_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { FISHES, FISH_BY_ID, FISH_FORMS, FORM_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { canAfford, decomposeValue, evolveFodder, fishMaxLevel, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type OwnedFish } from "@dccc/shared";
 import { costText } from "./GearScene.ts";
 import { GameState } from "../state/GameState.ts";
 import { fishSilhouetteTexture, fishTexture } from "../art/textures.ts";
-import { Button, fadeIn, formatNum, goTo, panel, toast, txt } from "../ui/widgets.ts";
+import { Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
@@ -322,13 +322,26 @@ export class InventoryScene extends Phaser.Scene {
     if (!o) return;
     const f = FISH_BY_ID.get(o.fishId)!;
     this.header(d, f, true);
-    const st = fishStats(f, o.level, o.stars);
+    const form = o.form ? FORM_BY_ID.get(o.form) ?? null : null;
+    const st = fishStats(f, o.level, o.stars, form);
+    if (form) {
+      d.add(this.add.image(1058, 210, "p_spark").setTint(hexToInt(form.glow)).setScale(11).setAlpha(0.45).setBlendMode(Phaser.BlendModes.ADD));
+      d.add(txt(this, 1058, 120, `🧬 ${form.name}`, 22, { color: form.glow, align: "center" }).setOrigin(0.5));
+    }
+    if (f.rarity === "boss") d.add(
+      new Button(this, 1200, 130, 104, 46, "🧬 Thể", {
+        color: COLORS.purple,
+        fontSize: 18,
+        badge: Object.values(GameState.save.evoItems).some((n) => n > 0) ? "!" : undefined,
+        onClick: () => this.formDialog(o),
+      }),
+    );
     d.add(
       txt(
         this,
         876,
         388,
-        `Cấp ${o.level}/${fishMaxLevel(o.stars)}  ${"★".repeat(o.stars)}${"☆".repeat(5 - o.stars)}   Lực chiến ${formatNum(ownedFishPower(f, o))}\nHP ${formatNum(st.hp)} · Công ${st.atk} · Thủ ${st.def} · Tốc ${st.spd}\n${ELEMENT_LABEL[f.element]} · ${o.weightKg} kg · ${f.skill.name}`,
+        `Cấp ${o.level}/${fishMaxLevel(o.stars)}  ${"★".repeat(o.stars)}${"☆".repeat(5 - o.stars)}   Lực chiến ${formatNum(ownedFishPower(f, o, form))}\nHP ${formatNum(st.hp)} · Công ${st.atk} · Thủ ${st.def} · Tốc ${st.spd}\n${ELEMENT_LABEL[st.element]} · ${o.weightKg} kg · ${f.skill.name}`,
         16,
         { weight: "700", wrap: 372 },
       ).setLineSpacing(3),
@@ -391,6 +404,53 @@ export class InventoryScene extends Phaser.Scene {
     });
     dec.on("disabled-click", () => toast(this, "Cá đang khóa. Mở khóa để phân giải."));
     d.add(dec);
+  }
+
+  /** Chọn thể tiến hóa đột biến cho cá (tốn vật phẩm cực hiếm). */
+  private formDialog(o: OwnedFish) {
+    const f = FISH_BY_ID.get(o.fishId)!;
+    const m = modal(this, 1000, 600, `🧬 Thể đột biến – ${f.name}`, () => this.render());
+    m.root.add(txt(this, m.x + m.w / 2, m.y + 74, "Chỉ cá Boss mới đột biến được. Mỗi thể có tỉ lệ thành công ẨN khác nhau – thất bại vẫn mất vật phẩm!", 16, { align: "center", weight: "700", color: COLORS.textDim, wrap: 900 }).setOrigin(0.5));
+    FISH_FORMS.forEach((fm, i) => {
+      const x = m.x + 24 + i * 192;
+      const y = m.y + 104;
+      const have = GameState.save.evoItems[fm.itemId] ?? 0;
+      const cur = o.form === fm.id;
+      const g = this.add.graphics();
+      g.fillGradientStyle(0x1a1040, 0x1a1040, 0x0a0a1e, 0x0a0a1e, 1).fillRoundedRect(x, y, 182, 420, 16);
+      g.lineStyle(cur ? 5 : 3, hexToInt(fm.glow), cur ? 1 : 0.8).strokeRoundedRect(x, y, 182, 420, 16);
+      m.root.add(g);
+      m.root.add(this.add.image(x + 91, y + 70, "p_spark").setTint(hexToInt(fm.glow)).setScale(6).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD));
+      m.root.add(this.add.text(x + 91, y + 70, fm.itemIcon, { fontSize: "64px", padding: { top: 12 } }).setOrigin(0.5));
+      m.root.add(txt(this, x + 91, y + 142, fm.name, 24, { color: fm.glow, align: "center" }).setOrigin(0.5));
+      m.root.add(txt(this, x + 91, y + 174, fm.itemName, 15, { align: "center", weight: "700" }).setOrigin(0.5));
+      m.root.add(txt(this, x + 91, y + 196, fm.description, 13, { align: "center", weight: "700", wrap: 166, color: COLORS.textDim }).setOrigin(0.5, 0));
+      const pw = ownedFishPower(f, o, fm);
+      m.root.add(txt(this, x + 91, y + 316, `⚔ ${formatNum(pw)}`, 20, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
+      m.root.add(txt(this, x + 91, y + 290, "Tỉ lệ: ???", 14, { align: "center", weight: "700", color: "#ce93d8" }).setOrigin(0.5));
+      m.root.add(txt(this, x + 91, y + 344, `Có: ${have}`, 17, { align: "center", color: have ? "#b9f6ca" : "#ff8a80" }).setOrigin(0.5));
+      const b = new Button(this, x + 91, y + 386, 160, 48, cur ? "Đang dùng" : "Tiến hóa", {
+        color: COLORS.purple,
+        fontSize: 18,
+        disabled: cur || have < 1,
+        onClick: () => {
+          const r = GameState.applyForm(o.uid, fm);
+          if (!r.ok) return toast(this, r.error, COLORS.red);
+          if (!r.success) {
+            Sfx.fail();
+            this.cameras.main.shake(300, 0.012);
+            toast(this, `💨 Đột biến thất bại! ${fm.itemName} đã tan biến… Thử lại khi có vật phẩm mới.`, COLORS.red);
+            return m.close();
+          }
+          Sfx.catchFanfare(true);
+          this.cameras.main.flash(600, 255, 255, 255);
+          toast(this, `🧬 THÀNH CÔNG! ${f.name} đột biến thành ${fm.name}! Lực chiến tăng vọt!`, COLORS.green);
+          m.close();
+        },
+      });
+      b.on("disabled-click", () => toast(this, cur ? "Cá đang ở thể này" : `Cần 1 ${fm.itemName} – câu cá để có cơ hội nhận`));
+      m.root.add(b);
+    });
   }
 
   private renderSpecies(f: FishDef, seen: boolean) {

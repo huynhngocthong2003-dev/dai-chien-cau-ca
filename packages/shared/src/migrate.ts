@@ -40,6 +40,14 @@ export function migrateSave(raw: unknown): unknown {
     s.claimedEvents = [];
     s.version = 5;
   }
+  if (s.version === 5) {
+    s.roasted = [];
+    s.showcase = [];
+    s.evoItems = {};
+    s.defense = [];
+    s.pvpApplied = [];
+    s.version = 6;
+  }
   if (s.version !== SAVE_VERSION) return s;
   return s;
 }

@@ -8,6 +8,9 @@ import { CharacterScene } from "./scenes/CharacterScene.ts";
 import { RodScene } from "./scenes/RodScene.ts";
 import { ShopScene } from "./scenes/ShopScene.ts";
 import { AccountScene } from "./scenes/AccountScene.ts";
+import { DeathMatchScene } from "./scenes/DeathMatchScene.ts";
+import { BattleScene } from "./scenes/BattleScene.ts";
+import { ProfileScene } from "./scenes/ProfileScene.ts";
 
 async function start() {
   // Chờ font tiếng Việt tải xong (tối đa 3 giây) để chữ không bị nhảy.
@@ -32,7 +35,7 @@ async function start() {
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
     fps: { target: 60 },
-    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene],
+    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, BattleScene, ProfileScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 

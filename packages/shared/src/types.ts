@@ -109,6 +109,26 @@ export interface CosmeticDef {
 }
 
 /** Mã quà tặng phần thưởng tiền tệ (chỉ lưu mã băm). */
+/** Thể tiến hóa đột biến của cá – cần vật phẩm cực hiếm. */
+export interface FishFormDef {
+  id: string;
+  name: string;
+  itemId: string;
+  itemName: string;
+  itemIcon: string;
+  mult: { hp: number; atk: number; def: number };
+  spdBonus: number;
+  /** Đổi thuộc tính (null = giữ nguyên). */
+  element: Element | null;
+  glow: string;
+  /** Trọng số rơi trong nhóm thường; 0 = chỉ rơi ở nhóm thần thoại. */
+  dropWeight: number;
+  divine: boolean;
+  /** Tỉ lệ tiến hóa thành công (ẩn với người chơi). Thất bại vẫn mất vật phẩm. */
+  successRate: number;
+  description: string;
+}
+
 /** Rác câu nhầm – tái chế thành Điểm Môi Trường. */
 export interface JunkDef {
   id: string;

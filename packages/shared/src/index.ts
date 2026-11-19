@@ -12,3 +12,6 @@ export * from "./backup.ts";
 export * from "./sync.ts";
 export * from "./eco.ts";
 export * from "./events.ts";
+export * from "./battle.ts";
+export * from "./deathmatch.ts";
+export * from "./forms.ts";

@@ -1,6 +1,6 @@
 # PROJECT STATUS
 
-Cập nhật: 2026-11-19
+Cập nhật: 2026-11-19 (v0.8.0)
 
 | Giai đoạn | Trạng thái |
 |---|---|
@@ -8,19 +8,23 @@ Cập nhật: 2026-11-19
 | 1 – Gameplay MVP | ✅ Hoàn thành (chơi đơn, lưu đám mây tạm thời qua Artifact) |
 | 2 – Phát triển nhân vật | ✅ Hoàn thành phần cốt lõi (nâng cấp, đột phá, thức tỉnh, tiến hóa cần & cá, săn Boss). Còn lại: phụ kiện, trang phục, skin cần, hợp thể cần |
 | 3 – Kinh tế | ⏳ Cửa hàng, trang phục, trang sức, nguồn kim cương đã có. Còn: vòng quay/gacha, nhiệm vụ, điểm danh, thành tựu |
-| 4 – Multiplayer | ⏳ Tài khoản online + database có RLS đã có (chờ chủ dự án tạo dự án Supabase). Còn: server Colyseus, PvP |
+| 4 – Multiplayer | ⏳ Tài khoản online, hồ sơ, bạn bè, **Đấu Sinh Tử người–người do máy chủ tính** (Edge Function). Còn: Colyseus thời gian thực, giao dịch đồ |
 | 5 – Cộng đồng | ⬜ |
 | 6 – Phát hành | ⬜ |
 
 ## Đã kiểm thử
-- 52 unit test (cửa hàng, tủ đồ, kim cương thưởng, hồi quy lưu/tải lại với thời gian thật, phát triển nhân vật/cần/cá, vé Boss, chuyển đổi save v1→v2, dữ liệu, tính tất định, cân bằng bằng bot mô phỏng, kinh tế, chống nhận trùng, schema save).
+- 97 unit test (thêm: cơ chế trận đấu, Đấu Sinh Tử, cá nướng → KN nhân vật, PvP áp dụng 1 lần, thể đột biến chỉ cho Boss với tỉ lệ ẩn)
+- E2E Đấu Sinh Tử: đột biến Boss, chọn đội, đấu máy, thắng/thua, cho nhân vật ăn cá nướng, trưng bày.
+- DB test: RLS hồ sơ/bạn bè/PvP trên PostgreSQL 16.
+- (cũ) 52 unit test (cửa hàng, tủ đồ, kim cương thưởng, hồi quy lưu/tải lại với thời gian thật, phát triển nhân vật/cần/cá, vé Boss, chuyển đổi save v1→v2, dữ liệu, tính tất định, cân bằng bằng bot mô phỏng, kinh tế, chống nhận trùng, schema save).
 - E2E Playwright: chơi 1 ván bằng chuột (quăng → giật → kéo → kỹ năng → bắt cá) → lưu kho → bán cá → các màn hình → Săn Boss (Boss chắc chắn cắn, trừ đúng 1 vé) → hiển thị điện thoại ngang. Chạy trên bản dev, bản 1 file và bản GitHub Pages. Chạy trên cả bản dev và bản build 1 file. Không lỗi console.
 - `pnpm typecheck`, `pnpm lint` sạch.
 
 ## Vấn đề đã biết
 - Trên điện thoại màn hình nhỏ, chữ phụ khá nhỏ do co giãn toàn khung 1280×720 (sẽ tối ưu ở GĐ6).
 - Lưu đám mây chỉ hoạt động cho người xem đã đăng nhập claude.ai và có quyền Contributor trở lên; khách xem qua link công khai lưu trên trình duyệt.
-- Tiến trình do client ghi → chưa chống gian lận (sẽ giải quyết ở GĐ4).
+- Tiến trình do client ghi → chưa chống gian lận hoàn toàn. Trận PvP do máy chủ tính nhưng dựa trên save do client ghi.
+- PvP cần chủ dự án thêm secret `SUPABASE_ACCESS_TOKEN` và `SUPABASE_DB_PASSWORD` trên GitHub để triển khai migration + Edge Function.
 - Chưa có nhạc nền.
 - Chưa chạy thử trên thiết bị Android/iOS thật.
 - Web độc lập (GitHub Pages) đã có quy trình tự động nhưng chưa đăng được: cần chủ dự án tạo repository và cấp quyền GitHub.

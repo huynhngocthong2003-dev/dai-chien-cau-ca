@@ -82,3 +82,82 @@ do $$ begin
 end $$;
 
 select 'DB RLS TEST OK' as result;
+
+-- ================= Hồ sơ, bạn bè, PvP =================
+insert into auth.users (id, email, raw_user_meta_data) values ('33333333-3333-3333-3333-333333333333', 'c@test', '{}');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+insert into public.player_cards (user_id, display_name, friend_code, level, showcase) values ('11111111-1111-1111-1111-111111111111', 'An', 'HACK0000', 5, '[{"fishId":"f_ca_ro"}]');
+do $$ begin
+  if (select friend_code from public.player_cards where user_id = '11111111-1111-1111-1111-111111111111') <> '11111111' then raise exception 'Mã kết bạn phải do máy chủ tạo'; end if;
+end $$;
+do $$ begin
+  begin
+    insert into public.player_cards (user_id, display_name, friend_code) values ('22222222-2222-2222-2222-222222222222', 'Giả', 'X');
+    raise exception 'LỖI: A tạo được hồ sơ cho B';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+-- A gửi lời mời cho B
+insert into public.friendships (requester, addressee) values ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222');
+do $$ begin
+  begin
+    insert into public.friendships (requester, addressee, status) values ('11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333', 'accepted');
+    raise exception 'LỖI: tự chấp nhận lời mời';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+-- A không tự chấp nhận lời mời mình gửi
+update public.friendships set status = 'accepted' where true;
+do $$ begin
+  if (select status from public.friendships limit 1) <> 'pending' then raise exception 'Người gửi tự chấp nhận được'; end if;
+end $$;
+
+-- B xem hồ sơ A, chấp nhận lời mời
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+insert into public.player_cards (user_id, display_name, friend_code) values ('22222222-2222-2222-2222-222222222222', 'Bình', 'x');
+do $$ begin
+  if (select count(*) from public.player_cards) <> 2 then raise exception 'B phải xem được các hồ sơ công khai'; end if;
+end $$;
+update public.friendships set status = 'accepted' where addressee = '22222222-2222-2222-2222-222222222222';
+do $$ begin
+  if (select status from public.friendships limit 1) <> 'accepted' then raise exception 'B không chấp nhận được'; end if;
+end $$;
+-- B không sửa được hồ sơ của A
+update public.player_cards set display_name = 'Bị Hack' where user_id = '11111111-1111-1111-1111-111111111111';
+-- C không thấy quan hệ bạn bè của A–B
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  if (select count(*) from public.friendships) <> 0 then raise exception 'C thấy quan hệ bạn bè của người khác'; end if;
+end $$;
+-- Người chơi không tự ghi trận PvP
+do $$ begin
+  begin
+    insert into public.pvp_matches (challenger, defender, seed, result, for_challenger, for_defender, challenger_name, defender_name)
+    values ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 1, '{}', '{}', '{}', 'C', 'A');
+    raise exception 'LỖI: người chơi tự ghi được trận PvP';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+do $$ begin
+  if (select display_name from public.player_cards where user_id = '11111111-1111-1111-1111-111111111111') <> 'An' then raise exception 'B sửa được hồ sơ A'; end if;
+end $$;
+-- Máy chủ ghi trận; mỗi bên chỉ đánh dấu phía mình
+insert into public.pvp_matches (id, challenger, defender, seed, result, for_challenger, for_defender, challenger_name, defender_name)
+values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 1, '{}', '{}', '{}', 'An', 'Bình');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+select public.mark_pvp_applied('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') \g /dev/null
+do $$ begin
+  if (select count(*) from public.pvp_matches) <> 0 then raise exception 'C thấy trận của người khác'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+select public.mark_pvp_applied('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') \g /dev/null
+reset role;
+do $$ begin
+  if (select applied_defender from public.pvp_matches) is not true then raise exception 'B không đánh dấu được phía mình'; end if;
+  if (select applied_challenger from public.pvp_matches) is true then raise exception 'Đánh dấu nhầm phía người thách đấu'; end if;
+end $$;
+
+select 'DB PROFILES/FRIENDS/PVP TEST OK' as result;

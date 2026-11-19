@@ -1,0 +1,5 @@
+# Cấu hình tối thiểu cho Supabase CLI (dùng khi tự động triển khai qua GitHub Actions)
+project_id = "dai-chien-cau-ca"
+
+[functions.death-match]
+verify_jwt = true

@@ -14,7 +14,6 @@ import { htmlOverlay } from "../ui/htmlOverlay.ts";
 
 /** Tính năng sẽ có ở giai đoạn sau – hiển thị rõ ràng là "sắp ra mắt", không giả lập. */
 const COMING: Record<string, string> = {
-  pvp: "Đấu Cá online (1v1, 3v3) sẽ mở ở Giai đoạn 4 – cần server Colyseus.",
   spin: "Vòng Quay & Gacha sẽ mở ở Giai đoạn 3.",
   quest: "Nhiệm vụ ngày/tuần & điểm danh sẽ mở ở Giai đoạn 3.",
   rank: "Bảng xếp hạng online sẽ mở ở Giai đoạn 5.",
@@ -108,7 +107,7 @@ export class HubScene extends Phaser.Scene {
       { icon: "🛒", iconKey: shopIcon, label: "Cửa Hàng", color: COLORS.orange, act: () => goTo(this, "Shop") },
       { icon: "📖", iconKey: bookIcon, label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
       { icon: "⚙️", label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
-      { icon: "⚔️", label: "Đấu Cá", color: COLORS.red, act: () => {}, locked: "pvp" },
+      { icon: "⚔️", label: "Đấu Sinh Tử", color: COLORS.red, act: () => goTo(this, "DeathMatch"), badge: s.roasted.length ? `🍖${s.roasted.length}` : undefined },
       { icon: "🎡", label: "Vòng Quay", color: COLORS.purple, act: () => {}, locked: "spin" },
       { icon: "📜", label: "Nhiệm Vụ", color: COLORS.purple, act: () => {}, locked: "quest" },
       { icon: "🎉", label: "Sự Kiện", color: COLORS.orange, act: () => this.openEvents(), badge: eventsLeft ? "!" : undefined },
@@ -136,7 +135,25 @@ export class HubScene extends Phaser.Scene {
       GameState.loadWarning = null;
     }
     this.input.keyboard?.on("keydown-ENTER", () => goTo(this, "Zone"));
+    if (GameState.online && !HubScene.socialSynced) {
+      HubScene.socialSynced = true;
+      void GameState.syncSocial().then((list) => {
+        if (!this.scene.isActive()) return;
+        list.forEach((m, i) =>
+          this.time.delayedCall(i * 2600, () =>
+            toast(
+              this,
+              m.won ? `⚔ ${m.opponentName} thách đấu bạn và đã THUA! Bạn nhận cá nướng 🍖` : `⚔ ${m.opponentName} thách đấu và thắng bạn – bạn mất 1 con cá 😭`,
+              m.won ? COLORS.green : COLORS.red,
+            ),
+          ),
+        );
+      });
+    }
   }
+
+  /** Chỉ đồng bộ kết quả bị thách đấu một lần mỗi lần mở game. */
+  static socialSynced = false;
 
   private splash(x: number, y: number) {
     this.add.particles(x, y, "p_drop", {
@@ -263,6 +280,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.7.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.8.0 · Giai đoạn 2–4`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

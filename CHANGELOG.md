@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.0] – 2026-11-19 – Đấu Sinh Tử, Hồ sơ & Bạn bè, Thể đột biến
+### Thêm
+- **Đấu Sinh Tử** (nút ⚔ ở sảnh): chọn 3 cá và tự xếp thứ tự ra sân, đấu tay đôi lần lượt, thắng 2/3 là thắng. Khắc hệ (Nước > Lửa > Băng > Đất > Sấm > Nước; Sáng ⇄ Tối), chí mạng, kỹ năng hệ mỗi lượt thứ 3 (đốt, đóng băng, tê liệt, hồi máu, khiên).
+  - Đấu với máy 3 độ khó (Dễ/Thường/Khó), xem trước đội máy và phần thưởng.
+  - **Bên thua mất con cá mạnh nhất** trong đội; bên thắng nhận con đó dạng **🍖 cá nướng**. Cá khóa 🔒 không được đem đấu.
+  - **Cá nướng cho nhân vật ăn để nhận kinh nghiệm** (loài càng hiếm, cấp/sao càng cao càng nhiều KN; nhân vật tự lên cấp, không vượt giới hạn đột phá).
+  - Màn trận đấu hoạt hình: thanh máu, số sát thương bay, rung màn, chớp sáng kỹ năng, x2 tốc độ, bỏ qua.
+  - Ghi thắng/thua cho từng con cá → tỉ lệ thắng.
+- **Đấu Sinh Tử với người chơi khác** (cần tài khoản online): máy chủ (Supabase Edge Function `death-match`) tự tính trận bằng save thật của 2 bên – không ai sửa kết quả được; giới hạn 20 trận/giờ, 5 trận/ngày với cùng đối thủ. Đặt **đội phòng thủ** 🛡; khi mở game sẽ thông báo ai đã thách đấu bạn và kết quả.
+- **Hồ sơ & Bạn bè** (bấm avatar): thông tin, thống kê, **mã kết bạn**, chọn **3 cá trưng bày** – người khác xem được tỉ lệ thắng; tìm theo tên/mã, gửi/nhận/xóa lời mời, xem hồ sơ bạn bè, thách đấu.
+- **Thể đột biến cho cá Boss**: Long Hóa, Hỏa Hóa, Băng Hóa, Lôi Hóa, Thần Hóa – chỉ số tăng đột biến (tới ×2,2), có thể đổi hệ. Vật phẩm rơi cực hiếm khi câu (0,6%; Thần vật 0,08%; Boss ×3). **Tỉ lệ thành công ẩn, khác nhau từng thể; thất bại vẫn mất vật phẩm.**
+- Hình **cá nướng** riêng: thân vàng nâu, vằn vỉ, xiên tre, lá chanh.
+- Database: bảng `player_cards`, `friendships`, `pvp_matches` có RLS (đã chạy thử trên PostgreSQL thật). Workflow `deploy-supabase.yml` tự đẩy migration + Edge Function khi có secret.
+- Save phiên bản 6 (cá nướng, trưng bày, vật phẩm đột biến, đội phòng thủ, KN nhân vật) có chuyển đổi tự động.
+
 ## [0.7.0] – 2026-11-19 – Môi trường, bục câu, thoại bựa, giao diện mới
 ### Thêm
 - **Rác dưới nước** (12% mỗi lần câu): chai nhựa, bọc nilông, dép, lon nước, lưới rách – kèm lời nhắn "♻ Mọi người hãy tái chế để bảo vệ môi trường nhé!".

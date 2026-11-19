@@ -207,3 +207,109 @@ export function makeParticleTextures(scene: Phaser.Scene) {
     ctx.stroke();
   });
 }
+
+/** Cá nướng: thân vàng nâu cháy cạnh, vằn vỉ nướng, xiên tre, lá chanh trang trí. */
+export function roastedFishTexture(scene: Phaser.Scene, fish: FishDef): string {
+  return canvasTexture(scene, `roast_${fish.id}`, FISH_W, FISH_H, (ctx) => {
+    const W = FISH_W;
+    const H = FISH_H;
+    // vẽ cá lên lớp riêng rồi "nướng" (chỉ tô trong hình con cá)
+    const layer = document.createElement("canvas");
+    layer.width = W;
+    layer.height = H;
+    const l = layer.getContext("2d")!;
+    l.save();
+    l.translate(W * 0.08, H * 0.1);
+    l.scale(0.84, 0.8);
+    drawFish(l, fish);
+    l.restore();
+    l.globalCompositeOperation = "source-atop";
+    // lớp màu nướng vàng nâu
+    const g = l.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "rgba(170,85,20,0.6)");
+    g.addColorStop(0.5, "rgba(240,160,60,0.5)");
+    g.addColorStop(1, "rgba(140,60,12,0.65)");
+    l.fillStyle = g;
+    l.fillRect(0, 0, W, H);
+    // cháy xém viền đuôi và đầu
+    const burn = l.createRadialGradient(W / 2, H / 2, H * 0.15, W / 2, H / 2, W * 0.5);
+    burn.addColorStop(0, "rgba(0,0,0,0)");
+    burn.addColorStop(1, "rgba(60,22,0,0.5)");
+    l.fillStyle = burn;
+    l.fillRect(0, 0, W, H);
+    // vằn vỉ nướng chéo
+    l.strokeStyle = "rgba(70,28,4,0.55)";
+    l.lineCap = "round";
+    l.lineWidth = Math.max(3, W * 0.014);
+    for (let i = 0; i < 5; i++) {
+      const x = W * 0.24 + i * W * 0.11;
+      l.beginPath();
+      l.moveTo(x, H * 0.15);
+      l.lineTo(x + W * 0.13, H * 0.85);
+      l.stroke();
+    }
+    // bóng mỡ óng ánh
+    l.fillStyle = "rgba(255,230,160,0.45)";
+    for (let i = 0; i < 6; i++) {
+      l.beginPath();
+      l.ellipse(W * (0.28 + i * 0.09), H * (0.36 + (i % 2) * 0.06), W * 0.018, H * 0.03, -0.5, 0, Math.PI * 2);
+      l.fill();
+    }
+    // xiên tre xuyên thân (phía sau)
+    const stick = (alpha: number) => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#1b1530";
+      ctx.lineWidth = 11;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.01, H * 0.6);
+      ctx.lineTo(W * 0.99, H * 0.48);
+      ctx.stroke();
+      ctx.strokeStyle = "#d7a65a";
+      ctx.lineWidth = 7;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,240,200,0.7)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    };
+    stick(1);
+    ctx.drawImage(layer, 0, 0);
+    // đầu xiên lộ ra trước thân
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(W * 0.9, 0, W * 0.1, H);
+    ctx.rect(0, 0, W * 0.09, H);
+    ctx.clip();
+    stick(1);
+    ctx.restore();
+    // lá chanh + lát ớt trang trí
+    ctx.save();
+    ctx.translate(W * 0.5, H * 0.2);
+    ctx.rotate(-0.4);
+    ctx.fillStyle = "#43a047";
+    ctx.strokeStyle = "#1b1530";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, W * 0.06, H * 0.05, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "#a5d6a7";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-W * 0.05, 0);
+    ctx.lineTo(W * 0.05, 0);
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "#e53935";
+    ctx.strokeStyle = "#1b1530";
+    ctx.lineWidth = 2;
+    for (const [x, y] of [[0.6, 0.22], [0.42, 0.26]] as const) {
+      ctx.beginPath();
+      ctx.arc(W * x, H * y, W * 0.016, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  });
+}

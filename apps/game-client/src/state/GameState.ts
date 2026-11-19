@@ -1,7 +1,16 @@
 import Phaser from "phaser";
 import {
+  Rng,
+  randomSeed,
   applyCatch,
   applyJunkCatch,
+  applyDeathMatch,
+  applyForm,
+  applyPvpOutcome,
+  eatRoasted,
+  grantEvoItem,
+  setDefense,
+  setShowcase,
   claimEvent,
   recycleAll,
   decideSync,
@@ -29,18 +38,23 @@ import {
   type CosmeticDef,
   type CosmeticSlot,
   type ShopItemDef,
+  type Difficulty,
+  type Fighter,
   type FishDef,
+  type FishFormDef,
   type GameEventDef,
+  type PvpMatchRecord,
   type JunkDef,
   type Loadout,
   type RodDef,
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { CATALOG, CHARACTERS, CHARACTER_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 import * as Online from "./online.ts";
+import * as Social from "./social.ts";
 
 function uid(prefix: string): string {
   const r = crypto.getRandomValues(new Uint32Array(2));
@@ -164,6 +178,86 @@ class GameStateStore extends Phaser.Events.EventEmitter {
 
   catchJunk(j: JunkDef) {
     return this.run(applyJunkCatch(this._save, j, uid("j"), Date.now()));
+  }
+
+  // ------------------------------------------------------------ Đấu Sinh Tử
+  deathMatch(teamUids: string[], opponent: Fighter[], seed: number, difficulty: Difficulty) {
+    return this.run(
+      applyDeathMatch(this._save, { txId: uid("dm"), teamUids, opponent, seed, difficulty, now: Date.now() }, FISH_BY_ID, FORM_BY_ID),
+    );
+  }
+
+  /** Cho nhân vật ăn cá nướng để nhận kinh nghiệm. */
+  eatRoasted(roastedId: string, charId: string) {
+    return this.run(eatRoasted(this._save, roastedId, charId, FISH_BY_ID, Date.now()));
+  }
+
+  setDefense(uids: string[]) {
+    const r = this.run(setDefense(this._save, uids, Date.now()));
+    if (r.ok) void this.publishProfile();
+    return r;
+  }
+
+  setShowcase(uids: string[]) {
+    const r = this.run(setShowcase(this._save, uids, Date.now()));
+    if (r.ok) void this.publishProfile();
+    return r;
+  }
+
+  grantEvoItem(itemId: string) {
+    return this.run(grantEvoItem(this._save, itemId, uid("ev"), Date.now()));
+  }
+
+  applyForm(fishUid: string, form: FishFormDef) {
+    return this.run(applyForm(this._save, fishUid, form, uid("fm"), Date.now(), FISH_BY_ID, new Rng(randomSeed()).next()));
+  }
+
+  /** Áp kết quả một trận PvP vừa đấu (phía mình) rồi báo máy chủ. */
+  async applyPvp(rec: PvpMatchRecord) {
+    const r = this.run(applyPvpOutcome(this._save, rec, Date.now()));
+    if (r.ok) {
+      try {
+        await this.syncNow();
+        await Social.markPvpApplied(rec.id);
+      } catch {
+        /* lần mở game sau sẽ thử lại – pvpApplied chống áp dụng 2 lần */
+      }
+    }
+    return r;
+  }
+
+  /** Đăng hồ sơ công khai + nhận kết quả các trận bị thách đấu. Trả về các trận vừa áp dụng. */
+  async syncSocial(): Promise<PvpMatchRecord[]> {
+    if (!this.online) return [];
+    const applied: PvpMatchRecord[] = [];
+    try {
+      for (const m of await Social.pendingPvp(this.online.id)) {
+        if (this._save.pvpApplied.includes(m.id)) {
+          await Social.markPvpApplied(m.id);
+          continue;
+        }
+        const r = applyPvpOutcome(this._save, m, Date.now());
+        if (r.ok) {
+          this.commit(r.save);
+          applied.push(m);
+        }
+      }
+      if (applied.length) await this.syncNow();
+      for (const m of applied) await Social.markPvpApplied(m.id);
+      await this.publishProfile();
+    } catch (e) {
+      console.warn("Đồng bộ mạng xã hội thất bại:", (e as Error).message);
+    }
+    return applied;
+  }
+
+  async publishProfile() {
+    if (!this.online) return;
+    try {
+      await Social.publishCard(this.online.id, this._save);
+    } catch (e) {
+      console.warn("Không đăng được hồ sơ:", (e as Error).message);
+    }
   }
 
   claimEvent(ev: GameEventDef) {
@@ -297,6 +391,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     if (d.upload) await online.flush();
     this.emit("changed", this._save);
     this.emit("account", user);
+    void this.publishProfile();
     return d.reason;
   }
 

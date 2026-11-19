@@ -54,10 +54,10 @@ export class TopBar extends Phaser.GameObjects.Container {
       this.levelT = txt(scene, x + 74, 36, "", 18, { color: COLORS.textGold }).setOrigin(0, 0);
       this.xpBar = new Bar(scene, x + 140, 40, 150, 18, 0x7c4dff, "");
       this.add([this.nameT, this.levelT, this.xpBar]);
-      // bấm avatar / tên để mở Tài Khoản
+      // bấm avatar / tên để mở Hồ Sơ (có nút sang Tài Khoản)
       const hit = scene.add.zone(x, 4, 300, 70).setOrigin(0).setInteractive({ useHandCursor: true });
       hit.on("pointerup", () => {
-        if (scene.scene.key !== "Account") goTo(scene, "Account");
+        if (scene.scene.key !== "Profile") goTo(scene, "Profile");
       });
       this.add(hit);
     }

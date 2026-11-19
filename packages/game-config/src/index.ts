@@ -75,6 +75,9 @@ export const FISHING = {
   bossBaseChance: 0.015,
   /** Xác suất vớt phải rác (trước khi xét cá). */
   junkChance: 0.12,
+  /** Tỉ lệ rơi vật phẩm tiến hóa khi bắt cá (Boss ×3). */
+  evoDropChance: 0.006,
+  divineDropChance: 0.0008,
 };
 
 export const PROGRESSION = {

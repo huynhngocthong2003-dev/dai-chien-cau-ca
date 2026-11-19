@@ -19,5 +19,6 @@ $RUNAS "$PGBIN/pg_ctl" -D "$TMP/data" -o "-p $PORT -k $TMP -c listen_addresses='
 export PGOPTIONS="-c client_min_messages=warning"
 PSQL=(psql -h "$TMP" -p "$PORT" -U postgres -d postgres -v ON_ERROR_STOP=1 -q)
 "${PSQL[@]}" -f "$ROOT/tests/db/supabase_stub.sql"
-for f in "$ROOT"/supabase/migrations/*.sql; do "${PSQL[@]}" -f "$f"; done
+# chạy 2 lần để chắc chắn migration chạy lại không lỗi (idempotent)
+for pass in 1 2; do for f in "$ROOT"/supabase/migrations/*.sql; do "${PSQL[@]}" -f "$f"; done; done
 "${PSQL[@]}" -t -f "$ROOT/tests/db/rls_test.sql"

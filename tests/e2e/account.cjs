@@ -28,7 +28,10 @@ async function open(browser, url, setup) {
 }
 const save = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('dccc_save_v1')));
 const toAccount = async (p) => {
-  await p.mouse.click(120, 38); // bấm avatar
+  await p.mouse.click(120, 38); // bấm avatar → Hồ Sơ
+  await p.waitForFunction(() => window.__game.scene.isActive('Profile'));
+  await p.waitForTimeout(500);
+  await p.mouse.click(560, 140); // nút Tài khoản
   await p.waitForFunction(() => window.__game.scene.isActive('Account'));
   await p.waitForTimeout(500);
 };
@@ -148,6 +151,22 @@ async function playOneFish(p) {
             return route.fulfill({ status: 201, body: '' });
           }
         }
+        // Hồ sơ công khai / bạn bè / PvP (đủ để game đồng bộ hồ sơ khi đăng nhập)
+        if (u.pathname === '/rest/v1/player_cards') {
+          const uid = (req.headers()['authorization'] || '').replace('Bearer tok_', '');
+          if (req.method() === 'POST') {
+            const b = req.postDataJSON();
+            const row = Array.isArray(b) ? b[0] : b;
+            if (row.user_id !== uid) return json(403, { message: 'RLS' });
+            db.cards = db.cards || new Map();
+            db.cards.set(uid, { ...row, friend_code: uid.slice(0, 8).toUpperCase() });
+            return route.fulfill({ status: 201, body: '' });
+          }
+          const want = (u.searchParams.get('user_id') || '').replace('eq.', '');
+          const c = db.cards && db.cards.get(want);
+          return json(200, c ? [c] : []);
+        }
+        if (u.pathname === '/rest/v1/pvp_matches' || u.pathname === '/rest/v1/friendships') return json(200, []);
         return json(404, { message: 'mock: không hỗ trợ ' + req.method() + ' ' + u.pathname });
       });
     };

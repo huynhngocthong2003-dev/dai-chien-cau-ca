@@ -2,7 +2,7 @@ import { ECONOMY, PROGRESSION } from "@dccc/game-config";
 import type { CharacterDef, CosmeticSlot, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
 import { sumPassive } from "./loadout.ts";
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 /** Kim cương thưởng: mỗi lần lên cấp, lần đầu bắt một loài, mỗi lần bắt Boss. */
 export const DIAMOND_REWARDS = { levelUp: 10, newSpecies: 3, boss: 5 };
@@ -23,6 +23,11 @@ export interface OwnedFish {
   stars: number;
   /** Cá bị khóa không thể bán, phân giải hay dùng làm nguyên liệu. */
   locked: boolean;
+  /** Thắng / thua trong Đấu Sinh Tử (để tính tỉ lệ thắng). */
+  wins?: number;
+  losses?: number;
+  /** Thể tiến hóa đột biến (id thể). */
+  form?: string;
 }
 
 export interface CharProgress {
@@ -30,6 +35,8 @@ export interface CharProgress {
   /** Số lần đột phá (0..5). Mỗi lần mở thêm 10 cấp. */
   breakthrough: number;
   awakened: boolean;
+  /** Kinh nghiệm hiện có của nhân vật (từ ăn cá nướng). */
+  xp?: number;
   /** Đồ đang mặc: id vật phẩm theo ô. */
   equip: Partial<Record<CosmeticSlot, string>>;
 }
@@ -87,6 +94,16 @@ export interface PlayerSave {
   eco: EcoState;
   /** Sự kiện đã nhận quà. */
   claimedEvents: string[];
+  /** Cá nướng thắng được từ Đấu Sinh Tử, chờ cho cá ăn. */
+  roasted: { id: string; fishId: string; level: number; stars: number }[];
+  /** Cá trưng bày ở hồ sơ (tối đa 3 uid). */
+  showcase: string[];
+  /** Vật phẩm tiến hóa cực hiếm. */
+  evoItems: Record<string, number>;
+  /** Đội phòng thủ khi bị người khác thách Đấu Sinh Tử (3 uid, theo thứ tự). */
+  defense: string[];
+  /** Mã trận PvP đã áp dụng (chống áp dụng 2 lần). */
+  pvpApplied: string[];
   /** Ngày (YYYY-MM-DD) đã hồi vé Boss gần nhất. */
   bossTicketDay: string;
   fishes: OwnedFish[];
@@ -97,6 +114,8 @@ export interface PlayerSave {
     snapped: number;
     heaviestKg: number;
     species: Record<string, number>;
+    dmWins?: number;
+    dmLosses?: number;
   };
   ledger: LedgerEntry[];
   /** Mã giao dịch đã áp dụng – chống nhận thưởng trùng. */
@@ -134,6 +153,11 @@ export function createNewSave(playerId: string, name: string, catalog: GameCatal
     redeemedCodes: [],
     eco: { points: 0, junk: {}, recycled: 0 },
     claimedEvents: [],
+    roasted: [],
+    showcase: [],
+    evoItems: {},
+    defense: [],
+    pvpApplied: [],
     bossTicketDay: "",
     fishes: [],
     stats: { totalCaught: 0, bossesCaught: 0, escaped: 0, snapped: 0, heaviestKg: 0, species: {} },

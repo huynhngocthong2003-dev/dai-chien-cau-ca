@@ -15,6 +15,9 @@ export const ownedFishSchema = z.object({
   level: z.number().int().min(1).max(200),
   stars: z.number().int().min(1).max(5),
   locked: z.boolean(),
+  wins: nonNegInt.optional(),
+  losses: nonNegInt.optional(),
+  form: id.optional(),
 });
 
 export const playerSaveSchema = z.object({
@@ -34,6 +37,7 @@ export const playerSaveSchema = z.object({
       level: z.number().int().min(1).max(60),
       breakthrough: z.number().int().min(0).max(5),
       awakened: z.boolean(),
+      xp: nonNegInt.optional(),
       equip: z.object({ hat: id.optional(), outfit: id.optional(), accessory: id.optional(), wings: id.optional(), horns: id.optional() }),
     }),
   ),
@@ -43,6 +47,11 @@ export const playerSaveSchema = z.object({
   wardrobe: z.record(id, z.number().int().min(1).max(99)),
   redeemedCodes: z.array(z.string().regex(/^[0-9a-f]{20,32}$/)).max(200),
   claimedEvents: z.array(id).max(500),
+  roasted: z.array(z.object({ id, fishId: id, level: z.number().int().min(1).max(200), stars: z.number().int().min(1).max(5) })).max(200),
+  showcase: z.array(id).max(3),
+  evoItems: z.record(id, z.number().int().min(1).max(9999)),
+  defense: z.array(id).max(3),
+  pvpApplied: z.array(z.string().uuid()).max(500),
   eco: z.object({ points: nonNegInt, junk: z.record(id, z.number().int().min(1).max(100000)), recycled: nonNegInt }),
   fishes: z.array(ownedFishSchema).max(1000),
   stats: z.object({
@@ -52,6 +61,8 @@ export const playerSaveSchema = z.object({
     snapped: nonNegInt,
     heaviestKg: z.number().min(0),
     species: z.record(id, nonNegInt),
+    dmWins: nonNegInt.optional(),
+    dmLosses: nonNegInt.optional(),
   }),
   ledger: z.array(
     z.object({

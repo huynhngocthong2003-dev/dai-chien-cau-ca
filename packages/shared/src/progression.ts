@@ -3,7 +3,7 @@
  * trả save mới hoặc lỗi. Mọi khoản chi đều ghi sổ với txId duy nhất.
  */
 import { RARITY_ORDER } from "@dccc/game-config";
-import type { CharRarity, CharacterDef, FishDef, RodDef } from "./types.ts";
+import type { CharRarity, CharacterDef, FishDef, FishFormDef, RodDef } from "./types.ts";
 import {
   DAILY_BOSS_TICKETS,
   MATERIAL_DROP,
@@ -82,19 +82,20 @@ export function decomposeValue(f: FishDef, o: Pick<OwnedFish, "level" | "stars">
   };
 }
 
-/** Chỉ số cá theo cấp (+8%/cấp) và sao (+15%/sao). */
-export function fishStats(f: FishDef, level = 1, stars = 1) {
+/** Chỉ số cá theo cấp (+8%/cấp), sao (+15%/sao) và thể tiến hóa (nếu có). */
+export function fishStats(f: FishDef, level = 1, stars = 1, form?: FishFormDef | null) {
   const m = (1 + 0.08 * (level - 1)) * (1 + 0.15 * (stars - 1));
   return {
-    hp: Math.round(f.hp * m),
-    atk: Math.round(f.atk * m),
-    def: Math.round(f.def * m),
-    spd: f.spd + (stars - 1) * 2,
+    hp: Math.round(f.hp * m * (form?.mult.hp ?? 1)),
+    atk: Math.round(f.atk * m * (form?.mult.atk ?? 1)),
+    def: Math.round(f.def * m * (form?.mult.def ?? 1)),
+    spd: f.spd + (stars - 1) * 2 + (form?.spdBonus ?? 0),
+    element: form?.element ?? f.element,
   };
 }
 
-export function ownedFishPower(f: FishDef, o: Pick<OwnedFish, "level" | "stars">): number {
-  const s = fishStats(f, o.level, o.stars);
+export function ownedFishPower(f: FishDef, o: Pick<OwnedFish, "level" | "stars">, form?: FishFormDef | null): number {
+  const s = fishStats(f, o.level, o.stars, form);
   return Math.round(s.hp / 10 + s.atk * 2 + s.def * 1.5 + s.spd);
 }
 
