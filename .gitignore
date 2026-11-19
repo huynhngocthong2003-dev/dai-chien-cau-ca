@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+coverage/
+test-results/
+apps/mobile/android/
+apps/mobile/ios/
+.DS_Store
+apps/game-client/dist-single/

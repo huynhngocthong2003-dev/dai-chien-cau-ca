@@ -1,0 +1,150 @@
+/** Kiểu dữ liệu dùng chung cho client, server và dữ liệu game. */
+
+export type CharRarity = "N" | "R" | "SR" | "SSR" | "UR";
+export type FishRarity = "common" | "rare" | "precious" | "epic" | "legendary" | "mythic" | "boss";
+export type Element = "water" | "fire" | "ice" | "thunder" | "dark" | "light" | "earth";
+
+/** Hiệu ứng kỹ năng chủ động trong lúc câu cá. Tất cả do logic chung tính toán. */
+export type ActiveEffect =
+  | { kind: "damage_pct"; value: number } // gây sát thương = % HP tối đa của cá
+  | { kind: "tension_reduce"; value: number } // giảm lực căng dây ngay lập tức
+  | { kind: "reel_boost"; value: number; durationMs: number } // tăng tốc thu dây (%)
+  | { kind: "stun"; durationMs: number } // cá choáng, không vùng vẫy
+  | { kind: "calm"; value: number; durationMs: number } // giảm lực vùng vẫy (%)
+  | { kind: "durability_restore"; value: number } // hồi độ bền dây
+  | { kind: "freeze"; durationMs: number } // đóng băng lực căng + cá
+  | { kind: "distance_pull"; value: number } // kéo cá lại gần ngay
+  | { kind: "double_damage"; durationMs: number }
+  | { kind: "burn"; valuePctPerSec: number; durationMs: number };
+
+/** Hiệu ứng bị động (nhân vật hoặc cần câu). */
+export type PassiveEffect =
+  | { kind: "xp_bonus"; value: number }
+  | { kind: "gold_bonus"; value: number }
+  | { kind: "durability_loss_reduce"; value: number }
+  | { kind: "bite_window_bonus"; value: number }
+  | { kind: "bite_speed"; value: number }
+  | { kind: "pull_bonus"; value: number; tensionPenalty?: number }
+  | { kind: "luck_bonus"; value: number }
+  | { kind: "snap_threshold"; value: number }
+  | { kind: "boss_struggle_reduce"; value: number }
+  | { kind: "tension_gain_reduce"; value: number }
+  | { kind: "tension_decay_bonus"; value: number }
+  | { kind: "crit"; chance: number; multiplier: number }
+  | { kind: "durability_regen"; perSec: number }
+  | { kind: "struggle_reduce"; value: number }
+  | { kind: "boss_damage"; value: number }
+  | { kind: "element_damage"; element: Element; value: number };
+
+export interface SkillDef<E> {
+  id: string;
+  name: string;
+  description: string;
+  effects: E[];
+}
+
+export interface ActiveSkillDef extends SkillDef<ActiveEffect> {
+  cooldownMs: number;
+}
+export type PassiveSkillDef = SkillDef<PassiveEffect>;
+
+export type UnlockCondition =
+  | { kind: "starter" }
+  | { kind: "level"; level: number }
+  | { kind: "gold"; amount: number; level?: number }
+  | { kind: "gacha" }
+  | { kind: "event"; eventId: string };
+
+export interface CharacterAppearance {
+  skin: string;
+  hair: string;
+  outfit: string;
+  accent: string;
+  hat: "none" | "cap" | "straw" | "bandana" | "crown" | "hood" | "pirate" | "helmet";
+  aura: string; // màu hào quang khi dùng kỹ năng
+}
+
+export interface CharacterDef {
+  id: string;
+  name: string;
+  title: string;
+  rarity: CharRarity;
+  element: Element;
+  base: { hp: number; pull: number; speed: number; luck: number };
+  growth: { hp: number; pull: number; speed: number; luck: number }; // tăng mỗi cấp
+  active: ActiveSkillDef;
+  passive: PassiveSkillDef;
+  unlock: UnlockCondition;
+  appearance: CharacterAppearance;
+  lore: string;
+}
+
+export interface RodDef {
+  id: string;
+  name: string;
+  rarity: CharRarity;
+  pull: number;
+  durability: number;
+  reelSpeed: number;
+  rareRate: number; // % cộng thêm vào tỷ lệ cá hiếm
+  antiSnap: number; // % giảm hao mòn dây khi căng
+  passive: PassiveSkillDef;
+  unlock: UnlockCondition;
+  visual: { shaft: string; handle: string; glow: string | null; line: string };
+  description: string;
+}
+
+export type FishShape = "round" | "long" | "flat" | "eel" | "shark" | "puffer" | "angler" | "serpent";
+
+export interface FishAppearance {
+  shape: FishShape;
+  body: string;
+  belly: string;
+  fin: string;
+  pattern: "none" | "stripes" | "spots" | "scales";
+  patternColor: string;
+  teeth: boolean;
+  horns: boolean;
+  spikes: boolean;
+  eye: "normal" | "angry" | "glow";
+  eyeColor: string;
+  glow: string | null;
+  scale: number; // hệ số kích thước hiển thị
+}
+
+export interface FishDef {
+  id: string;
+  name: string;
+  rarity: FishRarity;
+  element: Element;
+  hp: number;
+  atk: number;
+  def: number;
+  spd: number;
+  skill: { id: string; name: string; description: string };
+  value: number; // giá bán cơ bản (vàng)
+  xp: number;
+  weightKg: [number, number];
+  zones: string[];
+  appearance: FishAppearance;
+  description: string;
+}
+
+export interface ZoneDef {
+  id: string;
+  name: string;
+  description: string;
+  requiredLevel: number;
+  difficulty: 1 | 2 | 3 | 4 | 5 | 6;
+  spawn: { fishId: string; weight: number }[];
+  bossId: string;
+  theme: {
+    skyTop: string;
+    skyBottom: string;
+    waterTop: string;
+    waterBottom: string;
+    accent: string;
+    ground: string;
+    weather: "none" | "snow" | "embers" | "bubbles" | "sparkles" | "leaves";
+  };
+}

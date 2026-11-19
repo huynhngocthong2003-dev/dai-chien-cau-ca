@@ -1,0 +1,128 @@
+import Phaser from "phaser";
+import { FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
+import { FISH_BY_ID, ZONES } from "@dccc/game-data";
+import type { ZoneDef } from "@dccc/shared";
+import { GameState } from "../state/GameState.ts";
+import { fishSilhouetteTexture, fishTexture } from "../art/textures.ts";
+import { Button, fadeIn, goTo, panel, toast, txt } from "../ui/widgets.ts";
+import { TopBar } from "../ui/TopBar.ts";
+import { COLORS } from "../ui/theme.ts";
+import { hexToInt } from "../art/color.ts";
+
+const NODE_POS: [number, number][] = [
+  [140, 560],
+  [300, 400],
+  [170, 250],
+  [400, 190],
+  [560, 330],
+  [480, 520],
+];
+
+export class ZoneScene extends Phaser.Scene {
+  private detail?: Phaser.GameObjects.Container;
+  private selected!: ZoneDef;
+
+  constructor() {
+    super("Zone");
+  }
+
+  create() {
+    this.input.enabled = true;
+    fadeIn(this);
+    // nền biển bản đồ
+    const g = this.add.graphics();
+    g.fillGradientStyle(0x0d47a1, 0x0d47a1, 0x01579b, 0x002f6c, 1);
+    g.fillRect(0, 0, 1280, 720);
+    for (let i = 0; i < 40; i++) {
+      g.lineStyle(2, 0xffffff, 0.08);
+      const y = 100 + i * 16;
+      g.beginPath();
+      for (let x = 0; x <= 700; x += 20) g.lineTo(x, y + Math.sin(x / 40 + i) * 4);
+      g.strokePath();
+    }
+    // đường nối
+    g.lineStyle(6, 0xfff8e1, 0.5);
+    for (let i = 0; i < NODE_POS.length - 1; i++) {
+      const [x1, y1] = NODE_POS[i]!;
+      const [x2, y2] = NODE_POS[i + 1]!;
+      for (let t = 0; t < 1; t += 0.08) g.fillStyle(0xfff8e1, 0.6).fillCircle(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t + 40, 4);
+    }
+    new TopBar(this, { title: "Chọn Khu Vực", onBack: () => goTo(this, "Hub") });
+
+    const s = GameState.save;
+    ZONES.forEach((z, i) => {
+      const [x, y] = NODE_POS[i]!;
+      const unlocked = s.level >= z.requiredLevel;
+      const island = this.add.graphics();
+      island.fillStyle(0x000000, 0.3).fillEllipse(x + 4, y + 50, 150, 50);
+      island.fillStyle(hexToInt(z.theme.ground), 1).fillEllipse(x, y + 40, 150, 56);
+      island.fillStyle(hexToInt(z.theme.waterTop), 1).fillCircle(x, y, 52);
+      island.lineStyle(4, COLORS.outline).strokeCircle(x, y, 52);
+      island.lineStyle(4, unlocked ? hexToInt(z.theme.accent) : 0x607d8b).strokeCircle(x, y, 60);
+      const boss = FISH_BY_ID.get(z.bossId)!;
+      const icon = this.add.image(x, y, unlocked ? fishTexture(this, boss) : fishSilhouetteTexture(this, boss)).setScale(0.32);
+      const name = txt(this, x, y + 70, z.name, 20, { align: "center" }).setOrigin(0.5);
+      const req = txt(this, x, y + 94, unlocked ? `Độ khó ${"★".repeat(z.difficulty)}` : `🔒 Cấp ${z.requiredLevel}`, 16, {
+        color: unlocked ? COLORS.textGold : COLORS.textDim,
+        align: "center",
+      }).setOrigin(0.5);
+      const hit = this.add.zone(x, y + 20, 170, 170).setInteractive({ useHandCursor: true });
+      hit.on("pointerup", () => this.select(z));
+      if (z.id === s.selectedZoneId) {
+        this.tweens.add({ targets: icon, scale: 0.36, yoyo: true, repeat: -1, duration: 600 });
+      }
+      void name;
+      void req;
+    });
+    this.select(ZONES.find((z) => z.id === s.selectedZoneId) ?? ZONES[0]!);
+  }
+
+  private select(z: ZoneDef) {
+    this.selected = z;
+    this.detail?.destroy(true);
+    const s = GameState.save;
+    const unlocked = s.level >= z.requiredLevel;
+    const c = this.add.container(0, 0);
+    this.detail = c;
+    const X = 720;
+    const Y = 92;
+    c.add(panel(this, X, Y, 540, 614, 0.95));
+    c.add(txt(this, X + 270, Y + 34, z.name, 34, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+    c.add(txt(this, X + 24, Y + 64, z.description, 18, { wrap: 492, weight: "700", color: COLORS.textDim }));
+    c.add(txt(this, X + 24, Y + 118, `Yêu cầu cấp ${z.requiredLevel} · Độ khó ${"★".repeat(z.difficulty)}`, 18, { color: COLORS.textGold }));
+    // danh sách cá
+    c.add(txt(this, X + 24, Y + 148, "Cá trong khu vực (đã câu được sẽ hiện màu):", 17, { weight: "700" }));
+    const list = [...z.spawn.map((sp) => sp.fishId), z.bossId];
+    list.forEach((id, i) => {
+      const f = FISH_BY_ID.get(id)!;
+      const seen = (s.stats.species[id] ?? 0) > 0;
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      const fx = X + 82 + col * 126;
+      const fy = Y + 212 + row * 96;
+      const bg = this.add.graphics();
+      bg.fillStyle(0x0a1628, 0.8).fillRoundedRect(fx - 58, fy - 36, 116, 88, 12);
+      bg.lineStyle(2.5, hexToInt(FISH_RARITY_COLOR[f.rarity])).strokeRoundedRect(fx - 58, fy - 36, 116, 88, 12);
+      c.add(bg);
+      c.add(this.add.image(fx, fy - 2, seen ? fishTexture(this, f) : fishSilhouetteTexture(this, f)).setDisplaySize(104, 65));
+      c.add(
+        txt(this, fx, fy + 38, seen ? f.name : FISH_RARITY_LABEL[f.rarity], 13, {
+          align: "center",
+          color: FISH_RARITY_COLOR[f.rarity],
+          weight: "700",
+        }).setOrigin(0.5),
+      );
+    });
+    const btn = new Button(this, X + 270, Y + 566, 300, 72, unlocked ? "Bắt Đầu Câu!" : `Cần cấp ${z.requiredLevel}`, {
+      color: COLORS.orange,
+      fontSize: 30,
+      disabled: !unlocked,
+      onClick: () => {
+        GameState.select("selectedZoneId", z.id);
+        goTo(this, "Fishing", { zoneId: z.id });
+      },
+    });
+    btn.on("disabled-click", () => toast(this, `Đạt cấp ${z.requiredLevel} để mở khóa ${z.name}. Câu thêm cá để lên cấp!`));
+    c.add(btn);
+  }
+}
