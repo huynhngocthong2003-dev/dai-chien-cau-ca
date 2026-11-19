@@ -36,6 +36,20 @@ jobs:
           # Khóa "anon" của Supabase là khóa công khai (an toàn nhờ RLS). KHÔNG dùng service_role key.
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+      # Kiểm tra tài khoản online đã được nạp vào bản build (không in giá trị khóa)
+      - name: "Tai khoan online: da cau hinh SUPABASE_URL"
+        if: ${{ vars.SUPABASE_URL != '' }}
+        run: echo "SUPABASE_URL da duoc dat"
+      - name: "Tai khoan online: da cau hinh SUPABASE_ANON_KEY"
+        if: ${{ vars.SUPABASE_ANON_KEY != '' }}
+        run: echo "SUPABASE_ANON_KEY da duoc dat"
+      - name: "Tai khoan online: URL co trong ban build"
+        if: ${{ vars.SUPABASE_URL != '' }}
+        run: |
+          host="$(echo '${{ vars.SUPABASE_URL }}' | sed -E 's#https?://##; s#/.*##')"
+          case "$host" in *.supabase.co) ;; *) echo "SUPABASE_URL khong dung dang https://xxxx.supabase.co"; exit 1;; esac
+          grep -rqF "$host" apps/game-client/dist/assets || { echo "Khong tim thay URL trong ban build"; exit 1; }
+          echo "OK: ban build co dia chi may chu tai khoan"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/game-client/dist
