@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { extraX, safeX } from "../ui/wide.ts";
 import { CHARACTER_BY_ID, COSMETICS, EVENTS, FISH_BY_ID, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import { playerNameSchema } from "@dccc/validation";
 import { GameState } from "../state/GameState.ts";
@@ -48,7 +49,9 @@ export class HubScene extends Phaser.Scene {
     this.time.delayedCall(800, leap);
     this.time.addEvent({ delay: 6500, loop: true, callback: leap });
 
-    this.add.image(0, 330, dockTexture(this, Math.max(0, ZONES.findIndex((z) => z.id === zone.id)))).setOrigin(0).setDepth(-5);
+    const dock = this.add.image(0, 330, dockTexture(this, Math.max(0, ZONES.findIndex((z) => z.id === zone.id)))).setOrigin(0).setDepth(-5);
+    // màn hình rộng: nối dài bệ sang trái (lật gương) để bệ liền với bờ
+    if (extraX(this) > 0) this.add.image(0, dock.y, dock.texture.key).setOrigin(1, 0).setFlipX(true).setDepth(dock.depth);
     const char = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
     const aura = this.add.image(190, 384, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.25).setAlpha(0.55).setDepth(-5);
     const hero = this.add.image(190, 384, characterTexture(this, char, GameState.equipOf(char.id))).setOrigin(0.5, 1).setScale(1.15).setDepth(-4);
@@ -92,7 +95,8 @@ export class HubScene extends Phaser.Scene {
     });
     this.tweens.add({ targets: fishBtn, scale: 1.05, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
 
-    // Lưới tính năng
+    // Lưới tính năng (màn hình rộng: dạt sát mép phải cho cân đối)
+    const gridStart = this.children.list.length;
     panel(this, 836, 96, 428, 610, 0.72);
     const eventsLeft = EVENTS.filter((e) => !s.claimedEvents.includes(e.id)).length;
     const charIcon = characterHeadTexture(this, char, GameState.equipOf(char.id));
@@ -129,6 +133,8 @@ export class HubScene extends Phaser.Scene {
       });
       if (it.locked) b.on("disabled-click", () => toast(this, COMING[it.locked!]!));
     });
+    const dx = Math.max(0, extraX(this) - safeX(this) - 8);
+    if (dx) for (const o of this.children.list.slice(gridStart)) (o as unknown as { x: number }).x += dx;
 
     if (GameState.loadWarning) {
       toast(this, GameState.loadWarning, COLORS.red);
@@ -280,6 +286,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.8.0 · Giai đoạn 2–4`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.8.1 · Giai đoạn 2–4`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

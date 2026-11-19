@@ -48,6 +48,12 @@ export function migrateSave(raw: unknown): unknown {
     s.pvpApplied = [];
     s.version = 6;
   }
+  if (s.version === 6) {
+    s.daily = { day: "", base: {}, claimed: [], freeSpinUsed: false };
+    s.checkin = { lastDay: "", streak: 0, total: 0 };
+    s.titles = { owned: [], equipped: null };
+    s.version = 7;
+  }
   if (s.version !== SAVE_VERSION) return s;
   return s;
 }

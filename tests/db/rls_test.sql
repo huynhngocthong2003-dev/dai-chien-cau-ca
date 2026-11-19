@@ -161,3 +161,67 @@ do $$ begin
 end $$;
 
 select 'DB PROFILES/FRIENDS/PVP TEST OK' as result;
+
+-- ================= Hội & Bảng Xếp Hạng =================
+update public.player_cards set stats = '{"caught":50,"junk":30}' where user_id = '11111111-1111-1111-1111-111111111111';
+update public.player_cards set stats = '{"caught":10,"junk":"hack"}' where user_id = '22222222-2222-2222-2222-222222222222';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+select public.create_guild('Hội Cá Mập', 'cmp', 'Câu là phải to') \g /dev/null
+do $$ begin
+  if (select tag from public.guilds) <> 'CMP' then raise exception 'Ký hiệu hội phải viết hoa'; end if;
+  begin perform public.create_guild('Hội Thứ Hai', 'AB'); raise exception 'LỖI: một người tạo 2 hội';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ begin
+  begin perform public.create_guild('hội cá mập', 'XY'); raise exception 'LỖI: trùng tên hội';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+  begin perform public.create_guild('<script>', 'XY'); raise exception 'LỖI: tên hội độc hại';
+  exception when check_violation then null; end;
+  begin insert into public.guilds (name, tag, owner) values ('Hội Lậu', 'HL', '22222222-2222-2222-2222-222222222222'); raise exception 'LỖI: ghi thẳng bảng hội';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.guild_members (user_id, guild_id) values ('22222222-2222-2222-2222-222222222222', 1); raise exception 'LỖI: tự thêm thành viên';
+  exception when insufficient_privilege then null; end;
+end $$;
+select public.join_guild((select id from public.guilds limit 1)) \g /dev/null
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+select public.join_guild((select id from public.guilds limit 1)) \g /dev/null
+do $$ begin
+  if (select members from public.list_guilds('', 10)) <> 3 then raise exception 'Hội phải có 3 thành viên'; end if;
+  if (select score from public.list_guilds('cá', 10)) <> 60 then raise exception 'Điểm hội sai'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ begin
+  begin perform public.kick_member('33333333-3333-3333-3333-333333333333'); raise exception 'LỖI: thành viên thường mời người khác ra';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+select public.kick_member('33333333-3333-3333-3333-333333333333') \g /dev/null
+-- Bảng xếp hạng: dữ liệu rác ("hack") tính là 0, không làm hỏng bảng
+do $$ begin
+  if (select user_id from public.leaderboard('caught', 10) where rank = 1) <> '11111111-1111-1111-1111-111111111111' then raise exception 'Hạng 1 câu cá sai'; end if;
+  if (select count(*) from public.leaderboard('junk', 10)) <> 1 then raise exception 'Bảng rác phải bỏ qua dữ liệu lỗi'; end if;
+  if (select guild_tag from public.leaderboard('caught', 10) where rank = 1) <> 'CMP' then raise exception 'Thiếu hội trên bảng xếp hạng'; end if;
+  if public.my_rank('caught') <> 1 then raise exception 'my_rank sai'; end if;
+end $$;
+select public.leave_guild() \g /dev/null
+reset role;
+do $$ begin
+  if (select owner from public.guilds) <> '22222222-2222-2222-2222-222222222222' then raise exception 'Chủ hội rời thì phải nhường lại'; end if;
+  if (select count(*) from public.guild_members) <> 1 then raise exception 'Số thành viên sau khi rời sai'; end if;
+end $$;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+select public.leave_guild() \g /dev/null
+reset role;
+do $$ begin
+  if (select count(*) from public.guilds) <> 0 then raise exception 'Hội trống phải được giải tán'; end if;
+end $$;
+set role anon;
+do $$ begin
+  begin perform public.leaderboard('caught', 10); raise exception 'LỖI: khách xem được bảng xếp hạng';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'DB GUILDS/RANKINGS TEST OK' as result;

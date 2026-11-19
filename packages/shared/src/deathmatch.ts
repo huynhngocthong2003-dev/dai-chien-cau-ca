@@ -165,6 +165,7 @@ export function eatRoasted(
   // đã chạm trần thì giữ phần dư không quá 1 cấp
   p.xp = p.level >= cap ? Math.min(have, charXpToNext(p.level) - 1) : have;
   s.roasted = s.roasted.filter((x) => x.id !== roastedId);
+  s.stats.roastedEaten = (s.stats.roastedEaten ?? 0) + 1;
   s.updatedAt = now;
   return { ok: true, save: s, xp, levels };
 }

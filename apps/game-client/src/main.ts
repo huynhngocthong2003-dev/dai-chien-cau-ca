@@ -8,6 +8,7 @@ import { CharacterScene } from "./scenes/CharacterScene.ts";
 import { RodScene } from "./scenes/RodScene.ts";
 import { ShopScene } from "./scenes/ShopScene.ts";
 import { AccountScene } from "./scenes/AccountScene.ts";
+import { DESIGN_H, installWide, targetWidth } from "./ui/wide.ts";
 import { DeathMatchScene } from "./scenes/DeathMatchScene.ts";
 import { BattleScene } from "./scenes/BattleScene.ts";
 import { ProfileScene } from "./scenes/ProfileScene.ts";
@@ -29,8 +30,8 @@ async function start() {
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: 1280,
-      height: 720,
+      width: targetWidth(),
+      height: DESIGN_H,
     },
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
@@ -41,7 +42,11 @@ async function start() {
 
   // Điện thoại (đặc biệt khi mở dạng ứng dụng toàn màn hình): kích thước màn hình
   // có thể đổi sau khi game khởi động → đo lại nhiều lần để khung game luôn vừa.
-  const refresh = () => game.scale.refresh();
+  const rewide = installWide(game);
+  const refresh = () => {
+    game.scale.refresh();
+    rewide();
+  };
   const refreshSoon = () => [50, 300, 800].forEach((ms) => setTimeout(refresh, ms));
   window.addEventListener("resize", refreshSoon);
   window.addEventListener("orientationchange", refreshSoon);

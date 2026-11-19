@@ -15,3 +15,4 @@ export * from "./events.ts";
 export * from "./battle.ts";
 export * from "./deathmatch.ts";
 export * from "./forms.ts";
+export * from "./meta.ts";

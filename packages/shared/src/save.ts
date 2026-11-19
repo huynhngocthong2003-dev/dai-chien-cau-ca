@@ -2,7 +2,7 @@ import { ECONOMY, PROGRESSION } from "@dccc/game-config";
 import type { CharacterDef, CosmeticSlot, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
 import { sumPassive } from "./loadout.ts";
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 /** Kim cương thưởng: mỗi lần lên cấp, lần đầu bắt một loài, mỗi lần bắt Boss. */
 export const DIAMOND_REWARDS = { levelUp: 10, newSpecies: 3, boss: 5 };
@@ -116,7 +116,19 @@ export interface PlayerSave {
     species: Record<string, number>;
     dmWins?: number;
     dmLosses?: number;
+    /** Số rác đã vớt được. */
+    junkCaught?: number;
+    /** Số cá nướng nhân vật đã ăn. */
+    roastedEaten?: number;
+    /** Số lần quay Vòng Quay May Mắn. */
+    spins?: number;
   };
+  /** Nhiệm vụ ngày: mốc chỉ số đầu ngày + nhiệm vụ đã nhận thưởng + lượt quay miễn phí. */
+  daily: { day: string; base: Partial<Record<string, number>>; claimed: string[]; freeSpinUsed: boolean };
+  /** Điểm danh: ngày gần nhất, chuỗi ngày liên tiếp, tổng số ngày. */
+  checkin: { lastDay: string; streak: number; total: number };
+  /** Danh hiệu đã đạt + danh hiệu đang đeo. */
+  titles: { owned: string[]; equipped: string | null };
   ledger: LedgerEntry[];
   /** Mã giao dịch đã áp dụng – chống nhận thưởng trùng. */
   appliedTx: string[];
@@ -153,6 +165,9 @@ export function createNewSave(playerId: string, name: string, catalog: GameCatal
     redeemedCodes: [],
     eco: { points: 0, junk: {}, recycled: 0 },
     claimedEvents: [],
+    daily: { day: "", base: {}, claimed: [], freeSpinUsed: false },
+    checkin: { lastDay: "", streak: 0, total: 0 },
+    titles: { owned: [], equipped: null },
     roasted: [],
     showcase: [],
     evoItems: {},

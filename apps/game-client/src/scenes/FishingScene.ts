@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { extraX, screenRect } from "../ui/wide.ts";
 import { FISHING, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
 import { CHARACTER_BY_ID, ECO_MESSAGE, FISH_BY_ID, FISH_FORMS, JUNK, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import {
@@ -116,7 +117,9 @@ export class FishingScene extends Phaser.Scene {
     this.water = this.add.graphics().setDepth(2);
     addAmbience(this, this.zone);
     this.addWeather();
-    this.add.image(0, HORIZON - 42, dockTexture(this, Math.max(0, ZONES.findIndex((z) => z.id === this.zone.id)))).setOrigin(0).setDepth(3);
+    const dock = this.add.image(0, HORIZON - 42, dockTexture(this, Math.max(0, ZONES.findIndex((z) => z.id === this.zone.id)))).setOrigin(0).setDepth(3);
+    // màn hình rộng: nối dài bệ sang trái (lật gương) để bệ liền với bờ
+    if (extraX(this) > 0) this.add.image(0, dock.y, dock.texture.key).setOrigin(1, 0).setFlipX(true).setDepth(dock.depth);
     const awakened = !!GameState.save.characters[char.id]?.awakened;
     this.aura = this.add.image(190, 388, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.1).setAlpha(awakened ? 0.45 : 0).setDepth(3);
     if (awakened) this.tweens.add({ targets: this.aura, alpha: 0.2, scale: 1.2, duration: 900, yoyo: true, repeat: -1 });
@@ -680,7 +683,7 @@ export class FishingScene extends Phaser.Scene {
     this.mode = "result";
     const c = this.add.container(0, 0).setDepth(200);
     this.resultC = c;
-    c.add(this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.55).setOrigin(0).setInteractive());
+    c.add(screenRect(this, 0x000000, 0.55).setInteractive());
     const f = this.fishDef;
     if (kind === "caught" && this.junk) {
       const j = this.junk;

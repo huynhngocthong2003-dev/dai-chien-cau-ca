@@ -10,7 +10,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Câu Cá">
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" href="./favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap">
@@ -19,12 +20,13 @@
   html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
   body { background: radial-gradient(ellipse at 50% 30%, #1d5b8f 0%, var(--bg) 70%); font-family: "Baloo 2", system-ui, sans-serif; }
   /* Khung game nằm trong vùng an toàn (tránh tai thỏ / camera / thanh điều hướng) */
+  /* Khung game phủ toàn màn hình; trên/dưới chừa vùng an toàn, trái/phải game tự chừa (xem ui/wide.ts) */
   #game {
     position: fixed;
     top: env(safe-area-inset-top, 0px);
-    right: env(safe-area-inset-right, 0px);
+    right: 0;
     bottom: env(safe-area-inset-bottom, 0px);
-    left: env(safe-area-inset-left, 0px);
+    left: 0;
     display: flex; align-items: center; justify-content: center; overflow: hidden;
   }
   #game canvas { display: block; }
@@ -44,6 +46,7 @@
 <div id="loading">Đang tải Đại Chiến Câu Cá…</div>
 <div id="rotate"><div class="phone"></div><div>Xoay ngang điện thoại để chơi</div><small style="font-weight:500;opacity:.8">Game hiển thị tốt nhất ở chế độ màn hình ngang</small></div>
 <div id="game"></div>
+<div id="safe-probe" style="position:fixed;visibility:hidden;pointer-events:none;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)"></div>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

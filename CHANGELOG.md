@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1] – 2026-11-19 – Lấp đầy màn hình điện thoại, biểu tượng mới
+### Sửa / Thêm
+- **Màn hình dài (iPhone 12 Pro 19,5:9…)**: game giãn ngang theo tỉ lệ màn hình (tối đa 1600×720), nền kéo kín hai bên, thanh trên cùng bám mép và chừa tai thỏ; bệ câu nối dài sang trái; lưới chức năng ở sảnh dạt sát mép phải.
+- **Biểu tượng game mới** (màn hình chính điện thoại, tab trình duyệt). Cần xóa biểu tượng cũ và "Thêm vào MH chính" lại để thấy.
+- Đấu Sinh Tử: **ưu tiên lực chiến** – khắc hệ chỉ còn ±10% sát thương (trước +35%/−20%).
+- Báo lỗi rõ ràng khi máy chủ chưa có bảng bạn bè/hội (chưa triển khai database).
+- Chuẩn bị Giai đoạn 3–5 (logic + database, giao diện ở bản sau): điểm danh 7 ngày, nhiệm vụ ngày, Vòng Quay, 19 danh hiệu vui, danh hiệu Top xếp hạng, Hội (tạo/đặt tên/vào/rời), bảng xếp hạng an toàn với dữ liệu lỗi. Save phiên bản 7.
+
 ## [0.8.0] – 2026-11-19 – Đấu Sinh Tử, Hồ sơ & Bạn bè, Thể đột biến
 ### Thêm
 - **Đấu Sinh Tử** (nút ⚔ ở sảnh): chọn 3 cá và tự xếp thứ tự ra sân, đấu tay đôi lần lượt, thắng 2/3 là thắng. Khắc hệ (Nước > Lửa > Băng > Đất > Sấm > Nước; Sáng ⇄ Tối), chí mạng, kỹ năng hệ mỗi lượt thứ 3 (đốt, đóng băng, tê liệt, hồi máu, khiên).

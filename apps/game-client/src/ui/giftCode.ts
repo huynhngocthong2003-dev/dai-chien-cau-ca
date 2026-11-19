@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { screenRect } from "./wide.ts";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
 import { CHARACTER_BY_ID, ROD_BY_ID } from "@dccc/game-data";
 import { GameState } from "../state/GameState.ts";
@@ -64,7 +65,7 @@ function celebrate(scene: Phaser.Scene, charId: string, onDone?: () => void) {
   {
     const ch = CHARACTER_BY_ID.get(charId)!;
     const root = scene.add.container(0, 0).setDepth(950);
-    root.add(scene.add.rectangle(0, 0, 1280, 720, 0x000000, 0.75).setOrigin(0).setInteractive());
+    root.add(screenRect(scene, 0x000000, 0.75).setInteractive());
     const rays = scene.add.container(640, 330);
     const col = Phaser.Display.Color.HexStringToColor(CHAR_RARITY_COLOR[ch.rarity]).color;
     for (let i = 0; i < 16; i++) rays.add(scene.add.image(0, 0, "p_ray").setOrigin(0.5, 0).setAngle(i * 22.5).setTint(col).setAlpha(0.6).setBlendMode(Phaser.BlendModes.ADD));
@@ -114,7 +115,7 @@ function celebrateRod(scene: Phaser.Scene, rodId: string, onDone?: () => void) {
   const rod = ROD_BY_ID.get(rodId)!;
   const col = Phaser.Display.Color.HexStringToColor(rod.visual.glow ?? CHAR_RARITY_COLOR[rod.rarity]).color;
   const root = scene.add.container(0, 0).setDepth(950);
-  root.add(scene.add.rectangle(0, 0, 1280, 720, 0x000000, 0.82).setOrigin(0).setInteractive());
+  root.add(screenRect(scene, 0x000000, 0.82).setInteractive());
   const rays = scene.add.container(640, 320);
   for (let i = 0; i < 16; i++) rays.add(scene.add.image(0, 0, "p_ray").setOrigin(0.5, 0).setAngle(i * 22.5).setTint(col).setAlpha(0.55).setBlendMode(Phaser.BlendModes.ADD));
   root.add(rays);

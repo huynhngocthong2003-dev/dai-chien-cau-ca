@@ -63,7 +63,18 @@ export const playerSaveSchema = z.object({
     species: z.record(id, nonNegInt),
     dmWins: nonNegInt.optional(),
     dmLosses: nonNegInt.optional(),
+    junkCaught: nonNegInt.optional(),
+    roastedEaten: nonNegInt.optional(),
+    spins: nonNegInt.optional(),
   }),
+  daily: z.object({
+    day: z.string().max(10),
+    base: z.record(z.string().max(24), z.number().min(0)),
+    claimed: z.array(id).max(50),
+    freeSpinUsed: z.boolean(),
+  }),
+  checkin: z.object({ lastDay: z.string().max(10), streak: z.number().int().min(0).max(100000), total: nonNegInt }),
+  titles: z.object({ owned: z.array(id).max(200), equipped: id.nullable() }),
   ledger: z.array(
     z.object({
       txId: id,

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { screenRect } from "../ui/wide.ts";
 import { FISH_RARITY_COLOR } from "@dccc/game-config";
 import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import { roastedXp, type BattleEvent, type Fighter, type MatchResult, type OwnedFish, type RoastedFish } from "@dccc/shared";
@@ -244,7 +245,7 @@ export class BattleScene extends Phaser.Scene {
     this.children.list.filter((o) => o instanceof Phaser.GameObjects.Text && o.depth < 800).forEach((o) => (o as Phaser.GameObjects.Text).setVisible(false));
     this.scoreT.setVisible(true);
     const c = this.add.container(0, 0).setDepth(800);
-    c.add(this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.72).setOrigin(0).setInteractive());
+    c.add(screenRect(this, 0x000000, 0.72).setInteractive());
     const [sa, sb] = this.d.result.score;
     c.add(txt(this, 640, 130, o.won ? "🏆 CHIẾN THẮNG!" : "💀 THẤT BẠI", 72, { color: o.won ? "#ffd54f" : "#ff8a80" }).setOrigin(0.5));
     c.add(txt(this, 640, 200, `Tỉ số ${sa} – ${sb}`, 32).setOrigin(0.5));

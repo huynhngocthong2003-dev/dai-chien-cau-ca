@@ -52,6 +52,7 @@ export function applyJunkCatch(save: PlayerSave, junk: JunkDef, txId: string, no
   if (save.appliedTx.includes(txId)) return { ok: false, error: "Giao dịch trùng lặp" };
   const s = clone(save);
   s.eco.junk[junk.id] = (s.eco.junk[junk.id] ?? 0) + 1;
+  s.stats.junkCaught = (s.stats.junkCaught ?? 0) + 1;
   grantXp(s, JUNK_XP);
   addLedger(s, txId, "xp", JUNK_XP, `junk:${junk.id}`, now);
   markTx(s, txId);

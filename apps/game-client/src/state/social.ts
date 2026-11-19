@@ -3,7 +3,7 @@
  * Chỉ hoạt động khi đã đăng nhập tài khoản online.
  */
 import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
-import { ownedFishPower, winRate, type MatchResult, type PlayerSave, type PvpMatchRecord } from "@dccc/shared";
+import { ownedFishPower, winRate, type MatchResult, type PlayerSave, type PvpMatchRecord, type RankCategory } from "@dccc/shared";
 import { getClient } from "./online.ts";
 
 export interface ShowcaseFish {
@@ -22,7 +22,7 @@ export interface PlayerCard {
   friend_code: string;
   level: number;
   avatar: string;
-  stats: { caught?: number; bosses?: number; dmWins?: number; dmLosses?: number; species?: number };
+  stats: { caught?: number; bosses?: number; dmWins?: number; dmLosses?: number; species?: number; junk?: number; title?: string | null };
   showcase: ShowcaseFish[];
 }
 
@@ -56,6 +56,8 @@ export function cardFromSave(save: PlayerSave): Omit<PlayerCard, "user_id" | "fr
       dmWins: save.stats.dmWins ?? 0,
       dmLosses: save.stats.dmLosses ?? 0,
       species: Object.keys(save.stats.species).length,
+      junk: save.stats.junkCaught ?? 0,
+      title: save.titles.equipped,
     },
     showcase,
   };
@@ -70,7 +72,7 @@ const CARD_COLS = "user_id, display_name, friend_code, level, avatar, stats, sho
 export async function publishCard(userId: string, save: PlayerSave): Promise<void> {
   const sb = await getClient();
   const { error } = await sb.from("player_cards").upsert({ user_id: userId, friend_code: "-", ...cardFromSave(save) });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyRpc(error.message));
 }
 
 export async function myCard(userId: string): Promise<PlayerCard | null> {
@@ -90,7 +92,7 @@ export async function searchPlayers(q: string, exclude: string): Promise<PlayerC
       ? sb.from("player_cards").select(CARD_COLS).eq("friend_code", code)
       : sb.from("player_cards").select(CARD_COLS).ilike("display_name", `%${term.replace(/[%_]/g, "")}%`);
   const { data, error } = await query.neq("user_id", exclude).limit(20);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyRpc(error.message));
   return (data as PlayerCard[]) ?? [];
 }
 
@@ -98,14 +100,14 @@ export async function cardsByIds(ids: string[]): Promise<PlayerCard[]> {
   if (!ids.length) return [];
   const sb = await getClient();
   const { data, error } = await sb.from("player_cards").select(CARD_COLS).in("user_id", ids);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyRpc(error.message));
   return (data as PlayerCard[]) ?? [];
 }
 
 export async function listFriendships(): Promise<Friendship[]> {
   const sb = await getClient();
   const { data, error } = await sb.from("friendships").select("id, requester, addressee, status").limit(200);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyRpc(error.message));
   return (data as Friendship[]) ?? [];
 }
 
@@ -124,13 +126,13 @@ export async function sendFriendRequest(me: string, to: string): Promise<void> {
 export async function acceptFriend(id: number): Promise<void> {
   const sb = await getClient();
   const { error } = await sb.from("friendships").update({ status: "accepted" }).eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyRpc(error.message));
 }
 
 export async function removeFriend(id: number): Promise<void> {
   const sb = await getClient();
   const { error } = await sb.from("friendships").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyRpc(error.message));
 }
 
 export interface ChallengeResult {
@@ -179,7 +181,7 @@ export async function pendingPvp(me: string): Promise<PvpMatchRecord[]> {
     .or(`and(challenger.eq.${me},applied_challenger.eq.false),and(defender.eq.${me},applied_defender.eq.false)`)
     .order("created_at", { ascending: true })
     .limit(50);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyRpc(error.message));
   return ((data as PvpRow[]) ?? []).map((r) =>
     r.challenger === me
       ? { id: r.id, ...r.for_challenger, opponentName: r.defender_name }
@@ -190,5 +192,91 @@ export async function pendingPvp(me: string): Promise<PvpMatchRecord[]> {
 export async function markPvpApplied(id: string): Promise<void> {
   const sb = await getClient();
   const { error } = await sb.rpc("mark_pvp_applied", { match_id: id });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyRpc(error.message));
 }
+
+// ------------------------------------------------------------------ Bảng xếp hạng
+export interface RankRow {
+  rank: number;
+  user_id: string;
+  display_name: string;
+  level: number;
+  avatar: string;
+  title: string | null;
+  score: number;
+  guild_name: string | null;
+  guild_tag: string | null;
+}
+
+export async function leaderboard(cat: RankCategory, limit = 50): Promise<RankRow[]> {
+  const sb = await getClient();
+  const { data, error } = await sb.rpc("leaderboard", { p_cat: cat, p_limit: limit });
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as RankRow[]) ?? [];
+}
+
+export async function myRank(cat: RankCategory): Promise<number | null> {
+  const sb = await getClient();
+  const { data, error } = await sb.rpc("my_rank", { p_cat: cat });
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as number | null) ?? null;
+}
+
+// ------------------------------------------------------------------ Hội
+export interface GuildRow {
+  id: number;
+  name: string;
+  tag: string;
+  description: string;
+  owner: string;
+  members: number;
+  total_level: number;
+  score: number;
+}
+export interface GuildMember {
+  user_id: string;
+  guild_id: number;
+  role: "owner" | "member";
+  joined_at: string;
+}
+
+function friendlyRpc(msg: string): string {
+  if (/function .* does not exist|Could not find the function|Could not find the table|relation .* does not exist|schema cache/i.test(msg)) return "Máy chủ chưa cập nhật tính năng này (chờ chủ dự án triển khai database mới)";
+  if (/guilds_name_ci|duplicate key/i.test(msg)) return "Tên hội đã có người dùng";
+  if (/check constraint/i.test(msg)) return "Tên / ký hiệu hội không hợp lệ";
+  return msg;
+}
+
+export async function listGuilds(q = ""): Promise<GuildRow[]> {
+  const sb = await getClient();
+  const { data, error } = await sb.rpc("list_guilds", { p_query: q.trim(), p_limit: 30 });
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as GuildRow[]) ?? [];
+}
+
+export async function myMembership(me: string): Promise<GuildMember | null> {
+  const sb = await getClient();
+  const { data, error } = await sb.from("guild_members").select("user_id, guild_id, role, joined_at").eq("user_id", me).maybeSingle();
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as GuildMember | null) ?? null;
+}
+
+export async function guildMembers(guildId: number): Promise<GuildMember[]> {
+  const sb = await getClient();
+  const { data, error } = await sb.from("guild_members").select("user_id, guild_id, role, joined_at").eq("guild_id", guildId).limit(50);
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as GuildMember[]) ?? [];
+}
+
+async function rpc(fn: string, args: Record<string, unknown> = {}) {
+  const sb = await getClient();
+  const { data, error } = await sb.rpc(fn, args);
+  if (error) throw new Error(friendlyRpc(error.message));
+  return data as unknown;
+}
+
+export const createGuild = (name: string, tag: string, description: string) =>
+  rpc("create_guild", { p_name: name, p_tag: tag, p_description: description }) as Promise<number>;
+export const joinGuild = (id: number) => rpc("join_guild", { p_guild: id });
+export const leaveGuild = () => rpc("leave_guild");
+export const kickMember = (userId: string) => rpc("kick_member", { p_user: userId });

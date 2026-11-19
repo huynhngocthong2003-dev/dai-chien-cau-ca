@@ -49,9 +49,13 @@ const BEATS: Record<Element, Element[]> = {
   dark: ["light"],
 };
 
+/** Khắc hệ chỉ điều chỉnh nhẹ (~±10% sát thương) – lực chiến vẫn là yếu tố quyết định. */
+export const ELEMENT_ADVANTAGE = 1.1;
+export const ELEMENT_DISADVANTAGE = 0.92;
+
 export function elementMultiplier(att: Element, tgt: Element): number {
-  if (BEATS[att].includes(tgt)) return 1.35;
-  if (BEATS[tgt].includes(att)) return 0.8;
+  if (BEATS[att].includes(tgt)) return ELEMENT_ADVANTAGE;
+  if (BEATS[tgt].includes(att)) return ELEMENT_DISADVANTAGE;
   return 1;
 }
 

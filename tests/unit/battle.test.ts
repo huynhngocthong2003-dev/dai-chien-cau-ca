@@ -8,6 +8,7 @@ import {
   eatRoasted,
   roastedXp,
   elementMultiplier,
+  duel,
   fishStats,
   grantEvoItem,
   makeFighter,
@@ -46,6 +47,19 @@ describe("Cơ chế trận đấu", () => {
     expect(elementMultiplier("water", "fire")).toBeGreaterThan(1);
     expect(elementMultiplier("fire", "water")).toBeLessThan(1);
     expect(elementMultiplier("light", "dark")).toBeGreaterThan(1);
+  });
+
+  it("ưu tiên lực chiến: cá mạnh hơn ~30% vẫn thắng phần lớn dù bị khắc hệ", () => {
+    // Cá Lóc (Tối) bị cá Ánh Sáng khắc; cho cá Lóc cấp cao hơn để lực chiến hơn ~30%
+    const light = FISHES.find((f) => f.element === "light" && f.rarity !== "boss")!;
+    const weak = makeFighter(light, { uid: "w", level: 5, stars: 1 });
+    let lv = 5;
+    let strong = makeFighter(FISH_BY_ID.get("f_ca_loc")!, { uid: "s", level: lv, stars: 1 });
+    while (strong.power < weak.power * 1.3 && lv < 50) strong = makeFighter(FISH_BY_ID.get("f_ca_loc")!, { uid: "s", level: ++lv, stars: Math.ceil(lv / 10) });
+    expect(elementMultiplier(light.element, strong.element)).toBeGreaterThan(1);
+    let w = 0;
+    for (let seed = 1; seed <= 200; seed++) if (duel(strong, weak, new Rng(seed)).winner === 0) w++;
+    expect(w).toBeGreaterThan(140);
   });
 
   it("thắng 2 là dừng; tỉ số hợp lệ", () => {

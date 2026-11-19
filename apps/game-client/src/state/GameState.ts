@@ -12,6 +12,14 @@ import {
   setDefense,
   setShowcase,
   claimEvent,
+  claimCheckin,
+  claimQuest,
+  claimTitle,
+  equipTitle,
+  refreshDaily,
+  spinWheel,
+  type QuestDef,
+  type TitleDef,
   recycleAll,
   decideSync,
   decodeBackup,
@@ -50,7 +58,7 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { CATALOG, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHECKIN_REWARDS, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 import * as Online from "./online.ts";
@@ -258,6 +266,37 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     } catch (e) {
       console.warn("Không đăng được hồ sơ:", (e as Error).message);
     }
+  }
+
+  /** Sang ngày mới thì làm mới nhiệm vụ ngày (gọi khi mở bảng nhiệm vụ / vòng quay). */
+  refreshQuests() {
+    const r = refreshDaily(this._save, Date.now());
+    if (r !== this._save) this.commit(r);
+  }
+
+  claimQuest(q: QuestDef) {
+    this.refreshQuests();
+    return this.run(claimQuest(this._save, q, uid("qs"), Date.now()));
+  }
+
+  claimCheckin() {
+    return this.run(claimCheckin(this._save, CHECKIN_REWARDS, uid("ci"), Date.now()));
+  }
+
+  spinWheel() {
+    return this.run(spinWheel(this._save, WHEEL_PRIZES, new Rng(randomSeed()), uid("wh"), Date.now()));
+  }
+
+  claimTitle(t: TitleDef) {
+    const r = this.run(claimTitle(this._save, t, uid("tt"), Date.now()));
+    if (r.ok) void this.publishProfile();
+    return r;
+  }
+
+  equipTitle(id: string | null) {
+    const r = this.run(equipTitle(this._save, id, Date.now()));
+    if (r.ok) void this.publishProfile();
+    return r;
   }
 
   claimEvent(ev: GameEventDef) {

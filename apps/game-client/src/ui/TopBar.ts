@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { extraX, safeX } from "./wide.ts";
 import { PROGRESSION } from "@dccc/game-config";
 import { CHARACTER_BY_ID } from "@dccc/game-data";
 import type { PlayerSave } from "@dccc/shared";
@@ -28,13 +29,15 @@ export class TopBar extends Phaser.GameObjects.Container {
   private accountHandler = () => this.refresh(GameState.save);
 
   constructor(scene: Phaser.Scene, o: TopBarOpts = {}) {
-    super(scene, 0, 0);
+    // bám mép màn hình thật (màn rộng) và chừa tai thỏ
+    super(scene, -extraX(scene), 0);
     const W = scene.scale.gameSize.width;
+    const safe = safeX(scene);
     const g = scene.add.graphics();
     g.fillStyle(0x071a33, 0.82).fillRect(0, 0, W, 76);
     g.fillStyle(0x5fb3ff, 0.5).fillRect(0, 74, W, 3);
     this.add(g);
-    let x = 16;
+    let x = 16 + safe;
     if (o.onBack) {
       this.add(new Button(scene, x + 46, 38, 92, 52, "← Về", { color: COLORS.blue, fontSize: 22, onClick: o.onBack }));
       x += 104;
@@ -47,7 +50,7 @@ export class TopBar extends Phaser.GameObjects.Container {
       ring.lineStyle(3, COLORS.outline).strokeCircle(x + 32, 38, 32);
       this.add(ring);
       this.avatar = scene.add.image(x + 32, 40, "__DEFAULT").setDisplaySize(62, 74);
-      const mask = scene.make.graphics({}).fillCircle(x + 32, 38, 29);
+      const mask = scene.make.graphics({}).fillCircle(x + 32 + this.x, 38, 29);
       this.avatar.setMask(mask.createGeometryMask());
       this.add(this.avatar);
       this.nameT = txt(scene, x + 74, 6, "", 22).setOrigin(0, 0);
@@ -72,7 +75,7 @@ export class TopBar extends Phaser.GameObjects.Container {
       this.add([cg, it, t]);
       return t;
     };
-    const x0 = W - 16 - 4 * CW - 3 * 8;
+    const x0 = W - 16 - safe - 4 * CW - 3 * 8;
     this.goldT = chip(x0, "🪙", COLORS.gold);
     this.gemT = chip(x0 + (CW + 8), "💎", COLORS.diamond);
     this.stoneT = chip(x0 + 2 * (CW + 8), "🔷", 0x7c4dff);

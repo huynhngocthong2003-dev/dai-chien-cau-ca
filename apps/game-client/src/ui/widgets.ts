@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { DESIGN_H, DESIGN_W, screenRect } from "./wide.ts";
 import { COLORS, FONT } from "./theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
 
@@ -204,7 +205,7 @@ let activeToast: Phaser.GameObjects.Container | null = null;
 
 export function toast(scene: Phaser.Scene, message: string, color = COLORS.panelLight) {
   activeToast?.destroy();
-  const { width } = scene.scale.gameSize;
+  const width = DESIGN_W;
   const t = txt(scene, 0, 0, message, 24, { align: "center", wrap: 700 }).setOrigin(0.5);
   const w = Math.min(760, t.width + 48);
   const h = t.height + 22;
@@ -228,9 +229,10 @@ export function toast(scene: Phaser.Scene, message: string, color = COLORS.panel
 
 /** Lớp phủ modal có nút đóng. Trả về container để thêm nội dung. */
 export function modal(scene: Phaser.Scene, w: number, h: number, title: string, onClose?: () => void) {
-  const { width, height } = scene.scale.gameSize;
+  const width = DESIGN_W;
+  const height = DESIGN_H;
   const root = scene.add.container(0, 0).setDepth(900);
-  const dim = scene.add.rectangle(0, 0, width, height, 0x000000, 0.6).setOrigin(0).setInteractive();
+  const dim = screenRect(scene, 0x000000, 0.6).setInteractive();
   const x = (width - w) / 2;
   const y = (height - h) / 2;
   const p = panel(scene, x, y, w, h, 0.98);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  SAVE_VERSION,
   MAX_BREAKTHROUGH,
   applyCatch,
   buildLoadout,
@@ -213,7 +214,7 @@ describe("Nâng cấp dữ liệu lưu", () => {
     const r = parseSave(v1);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.save.version).toBe(6);
+    expect(r.save.version).toBe(SAVE_VERSION);
     expect(r.save.eco).toEqual({ points: 0, junk: {}, recycled: 0 });
     expect(r.save.claimedEvents).toEqual([]);
     expect(r.save.roasted).toEqual([]);

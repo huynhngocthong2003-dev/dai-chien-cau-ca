@@ -274,3 +274,63 @@ export interface ZoneDef {
     weather: "none" | "snow" | "embers" | "bubbles" | "sparkles" | "leaves";
   };
 }
+
+// ------------------------------------------------------------------ Giai đoạn 3 & 5: meta game
+/** Phần thưởng chung (điểm danh, nhiệm vụ, vòng quay, danh hiệu). */
+export interface RewardDef {
+  gold?: number;
+  diamonds?: number;
+  stones?: number;
+  soul?: number;
+  bossTickets?: number;
+  /** Vật phẩm tiến hóa đột biến (id). */
+  evoItem?: string;
+}
+
+/** Chỉ số dùng để tính nhiệm vụ / danh hiệu. */
+export type MetricKey =
+  | "caught"
+  | "bosses"
+  | "junk"
+  | "recycled"
+  | "dmWins"
+  | "species"
+  | "level"
+  | "gold"
+  | "roastedEaten"
+  | "forms"
+  | "spins"
+  | "checkins"
+  | "heaviest";
+
+export interface QuestDef {
+  id: string;
+  name: string;
+  icon: string;
+  metric: MetricKey;
+  target: number;
+  reward: RewardDef;
+}
+
+export interface TitleDef {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  metric: MetricKey;
+  target: number;
+  color: string;
+  reward: RewardDef;
+}
+
+export interface WheelPrizeDef {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  /** Trọng số (ẩn với người chơi). */
+  weight: number;
+  reward: RewardDef;
+}
+
+export type RankCategory = "level" | "caught" | "bosses" | "dmWins" | "junk";
