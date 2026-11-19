@@ -25,13 +25,17 @@ export function htmlOverlay(
   wrap.addEventListener("keydown", (e) => e.stopPropagation());
   wrap.addEventListener("keyup", (e) => e.stopPropagation());
 
-  const { width: GW } = scene.scale.gameSize;
   const place = () => {
     const r = scene.game.canvas.getBoundingClientRect();
-    const s = r.width / GW;
-    wrap.style.transform = `translate(${r.left + (x - w / 2) * s}px, ${r.top + (y - h / 2) * s}px) scale(${s})`;
+    const s = r.width / scene.scale.gameSize.width;
+    // màn hình rộng: camera dịch khung thiết kế 1280 vào giữa → trừ scrollX
+    const sx = scene.cameras?.main?.scrollX ?? 0;
+    wrap.style.transform = `translate(${r.left + (x - sx - w / 2) * s}px, ${r.top + (y - h / 2) * s}px) scale(${s})`;
   };
   place();
+  // camera có thể được dịch ngay sau khi scene tạo xong (màn hình rộng)
+  scene.events.once(Phaser.Scenes.Events.CREATE, place);
+  requestAnimationFrame(place);
   const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(place) : null;
   ro?.observe(scene.game.canvas);
   window.addEventListener("resize", place);

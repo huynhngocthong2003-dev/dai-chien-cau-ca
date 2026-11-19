@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.9.1] – 2026-11-19
+### Sửa
+- Ô nhập mã quà / đổi tên / đăng nhập bị lệch trên màn hình điện thoại dài (do khung game giãn ngang) – nay khớp đúng vị trí.
+
 ## [0.9.0] – 2026-11-19 – Giai đoạn 3 & 5: Nhiệm vụ, Điểm danh, Vòng Quay, Danh hiệu, Xếp hạng, Hội
 ### Thêm
 - **Nhiệm Vụ** (sảnh → 📜): 7 nhiệm vụ ngày (câu cá, vớt rác, tái chế, bắt Boss, thắng Sinh Tử, quay vòng quay), làm mới 0h giờ VN.
