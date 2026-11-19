@@ -85,7 +85,7 @@ export class TopBar extends Phaser.GameObjects.Container {
     this.soulT.setText(formatNum(s.materials.soul));
     if (this.nameT) {
       const c = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
-      this.avatar.setTexture(characterHeadTexture(this.scene, c)).setDisplaySize(62, 74);
+      this.avatar.setTexture(characterHeadTexture(this.scene, c, s.characters[c.id]?.equip)).setDisplaySize(62, 74);
       this.nameT.setText(s.name);
       this.levelT.setText(`Cấp ${s.level}`);
       const need = PROGRESSION.xpToNext(s.level);

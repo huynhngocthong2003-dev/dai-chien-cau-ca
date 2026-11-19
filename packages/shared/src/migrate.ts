@@ -25,6 +25,12 @@ export function migrateSave(raw: unknown): unknown {
     s.bossTicketDay = "";
     s.version = 2;
   }
+  if (s.version === 2) {
+    const rec = s.characters;
+    if (isObj(rec)) for (const id of Object.keys(rec)) if (isObj(rec[id])) rec[id] = { equip: {}, ...(rec[id] as Obj) };
+    s.wardrobe = {};
+    s.version = 3;
+  }
   if (s.version !== SAVE_VERSION) return s;
   return s;
 }

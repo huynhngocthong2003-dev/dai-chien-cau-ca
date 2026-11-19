@@ -6,3 +6,4 @@ export * from "./fishing.ts";
 export * from "./save.ts";
 export * from "./progression.ts";
 export * from "./migrate.ts";
+export * from "./shop.ts";

@@ -7,13 +7,13 @@ Cập nhật: 2026-11-19
 | 0 – Thiết kế & khởi tạo | ✅ Hoàn thành |
 | 1 – Gameplay MVP | ✅ Hoàn thành (chơi đơn, lưu đám mây tạm thời qua Artifact) |
 | 2 – Phát triển nhân vật | ✅ Hoàn thành phần cốt lõi (nâng cấp, đột phá, thức tỉnh, tiến hóa cần & cá, săn Boss). Còn lại: phụ kiện, trang phục, skin cần, hợp thể cần |
-| 3 – Kinh tế | ⬜ |
+| 3 – Kinh tế | ⏳ Cửa hàng, trang phục, trang sức, nguồn kim cương đã có. Còn: vòng quay/gacha, nhiệm vụ, điểm danh, thành tựu |
 | 4 – Multiplayer | ⬜ |
 | 5 – Cộng đồng | ⬜ |
 | 6 – Phát hành | ⬜ |
 
 ## Đã kiểm thử
-- 39 unit test (phát triển nhân vật/cần/cá, vé Boss, chuyển đổi save v1→v2, dữ liệu, tính tất định, cân bằng bằng bot mô phỏng, kinh tế, chống nhận trùng, schema save).
+- 52 unit test (cửa hàng, tủ đồ, kim cương thưởng, hồi quy lưu/tải lại với thời gian thật, phát triển nhân vật/cần/cá, vé Boss, chuyển đổi save v1→v2, dữ liệu, tính tất định, cân bằng bằng bot mô phỏng, kinh tế, chống nhận trùng, schema save).
 - E2E Playwright: chơi 1 ván bằng chuột (quăng → giật → kéo → kỹ năng → bắt cá) → lưu kho → bán cá → các màn hình → Săn Boss (Boss chắc chắn cắn, trừ đúng 1 vé) → hiển thị điện thoại ngang. Chạy trên bản dev, bản 1 file và bản GitHub Pages. Chạy trên cả bản dev và bản build 1 file. Không lỗi console.
 - `pnpm typecheck`, `pnpm lint` sạch.
 
@@ -26,3 +26,5 @@ Cập nhật: 2026-11-19
 - Web độc lập (GitHub Pages) đã có quy trình tự động nhưng chưa đăng được: cần chủ dự án tạo repository và cấp quyền GitHub.
 - Trên web độc lập (ngoài claude.ai) tiến trình chỉ lưu trên trình duyệt cho đến khi có Supabase (GĐ4).
 - Cân bằng kinh tế Giai đoạn 2 mới kiểm bằng test, cần chơi thử dài để tinh chỉnh tốc độ kiếm Đá/Linh Hồn.
+- Giao dịch quần áo/trang sức giữa người chơi chờ Giai đoạn 4 (cần server). Hiện chỉ bán lại cho cửa hàng.
+- Tiến trình chơi trước bản 0.3.0 có thể đã bị tạo mới khi tải lại trang (lỗi đã sửa).

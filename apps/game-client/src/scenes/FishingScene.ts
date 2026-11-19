@@ -26,7 +26,7 @@ import { Sfx } from "../audio/Sfx.ts";
 
 type Mode = "idle" | "charging" | "flying" | "fishing" | "landing" | "result";
 
-const HAND = { x: 236, y: 316 };
+const HAND = { x: 228, y: 318 };
 const ROD_LEN = 230;
 
 export class FishingScene extends Phaser.Scene {
@@ -106,7 +106,7 @@ export class FishingScene extends Phaser.Scene {
     const awakened = !!GameState.save.characters[char.id]?.awakened;
     this.aura = this.add.image(190, 388, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.1).setAlpha(awakened ? 0.45 : 0).setDepth(3);
     if (awakened) this.tweens.add({ targets: this.aura, alpha: 0.2, scale: 1.2, duration: 900, yoyo: true, repeat: -1 });
-    this.hero = this.add.image(190, 388, characterTexture(this, char)).setOrigin(0.5, 1).setScale(0.95).setDepth(4);
+    this.hero = this.add.image(190, 388, characterTexture(this, char, GameState.equipOf(char.id))).setOrigin(0.5, 1).setScale(0.95).setDepth(4);
     this.tweens.add({ targets: this.hero, scaleY: 0.97, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     this.rodG = this.add.graphics().setDepth(5);
     this.bobber = this.add.image(0, 0, "bobber").setOrigin(0.5, 0.6).setVisible(false).setDepth(4);

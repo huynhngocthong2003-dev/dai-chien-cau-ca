@@ -15,7 +15,6 @@ const COMING: Record<string, string> = {
   spin: "Vòng Quay & Gacha sẽ mở ở Giai đoạn 3.",
   quest: "Nhiệm vụ ngày/tuần & điểm danh sẽ mở ở Giai đoạn 3.",
   event: "Sự kiện cộng đồng sẽ mở ở Giai đoạn 5.",
-  shop: "Cửa hàng sẽ mở ở Giai đoạn 3. Hiện tại bạn có thể mua cần câu bằng vàng trong mục Cần Câu.",
   rank: "Bảng xếp hạng online sẽ mở ở Giai đoạn 5.",
   clan: "Hội Câu Cá sẽ mở ở Giai đoạn 5.",
 };
@@ -51,7 +50,7 @@ export class HubScene extends Phaser.Scene {
     this.add.image(0, 330, dockTexture(this)).setOrigin(0).setDepth(-5);
     const char = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
     const aura = this.add.image(190, 384, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.25).setAlpha(0.55).setDepth(-5);
-    const hero = this.add.image(190, 384, characterTexture(this, char)).setOrigin(0.5, 1).setScale(1.15).setDepth(-4);
+    const hero = this.add.image(190, 384, characterTexture(this, char, GameState.equipOf(char.id))).setOrigin(0.5, 1).setScale(1.15).setDepth(-4);
     // tàn lửa bay lên quanh nhân vật
     this.add
       .particles(190, 360, "p_ember", {
@@ -97,13 +96,13 @@ export class HubScene extends Phaser.Scene {
       { icon: "🧑", label: "Nhân Vật", color: COLORS.blue, act: () => goTo(this, "Characters") },
       { icon: "🎣", label: "Cần Câu", color: COLORS.blue, act: () => goTo(this, "Rods") },
       { icon: "🐟", label: "Kho Cá", color: COLORS.blue, act: () => goTo(this, "Inventory"), badge: s.fishes.length ? String(s.fishes.length) : undefined },
+      { icon: "🛒", label: "Cửa Hàng", color: COLORS.orange, act: () => goTo(this, "Shop") },
       { icon: "📖", label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
       { icon: "⚙️", label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
       { icon: "⚔️", label: "Đấu Cá", color: COLORS.red, act: () => {}, locked: "pvp" },
       { icon: "🎡", label: "Vòng Quay", color: COLORS.purple, act: () => {}, locked: "spin" },
       { icon: "📜", label: "Nhiệm Vụ", color: COLORS.purple, act: () => {}, locked: "quest" },
       { icon: "🎉", label: "Sự Kiện", color: COLORS.purple, act: () => {}, locked: "event" },
-      { icon: "🛒", label: "Cửa Hàng", color: COLORS.purple, act: () => {}, locked: "shop" },
       { icon: "🏆", label: "Xếp Hạng", color: COLORS.purple, act: () => {}, locked: "rank" },
       { icon: "🛡️", label: "Hội", color: COLORS.purple, act: () => {}, locked: "clan" },
     ];
@@ -193,6 +192,6 @@ export class HubScene extends Phaser.Scene {
       },
     });
     m.root.add(reset);
-    m.root.add(txt(this, m.x + 40, m.y + 360, `Mã người chơi: ${s.playerId}\nPhiên bản 0.2.0 · Giai đoạn 2`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 360, `Mã người chơi: ${s.playerId}\nPhiên bản 0.3.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

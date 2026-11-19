@@ -1,8 +1,11 @@
 import { ECONOMY, PROGRESSION } from "@dccc/game-config";
-import type { CharacterDef, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
+import type { CharacterDef, CosmeticSlot, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
 import { sumPassive } from "./loadout.ts";
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
+
+/** Kim cương thưởng: mỗi lần lên cấp, lần đầu bắt một loài, mỗi lần bắt Boss. */
+export const DIAMOND_REWARDS = { levelUp: 10, newSpecies: 3, boss: 5 };
 
 /** Vé Boss tối đa có thể tích trữ. */
 export const MAX_BOSS_TICKETS_STORED = 10;
@@ -27,6 +30,8 @@ export interface CharProgress {
   /** Số lần đột phá (0..5). Mỗi lần mở thêm 10 cấp. */
   breakthrough: number;
   awakened: boolean;
+  /** Đồ đang mặc: id vật phẩm theo ô. */
+  equip: Partial<Record<CosmeticSlot, string>>;
 }
 
 export interface RodProgress {
@@ -68,6 +73,8 @@ export interface PlayerSave {
   characters: Record<string, CharProgress>;
   rods: Record<string, RodProgress>;
   materials: Materials;
+  /** Tủ đồ: id quần áo / trang sức → số lượng sở hữu. */
+  wardrobe: Record<string, number>;
   /** Ngày (YYYY-MM-DD) đã hồi vé Boss gần nhất. */
   bossTicketDay: string;
   fishes: OwnedFish[];
@@ -111,6 +118,7 @@ export function createNewSave(playerId: string, name: string, catalog: GameCatal
     characters: Object.fromEntries(starterChars.map((c) => [c.id, newCharProgress()])),
     rods: Object.fromEntries(starterRods.map((r) => [r.id, newRodProgress()])),
     materials: { stones: 0, soul: 0, bossTickets: 3 },
+    wardrobe: {},
     bossTicketDay: "",
     fishes: [],
     stats: { totalCaught: 0, bossesCaught: 0, escaped: 0, snapped: 0, heaviestKg: 0, species: {} },
@@ -122,7 +130,7 @@ export function createNewSave(playerId: string, name: string, catalog: GameCatal
 }
 
 export function newCharProgress(): CharProgress {
-  return { level: 1, breakthrough: 0, awakened: false };
+  return { level: 1, breakthrough: 0, awakened: false, equip: {} };
 }
 export function newRodProgress(): RodProgress {
   return { level: 1, stars: 1 };
@@ -201,7 +209,7 @@ export interface CatchInput {
   bossHunt?: boolean;
 }
 
-export function applyCatch(save: PlayerSave, input: CatchInput): ActionResult & { levelUps?: number } {
+export function applyCatch(save: PlayerSave, input: CatchInput): ActionResult & { levelUps?: number; diamonds?: number } {
   if (save.appliedTx.includes(input.txId)) return { ok: false, error: "Phần thưởng đã được nhận" };
   if (save.fishes.length >= ECONOMY.inventoryLimit) return { ok: false, error: "Kho cá đã đầy, hãy bán bớt cá" };
   const s = clone(save);
@@ -227,13 +235,22 @@ export function applyCatch(save: PlayerSave, input: CatchInput): ActionResult & 
   if (r.soul) addLedger(s, input.txId, "soul", r.soul, why, input.now);
   if (r.tickets) addLedger(s, input.txId, "bossTickets", r.tickets, why, input.now);
   const levelUps = grantXp(s, r.xp);
+  const firstOfSpecies = !s.stats.species[input.fish.id];
+  const gems =
+    levelUps * DIAMOND_REWARDS.levelUp +
+    (firstOfSpecies ? DIAMOND_REWARDS.newSpecies : 0) +
+    (input.fish.rarity === "boss" ? DIAMOND_REWARDS.boss : 0);
+  if (gems > 0) {
+    s.diamonds += gems;
+    addLedger(s, input.txId, "diamonds", gems, levelUps ? `level_up:${s.level}` : why, input.now);
+  }
   s.stats.totalCaught += 1;
   if (input.fish.rarity === "boss") s.stats.bossesCaught += 1;
   s.stats.heaviestKg = Math.max(s.stats.heaviestKg, input.weightKg);
   s.stats.species[input.fish.id] = (s.stats.species[input.fish.id] ?? 0) + 1;
   markTx(s, input.txId);
   s.updatedAt = input.now;
-  return { ok: true, save: s, levelUps };
+  return { ok: true, save: s, levelUps, diamonds: gems };
 }
 
 export function recordFail(save: PlayerSave, kind: "escaped" | "snapped", now: number): PlayerSave {

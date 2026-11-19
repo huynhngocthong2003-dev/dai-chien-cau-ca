@@ -1,6 +1,7 @@
-import { CHARACTERS, FISHES, ZONES } from "@dccc/game-data";
+import { CHARACTERS, COSMETICS, FISHES, ZONES } from "@dccc/game-data";
 import { FISH_H, FISH_W, drawFish } from "../src/art/FishArt.ts";
-import { CHAR_H, CHAR_W, drawAura, drawCharacter } from "../src/art/CharacterArt.ts";
+import { CHAR_H, CHAR_W, defaultLook, drawAura, drawCharacter } from "../src/art/CharacterArt.ts";
+import type { AccessoryKind, HatKind, OutfitKind } from "@dccc/shared";
 import { drawDock, drawZoneBackground } from "../src/art/Backgrounds.ts";
 
 const mode = new URLSearchParams(location.search).get("mode") ?? "fish";
@@ -36,6 +37,24 @@ if (mode === "fish") {
     ctx.translate(i * 200, 2 * CHAR_H);
     ctx.scale(0.8, 0.8);
     drawCharacter(ctx, ch.appearance, { headOnly: true });
+    ctx.restore();
+  });
+} else if (mode === "cos") {
+  c.width = 8 * CHAR_W;
+  c.height = 3 * CHAR_H;
+  const bear = CHARACTERS[0]!;
+  COSMETICS.forEach((it, i) => {
+    const look = defaultLook(bear.appearance);
+    look.hat = { kind: "none", color: "#000", accent: "#000" };
+    if (it.slot === "hat") look.hat = { kind: it.visual.kind as HatKind, color: it.visual.color, accent: it.visual.accent };
+    if (it.slot === "outfit") look.outfit = { kind: it.visual.kind as OutfitKind, color: it.visual.color, accent: it.visual.accent };
+    if (it.slot === "accessory") look.accessory = { kind: it.visual.kind as AccessoryKind, color: it.visual.color, accent: it.visual.accent };
+    ctx.save();
+    ctx.translate((i % 8) * CHAR_W, Math.floor(i / 8) * CHAR_H);
+    drawCharacter(ctx, bear.appearance, { look });
+    ctx.fillStyle = "#fff";
+    ctx.font = "13px sans-serif";
+    ctx.fillText(it.name, 4, 14);
     ctx.restore();
   });
 } else {

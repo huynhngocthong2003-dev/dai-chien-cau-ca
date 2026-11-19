@@ -99,9 +99,23 @@ if (result === "caught") {
   if (save.materials.stones < 1) errors.push("Bắt cá không rơi Đá Nâng Cấp");
 }
 
+// Tải lại trang: tiến trình phải còn nguyên (hồi quy lỗi mất dữ liệu)
+if (result === "caught") {
+  await page.reload();
+  await page.waitForFunction(() => window.__ready === true, null, { timeout: 15000 });
+  await waitScene("Hub");
+  const reloaded = await page.evaluate(() => JSON.parse(localStorage.getItem("dccc_save_v1")));
+  if (reloaded.playerId !== save.playerId || reloaded.fishes.length !== save.fishes.length) errors.push("Mất tiến trình sau khi tải lại trang");
+  else step("Tải lại trang: tiến trình còn nguyên");
+  await page.waitForTimeout(400);
+  await page.mouse.click(1186, 160);
+  await waitScene("Inventory");
+} else {
+  await page.mouse.click(760, 570);
+  await waitScene("Inventory");
+}
+
 // Kho cá + bán cá
-await page.mouse.click(760, 570);
-await waitScene("Inventory");
 await page.waitForTimeout(500);
 await shot("06-inventory");
 step("Kho cá");

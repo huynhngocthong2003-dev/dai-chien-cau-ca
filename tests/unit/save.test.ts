@@ -58,3 +58,16 @@ describe("Save & kinh tế", () => {
     expect(unlockItem({ ...s, gold: 1e6 }, "rods", storm.id, storm.unlock, "buy_2", 5).ok).toBe(false);
   });
 });
+
+describe("Hồi quy: lưu rồi tải lại với thời gian thật", () => {
+  it("save tạo bằng Date.now() vẫn hợp lệ sau khi tải lại", async () => {
+    const { refillBossTickets } = await import("@dccc/shared");
+    const now = Date.now();
+    let s = refillBossTickets(createNewSave("p_real", "Thật", CATALOG, now), now);
+    const r1 = applyCatch(s, { txId: "c_real", fish: FISH_BY_ID.get("f_ca_ro")!, weightKg: 0.2, zoneId: "z_ben_tan_thu", passives: [], now });
+    if (!r1.ok) throw new Error(r1.error);
+    s = r1.save;
+    const back = parseSave(JSON.parse(JSON.stringify(s)));
+    expect(back.ok, back.ok ? "" : back.error).toBe(true);
+  });
+});

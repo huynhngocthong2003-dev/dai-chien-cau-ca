@@ -2,6 +2,11 @@ import Phaser from "phaser";
 import {
   applyCatch,
   buildLoadout,
+  buyCosmetic,
+  buyShopItem,
+  equipCosmetic,
+  equipmentPassives,
+  sellCosmetic,
   consumeBossTicket,
   createNewSave,
   decomposeFishes,
@@ -14,13 +19,16 @@ import {
   sellFishes,
   unlockItem,
   type CharacterDef,
+  type CosmeticDef,
+  type CosmeticSlot,
+  type ShopItemDef,
   type FishDef,
   type Loadout,
   type RodDef,
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { CATALOG, CHARACTER_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHARACTER_BY_ID, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 
@@ -63,7 +71,9 @@ class GameStateStore extends Phaser.Events.EventEmitter {
         await this.persist();
         return;
       }
-      this.loadWarning = "Dữ liệu lưu bị hỏng hoặc không hợp lệ, đã tạo tài khoản mới.";
+      await this.storage.backup(raw);
+      console.warn("Dữ liệu lưu không hợp lệ, đã sao lưu bản cũ:", parsed.ok ? "tham chiếu dữ liệu không tồn tại" : parsed.error);
+      this.loadWarning = "Không đọc được dữ liệu lưu cũ (đã cất bản sao lưu). Đã tạo tài khoản mới.";
     }
     this._save = createNewSave(uid("p"), "Cần Thủ", CATALOG, Date.now());
     await this.persist();
@@ -77,7 +87,8 @@ class GameStateStore extends Phaser.Events.EventEmitter {
       ZONE_BY_ID.has(s.selectedZoneId) &&
       Object.keys(s.characters).every((id) => CHARACTER_BY_ID.has(id)) &&
       Object.keys(s.rods).every((id) => ROD_BY_ID.has(id)) &&
-      s.fishes.every((f) => FISH_BY_ID.has(f.fishId))
+      s.fishes.every((f) => FISH_BY_ID.has(f.fishId)) &&
+      Object.keys(s.wardrobe).every((id) => COSMETIC_BY_ID.has(id))
     );
   }
 
@@ -99,7 +110,9 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     const s = this._save;
     const c = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
     const r = ROD_BY_ID.get(s.selectedRodId)!;
-    return buildLoadout(c, s.characters[c.id] ?? 1, r, s.rods[r.id] ?? 1);
+    const cp = s.characters[c.id];
+    const extra = cp ? equipmentPassives(cp.equip, COSMETIC_BY_ID) : [];
+    return buildLoadout(c, cp ?? 1, r, s.rods[r.id] ?? 1, extra);
   }
 
   catchFish(fish: FishDef, weightKg: number, zoneId: string, bossHunt = false) {
@@ -139,6 +152,27 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   private run<R extends { ok: true; save: PlayerSave } | { ok: false; error: string }>(r: R): R {
     if (r.ok) this.commit(r.save);
     return r;
+  }
+
+  /** Đồ đang mặc của nhân vật (để vẽ). */
+  equipOf(charId: string) {
+    return this._save.characters[charId]?.equip ?? {};
+  }
+
+  buyCosmetic(item: CosmeticDef) {
+    return this.run(buyCosmetic(this._save, item, uid("bc"), Date.now()));
+  }
+
+  buyItem(item: ShopItemDef) {
+    return this.run(buyShopItem(this._save, item, uid("bi"), Date.now()));
+  }
+
+  sellCosmetic(item: CosmeticDef) {
+    return this.run(sellCosmetic(this._save, item, uid("sc"), Date.now()));
+  }
+
+  equip(charId: string, slot: CosmeticSlot, item: CosmeticDef | null) {
+    return this.run(equipCosmetic(this._save, charId, slot, item, Date.now()));
   }
 
   developCharacter(c: CharacterDef) {

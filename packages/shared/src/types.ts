@@ -55,13 +55,46 @@ export type UnlockCondition =
   | { kind: "gacha" }
   | { kind: "event"; eventId: string };
 
+export type HatKind = "none" | "cap" | "straw" | "bandana" | "crown" | "hood" | "pirate" | "helmet" | "wizard";
+export type OutfitKind = "tee" | "overalls" | "raincoat" | "hoodie" | "kimono" | "armor" | "tuxedo" | "hawaii";
+export type AccessoryKind = "none" | "necklace" | "pearl" | "bowtie" | "glasses" | "scarf" | "medal" | "earrings";
+export type Species = "bear" | "dog" | "cat" | "fox" | "raccoon" | "rabbit" | "penguin" | "dragon" | "tiger" | "frog" | "panda";
+
 export interface CharacterAppearance {
-  skin: string;
-  hair: string;
-  outfit: string;
+  species: Species;
+  fur: string; // màu lông chính
+  light: string; // màu mõm / bụng / tai trong
+  mark: string; // màu hoa văn (sọc, mặt nạ, đốm)
+  eye: string; // màu mắt
+  outfit: string; // màu áo mặc định
+  outfitKind: OutfitKind;
   accent: string;
-  hat: "none" | "cap" | "straw" | "bandana" | "crown" | "hood" | "pirate" | "helmet";
+  hat: HatKind;
   aura: string; // màu hào quang khi dùng kỹ năng
+}
+
+export type CosmeticSlot = "hat" | "outfit" | "accessory";
+
+export interface CosmeticDef {
+  id: string;
+  name: string;
+  slot: CosmeticSlot;
+  rarity: CharRarity;
+  price: { currency: "gold" | "diamonds"; amount: number };
+  /** Hình dạng hiển thị theo ô trang bị. */
+  visual: { kind: HatKind | OutfitKind | AccessoryKind; color: string; accent: string };
+  /** Chỉ số phụ nhỏ – thiết kế để không pay-to-win. */
+  bonus: PassiveEffect[];
+  description: string;
+}
+
+export interface ShopItemDef {
+  id: string;
+  name: string;
+  icon: string;
+  price: { currency: "gold" | "diamonds"; amount: number };
+  grant: { stones?: number; soul?: number; bossTickets?: number; gold?: number };
+  description: string;
 }
 
 export interface CharacterDef {

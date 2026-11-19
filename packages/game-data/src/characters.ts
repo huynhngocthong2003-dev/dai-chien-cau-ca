@@ -18,7 +18,7 @@ export const CHARACTERS: CharacterDef[] = [
     },
     passive: { id: "p_cham_chi", name: "Chăm Chỉ", description: "+10% kinh nghiệm khi câu cá.", effects: [{ kind: "xp_bonus", value: 0.1 }] },
     unlock: { kind: "starter" },
-    appearance: { skin: "#ffd3a8", hair: "#3b2a1a", outfit: "#2f80ed", accent: "#ffffff", hat: "cap", aura: "#ffd54f" },
+    appearance: { species: "bear", fur: "#a0663a", light: "#f6d9a8", mark: "#7a4a26", eye: "#2b1a10", outfit: "#2f80ed", outfitKind: "tee", accent: "#ffffff", hat: "cap", aura: "#ffd54f" },
     lore: "Cậu bé làng chài mơ ước câu được Cá Chép Hóa Rồng.",
   },
   {
@@ -43,7 +43,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "durability_loss_reduce", value: 0.15 }],
     },
     unlock: { kind: "starter" },
-    appearance: { skin: "#f1c27d", hair: "#e0e0e0", outfit: "#6d4c41", accent: "#ffcc80", hat: "straw", aura: "#aed581" },
+    appearance: { species: "dog", fur: "#cfc6b8", light: "#fff8ec", mark: "#8d7b68", eye: "#2b1a10", outfit: "#6d4c41", outfitKind: "overalls", accent: "#ffcc80", hat: "straw", aura: "#aed581" },
     lore: "Sáu mươi năm cầm cần, chưa con cá nào làm ông nao núng.",
   },
   {
@@ -68,7 +68,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "bite_window_bonus", value: 0.3 }],
     },
     unlock: { kind: "starter" },
-    appearance: { skin: "#ffe0bd", hair: "#1a1a1a", outfit: "#e53935", accent: "#fff59d", hat: "straw", aura: "#4fc3f7" },
+    appearance: { species: "cat", fur: "#f4a259", light: "#fff3e0", mark: "#d9772b", eye: "#2e7d32", outfit: "#e53935", outfitKind: "kimono", accent: "#fff59d", hat: "straw", aura: "#4fc3f7" },
     lore: "Chèo đò qua mọi khúc sông, biết từng chỗ cá ẩn nấp.",
   },
   {
@@ -93,7 +93,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "pull_bonus", value: 0.15, tensionPenalty: 0.08 }],
     },
     unlock: { kind: "level", level: 5 },
-    appearance: { skin: "#e0ac69", hair: "#c62828", outfit: "#212121", accent: "#ffd600", hat: "pirate", aura: "#ff7043" },
+    appearance: { species: "fox", fur: "#e8622c", light: "#fff3e6", mark: "#5d2e17", eye: "#3e2723", outfit: "#212121", outfitKind: "tuxedo", accent: "#ffd600", hat: "pirate", aura: "#ff7043" },
     lore: "Từng cướp cả kho báu của Bạo Chúa San Hô – hoặc ông ta nói vậy.",
   },
   {
@@ -118,7 +118,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "bite_speed", value: 0.25 }],
     },
     unlock: { kind: "level", level: 10 },
-    appearance: { skin: "#ffe0bd", hair: "#263238", outfit: "#37474f", accent: "#b71c1c", hat: "hood", aura: "#7e57c2" },
+    appearance: { species: "raccoon", fur: "#8e939b", light: "#eceff1", mark: "#37474f", eye: "#1a1a2e", outfit: "#37474f", outfitKind: "hoodie", accent: "#b71c1c", hat: "bandana", aura: "#7e57c2" },
     lore: "Không ai thấy anh thả cần, chỉ thấy cá đã nằm trong giỏ.",
   },
   {
@@ -143,7 +143,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "luck_bonus", value: 15 }],
     },
     unlock: { kind: "gold", amount: 15000, level: 12 },
-    appearance: { skin: "#ffe5d4", hair: "#26c6da", outfit: "#00897b", accent: "#f8bbd0", hat: "crown", aura: "#80deea" },
+    appearance: { species: "rabbit", fur: "#f3f7fb", light: "#ffd6e5", mark: "#b3e5fc", eye: "#00838f", outfit: "#00897b", outfitKind: "kimono", accent: "#f8bbd0", hat: "crown", aura: "#80deea" },
     lore: "Rời đáy biển để tìm hiểu vì sao con người thích câu cá.",
   },
   {
@@ -168,7 +168,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "snap_threshold", value: 15 }],
     },
     unlock: { kind: "level", level: 18 },
-    appearance: { skin: "#d7a77a", hair: "#4e342e", outfit: "#f9a825", accent: "#90a4ae", hat: "helmet", aura: "#ffca28" },
+    appearance: { species: "penguin", fur: "#263445", light: "#ffffff", mark: "#ffb300", eye: "#1a1a2e", outfit: "#f9a825", outfitKind: "raincoat", accent: "#90a4ae", hat: "helmet", aura: "#ffca28" },
     lore: "Lặn tay không xuống Vực Sâu Bí Ẩn và trở về với một vết sẹo.",
   },
   {
@@ -193,7 +193,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "boss_struggle_reduce", value: 0.2 }],
     },
     unlock: { kind: "gacha" },
-    appearance: { skin: "#ffe0bd", hair: "#1565c0", outfit: "#0d47a1", accent: "#ffd54f", hat: "crown", aura: "#29b6f6" },
+    appearance: { species: "dragon", fur: "#4fa3e0", light: "#fff2c2", mark: "#1e5f99", eye: "#ffb300", outfit: "#0d47a1", outfitKind: "armor", accent: "#ffd54f", hat: "crown", aura: "#29b6f6" },
     lore: "Hoàng tử Long Cung, đi tìm con cá đã nuốt viên ngọc của cha.",
   },
   {
@@ -218,7 +218,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "tension_gain_reduce", value: 0.18 }],
     },
     unlock: { kind: "level", level: 25 },
-    appearance: { skin: "#fff3e0", hair: "#e3f2fd", outfit: "#5c6bc0", accent: "#b3e5fc", hat: "hood", aura: "#b3e5fc" },
+    appearance: { species: "fox", fur: "#f5f9ff", light: "#ffffff", mark: "#9fc8ef", eye: "#1565c0", outfit: "#5c6bc0", outfitKind: "hoodie", accent: "#b3e5fc", hat: "hood", aura: "#b3e5fc" },
     lore: "Bước ra từ Vùng Băng Giá với cây gậy làm từ cá kiếm băng.",
   },
   {
@@ -243,7 +243,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "element_damage", element: "ice", value: 0.35 }],
     },
     unlock: { kind: "gacha" },
-    appearance: { skin: "#f1c27d", hair: "#ff6f00", outfit: "#b71c1c", accent: "#ffeb3b", hat: "bandana", aura: "#ff5722" },
+    appearance: { species: "tiger", fur: "#ff9330", light: "#fff3e0", mark: "#3a2414", eye: "#2e7d32", outfit: "#b71c1c", outfitKind: "tee", accent: "#ffeb3b", hat: "bandana", aura: "#ff5722" },
     lore: "Cơ bắp rực lửa, mỗi lần giật cần là một lần núi lửa phun trào.",
   },
   {
@@ -274,7 +274,7 @@ export const CHARACTERS: CharacterDef[] = [
       ],
     },
     unlock: { kind: "gacha" },
-    appearance: { skin: "#ffd3a8", hair: "#eceff1", outfit: "#004d40", accent: "#ffd700", hat: "crown", aura: "#1de9b6" },
+    appearance: { species: "frog", fur: "#6cc04a", light: "#e8f8c8", mark: "#3f8a2a", eye: "#1a1a2e", outfit: "#004d40", outfitKind: "tuxedo", accent: "#ffd700", hat: "crown", aura: "#1de9b6" },
     lore: "Vị vua cổ xưa nhất của đại dương, thức tỉnh khi Thái Cổ Thần Ngư trỗi dậy.",
   },
   {
@@ -302,7 +302,7 @@ export const CHARACTERS: CharacterDef[] = [
       effects: [{ kind: "crit", chance: 0.15, multiplier: 2.5 }],
     },
     unlock: { kind: "gacha" },
-    appearance: { skin: "#ffe0bd", hair: "#ffeb3b", outfit: "#1a237e", accent: "#fff176", hat: "bandana", aura: "#ffee58" },
+    appearance: { species: "panda", fur: "#ffffff", light: "#ffffff", mark: "#2a2a35", eye: "#1a1a2e", outfit: "#1a237e", outfitKind: "armor", accent: "#fff176", hat: "bandana", aura: "#ffee58" },
     lore: "Cơn giông mang hình người, chỉ câu cá vào những đêm có bão.",
   },
 ];

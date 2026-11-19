@@ -200,7 +200,7 @@ describe("Vé Boss", () => {
 });
 
 describe("Nâng cấp dữ liệu lưu", () => {
-  it("save phiên bản 1 được chuyển lên phiên bản 2 không mất tiến trình", () => {
+  it("save phiên bản 1 được chuyển lên phiên bản mới nhất không mất tiến trình", () => {
     const v1 = {
       version: 1, playerId: "p_old", name: "Cũ", level: 7, xp: 30, gold: 1234, diamonds: 50,
       selectedCharacterId: "c_be_tom", selectedRodId: "r_tre", selectedZoneId: "z_ben_tan_thu",
@@ -213,11 +213,12 @@ describe("Nâng cấp dữ liệu lưu", () => {
     const r = parseSave(v1);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.save.version).toBe(2);
+    expect(r.save.version).toBe(3);
+    expect(r.save.wardrobe).toEqual({});
     expect(r.save.level).toBe(7);
     expect(r.save.gold).toBe(1234);
     expect(r.save.fishes[0]!.stars).toBe(1);
-    expect(r.save.characters.c_be_tom).toEqual({ level: 1, breakthrough: 0, awakened: false });
+    expect(r.save.characters.c_be_tom).toEqual({ level: 1, breakthrough: 0, awakened: false, equip: {} });
     expect(r.save.rods.r_go_soi!.stars).toBe(1);
     expect(r.save.materials.bossTickets).toBe(3);
   });

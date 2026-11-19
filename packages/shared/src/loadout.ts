@@ -95,6 +95,7 @@ export function buildLoadout(
   charInfo: number | CharLevelInfo,
   rod: RodDef,
   rodInfo: number | RodLevelInfo,
+  extraPassives: PassiveEffect[] = [],
 ): Loadout {
   const ci = typeof charInfo === "number" ? { level: charInfo } : charInfo;
   const c = characterStats(char, ci);
@@ -107,7 +108,7 @@ export function buildLoadout(
     rareRate: r.rareRate,
     antiSnap: r.antiSnap,
     speed: c.speed,
-    passives: [...char.passive.effects, ...rod.passive.effects],
+    passives: [...char.passive.effects, ...rod.passive.effects, ...extraPassives],
     active: scaledActiveSkill(char.active, ci),
   };
 }

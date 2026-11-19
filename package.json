@@ -1,7 +1,7 @@
 {
   "name": "dai-chien-cau-ca",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
   "engines": {
@@ -14,7 +14,7 @@
     "preview": "pnpm --filter @dccc/game-client preview",
     "typecheck": "pnpm -r --parallel typecheck",
     "test": "vitest run",
-    "test:e2e": "node tests/e2e/smoke.mjs",
+    "test:e2e": "node tests/e2e/smoke.mjs && node tests/e2e/shop.cjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "build:artifact": "pnpm build:single && node scripts/make-artifact.mjs"

@@ -1,7 +1,8 @@
 import Phaser from "phaser";
-import type { CharacterDef, FishDef, ZoneDef } from "@dccc/shared";
+import type { AccessoryKind, CharacterDef, CosmeticSlot, FishDef, HatKind, OutfitKind, ZoneDef } from "@dccc/shared";
+import { COSMETIC_BY_ID } from "@dccc/game-data";
 import { FISH_H, FISH_W, drawFish, drawFishSilhouette } from "./FishArt.ts";
-import { CHAR_H, CHAR_W, drawAura, drawCharacter } from "./CharacterArt.ts";
+import { CHAR_H, CHAR_W, defaultLook, drawAura, drawCharacter, type Look } from "./CharacterArt.ts";
 import { WORLD_H, WORLD_W, drawDock, drawZoneBackground } from "./Backgrounds.ts";
 
 /** Tạo texture từ hàm vẽ Canvas 2D (chỉ tạo một lần, lazy). */
@@ -34,12 +35,42 @@ export function fishSilhouetteTexture(scene: Phaser.Scene, fish: FishDef): strin
   return canvasTexture(scene, `fishsil_${fish.id}`, FISH_W, FISH_H, (ctx) => drawFishSilhouette(ctx, fish), 0.6);
 }
 
-export function characterTexture(scene: Phaser.Scene, c: CharacterDef): string {
-  return canvasTexture(scene, `char_${c.id}`, CHAR_W, CHAR_H, (ctx) => drawCharacter(ctx, c.appearance));
+export type Equip = Partial<Record<CosmeticSlot, string>>;
+
+/** Ghép đồ đang mặc vào diện mạo mặc định của nhân vật. */
+export function resolveLook(c: CharacterDef, equip: Equip = {}): Look {
+  const look = defaultLook(c.appearance);
+  const hat = equip.hat ? COSMETIC_BY_ID.get(equip.hat) : undefined;
+  const outfit = equip.outfit ? COSMETIC_BY_ID.get(equip.outfit) : undefined;
+  const acc = equip.accessory ? COSMETIC_BY_ID.get(equip.accessory) : undefined;
+  if (hat) look.hat = { kind: hat.visual.kind as HatKind, color: hat.visual.color, accent: hat.visual.accent };
+  if (outfit) look.outfit = { kind: outfit.visual.kind as OutfitKind, color: outfit.visual.color, accent: outfit.visual.accent };
+  if (acc) look.accessory = { kind: acc.visual.kind as AccessoryKind, color: acc.visual.color, accent: acc.visual.accent };
+  return look;
 }
 
-export function characterHeadTexture(scene: Phaser.Scene, c: CharacterDef): string {
-  return canvasTexture(scene, `head_${c.id}`, CHAR_W, CHAR_H, (ctx) => drawCharacter(ctx, c.appearance, { headOnly: true }), 0.6);
+function equipKey(equip: Equip = {}) {
+  return `${equip.hat ?? "-"}_${equip.outfit ?? "-"}_${equip.accessory ?? "-"}`;
+}
+
+export function characterTexture(scene: Phaser.Scene, c: CharacterDef, equip?: Equip): string {
+  const look = resolveLook(c, equip);
+  return canvasTexture(scene, `char_${c.id}_${equipKey(equip)}`, CHAR_W, CHAR_H, (ctx) => drawCharacter(ctx, c.appearance, { look }));
+}
+
+export function characterHeadTexture(scene: Phaser.Scene, c: CharacterDef, equip?: Equip): string {
+  const look = resolveLook(c, equip);
+  return canvasTexture(scene, `head_${c.id}_${equipKey(equip)}`, CHAR_W, CHAR_H, (ctx) => drawCharacter(ctx, c.appearance, { headOnly: true, look }), 0.6);
+}
+
+/** Hình vật phẩm trang phục (vẽ trên một nhân vật mẫu để thấy rõ). */
+export function cosmeticTexture(scene: Phaser.Scene, model: CharacterDef, itemId: string): string {
+  const item = COSMETIC_BY_ID.get(itemId)!;
+  const equip: Equip = { [item.slot]: itemId };
+  const look = resolveLook(model, equip);
+  if (item.slot !== "hat") look.hat = { kind: "none", color: "#000", accent: "#000" };
+  if (item.slot !== "outfit") look.outfit = { kind: "tee", color: "#eceff1", accent: "#eceff1" };
+  return canvasTexture(scene, `cos_${itemId}`, CHAR_W, CHAR_H, (ctx) => drawCharacter(ctx, model.appearance, { look, headOnly: item.slot !== "outfit" }), 0.6);
 }
 
 export function auraTexture(scene: Phaser.Scene, c: CharacterDef): string {

@@ -12,12 +12,21 @@ export interface SaveStorage {
   load(): Promise<unknown | null>;
   save(data: unknown): Promise<void>;
   clear(): Promise<void>;
+  /** Cất dữ liệu không đọc được sang chỗ riêng để có thể khôi phục thủ công. */
+  backup(data: unknown): Promise<void>;
 }
 
 const LOCAL_KEY = "dccc_save_v1";
 
 export class LocalSaveStorage implements SaveStorage {
   readonly kind = "local" as const;
+  async backup(data: unknown) {
+    try {
+      localStorage.setItem(`${LOCAL_KEY}_backup_${Date.now()}`, JSON.stringify(data));
+    } catch {
+      /* bỏ qua */
+    }
+  }
   async load() {
     try {
       const raw = localStorage.getItem(LOCAL_KEY);
@@ -45,6 +54,7 @@ export class LocalSaveStorage implements SaveStorage {
 export class MemorySaveStorage implements SaveStorage {
   readonly kind = "memory" as const;
   private data: unknown = null;
+  async backup() {}
   async load() {
     return this.data;
   }
@@ -76,7 +86,17 @@ class CloudSaveStorage implements SaveStorage {
   readonly kind = "cloud" as const;
   private pending: Promise<void> = Promise.resolve();
   private latest: string | null = null;
-  constructor(private readonly ref: DocRef) {}
+  constructor(
+    private readonly ref: DocRef,
+    private readonly backupRef: DocRef,
+  ) {}
+  async backup(data: unknown) {
+    try {
+      await this.backupRef.set({ save: JSON.stringify(data), savedAt: Date.now() });
+    } catch {
+      /* bỏ qua */
+    }
+  }
   async load() {
     const snap = await this.ref.get();
     const raw = snap.exists ? snap.data()?.save : null;
@@ -114,7 +134,7 @@ export async function detectStorage(): Promise<SaveStorage> {
     if (!id) return local;
     // data/users/<id> là collection riêng tư của người chơi; "dccc_save" là document trong đó.
     const ref = (db as ArtifactDb).doc(`data/users/${id}/dccc_save`);
-    const cloud = new CloudSaveStorage(ref);
+    const cloud = new CloudSaveStorage(ref, (db as ArtifactDb).doc(`data/users/${id}/dccc_save_backup`));
     // Kiểm tra quyền đọc + ghi thật sự.
     const existing = await withTimeout(cloud.load(), 6000);
     if (existing === null) {

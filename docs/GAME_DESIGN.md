@@ -33,6 +33,12 @@ Chỉ số liên quan: HP cá, độ bền dây (từ cần × thể lực nhân
 - **55 loài cá**, 7 độ hiếm: Thường, Hiếm, Quý, Sử Thi, Huyền Thoại, Thần Thoại, Boss – `fishes.ts`. Mỗi cá có HP, Công, Thủ, Tốc, thuộc tính (7 hệ), kỹ năng PvP, giá trị, cân nặng, khu vực, tạo hình riêng.
 - **6 khu vực** – `zones.ts`: Bến Câu Tân Thủ (cấp 1), Biển Nhiệt Đới (5), Vực Sâu Bí Ẩn (10), Biển Lửa (16), Vùng Băng Giá (22), Đại Dương Thần Thoại (30). Mỗi khu có bảng cá, Boss riêng (xuất hiện bất ngờ ~2%+), thời tiết riêng.
 
+## 4b. Thú cưng & trang phục (0.3.0)
+- Nhân vật là thú chibi: đầu to, mắt tròn long lanh, má hồng, bụng sáng màu; mỗi loài có tai/đuôi/hoa văn riêng.
+- 3 ô trang bị: Mũ, Quần áo, Trang sức. Đồ hiện trên hình nhân vật. Chỉ số phụ ≤ 8% hoặc vài điểm may mắn – chủ yếu để đẹp.
+- Mua bằng vàng hoặc kim cương; bán lại 50%. Một món chỉ mặc cho một nhân vật.
+- Chợ giao dịch giữa người chơi (GĐ4): server chuyển đồ và tiền nguyên tử, kiểm tra sở hữu, phí chợ, lịch sử.
+
 ## 5. Tiến trình & kinh tế (GĐ1)
 - KN lên cấp: `80 × cấp^1.55`. Cấp mở khu vực và nhân vật.
 - Bắt cá: +KN, +10% giá trị cá bằng vàng; cá vào kho (giới hạn 200).

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0] – 2026-11-19 – Thú cưng cute, Cửa Hàng, Tủ Đồ
+### Sửa lỗi nghiêm trọng
+- Kiểm tra dữ liệu lưu giới hạn mốc thời gian ở 10¹² ms (thời gian thực ~1,79×10¹²) ⇒ mỗi lần tải lại trang, tiến trình bị coi là hỏng và bị tạo mới. Đã sửa giới hạn, thêm test hồi quy dùng thời gian thật, thêm bước tải lại trang vào E2E.
+- Khi dữ liệu lưu không đọc được, game giờ cất bản sao lưu (trên máy hoặc đám mây) thay vì ghi đè.
+### Thêm
+- 12 nhân vật chuyển thành thú chibi cute (gấu, chó, mèo, cáo, gấu mèo, thỏ, chim cánh cụt, rồng con, cáo tuyết, hổ, ếch, gấu trúc) – giữ nguyên tên, kỹ năng, chỉ số.
+- Cửa Hàng: 8 mũ, 8 bộ quần áo, 7 trang sức (chỉ số phụ nhỏ, không pay-to-win), 5 vật phẩm (đá, rương đá, vé Boss, linh hồn, vàng); phòng thử đồ xem trước trên nhân vật.
+- Tủ Đồ: mặc/tháo đồ cho từng nhân vật, đồ hiện trên hình ở mọi màn; bán lại 50%.
+- Kim cương thưởng: +10 mỗi lần lên cấp, +3 khi bắt loài mới lần đầu, +5 khi bắt Boss.
+- Chợ Giao Dịch: trang giới thiệu, sẽ mở ở Giai đoạn 4 (cần server để chống gian lận).
+- Save phiên bản 3 (tủ đồ, đồ đang mặc) với chuyển đổi tự động.
+- Test: 52 unit test, E2E cửa hàng (`tests/e2e/shop.cjs`).
+
 ## [0.2.0] – 2026-11-19 – Giai đoạn 2 + nâng cấp đồ họa
 ### Thêm
 - Nguyên liệu mới: Đá Nâng Cấp 🔷, Mảnh Linh Hồn 🔮, Vé Boss 🎫 (rơi khi câu cá theo độ hiếm).
