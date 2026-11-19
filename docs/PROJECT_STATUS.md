@@ -24,7 +24,7 @@ Cập nhật: 2026-11-19 (v0.9.0)
 - Trên điện thoại màn hình nhỏ, chữ phụ khá nhỏ do co giãn toàn khung 1280×720 (sẽ tối ưu ở GĐ6).
 - Lưu đám mây chỉ hoạt động cho người xem đã đăng nhập claude.ai và có quyền Contributor trở lên; khách xem qua link công khai lưu trên trình duyệt.
 - Tiến trình do client ghi → chưa chống gian lận hoàn toàn. Trận PvP do máy chủ tính nhưng dựa trên save do client ghi.
-- PvP cần chủ dự án thêm secret `SUPABASE_ACCESS_TOKEN` và `SUPABASE_DB_PASSWORD` trên GitHub để triển khai migration + Edge Function.
+- Database + Edge Function đã triển khai thủ công qua Supabase Management API (2026-11-19). Lần sau có thể tự động bằng secret GitHub `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`.
 - Chưa có nhạc nền.
 - Chưa chạy thử trên thiết bị Android/iOS thật.
 - Web độc lập (GitHub Pages) đã có quy trình tự động nhưng chưa đăng được: cần chủ dự án tạo repository và cấp quyền GitHub.

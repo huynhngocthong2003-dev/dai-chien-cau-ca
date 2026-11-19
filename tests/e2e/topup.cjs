@@ -101,7 +101,7 @@ const db = { orders: [], save: null, admin: true };
     done = s.stats.totalCaught + (s.stats.junkCaught ?? 0) + s.stats.escaped + s.stats.snapped > c0;
   }
   await p.screenshot({ path: `${out}/autofish.png` });
-  if (!done) errs.push('Câu tự động không hoàn thành lượt nào sau 90 giây');
+  if (!done) errs.push('Câu tự động không hoàn thành lượt nào sau 90 giây: ' + JSON.stringify(await p.evaluate(() => { const f = window.__game.scene.getScene('Fishing'); return { mode: f.mode, auto: f.auto, phase: f.session?.phase, active: window.__game.scene.isActive('Fishing'), until: JSON.parse(localStorage.getItem('dccc_save_v1')).autoFishUntil - Date.now() }; })));
   else console.log('• 🤖 Câu tự động hoàn thành 1 lượt');
   await b.close();
   if (errs.length) { console.error('LỖI:\n' + errs.join('\n')); process.exit(1); }

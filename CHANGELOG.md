@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.1] – 2026-11-19
+### Sửa
+- **Database đã được triển khai lên Supabase** (hồ sơ, bạn bè, Đấu Sinh Tử người chơi, hội, xếp hạng, nạp, ghép trận) + hàm máy chủ `death-match`; hồ sơ công khai của người chơi cũ đã được tạo sẵn để **tìm tên & kết bạn** ngay.
+- Hồ sơ: mỗi ô cá trưng bày có nút **✖ Gỡ**; ô trống có nút **➕ Thêm cá**.
+
 ## [0.11.0] – 2026-11-19 – Ghép trận ngẫu nhiên
 ### Thêm
 - **🎲 Ghép ngẫu nhiên** trong Đấu Sinh Tử → Đấu người chơi: ưu tiên ghép với người đang chờ **cùng lúc** (lực chiến gần nhất); chờ tối đa 40 giây (hiện số người đang chờ, có thể huỷ); không có ai thì tự ghép với một người chơi ngẫu nhiên cùng tầm cấp (dùng đội phòng thủ của họ). Người bị ghép trúng khi đang chờ cũng xem trận ngay.

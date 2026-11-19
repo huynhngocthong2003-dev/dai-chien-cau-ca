@@ -86,11 +86,24 @@ export class ProfileScene extends Phaser.Scene {
         losses: o.losses ?? 0,
         power: ownedFishPower(FISH_BY_ID.get(o.fishId)!, o, o.form ? FORM_BY_ID.get(o.form) : null),
       });
-      else {
+      if (o) {
+        // nút gỡ trực tiếp trên ô trưng bày
+        new Button(this, x + 172, 394, 64, 36, "✖ Gỡ", {
+          color: COLORS.red,
+          fontSize: 14,
+          onClick: () => {
+            const r = GameState.setShowcase(GameState.save.showcase.filter((u) => u !== o.uid));
+            if (!r.ok) return toast(this, r.error, COLORS.red);
+            toast(this, "Đã gỡ khỏi trưng bày", COLORS.green);
+            this.scene.restart();
+          },
+        });
+      } else {
         const g = this.add.graphics();
         g.fillStyle(0x0a1628, 0.6).fillRoundedRect(x, 370, 196, 236, 14);
         g.lineStyle(3, 0x5fb3ff, 0.5).strokeRoundedRect(x, 370, 196, 236, 14);
-        txt(this, x + 98, 488, "Trống", 20, { color: COLORS.textDim }).setOrigin(0.5);
+        txt(this, x + 98, 470, "Trống", 20, { color: COLORS.textDim }).setOrigin(0.5);
+        new Button(this, x + 98, 520, 140, 44, "➕ Thêm cá", { color: COLORS.green, fontSize: 17, onClick: () => this.pickShowcase() });
       }
     }
     new Button(this, 336, 660, 300, 58, "✏ Chọn cá trưng bày", { color: COLORS.orange, fontSize: 22, onClick: () => this.pickShowcase() });
