@@ -213,7 +213,8 @@ describe("Nâng cấp dữ liệu lưu", () => {
     const r = parseSave(v1);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.save.version).toBe(3);
+    expect(r.save.version).toBe(4);
+    expect(r.save.redeemedCodes).toEqual([]);
     expect(r.save.wardrobe).toEqual({});
     expect(r.save.level).toBe(7);
     expect(r.save.gold).toBe(1234);

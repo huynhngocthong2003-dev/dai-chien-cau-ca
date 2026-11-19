@@ -7,6 +7,7 @@ import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
 import { Sfx } from "../audio/Sfx.ts";
+import { openGiftCode } from "../ui/giftCode.ts";
 
 export interface DevInfo {
   /** Nhãn nút, ví dụ "Nâng cấp", "Đột phá". null = đã tối đa. */
@@ -43,6 +44,8 @@ export function unlockText(u: UnlockCondition): string {
       return "Nhận từ Vòng Quay (Giai đoạn 3)";
     case "event":
       return "Phần thưởng sự kiện mùa giải";
+    case "code":
+      return "Nhập mã quà tặng (Cài Đặt → Mã quà)";
   }
 }
 
@@ -157,12 +160,20 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
       }
     } else {
       const chk = canUnlock(GameState.save, it.unlock);
-      const label = it.unlock.kind === "gold" ? `Mua · ${it.unlock.amount.toLocaleString("vi-VN")} 🪙` : chk.ok ? "Mở khóa" : chk.reason;
+      const label =
+        it.unlock.kind === "gold"
+          ? `Mua · ${it.unlock.amount.toLocaleString("vi-VN")} 🪙`
+          : it.unlock.kind === "code"
+            ? "🎁 Nhập mã quà tặng"
+            : chk.ok
+              ? "Mở khóa"
+              : chk.reason;
       btn = new Button(this, 1058, 664, 330, 62, label, {
-        color: COLORS.orange,
+        color: it.unlock.kind === "code" ? COLORS.purple : COLORS.orange,
         fontSize: 22,
-        disabled: !chk.ok,
+        disabled: !chk.ok && it.unlock.kind !== "code",
         onClick: () => {
+          if (it.unlock.kind === "code") return openGiftCode(this, () => this.render());
           const r = GameState.unlock(this.kind, it.id, it.unlock);
           if (!r.ok) return toast(this, r.error, COLORS.red);
           Sfx.levelUp();
@@ -170,7 +181,7 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
           this.render();
         },
       });
-      btn.on("disabled-click", () => toast(this, chk.reason));
+      btn.on("disabled-click", () => (it.unlock.kind === "code" ? openGiftCode(this, () => this.render()) : toast(this, chk.reason)));
     }
     d.add(btn);
   }

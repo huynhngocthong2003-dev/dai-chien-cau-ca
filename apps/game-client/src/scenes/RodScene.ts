@@ -3,24 +3,11 @@ import { CHAR_RARITY_COLOR } from "@dccc/game-config";
 import { RODS } from "@dccc/game-data";
 import { nextRodAction, rodMaxLevel, rodStats, type RodDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
+import { rodIconTexture } from "../art/textures.ts";
 import { txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
 import { GearScene, unlockText, type DevInfo } from "./GearScene.ts";
-
-function drawRod(g: Phaser.GameObjects.Graphics, rod: RodDef, x: number, y: number, len: number) {
-  const x0 = x - len * 0.4;
-  const y0 = y + len * 0.3;
-  const x1 = x + len * 0.4;
-  const y1 = y - len * 0.3;
-  if (rod.visual.glow) g.lineStyle(len * 0.09, hexToInt(rod.visual.glow), 0.35).lineBetween(x0, y0, x1, y1);
-  g.lineStyle(len * 0.06, 0x1b1530).lineBetween(x0, y0, x1, y1);
-  g.lineStyle(len * 0.035, hexToInt(rod.visual.shaft)).lineBetween(x0, y0, x1, y1);
-  g.lineStyle(len * 0.08, hexToInt(rod.visual.handle)).lineBetween(x0, y0, x0 + len * 0.18, y0 - len * 0.135);
-  g.fillStyle(0x90a4ae).fillCircle(x0 + len * 0.2, y0 - len * 0.1, len * 0.05);
-  g.lineStyle(2, 0x1b1530).strokeCircle(x0 + len * 0.2, y0 - len * 0.1, len * 0.05);
-  g.lineStyle(1.5, hexToInt(rod.visual.line), 0.9).lineBetween(x1, y1, x1 + 2, y1 + len * 0.35);
-}
 
 export class RodScene extends GearScene<RodDef> {
   protected title = "Cần Câu";
@@ -36,10 +23,10 @@ export class RodScene extends GearScene<RodDef> {
     return RODS;
   }
 
-  protected cardIcon(r: RodDef, x: number, y: number, w: number) {
-    const g = this.add.graphics();
-    drawRod(g, r, x, y, w * 0.8);
-    return g;
+  protected cardIcon(r: RodDef, x: number, y: number, w: number, h: number) {
+    const img = this.add.image(x, y, rodIconTexture(this, r)).setDisplaySize(Math.min(w, h) * 0.85, Math.min(w, h) * 0.85);
+    if (r.visual.glow) this.tweens.add({ targets: img, alpha: 0.82, duration: 900, yoyo: true, repeat: -1 });
+    return img;
   }
 
   protected cardBadge(r: RodDef) {
@@ -58,10 +45,21 @@ export class RodScene extends GearScene<RodDef> {
     const prog = GameState.save.rods[r.id] ?? { level: 1, stars: 1 };
     const level = prog.level;
     const st = rodStats(r, prog);
-    const g = this.add.graphics();
-    drawRod(g, r, 1058, 200, 300);
-    if (!owned) g.setAlpha(0.45);
-    d.add(g);
+    const img = this.add.image(1058, 200, rodIconTexture(this, r)).setDisplaySize(260, 260);
+    if (!owned) img.setTint(0x555a66);
+    d.add(img);
+    if (r.visual.glow && owned) {
+      const tip = this.add
+        .particles(1058 + 95, 200 - 95, "p_spark", {
+          speed: { min: 20, max: 70 },
+          lifespan: 900,
+          frequency: 120,
+          scale: { start: 0.6, end: 0 },
+          tint: hexToInt(r.visual.glow),
+          blendMode: Phaser.BlendModes.ADD,
+        });
+      d.add(tip);
+    }
     const rc = CHAR_RARITY_COLOR[r.rarity];
     d.add(txt(this, 872, 104, r.rarity, 26, { color: rc }));
     d.add(txt(this, 1058, 312, r.name, 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));

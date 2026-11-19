@@ -2,7 +2,7 @@ import { ECONOMY, PROGRESSION } from "@dccc/game-config";
 import type { CharacterDef, CosmeticSlot, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
 import { sumPassive } from "./loadout.ts";
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 /** Kim cương thưởng: mỗi lần lên cấp, lần đầu bắt một loài, mỗi lần bắt Boss. */
 export const DIAMOND_REWARDS = { levelUp: 10, newSpecies: 3, boss: 5 };
@@ -75,6 +75,8 @@ export interface PlayerSave {
   materials: Materials;
   /** Tủ đồ: id quần áo / trang sức → số lượng sở hữu. */
   wardrobe: Record<string, number>;
+  /** Mã băm của các mã quà đã đổi. */
+  redeemedCodes: string[];
   /** Ngày (YYYY-MM-DD) đã hồi vé Boss gần nhất. */
   bossTicketDay: string;
   fishes: OwnedFish[];
@@ -119,6 +121,7 @@ export function createNewSave(playerId: string, name: string, catalog: GameCatal
     rods: Object.fromEntries(starterRods.map((r) => [r.id, newRodProgress()])),
     materials: { stones: 0, soul: 0, bossTickets: 3 },
     wardrobe: {},
+    redeemedCodes: [],
     bossTicketDay: "",
     fishes: [],
     stats: { totalCaught: 0, bossesCaught: 0, escaped: 0, snapped: 0, heaviestKg: 0, species: {} },
@@ -309,6 +312,8 @@ export function canUnlock(save: PlayerSave, cond: UnlockCondition): { ok: boolea
       return { ok: false, reason: "Nhận từ Vòng Quay" };
     case "event":
       return { ok: false, reason: "Phần thưởng sự kiện" };
+    case "code":
+      return { ok: false, reason: "Nhập mã quà tặng để nhận" };
   }
 }
 

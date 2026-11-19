@@ -23,11 +23,11 @@ if (mode === "fish") {
     ctx.restore();
   });
 } else if (mode === "chars") {
-  c.width = 6 * CHAR_W;
+  c.width = 7 * CHAR_W;
   c.height = 2 * CHAR_H + 200;
   CHARACTERS.forEach((ch, i) => {
     ctx.save();
-    ctx.translate((i % 6) * CHAR_W, Math.floor(i / 6) * CHAR_H);
+    ctx.translate((i % 7) * CHAR_W, Math.floor(i / 7) * CHAR_H);
     if (i === 0) drawAura(ctx, ch.appearance.aura);
     drawCharacter(ctx, ch.appearance);
     ctx.restore();

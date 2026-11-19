@@ -166,6 +166,19 @@ function drawEarsBack(ctx: CanvasRenderingContext2D, a: CharacterAppearance) {
     case "frog":
       for (const s of [-1, 1]) sf(ctx, ellipse(CX + s * 28, HEAD_Y - 38, 22, 20), furGrad(ctx, fur, HEAD_Y - 60, HEAD_Y - 20));
       break;
+    case "chicken": {
+      // mào đỏ
+      for (const [x, y, r] of [[-16, -50, 13], [0, -60, 16], [17, -50, 13]] as const)
+        sf(ctx, ellipse(CX + x, HEAD_Y + y, r, r * 1.15), furGrad(ctx, a.mark, HEAD_Y + y - r, HEAD_Y + y + r), 3);
+      break;
+    }
+    case "monkey":
+      for (const s of [-1, 1]) {
+        sf(ctx, ellipse(CX + s * 58, HEAD_Y + 6, 20, 22), a.fur);
+        ctx.fillStyle = a.light;
+        ctx.fill(ellipse(CX + s * 58, HEAD_Y + 7, 11, 13));
+      }
+      break;
     case "dog":
     case "penguin":
       break;
@@ -222,6 +235,30 @@ function drawTail(ctx: CanvasRenderingContext2D, a: CharacterAppearance) {
         ctx.strokeStyle = OUTLINE;
         ctx.stroke(p);
       }
+      break;
+    }
+    case "chicken": {
+      const cols = [a.mark, "#ff9800", "#ffd54f", a.mark, "#43a047"];
+      cols.forEach((c, i) => {
+        const ang = -2.2 + i * 0.32;
+        const fx = CX - 22 + Math.cos(ang) * 46;
+        const fy = BODY_Y - 6 + Math.sin(ang) * 54;
+        sf(ctx, ellipse(fx, fy, 12, 34, ang + Math.PI / 2), furGrad(ctx, c, fy - 34, fy + 34), 3);
+      });
+      break;
+    }
+    case "monkey": {
+      const p = new Path2D();
+      p.moveTo(CX - 30, BODY_Y + 24);
+      p.bezierCurveTo(CX - 90, BODY_Y + 30, CX - 96, BODY_Y - 60, CX - 60, BODY_Y - 70);
+      p.bezierCurveTo(CX - 40, BODY_Y - 76, CX - 34, BODY_Y - 50, CX - 50, BODY_Y - 48);
+      ctx.lineWidth = 15;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = OUTLINE;
+      ctx.stroke(p);
+      ctx.lineWidth = 9;
+      ctx.strokeStyle = a.fur;
+      ctx.stroke(p);
       break;
     }
     default:
@@ -556,6 +593,11 @@ function drawHead(ctx: CanvasRenderingContext2D, a: CharacterAppearance) {
       ctx.fillStyle = a.light;
       for (const s of [-1, 1]) ctx.fill(ellipse(CX + s * 30, HEAD_Y + 26, 30, 22, s * 0.3));
       break;
+    case "monkey":
+      ctx.fillStyle = a.light;
+      for (const sx of [-1, 1]) ctx.fill(ellipse(CX + sx * 20, HEAD_Y - 2, 24, 26));
+      ctx.fill(ellipse(CX, HEAD_Y + 26, 36, 26));
+      break;
     case "dragon":
       ctx.fillStyle = a.light;
       ctx.fill(ellipse(CX, HEAD_Y + 30, 36, 22));
@@ -615,6 +657,22 @@ function drawFace(ctx: CanvasRenderingContext2D, a: CharacterAppearance) {
     sf(ctx, beak, a.mark, 2.5);
     return;
   }
+  if (a.species === "chicken") {
+    sf(ctx, ellipse(CX, HEAD_Y + 38, 8, 12), a.mark, 2.5);
+    const beak = new Path2D();
+    beak.moveTo(CX - 13, HEAD_Y + 16);
+    beak.quadraticCurveTo(CX, HEAD_Y + 10, CX + 13, HEAD_Y + 16);
+    beak.lineTo(CX, HEAD_Y + 32);
+    beak.closePath();
+    sf(ctx, beak, "#ffb300", 2.5);
+    ctx.strokeStyle = rgba(OUTLINE, 0.6);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(CX - 10, HEAD_Y + 19);
+    ctx.lineTo(CX + 10, HEAD_Y + 19);
+    ctx.stroke();
+    return;
+  }
   if (frog) {
     const m = new Path2D();
     m.moveTo(CX - 30, HEAD_Y + 12);
@@ -625,7 +683,7 @@ function drawFace(ctx: CanvasRenderingContext2D, a: CharacterAppearance) {
     ctx.fill(ellipse(CX, HEAD_Y + 26, 10, 5));
     return;
   }
-  if (a.species !== "raccoon" && a.species !== "dragon") sf(ctx, ellipse(CX, HEAD_Y + 26, 21, 15), a.light, 2.5);
+  if (a.species !== "raccoon" && a.species !== "dragon" && a.species !== "monkey") sf(ctx, ellipse(CX, HEAD_Y + 26, 21, 15), a.light, 2.5);
   // mũi
   const nose = new Path2D();
   nose.moveTo(CX - 7, HEAD_Y + 17);
@@ -854,7 +912,7 @@ export function drawCharacter(
   ctx.fill(ellipse(CX, 230, 52, 8));
   drawTail(ctx, a);
   // chân
-  const legColor = a.species === "panda" ? a.mark : a.fur;
+  const legColor = a.species === "panda" ? a.mark : a.species === "chicken" ? "#ffb300" : a.fur;
   for (const s of [-1, 1]) {
     const leg = new Path2D();
     leg.roundRect(CX + s * 20 - 15, BODY_Y + 20, 30, 40, 13);

@@ -8,6 +8,7 @@ import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
 import { addAmbience } from "../art/ambience.ts";
+import { openGiftCode } from "../ui/giftCode.ts";
 
 /** Tính năng sẽ có ở giai đoạn sau – hiển thị rõ ràng là "sắp ra mắt", không giả lập. */
 const COMING: Record<string, string> = {
@@ -192,6 +193,16 @@ export class HubScene extends Phaser.Scene {
       },
     });
     m.root.add(reset);
-    m.root.add(txt(this, m.x + 40, m.y + 360, `Mã người chơi: ${s.playerId}\nPhiên bản 0.3.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(
+      new Button(this, cx + 160, m.y + 380, 220, 56, "🎁 Mã quà", {
+        color: COLORS.purple,
+        fontSize: 22,
+        onClick: () => {
+          m.close();
+          openGiftCode(this, () => this.scene.restart());
+        },
+      }),
+    );
+    m.root.add(txt(this, m.x + 40, m.y + 360, `Mã người chơi: ${s.playerId}\nPhiên bản 0.4.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

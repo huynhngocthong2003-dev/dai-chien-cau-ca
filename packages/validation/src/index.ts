@@ -41,6 +41,7 @@ export const playerSaveSchema = z.object({
   materials: z.object({ stones: nonNegInt, soul: nonNegInt, bossTickets: z.number().int().min(0).max(99) }),
   bossTicketDay: z.string().max(10),
   wardrobe: z.record(id, z.number().int().min(1).max(99)),
+  redeemedCodes: z.array(z.string().regex(/^[0-9a-f]{20,32}$/)).max(200),
   fishes: z.array(ownedFishSchema).max(1000),
   stats: z.object({
     totalCaught: nonNegInt,

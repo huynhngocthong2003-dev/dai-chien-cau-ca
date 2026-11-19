@@ -1,6 +1,7 @@
 /** Kiểu dữ liệu dùng chung cho client, server và dữ liệu game. */
 
-export type CharRarity = "N" | "R" | "SR" | "SSR" | "UR";
+/** LR (Legend Rare) là bậc cao nhất, trên UR. */
+export type CharRarity = "N" | "R" | "SR" | "SSR" | "UR" | "LR";
 export type FishRarity = "common" | "rare" | "precious" | "epic" | "legendary" | "mythic" | "boss";
 export type Element = "water" | "fire" | "ice" | "thunder" | "dark" | "light" | "earth";
 
@@ -53,12 +54,27 @@ export type UnlockCondition =
   | { kind: "level"; level: number }
   | { kind: "gold"; amount: number; level?: number }
   | { kind: "gacha" }
-  | { kind: "event"; eventId: string };
+  | { kind: "event"; eventId: string }
+  /** Nhận bằng mã quà tặng. Chỉ lưu mã băm, không lưu mã gốc. */
+  | { kind: "code"; codeHash: string };
 
 export type HatKind = "none" | "cap" | "straw" | "bandana" | "crown" | "hood" | "pirate" | "helmet" | "wizard";
 export type OutfitKind = "tee" | "overalls" | "raincoat" | "hoodie" | "kimono" | "armor" | "tuxedo" | "hawaii";
 export type AccessoryKind = "none" | "necklace" | "pearl" | "bowtie" | "glasses" | "scarf" | "medal" | "earrings";
-export type Species = "bear" | "dog" | "cat" | "fox" | "raccoon" | "rabbit" | "penguin" | "dragon" | "tiger" | "frog" | "panda";
+export type Species =
+  | "bear"
+  | "dog"
+  | "cat"
+  | "fox"
+  | "raccoon"
+  | "rabbit"
+  | "penguin"
+  | "dragon"
+  | "tiger"
+  | "frog"
+  | "panda"
+  | "chicken"
+  | "monkey";
 
 export interface CharacterAppearance {
   species: Species;
@@ -112,6 +128,19 @@ export interface CharacterDef {
   lore: string;
 }
 
+export type RodOrnament =
+  | "none"
+  | "coral"
+  | "bolt"
+  | "shadow"
+  | "flame"
+  | "crystal"
+  | "bone"
+  | "feather"
+  | "star"
+  | "trident"
+  | "orb";
+
 export interface RodDef {
   id: string;
   name: string;
@@ -123,7 +152,16 @@ export interface RodDef {
   antiSnap: number; // % giảm hao mòn dây khi căng
   passive: PassiveSkillDef;
   unlock: UnlockCondition;
-  visual: { shaft: string; handle: string; glow: string | null; line: string };
+  visual: {
+    shaft: string;
+    handle: string;
+    glow: string | null;
+    line: string;
+    /** Màu chỉ quấn thân cần. */
+    wrap: string;
+    /** Vật trang trí đầu cần. */
+    ornament: RodOrnament;
+  };
   description: string;
 }
 

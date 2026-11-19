@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import {
   applyCatch,
+  redeemGiftCode,
   buildLoadout,
   buyCosmetic,
   buyShopItem,
@@ -28,7 +29,7 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { CATALOG, CHARACTER_BY_ID, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHARACTERS, CHARACTER_BY_ID, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 
@@ -152,6 +153,10 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   private run<R extends { ok: true; save: PlayerSave } | { ok: false; error: string }>(r: R): R {
     if (r.ok) this.commit(r.save);
     return r;
+  }
+
+  redeem(code: string) {
+    return this.run(redeemGiftCode(this._save, code, CHARACTERS, Date.now()));
   }
 
   /** Đồ đang mặc của nhân vật (để vẽ). */

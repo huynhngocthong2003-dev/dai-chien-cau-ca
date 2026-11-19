@@ -5,7 +5,8 @@ Game câu cá 2D hoạt hình: quăng cần, chống lại cá quái vật vùng
 **Trạng thái:** Giai đoạn 2 xong, Giai đoạn 3 đang làm (cửa hàng, trang phục) – xem [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 ## Chơi ngay
-- Bản web: https://claude.ai/artifact/UUQjn9CvJUM84c6iH2vXTZ (chủ dự án chia sẻ qua menu Share).
+- Web: https://huynhngocthong2003-dev.github.io/dai-chien-cau-ca/
+- Bản trên claude.ai: https://claude.ai/artifact/UUQjn9CvJUM84c6iH2vXTZ
 
 ## Chạy trên máy
 Cần Node.js ≥ 22 và pnpm 10.

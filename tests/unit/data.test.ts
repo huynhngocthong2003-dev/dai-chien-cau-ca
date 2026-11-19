@@ -16,7 +16,7 @@ describe("Dữ liệu game", () => {
   });
 
   it("có đủ 5 độ hiếm nhân vật và 7 độ hiếm cá", () => {
-    expect(new Set(CHARACTERS.map((c) => c.rarity))).toEqual(new Set(["N", "R", "SR", "SSR", "UR"]));
+    expect(new Set(CHARACTERS.map((c) => c.rarity))).toEqual(new Set(["N", "R", "SR", "SSR", "UR", "LR"]));
     expect(new Set(FISHES.map((f) => f.rarity)).size).toBe(7);
   });
 

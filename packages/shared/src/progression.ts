@@ -24,7 +24,7 @@ export interface Cost {
 export const MAX_BREAKTHROUGH = 5;
 export const MAX_STARS = 5;
 
-const RARITY_COST: Record<CharRarity, number> = { N: 1, R: 1.3, SR: 1.7, SSR: 2.2, UR: 3 };
+const RARITY_COST: Record<CharRarity, number> = { N: 1, R: 1.3, SR: 1.7, SSR: 2.2, UR: 3, LR: 4 };
 
 function fishRarityIdx(f: FishDef) {
   return RARITY_ORDER.indexOf(f.rarity);

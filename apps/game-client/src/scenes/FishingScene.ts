@@ -16,7 +16,7 @@ import {
   type ZoneDef,
 } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
-import { auraTexture, characterTexture, dockTexture, fishTexture, zoneTexture } from "../art/textures.ts";
+import { auraTexture, characterTexture, dockTexture, fishTexture, ornamentTexture, reelTexture, zoneTexture } from "../art/textures.ts";
 import { HORIZON } from "../art/Backgrounds.ts";
 import { addAmbience } from "../art/ambience.ts";
 import { hexToInt, parseHex } from "../art/color.ts";
@@ -42,6 +42,9 @@ export class FishingScene extends Phaser.Scene {
   // hiển thị
   private water!: Phaser.GameObjects.Graphics;
   private rodG!: Phaser.GameObjects.Graphics;
+  private rodOrn!: Phaser.GameObjects.Image;
+  private rodReel!: Phaser.GameObjects.Image;
+  private rodFx?: Phaser.GameObjects.Particles.ParticleEmitter;
   private bobber!: Phaser.GameObjects.Image;
   private fishImg!: Phaser.GameObjects.Image;
   private hero!: Phaser.GameObjects.Image;
@@ -109,6 +112,22 @@ export class FishingScene extends Phaser.Scene {
     this.hero = this.add.image(190, 388, characterTexture(this, char, GameState.equipOf(char.id))).setOrigin(0.5, 1).setScale(0.95).setDepth(4);
     this.tweens.add({ targets: this.hero, scaleY: 0.97, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     this.rodG = this.add.graphics().setDepth(5);
+    const rodDef = ROD_BY_ID.get(GameState.save.selectedRodId)!;
+    this.rodReel = this.add.image(HAND.x + 6, HAND.y + 12, reelTexture(this, rodDef)).setDepth(6).setScale(0.9);
+    this.rodOrn = this.add.image(0, 0, ornamentTexture(this, rodDef)).setOrigin(0.5, 58 / 80).setDepth(6).setVisible(rodDef.visual.ornament !== "none");
+    if (rodDef.visual.glow) {
+      this.rodFx = this.add
+        .particles(0, 0, "p_spark", {
+          speed: { min: 10, max: 50 },
+          lifespan: 800,
+          frequency: 90,
+          scale: { start: 0.55, end: 0 },
+          tint: hexToInt(rodDef.visual.glow),
+          blendMode: Phaser.BlendModes.ADD,
+        })
+        .setDepth(6);
+      this.tweens.add({ targets: this.rodOrn, scale: 1.12, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    }
     this.bobber = this.add.image(0, 0, "bobber").setOrigin(0.5, 0.6).setVisible(false).setDepth(4);
 
     // UI cố định
@@ -673,20 +692,50 @@ export class FishingScene extends Phaser.Scene {
     // thân cần cong
     const ctrl = { x: HAND.x + (tip.x - HAND.x) * 0.5 - 10, y: HAND.y + (tip.y - HAND.y) * 0.5 - 30 + tension * 40 };
     const curve = new Phaser.Curves.QuadraticBezier(new Phaser.Math.Vector2(HAND.x, HAND.y), new Phaser.Math.Vector2(ctrl.x, ctrl.y), new Phaser.Math.Vector2(tip.x, tip.y));
-    const pts = curve.getPoints(16);
+    const pts = curve.getPoints(18);
+    const n = pts.length - 1;
+    const width = (i: number) => 9 - (i / n) * 6.5; // thon dần về ngọn
+    const shaft = hexToInt(rod.visual.shaft);
     if (rod.visual.glow) {
-      g.lineStyle(14, hexToInt(rod.visual.glow), 0.25);
+      const pulse = 0.22 + Math.sin(this.t / 220) * 0.1;
+      g.lineStyle(18, hexToInt(rod.visual.glow), pulse);
       g.strokePoints(pts);
     }
-    g.lineStyle(10, COLORS.outline, 1);
-    g.strokePoints(pts);
-    g.lineStyle(6, hexToInt(rod.visual.shaft), 1);
-    g.strokePoints(pts);
+    for (let i = 0; i < n; i++) {
+      g.lineStyle(width(i) + 4, COLORS.outline, 1);
+      g.lineBetween(pts[i]!.x, pts[i]!.y, pts[i + 1]!.x, pts[i + 1]!.y);
+    }
+    for (let i = 0; i < n; i++) {
+      g.lineStyle(width(i), shaft, 1);
+      g.lineBetween(pts[i]!.x, pts[i]!.y, pts[i + 1]!.x, pts[i + 1]!.y);
+    }
+    // ánh sáng dọc thân
+    g.lineStyle(1.6, 0xffffff, 0.45);
+    for (let i = 1; i < n - 1; i++) g.lineBetween(pts[i]!.x - 1, pts[i]!.y - 1.5, pts[i + 1]!.x - 1, pts[i + 1]!.y - 1.5);
+    // quấn chỉ + khoen dẫn dây
+    const wrap = hexToInt(rod.visual.wrap);
+    for (const i of [5, 9, 12, 15, 17]) {
+      const p0 = pts[i]!;
+      const p1 = pts[i + 1]!;
+      g.lineStyle(width(i) + 1, wrap, 1);
+      g.lineBetween(p0.x, p0.y, p0.x + (p1.x - p0.x) * 0.35, p0.y + (p1.y - p0.y) * 0.35);
+      const ang = Math.atan2(p1.y - p0.y, p1.x - p0.x) - Math.PI / 2;
+      g.lineStyle(1.8, 0xcfd8dc, 1);
+      g.strokeCircle(p0.x + Math.cos(ang) * (width(i) / 2 + 3), p0.y + Math.sin(ang) * (width(i) / 2 + 3), 2.6);
+    }
+    // tay cầm nút bần
+    g.lineStyle(17, COLORS.outline, 1);
+    g.lineBetween(HAND.x - 30, HAND.y + 30, HAND.x + 4, HAND.y - 2);
     g.lineStyle(12, hexToInt(rod.visual.handle), 1);
-    g.lineBetween(HAND.x - 22, HAND.y + 22, HAND.x + 6, HAND.y - 4);
-    // guồng
-    g.fillStyle(0x90a4ae, 1).fillCircle(HAND.x + 4, HAND.y + 4, 9);
-    g.lineStyle(2.5, COLORS.outline).strokeCircle(HAND.x + 4, HAND.y + 4, 9);
+    g.lineBetween(HAND.x - 28, HAND.y + 28, HAND.x + 2, HAND.y);
+    g.lineStyle(12, 0x3e2723, 1);
+    g.lineBetween(HAND.x - 32, HAND.y + 32, HAND.x - 27, HAND.y + 27);
+    // đầu cần: vật trang trí xoay theo hướng ngọn
+    const last = pts[n]!;
+    const prev = pts[n - 2]!;
+    const tipAng = Math.atan2(last.y - prev.y, last.x - prev.x);
+    this.rodOrn.setPosition(last.x, last.y).setRotation(tipAng + Math.PI / 2);
+    this.rodFx?.setPosition(last.x, last.y);
 
     // dây câu
     if (this.lineSnapped || this.mode === "idle" || this.mode === "charging") {

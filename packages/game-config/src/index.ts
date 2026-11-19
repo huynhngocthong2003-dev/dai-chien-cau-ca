@@ -31,6 +31,7 @@ export const CHAR_RARITY_COLOR = {
   SR: "#ab47bc",
   SSR: "#ffa000",
   UR: "#ff1744",
+  LR: "#e040fb",
 } as const;
 
 /** Các hiếm (trừ common) được nhân trọng số theo may mắn + tỷ lệ hiếm của cần. */

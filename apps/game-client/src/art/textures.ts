@@ -1,5 +1,6 @@
 import Phaser from "phaser";
-import type { AccessoryKind, CharacterDef, CosmeticSlot, FishDef, HatKind, OutfitKind, ZoneDef } from "@dccc/shared";
+import type { AccessoryKind, CharacterDef, CosmeticSlot, FishDef, HatKind, OutfitKind, RodDef, ZoneDef } from "@dccc/shared";
+import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
 import { COSMETIC_BY_ID } from "@dccc/game-data";
 import { FISH_H, FISH_W, drawFish, drawFishSilhouette } from "./FishArt.ts";
 import { CHAR_H, CHAR_W, defaultLook, drawAura, drawCharacter, type Look } from "./CharacterArt.ts";
@@ -71,6 +72,24 @@ export function cosmeticTexture(scene: Phaser.Scene, model: CharacterDef, itemId
   if (item.slot !== "hat") look.hat = { kind: "none", color: "#000", accent: "#000" };
   if (item.slot !== "outfit") look.outfit = { kind: "tee", color: "#eceff1", accent: "#eceff1" };
   return canvasTexture(scene, `cos_${itemId}`, CHAR_W, CHAR_H, (ctx) => drawCharacter(ctx, model.appearance, { look, headOnly: item.slot !== "outfit" }), 0.6);
+}
+
+export function rodIconTexture(scene: Phaser.Scene, rod: RodDef): string {
+  return canvasTexture(scene, `rodicon_${rod.id}`, 300, 300, (ctx) => drawRodIcon(ctx, rod, 300, 300));
+}
+
+export function ornamentTexture(scene: Phaser.Scene, rod: RodDef): string {
+  return canvasTexture(scene, `rodorn_${rod.id}`, 80, 80, (ctx) => {
+    ctx.translate(40, 58);
+    drawOrnament(ctx, rod.visual.ornament, 22, rod);
+  });
+}
+
+export function reelTexture(scene: Phaser.Scene, rod: RodDef): string {
+  return canvasTexture(scene, `reel_${rod.id}`, 60, 60, (ctx) => {
+    ctx.translate(26, 28);
+    drawReel(ctx, rod, 13);
+  });
 }
 
 export function auraTexture(scene: Phaser.Scene, c: CharacterDef): string {

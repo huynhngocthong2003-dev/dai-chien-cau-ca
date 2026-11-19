@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0] – 2026-11-19 – Nhân vật LR, mã quà tặng, cần câu mới
+### Thêm
+- Bậc độ hiếm mới **LR** (trên UR) với 2 nhân vật mạnh nhất game, nhận bằng mã quà tặng:
+  - **Kim Kê** – Gà Thần Bình Minh: kỹ năng "Bình Minh Rực Lửa" (35% HP + thiêu đốt 8%/giây + tăng tốc thu dây 80%), bị động +40 may mắn, chí mạng 25% x3, +30% KN, +20% vàng.
+  - **Lam Ngọc Hầu** – Hầu Vương Sapphire: kỹ năng "Thiên Biến Vạn Hóa" (choáng 3 giây, sát thương x2, kéo cá lại 40, giảm 60 lực căng), bị động giảm vùng vẫy 30%, +40% sát thương Boss.
+- Hệ thống mã quà tặng (Cài Đặt → 🎁 Mã quà, hoặc nút trên thẻ nhân vật): chỉ lưu mã băm, mỗi mã dùng một lần/tài khoản, màn chào mừng nhân vật mới. Save phiên bản 4.
+- Cần câu vẽ lại: thân thon có gradient, quấn chỉ, khoen dẫn dây, tay cầm nút bần, guồng có tay quay, 10 kiểu trang trí đầu cần (quả cầu thiên hà, đinh ba, sao, lông phượng, lửa, pha lê, tia sét, san hô, bóng tối, nanh rồng); cần hiếm phát sáng và tỏa hạt khi câu.
+- Test: 58 unit test (gồm kiểm tra mã gốc không có trong mã nguồn), E2E mã quà tặng.
+
 ## [0.3.0] – 2026-11-19 – Thú cưng cute, Cửa Hàng, Tủ Đồ
 ### Sửa lỗi nghiêm trọng
 - Kiểm tra dữ liệu lưu giới hạn mốc thời gian ở 10¹² ms (thời gian thực ~1,79×10¹²) ⇒ mỗi lần tải lại trang, tiến trình bị coi là hỏng và bị tạo mới. Đã sửa giới hạn, thêm test hồi quy dùng thời gian thật, thêm bước tải lại trang vào E2E.

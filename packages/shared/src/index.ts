@@ -7,3 +7,4 @@ export * from "./save.ts";
 export * from "./progression.ts";
 export * from "./migrate.ts";
 export * from "./shop.ts";
+export * from "./giftcode.ts";

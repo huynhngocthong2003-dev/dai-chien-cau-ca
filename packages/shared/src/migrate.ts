@@ -31,6 +31,10 @@ export function migrateSave(raw: unknown): unknown {
     s.wardrobe = {};
     s.version = 3;
   }
+  if (s.version === 3) {
+    s.redeemedCodes = [];
+    s.version = 4;
+  }
   if (s.version !== SAVE_VERSION) return s;
   return s;
 }
