@@ -186,3 +186,20 @@ export function playMatch(teamA: Fighter[], teamB: Fighter[], seed: number): Mat
   }
   return { seed, duels, score, winner: score[0] >= 2 ? 0 : 1 };
 }
+
+/** Đảo góc nhìn trận đấu (để bên bị thách đấu xem trận với đội mình ở bên trái). */
+export function flipMatch(m: MatchResult): MatchResult {
+  const fs = (s: 0 | 1) => (1 - s) as 0 | 1;
+  const fh = (hp: [number, number]): [number, number] => [hp[1], hp[0]];
+  return {
+    seed: m.seed,
+    score: [m.score[1], m.score[0]],
+    winner: fs(m.winner),
+    duels: m.duels.map((d) => ({
+      a: d.b,
+      b: d.a,
+      winner: fs(d.winner),
+      events: d.events.map((e) => ("hp" in e ? { ...e, side: fs(e.side), hp: fh(e.hp) } : { ...e, side: fs(e.side) })) as BattleEvent[],
+    })),
+  };
+}

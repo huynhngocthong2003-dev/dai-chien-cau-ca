@@ -5,6 +5,7 @@ import {
   DIFFICULTY,
   Rng,
   aiTeam,
+  flipMatch,
   charMaxLevel,
   charXpToNext,
   roastedXp,
@@ -332,8 +333,16 @@ export class DeathMatchScene extends Phaser.Scene {
       });
       c.add(z);
     });
-    c.add(txt(this, 1058, 530, this.opponent ? `Đối thủ: ${this.opponent.display_name}` : "Chọn một đối thủ", 19, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
-    c.add(txt(this, 1058, 558, "⚠ Bên thua mất con cá mạnh nhất!", 15, { align: "center", color: "#ff8a80" }).setOrigin(0.5));
+    const rnd = new Button(this, 1058, 520, 372, 54, "🎲 Ghép ngẫu nhiên", {
+      color: COLORS.purple,
+      fontSize: 22,
+      disabled: this.team.length !== 3,
+      onClick: () => void this.matchmake(),
+    });
+    rnd.on("disabled-click", () => toast(this, "Hãy chọn đủ 3 con cá trước khi ghép trận"));
+    c.add(rnd);
+    c.add(txt(this, 1058, 566, this.opponent ? `Hoặc thách đấu: ${this.opponent.display_name}` : "Hoặc chọn một đối thủ ở trên", 17, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
+    c.add(txt(this, 1058, 592, "⚠ Bên thua mất con cá mạnh nhất!", 15, { align: "center", color: "#ff8a80" }).setOrigin(0.5));
     const ready = this.team.length === 3 && !!this.opponent;
     const go = new Button(this, 958, 640, 190, 62, "⚔ Thách đấu", { color: COLORS.red, fontSize: 22, disabled: !ready, onClick: () => void this.startPvp() });
     go.on("disabled-click", () => toast(this, this.team.length < 3 ? "Hãy chọn đủ 3 con cá" : "Hãy chọn đối thủ"));
@@ -350,6 +359,110 @@ export class DeathMatchScene extends Phaser.Scene {
     });
     defBtn.on("disabled-click", () => toast(this, "Chọn 3 con cá để làm đội phòng thủ"));
     c.add(defBtn);
+  }
+
+  /** Ghép ngẫu nhiên: ưu tiên người đang chờ cùng lúc (lực chiến gần nhất); chờ tối đa 40 giây,
+   *  không có ai thì đấu với một người chơi ngẫu nhiên (đội phòng thủ của họ). */
+  private async matchmake() {
+    if (this.busy) return;
+    const err = validateTeam(GameState.save, this.team);
+    if (err) return toast(this, err, COLORS.red);
+    const me = GameState.online!.id;
+    this.busy = true;
+    let cancelled = false;
+    const m = modal(this, 620, 360, "🎲 Đang tìm đối thủ…", () => (cancelled = true));
+    const status = txt(this, 640, m.y + 150, "Đang chuẩn bị đội hình…", 22, { align: "center", wrap: 540 }).setOrigin(0.5);
+    const spin = this.add.text(640, m.y + 240, "🐟", { fontSize: "54px", padding: { top: 10 } }).setOrigin(0.5);
+    this.tweens.add({ targets: spin, angle: 360, duration: 1200, repeat: -1 });
+    m.root.add([status, spin]);
+    const myPower = this.teamPower();
+    const fighters = this.team.map((u) => {
+      const o = GameState.save.fishes.find((f) => f.uid === u)!;
+      return makeFighter(FISH_BY_ID.get(o.fishId)!, o, o.form ? FORM_BY_ID.get(o.form) : null);
+    });
+    const finish = () => {
+      this.busy = false;
+      void Social.queueLeave().catch(() => null);
+    };
+    try {
+      // đội đang chọn cũng là đội phòng thủ khi người khác ghép trúng mình
+      const d = GameState.setDefense(this.team);
+      if (!d.ok) throw new Error(d.error);
+      await GameState.syncNow();
+      const since = new Date(Date.now() - 2000).toISOString();
+      let opp = await Social.queuePair(myPower, false);
+      if (!opp) {
+        await Social.queueJoin(myPower);
+        const t0 = Date.now();
+        while (!cancelled && Date.now() - t0 < 40_000) {
+          const waiting = await Social.queueCount().catch(() => 0);
+          status.setText(`Đang chờ người chơi khác ghép… ${Math.ceil((40_000 - (Date.now() - t0)) / 1000)}s\n${waiting ? `${waiting} người đang chờ` : "Chưa có ai khác đang chờ"}`);
+          // có người ghép trúng mình?
+          const inc = await Social.incomingMatch(me, since).catch(() => null);
+          if (inc) {
+            finish();
+            m.close();
+            const lostOwned = inc.record.lostUid ? GameState.save.fishes.find((f) => f.uid === inc.record.lostUid) : undefined;
+            await GameState.applyPvp(inc.record);
+            const flipped = flipMatch(inc.result);
+            this.team = this.team.filter((u) => u !== inc.record.lostUid);
+            return goTo(this, "Battle", {
+              result: flipped,
+              teamA: flipped.duels.map((x) => x.a),
+              teamB: flipped.duels.map((x) => x.b),
+              opponentName: inc.record.opponentName,
+              outcome: { won: inc.record.won, lost: lostOwned, roasted: inc.record.roasted ? { id: `pvp_${inc.record.id}`, ...inc.record.roasted } : undefined },
+            });
+          }
+          opp = await Social.queuePair(myPower, true).catch(() => null);
+          if (opp) break;
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+      if (cancelled) return finish();
+      let name = "";
+      if (!opp) {
+        status.setText("Không có ai đang chờ – ghép với người chơi ngẫu nhiên…");
+        await Social.queueLeave().catch(() => null);
+        const list = await Social.randomOpponents(GameState.save.level);
+        for (const p of list) {
+          try {
+            this.busy = false;
+            await this.fightOnline(p.user_id, fighters);
+            return m.close();
+          } catch {
+            /* thử người tiếp theo */
+          }
+        }
+        throw new Error("Chưa tìm được đối thủ phù hợp, hãy thử lại sau");
+      }
+      name = opp;
+      status.setText("Đã tìm thấy đối thủ! ⚔");
+      this.busy = false;
+      await this.fightOnline(name, fighters);
+      m.close();
+    } catch (e) {
+      toast(this, (e as Error).message, COLORS.red);
+      m.close();
+    } finally {
+      finish();
+    }
+  }
+
+  /** Thách đấu một người (máy chủ tính trận) rồi phát lại trận. */
+  private async fightOnline(userId: string, names: Fighter[]) {
+    const ch = await Social.challenge(userId, this.team);
+    const rec = { ...ch.record, id: ch.id, opponentName: ch.opponentName };
+    const lostOwned = rec.lostUid ? GameState.save.fishes.find((f) => f.uid === rec.lostUid) : undefined;
+    await GameState.applyPvp(rec);
+    this.team = this.team.filter((u) => u !== rec.lostUid);
+    goTo(this, "Battle", {
+      result: ch.result,
+      teamA: names,
+      teamB: ch.result.duels.map((d) => d.b),
+      opponentName: ch.opponentName,
+      outcome: { won: rec.won, lost: lostOwned, roasted: rec.roasted ? { id: `pvp_${ch.id}`, ...rec.roasted } : undefined },
+    });
   }
 
   private async startPvp() {

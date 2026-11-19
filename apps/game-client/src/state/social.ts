@@ -315,3 +315,28 @@ export const claimTopups = async () => ((await rpc("claim_topups")) as { id: str
 export const isAdmin = async () => !!(await rpc("is_admin"));
 export const adminListTopups = async (status = "pending") => ((await rpc("admin_list_topups", { p_status: status })) as TopupOrder[]) ?? [];
 export const adminDecideTopup = (id: string, approve: boolean) => rpc("admin_decide_topup", { p_id: id, p_approve: approve });
+
+// ------------------------------------------------------------------ Ghép trận ngẫu nhiên
+export const queueJoin = (power: number) => rpc("dm_queue_join", { p_power: Math.round(power) });
+export const queueLeave = () => rpc("dm_queue_leave");
+export const queuePair = async (power: number, requireQueued: boolean) =>
+  ((await rpc("dm_queue_pair", { p_power: Math.round(power), p_require_queued: requireQueued })) as string | null) ?? null;
+export const queueCount = async () => ((await rpc("dm_queue_count")) as number | null) ?? 0;
+export const randomOpponents = async (level: number) =>
+  ((await rpc("dm_random_opponents", { p_level: level, p_limit: 5 })) as { user_id: string; display_name: string; level: number }[]) ?? [];
+
+/** Trận mà mình bị thách đấu sau thời điểm `since` (dùng khi đang chờ ghép). */
+export async function incomingMatch(me: string, sinceIso: string): Promise<{ record: PvpMatchRecord; result: MatchResult } | null> {
+  const sb = await getClient();
+  const { data, error } = await sb
+    .from("pvp_matches")
+    .select("id, result, for_defender, challenger_name, applied_defender")
+    .eq("defender", me)
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) throw new Error(friendlyRpc(error.message));
+  const r = (data as { id: string; result: MatchResult; for_defender: Omit<PvpMatchRecord, "id" | "opponentName">; challenger_name: string; applied_defender: boolean }[])?.[0];
+  if (!r) return null;
+  return { record: { id: r.id, ...r.for_defender, opponentName: r.challenger_name }, result: r.result };
+}

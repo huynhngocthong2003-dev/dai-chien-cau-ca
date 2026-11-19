@@ -262,3 +262,21 @@ describe("Đấu Sinh Tử người – người (máy chủ tính, mỗi bên t
     expect("error" in r).toBe(true);
   });
 });
+
+describe("Đảo góc nhìn trận (bên bị thách đấu)", () => {
+  it("flipMatch đổi bên, tỉ số, người thắng và máu", async () => {
+    const { flipMatch } = await import("@dccc/shared");
+    const a = [F("f_ca_loc", 5), F("f_ca_chep", 3), F("f_ca_tre", 4)];
+    const b = [F("f_ca_ro", 2), F("f_ca_hu", 2), F("f_ca_ro", 1)];
+    const m = playMatch(a, b, 42);
+    const f = flipMatch(m);
+    expect(f.score).toEqual([m.score[1], m.score[0]]);
+    expect(f.winner).toBe(1 - m.winner);
+    expect(f.duels[0]!.a.uid).toBe(m.duels[0]!.b.uid);
+    const e0 = m.duels[0]!.events.find((e) => e.t === "attack")!;
+    const f0 = f.duels[0]!.events.find((e) => e.t === "attack")!;
+    expect(f0.side).toBe(1 - e0.side);
+    if (e0.t === "attack" && f0.t === "attack") expect(f0.hp).toEqual([e0.hp[1], e0.hp[0]]);
+    expect(flipMatch(f)).toEqual(m);
+  });
+});

@@ -259,3 +259,30 @@ do $$ begin
 end $$;
 reset role;
 select 'DB TOPUP TEST OK' as result;
+
+-- ================= Ghép trận ngẫu nhiên =================
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  if public.dm_queue_pair(100) is not null then raise exception 'Ghép được khi hàng chờ trống'; end if;
+end $$;
+select public.dm_queue_join(100) \g /dev/null
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+select public.dm_queue_join(5000) \g /dev/null
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ begin
+  if public.dm_queue_count() <> 2 then raise exception 'Đếm người chờ sai'; end if;
+  begin insert into public.dm_queue (user_id) values ('22222222-2222-2222-2222-222222222222'); raise exception 'LỖI: ghi thẳng hàng chờ';
+  exception when insufficient_privilege then null; end;
+  -- B (lực 120) được ghép với A (lực 100, gần nhất), không phải C (5000)
+  if public.dm_queue_pair(120) <> '11111111-1111-1111-1111-111111111111' then raise exception 'Không ưu tiên lực chiến gần'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  -- A đã được ghép (rời hàng chờ) nên không tự ghép tiếp với C
+  if public.dm_queue_pair(100, true) is not null then raise exception 'Ghép 2 lần'; end if;
+  if public.dm_queue_count() <> 1 then raise exception 'Hàng chờ sau khi ghép sai'; end if;
+  if (select count(*) from public.dm_random_opponents(5, 5)) < 1 then raise exception 'Không có đối thủ ngẫu nhiên'; end if;
+end $$;
+reset role;
+select 'DB MATCHMAKING TEST OK' as result;

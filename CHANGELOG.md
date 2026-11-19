@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.0] – 2026-11-19 – Ghép trận ngẫu nhiên
+### Thêm
+- **🎲 Ghép ngẫu nhiên** trong Đấu Sinh Tử → Đấu người chơi: ưu tiên ghép với người đang chờ **cùng lúc** (lực chiến gần nhất); chờ tối đa 40 giây (hiện số người đang chờ, có thể huỷ); không có ai thì tự ghép với một người chơi ngẫu nhiên cùng tầm cấp (dùng đội phòng thủ của họ). Người bị ghép trúng khi đang chờ cũng xem trận ngay.
+- Database: hàng chờ `dm_queue` + hàm ghép an toàn (không ghép 2 lần), đã kiểm thử trên PostgreSQL.
+
 ## [0.10.0] – 2026-11-19 – Nạp kim cương & Câu tự động
 ### Thêm
 - **Nạp bằng chuyển khoản** (bấm ô 💎 trên thanh trên cùng): 100 💎 = 20.000đ, 300 💎 = 50.000đ, **Câu Tự Động 2 ngày** = 20.000đ. Mã QR VietQR có sẵn số tiền + nội dung riêng `DCCC…`; chủ game đối soát sao kê và **duyệt** ở trang 🛠 Duyệt nạp; mỗi lệnh chỉ nhận 1 lần (xem docs/TOPUP_ADMIN.md).
