@@ -124,3 +124,11 @@ export const TIER_BONUS_CAP: Record<(typeof TIER_ORDER)[number], number> = {
   legendary: 0.1,
   divine: 0.15,
 };
+
+/** Nạp tiền: chuyển khoản ngân hàng, chủ dự án tự đối soát và duyệt (Giai đoạn 3). */
+export const TOPUP_BANK = {
+  bankId: "ACB",
+  bankName: "ACB – Ngân hàng Á Châu",
+  account: "13152551",
+  accountName: "HUYNH NGOC THONG",
+} as const;

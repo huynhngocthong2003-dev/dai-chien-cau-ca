@@ -39,7 +39,7 @@ const toAccount = async (p) => {
 async function playOneFish(p) {
   await p.evaluate(() => window.__game.scene.getScene('Hub').scene.start('Fishing', { zoneId: 'z_ben_tan_thu' }));
   await p.waitForTimeout(800);
-  for (let round = 0; round < 5; round++) {
+  for (let round = 0; round < 10; round++) {
     await p.mouse.move(700, 450);
     await p.mouse.down();
     await p.waitForTimeout(500);
@@ -57,7 +57,8 @@ async function playOneFish(p) {
     }
     await p.mouse.up();
     await p.waitForTimeout(2200);
-    if (phase === 'caught') break;
+    // câu được rác (12%) cũng là 'caught' nhưng không có cá → câu tiếp
+    if (phase === 'caught' && (await p.evaluate(() => JSON.parse(localStorage.getItem('dccc_save_v1')).fishes.length)) > 0) break;
     await p.keyboard.press('Enter');
     await p.waitForTimeout(300);
   }
@@ -166,7 +167,9 @@ async function playOneFish(p) {
           const c = db.cards && db.cards.get(want);
           return json(200, c ? [c] : []);
         }
-        if (u.pathname === '/rest/v1/pvp_matches' || u.pathname === '/rest/v1/friendships') return json(200, []);
+        if (u.pathname === '/rest/v1/pvp_matches' || u.pathname === '/rest/v1/friendships' || u.pathname === '/rest/v1/topup_orders') return json(200, []);
+        if (u.pathname === '/rest/v1/rpc/claim_topups') return json(200, []);
+        if (u.pathname.startsWith('/rest/v1/rpc/')) return json(200, null);
         return json(404, { message: 'mock: không hỗ trợ ' + req.method() + ' ' + u.pathname });
       });
     };

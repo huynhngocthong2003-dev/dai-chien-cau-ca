@@ -225,3 +225,37 @@ do $$ begin
 end $$;
 reset role;
 select 'DB GUILDS/RANKINGS TEST OK' as result;
+
+-- ================= Nạp tiền (chủ dự án duyệt) =================
+insert into public.admins (user_id) values ('33333333-3333-3333-3333-333333333333');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+select public.create_topup('kc100') \g /dev/null
+do $$ begin
+  if (select amount_vnd from public.topup_orders) <> 20000 then raise exception 'Giá gói phải do máy chủ đặt'; end if;
+  if (select code from public.topup_orders) !~ '^DCCC[0-9A-F]{6}$' then raise exception 'Mã chuyển khoản sai định dạng'; end if;
+  begin perform public.create_topup('kc999999'); raise exception 'LỖI: tạo được gói không tồn tại';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+  begin update public.topup_orders set status = 'approved'; raise exception 'LỖI: tự duyệt lệnh của mình';
+  exception when insufficient_privilege then null; end;
+  begin perform public.admin_decide_topup((select id from public.topup_orders limit 1), true); raise exception 'LỖI: người thường duyệt được';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+  if (select count(*) from public.claim_topups()) <> 0 then raise exception 'Nhận được lệnh chưa duyệt'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ begin
+  if (select count(*) from public.topup_orders) <> 0 then raise exception 'B thấy lệnh nạp của A'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  if not public.is_admin() then raise exception 'Quản trị viên không được nhận diện'; end if;
+  if (select count(*) from public.admin_list_topups('pending')) <> 1 then raise exception 'Quản trị viên không thấy lệnh chờ'; end if;
+  perform public.admin_decide_topup((select id from public.admin_list_topups('pending') limit 1), true);
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  if (select package from public.claim_topups()) <> 'kc100' then raise exception 'Không nhận được lệnh đã duyệt'; end if;
+  if (select count(*) from public.claim_topups()) <> 0 then raise exception 'Nhận lệnh 2 lần'; end if;
+end $$;
+reset role;
+select 'DB TOPUP TEST OK' as result;

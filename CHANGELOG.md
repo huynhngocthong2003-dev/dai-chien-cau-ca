@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0] – 2026-11-19 – Nạp kim cương & Câu tự động
+### Thêm
+- **Nạp bằng chuyển khoản** (bấm ô 💎 trên thanh trên cùng): 100 💎 = 20.000đ, 300 💎 = 50.000đ, **Câu Tự Động 2 ngày** = 20.000đ. Mã QR VietQR có sẵn số tiền + nội dung riêng `DCCC…`; chủ game đối soát sao kê và **duyệt** ở trang 🛠 Duyệt nạp; mỗi lệnh chỉ nhận 1 lần (xem docs/TOPUP_ADMIN.md).
+- **Nút 🤖 Tự động** khi câu cá (có gói): tự quăng, giật đúng lúc, kéo giữ lực căng an toàn, dùng kỹ năng khi cá vùng vẫy, câu liên tục.
+### Sửa
+- Cá trưng bày: cá đang trưng bày luôn hiện đầu danh sách để gỡ; chọn con thứ 4 sẽ thay con cũ nhất; nút Gỡ hết.
+- Cá nướng cho nhân vật ăn: giảm KN còn 1/5.
+
 ## [0.9.1] – 2026-11-19
 ### Sửa
 - Ô nhập mã quà / đổi tên / đăng nhập bị lệch trên màn hình điện thoại dài (do khung game giãn ngang) – nay khớp đúng vị trí.

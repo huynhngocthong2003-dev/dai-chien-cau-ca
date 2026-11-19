@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  SAVE_VERSION,
   Rng,
   WHEEL_COST_DIAMONDS,
   checkinState,
@@ -150,8 +151,36 @@ describe("Hội & chuyển đổi save", () => {
     delete old.checkin;
     delete old.titles;
     const m = migrateSave(old) as PlayerSave;
-    expect(m.version).toBe(7);
+    expect(m.version).toBe(SAVE_VERSION);
     expect(m.titles).toEqual({ owned: [], equipped: null });
     valid(m);
+  });
+});
+
+describe("Nạp tiền (chủ dự án duyệt)", () => {
+  it("cộng kim cương đúng gói, chỉ 1 lần; gói câu tự động cộng dồn 48 giờ", async () => {
+    const { applyTopup, autoFishActive, vietQrUrl } = await import("@dccc/shared");
+    const { TOPUP_PACKAGES } = await import("@dccc/game-data");
+    let s = fresh();
+    const r = applyTopup(s, { id: "11111111-2222-4333-8444-555555555555", package: "kc300" }, TOPUP_PACKAGES, T0);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.save.diamonds).toBe(s.diamonds + 300);
+    expect(applyTopup(r.save, { id: "11111111-2222-4333-8444-555555555555", package: "kc300" }, TOPUP_PACKAGES, T0).ok).toBe(false);
+    s = r.save;
+    expect(autoFishActive(s, T0)).toBe(false);
+    const a1 = applyTopup(s, { id: "a1", package: "auto2d" }, TOPUP_PACKAGES, T0);
+    if (!a1.ok) throw new Error(a1.error);
+    expect(a1.save.autoFishUntil).toBe(T0 + 48 * 3600_000);
+    const a2 = applyTopup(a1.save, { id: "a2", package: "auto2d" }, TOPUP_PACKAGES, T0 + 3600_000);
+    if (!a2.ok) throw new Error(a2.error);
+    expect(a2.save.autoFishUntil).toBe(T0 + 96 * 3600_000);
+    expect(autoFishActive(a2.save, T0 + 95 * 3600_000)).toBe(true);
+    expect(autoFishActive(a2.save, T0 + 97 * 3600_000)).toBe(false);
+    valid(a2.save);
+    expect(TOPUP_PACKAGES.map((p) => [p.id, p.vnd])).toEqual([["kc100", 20000], ["kc300", 50000], ["auto2d", 20000]]);
+    const url = vietQrUrl({ bankId: "ACB", account: "13152551", accountName: "HUYNH NGOC THONG" }, 20000, "DCCC1A2B3C");
+    expect(url).toContain("ACB-13152551");
+    expect(url).toContain("amount=20000");
+    expect(url).toContain("addInfo=DCCC1A2B3C");
   });
 });

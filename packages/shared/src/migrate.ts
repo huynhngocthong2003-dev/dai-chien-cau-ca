@@ -54,6 +54,10 @@ export function migrateSave(raw: unknown): unknown {
     s.titles = { owned: [], equipped: null };
     s.version = 7;
   }
+  if (s.version === 7) {
+    s.autoFishUntil = 0;
+    s.version = 8;
+  }
   if (s.version !== SAVE_VERSION) return s;
   return s;
 }

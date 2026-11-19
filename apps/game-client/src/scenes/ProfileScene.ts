@@ -121,10 +121,13 @@ export class ProfileScene extends Phaser.Scene {
   private pickShowcase() {
     const sel = [...GameState.save.showcase];
     const m = modal(this, 1060, 600, "Chọn tối đa 3 cá trưng bày", () => this.time.delayedCall(160, () => this.scene.restart()));
-    const list = GameState.save.fishes
-      .filter((f) => FISH_BY_ID.has(f.fishId))
-      .sort((a, b) => ownedFishPower(FISH_BY_ID.get(b.fishId)!, b) - ownedFishPower(FISH_BY_ID.get(a.fishId)!, a))
-      .slice(0, 18);
+    // cá đang trưng bày luôn ở đầu danh sách để gỡ được
+    const pw = (o: OwnedFish) => ownedFishPower(FISH_BY_ID.get(o.fishId)!, o, o.form ? FORM_BY_ID.get(o.form) : null);
+    const all = GameState.save.fishes.filter((f) => FISH_BY_ID.has(f.fishId));
+    const list = [
+      ...sel.map((u) => all.find((f) => f.uid === u)).filter((o): o is OwnedFish => !!o),
+      ...all.filter((f) => !sel.includes(f.uid)).sort((a, b) => pw(b) - pw(a)),
+    ].slice(0, 18);
     const box = this.add.container(0, 0);
     m.root.add(box);
     const draw = () => {
@@ -143,14 +146,19 @@ export class ProfileScene extends Phaser.Scene {
         z.on("pointerup", () => {
           const k = sel.indexOf(o.uid);
           if (k >= 0) sel.splice(k, 1);
-          else if (sel.length < 3) sel.push(o.uid);
-          else return toast(this, "Tối đa 3 con");
+          else {
+            // đủ 3 con thì thay con chọn sớm nhất
+            if (sel.length >= 3) sel.shift();
+            sel.push(o.uid);
+          }
           draw();
         });
         box.add([g, im, t, z]);
       });
     };
     draw();
+    m.root.add(new Button(this, m.x + 150, m.y + m.h - 44, 200, 52, "🗑 Gỡ hết", { color: COLORS.grey, fontSize: 20, onClick: () => ((sel.length = 0), draw()) }));
+    m.root.add(txt(this, m.x + m.w - 30, m.y + m.h - 44, "Chạm cá đã chọn để gỡ.\nChọn con thứ 4 sẽ thay con cũ nhất.", 14, { weight: "700", color: COLORS.textDim, align: "right" }).setOrigin(1, 0.5));
     m.root.add(
       new Button(this, m.x + m.w / 2, m.y + m.h - 44, 240, 58, "💾 Lưu", {
         color: COLORS.green,

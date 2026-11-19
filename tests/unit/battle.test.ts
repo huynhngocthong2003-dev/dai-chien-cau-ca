@@ -135,7 +135,9 @@ describe("Đấu Sinh Tử", () => {
     const e = eatRoasted(r.save, r.roasted!.id, charId, FISH_BY_ID, Date.now());
     if (!e.ok) throw new Error(e.error);
     expect(e.xp).toBe(roastedXp(r.roasted!, FISH_BY_ID));
-    expect(e.levels).toBeGreaterThanOrEqual(1);
+    expect(e.levels! > 0 || (e.save.characters[charId]!.xp ?? 0) > 0).toBe(true);
+    // KN vừa phải: một con cá nướng thường không cho quá 3 cấp
+    expect(e.levels).toBeLessThanOrEqual(3);
     expect(e.save.characters[charId]!.level).toBe(lv0 + e.levels!);
     expect(e.save.roasted).toHaveLength(0);
     // cá nướng loài hiếm cho nhiều KN hơn

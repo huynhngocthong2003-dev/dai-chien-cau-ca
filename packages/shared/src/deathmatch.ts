@@ -130,7 +130,7 @@ export const ROAST_RARITY_MULT: Record<FishDef["rarity"], number> = {
 /** KN mà nhân vật nhận khi ăn một con cá nướng. */
 export function roastedXp(r: RoastedFish, fishById: Map<string, FishDef>): number {
   const f = fishById.get(r.fishId);
-  return Math.round(40 * Math.max(1, r.level) * Math.max(1, r.stars) * (f ? ROAST_RARITY_MULT[f.rarity] : 1));
+  return Math.round(8 * Math.max(1, r.level) * Math.max(1, r.stars) * (f ? ROAST_RARITY_MULT[f.rarity] : 1));
 }
 
 /** KN cần để nhân vật lên cấp tiếp theo. */

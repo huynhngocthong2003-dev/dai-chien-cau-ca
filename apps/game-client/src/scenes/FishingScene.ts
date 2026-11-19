@@ -11,6 +11,7 @@ import {
   randomSeed,
   rollJunk,
   rollEvoDrop,
+  autoFishActive,
   type FishFormDef,
   type JunkDef,
   rollWeight,
@@ -85,6 +86,11 @@ export class FishingScene extends Phaser.Scene {
   private jumping = false;
   private reelHeld = false;
   private keyHeld = false;
+  /** Câu tự động (gói nạp 48 giờ). */
+  private auto = false;
+  private autoT = 0;
+  private autoPower = 0.7;
+  private autoBtn?: Button;
   private nibbleAt = 0;
   private lineSnapped = false;
   private shakeT = 0;
@@ -176,6 +182,9 @@ export class FishingScene extends Phaser.Scene {
     this.buildHud();
     this.setupInput();
     this.toIdle();
+    this.auto = false;
+    this.autoBtn = new Button(this, 540, 38, 200, 46, "", { color: COLORS.purple, fontSize: 18, onClick: () => this.toggleAuto() }).setDepth(45);
+    this.refreshAutoBtn();
 
     const onLevel = (lvl: number) => {
       Sfx.levelUp();
@@ -297,6 +306,58 @@ export class FishingScene extends Phaser.Scene {
     this.tweens.add({ targets: this.hint, alpha: 0.5, yoyo: true, repeat: -1, duration: 700 });
   }
 
+  private refreshAutoBtn() {
+    const ok = autoFishActive(GameState.save, Date.now());
+    const h = Math.ceil((GameState.save.autoFishUntil - Date.now()) / 3600_000);
+    this.autoBtn?.setText(!ok ? "🔒 Câu tự động" : this.auto ? `🤖 ĐANG TỰ ĐỘNG` : `🤖 Tự động (${h}h)`);
+    this.autoBtn?.setColor(this.auto ? COLORS.green : COLORS.purple);
+  }
+
+  private toggleAuto() {
+    if (!autoFishActive(GameState.save, Date.now())) {
+      toast(this, "Gói Câu Tự Động 2 ngày: nạp 20.000đ ở mục 💎 Nạp (bấm ô kim cương trên thanh trên cùng ở sảnh)");
+      return;
+    }
+    if (this.bossHunt) return toast(this, "Câu tự động không dùng cho Săn Boss (tốn vé)");
+    this.auto = !this.auto;
+    this.autoT = 0;
+    if (!this.auto) this.reelHeld = false;
+    this.refreshAutoBtn();
+    toast(this, this.auto ? "🤖 Bật câu tự động – game tự quăng, giật và kéo cá" : "Đã tắt câu tự động");
+  }
+
+  /** Mỗi khung hình khi bật tự động: quăng → giật khi cá cắn → kéo giữ lực căng an toàn → câu tiếp. */
+  private autoStep(dt: number) {
+    if (!this.auto) return;
+    if (!autoFishActive(GameState.save, Date.now())) {
+      this.auto = false;
+      this.reelHeld = false;
+      this.refreshAutoBtn();
+      return toast(this, "Gói câu tự động đã hết hạn", COLORS.red);
+    }
+    const s = this.session;
+    // chỉ đếm giờ khi đang chờ (sảnh câu / màn kết quả)
+    if (this.mode === "idle" || this.mode === "result") this.autoT += dt;
+    else this.autoT = 0;
+    if (this.mode === "idle" && this.autoT > 600) {
+      this.autoT = 0;
+      this.autoPower = 0.55 + Math.random() * 0.4;
+      this.onPrimaryDown();
+    } else if (this.mode === "charging" && this.power >= this.autoPower) {
+      this.onPrimaryUp();
+    } else if (this.mode === "fishing" && s) {
+      if (s.phase === "bite") s.hook();
+      else if (s.phase === "reeling") {
+        const limit = FISHING.dangerTension * (s.struggling ? 0.55 : 0.82);
+        this.reelHeld = s.tension < limit;
+        if (s.struggling && s.skillCooldownLeft <= 0) this.useSkill();
+      }
+    } else if (this.mode === "result" && this.autoT > 1800) {
+      this.autoT = 0;
+      this.again();
+    }
+  }
+
   private refreshHuntLabel() {
     this.huntLabel?.setText(this.bossHunt ? `⚔ SĂN BOSS · 🎫 còn ${GameState.save.materials.bossTickets} vé` : "");
   }
@@ -393,6 +454,7 @@ export class FishingScene extends Phaser.Scene {
       if (s.phase === "waiting") this.updateWaiting();
       if (s.phase === "reeling") this.updateReeling(s);
     }
+    this.autoStep(dt);
     if (this.mode === "fishing" && s?.phase === "bite") {
       this.bobber.setPosition(this.castX + Math.sin(this.t / 30) * 3, HORIZON + 14);
     }

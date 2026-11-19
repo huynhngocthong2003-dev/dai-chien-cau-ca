@@ -80,6 +80,11 @@ export class TopBar extends Phaser.GameObjects.Container {
     const x0 = W - 16 - safe - 4 * CW - 3 * 8;
     this.goldT = chip(x0, "🪙", COLORS.gold);
     this.gemT = chip(x0 + (CW + 8), "💎", COLORS.diamond);
+    // bấm ô kim cương để nạp
+    const gemHit = scene.add.zone(x0 + (CW + 8), 18, CW, 40).setOrigin(0).setInteractive({ useHandCursor: true });
+    gemHit.on("pointerup", () => scene.scene.key !== "Topup" && goTo(scene, "Topup"));
+    const plus = txt(scene, x0 + (CW + 8) + 34, 38, "+", 22, { color: "#69f0ae" }).setOrigin(0.5);
+    this.add([gemHit, plus]);
     this.stoneT = chip(x0 + 2 * (CW + 8), "🔷", 0x7c4dff);
     this.soulT = chip(x0 + 3 * (CW + 8), "🔮", 0xea80fc);
     // nút toàn màn hình

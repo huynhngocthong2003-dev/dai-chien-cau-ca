@@ -2,7 +2,7 @@ import { ECONOMY, PROGRESSION } from "@dccc/game-config";
 import type { CharacterDef, CosmeticSlot, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
 import { sumPassive } from "./loadout.ts";
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 /** Kim cương thưởng: mỗi lần lên cấp, lần đầu bắt một loài, mỗi lần bắt Boss. */
 export const DIAMOND_REWARDS = { levelUp: 10, newSpecies: 3, boss: 5 };
@@ -129,6 +129,8 @@ export interface PlayerSave {
   checkin: { lastDay: string; streak: number; total: number };
   /** Danh hiệu đã đạt + danh hiệu đang đeo. */
   titles: { owned: string[]; equipped: string | null };
+  /** Câu tự động có hiệu lực đến thời điểm này (ms), 0 = chưa có. */
+  autoFishUntil: number;
   ledger: LedgerEntry[];
   /** Mã giao dịch đã áp dụng – chống nhận thưởng trùng. */
   appliedTx: string[];
@@ -168,6 +170,7 @@ export function createNewSave(playerId: string, name: string, catalog: GameCatal
     daily: { day: "", base: {}, claimed: [], freeSpinUsed: false },
     checkin: { lastDay: "", streak: 0, total: 0 },
     titles: { owned: [], equipped: null },
+    autoFishUntil: 0,
     roasted: [],
     showcase: [],
     evoItems: {},

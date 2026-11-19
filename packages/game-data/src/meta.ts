@@ -1,4 +1,4 @@
-import type { QuestDef, RewardDef, TitleDef, WheelPrizeDef } from "@dccc/shared";
+import type { QuestDef, RewardDef, TitleDef, TopupPackageDef, WheelPrizeDef } from "@dccc/shared";
 
 /** Nhiệm vụ ngày (làm mới 0h giờ Việt Nam). */
 export const QUESTS: QuestDef[] = [
@@ -55,4 +55,11 @@ export const TITLES: TitleDef[] = [
   { id: "t_nghien_quay", name: "Con Nghiện Vòng Quay", icon: "🎡", description: "Quay Vòng Quay 50 lần", metric: "spins", target: 50, color: "#b388ff", reward: { diamonds: 20 } },
   { id: "t_chuyen_can", name: "Chuyên Cần Gương Mẫu", icon: "📅", description: "Điểm danh 30 ngày", metric: "checkins", target: 30, color: "#80deea", reward: { diamonds: 60 } },
   { id: "t_lao_lang", name: "Lão Làng Bến Cá", icon: "🧓", description: "Đạt cấp 50", metric: "level", target: 50, color: "#bcaaa4", reward: { diamonds: 80 } },
+];
+
+/** Gói nạp (VNĐ) – giá do chủ dự án đặt. */
+export const TOPUP_PACKAGES: TopupPackageDef[] = [
+  { id: "kc100", name: "100 Kim Cương", icon: "💎", vnd: 20_000, diamonds: 100 },
+  { id: "kc300", name: "300 Kim Cương", icon: "💠", vnd: 50_000, diamonds: 300 },
+  { id: "auto2d", name: "Câu Tự Động 2 ngày", icon: "🤖", vnd: 20_000, autoFishHours: 48 },
 ];

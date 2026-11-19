@@ -12,6 +12,8 @@ import {
   setDefense,
   setShowcase,
   claimEvent,
+  applyTopup,
+  type TopupPackageDef,
   claimCheckin,
   claimQuest,
   claimTitle,
@@ -58,7 +60,7 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { CATALOG, CHECKIN_REWARDS, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 import * as Online from "./online.ts";
@@ -297,6 +299,22 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     const r = this.run(equipTitle(this._save, id, Date.now()));
     if (r.ok) void this.publishProfile();
     return r;
+  }
+
+  /** Nhận các lệnh nạp đã được chủ dự án duyệt (máy chủ chỉ trả mỗi lệnh 1 lần). */
+  async claimTopups(): Promise<TopupPackageDef[]> {
+    if (!this.online) return [];
+    const got: TopupPackageDef[] = [];
+    const list = await Social.claimTopups();
+    for (const o of list) {
+      const r = applyTopup(this._save, o, TOPUP_PACKAGES, Date.now());
+      if (r.ok) {
+        this.commit(r.save);
+        got.push(r.pkg!);
+      }
+    }
+    if (got.length) await this.syncNow().catch(() => null);
+    return got;
   }
 
   claimEvent(ev: GameEventDef) {

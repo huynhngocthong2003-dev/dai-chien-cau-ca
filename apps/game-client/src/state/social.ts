@@ -280,3 +280,38 @@ export const createGuild = (name: string, tag: string, description: string) =>
 export const joinGuild = (id: number) => rpc("join_guild", { p_guild: id });
 export const leaveGuild = () => rpc("leave_guild");
 export const kickMember = (userId: string) => rpc("kick_member", { p_user: userId });
+
+// ------------------------------------------------------------------ Nạp tiền (chủ dự án duyệt)
+export interface TopupOrder {
+  id: string;
+  package: "kc100" | "kc300" | "auto2d";
+  amount_vnd: number;
+  code: string;
+  status: "pending" | "approved" | "rejected" | "claimed" | "cancelled";
+  created_at: string;
+  player_name?: string;
+  user_id?: string;
+}
+
+export async function createTopup(pkg: string): Promise<{ id: string; code: string; amount_vnd: number }> {
+  const rows = (await rpc("create_topup", { p_package: pkg })) as { id: string; code: string; amount_vnd: number }[];
+  if (!rows?.[0]) throw new Error("Không tạo được lệnh nạp");
+  return rows[0];
+}
+
+export async function myTopups(): Promise<TopupOrder[]> {
+  const sb = await getClient();
+  const { data, error } = await sb
+    .from("topup_orders")
+    .select("id, package, amount_vnd, code, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as TopupOrder[]) ?? [];
+}
+
+export const cancelTopup = (id: string) => rpc("cancel_topup", { p_id: id });
+export const claimTopups = async () => ((await rpc("claim_topups")) as { id: string; package: TopupOrder["package"] }[]) ?? [];
+export const isAdmin = async () => !!(await rpc("is_admin"));
+export const adminListTopups = async (status = "pending") => ((await rpc("admin_list_topups", { p_status: status })) as TopupOrder[]) ?? [];
+export const adminDecideTopup = (id: string, approve: boolean) => rpc("admin_decide_topup", { p_id: id, p_approve: approve });

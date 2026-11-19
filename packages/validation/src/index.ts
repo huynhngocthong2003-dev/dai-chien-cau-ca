@@ -75,6 +75,7 @@ export const playerSaveSchema = z.object({
   }),
   checkin: z.object({ lastDay: z.string().max(10), streak: z.number().int().min(0).max(100000), total: nonNegInt }),
   titles: z.object({ owned: z.array(id).max(200), equipped: id.nullable() }),
+  autoFishUntil: z.number().int().min(0).max(1e14),
   ledger: z.array(
     z.object({
       txId: id,

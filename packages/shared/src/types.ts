@@ -334,3 +334,13 @@ export interface WheelPrizeDef {
 }
 
 export type RankCategory = "level" | "caught" | "bosses" | "dmWins" | "junk";
+
+export interface TopupPackageDef {
+  id: "kc100" | "kc300" | "auto2d";
+  name: string;
+  icon: string;
+  vnd: number;
+  diamonds?: number;
+  /** Số giờ câu tự động. */
+  autoFishHours?: number;
+}

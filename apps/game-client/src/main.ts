@@ -16,6 +16,7 @@ import { QuestScene } from "./scenes/QuestScene.ts";
 import { WheelScene } from "./scenes/WheelScene.ts";
 import { RankingScene } from "./scenes/RankingScene.ts";
 import { GuildScene } from "./scenes/GuildScene.ts";
+import { TopupScene } from "./scenes/TopupScene.ts";
 
 async function start() {
   // Chờ font tiếng Việt tải xong (tối đa 3 giây) để chữ không bị nhảy.
@@ -40,7 +41,7 @@ async function start() {
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
     fps: { target: 60 },
-    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, BattleScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene],
+    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, BattleScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 

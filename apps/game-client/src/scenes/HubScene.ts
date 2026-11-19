@@ -147,6 +147,9 @@ export class HubScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-ENTER", () => goTo(this, "Zone"));
     if (GameState.online && !HubScene.socialSynced) {
       HubScene.socialSynced = true;
+      void GameState.claimTopups()
+        .then((got) => got.length && this.scene.isActive() && toast(this, `💎 Đã nhận gói nạp: ${got.map((p) => p.name).join(", ")}. Cảm ơn bạn!`, COLORS.green))
+        .catch(() => null);
       void GameState.syncSocial().then((list) => {
         if (!this.scene.isActive()) return;
         list.forEach((m, i) =>
@@ -290,6 +293,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.9.1 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.10.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }
