@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.13.0] – 2026-11-19 – Nhạc nền
+### Thêm
+- **Nhạc nền tự soạn** (WebAudio, không dùng file nhạc → nhẹ, không lo bản quyền): Sảnh vui tươi (Đô trưởng ngũ cung), Câu cá êm đềm âm hưởng dân ca (La thứ ngũ cung), Săn Boss căng thẳng, Đấu Sinh Tử dồn dập có trống, các màn khác nhẹ nhàng. Chuyển bài mượt khi đổi màn.
+- Cài Đặt: nút **🎵 Nhạc: Bật/Tắt** riêng với âm thanh hiệu ứng (nhớ lựa chọn).
+
 ## [0.12.0] – 2026-11-19 – Hiệu ứng kỹ năng theo từng tướng, trang duyệt nạp
 ### Thêm
 - **Hiệu ứng kỹ năng riêng cho 14 nhân vật** đúng mô tả: Giật Cần (vệt quất cần), Thả Dây (dây xoắn lỏng), Gió Thuận (luồng gió + lá + thuyền buồm), Móc Sắt (mỏ neo sắt + xích), Ảnh Phân Thân (phân thân + phi tiêu), Ca Khúc Biển (sóng âm + nốt nhạc), Lưới Thép (lưới thép + tia hàn), **Long Trảo (bàn vuốt rồng 4 móng vồ xuống + 3 vết cào)**, Đóng Băng (mặt nước đóng băng + tinh thể), Lửa Hỏa Ngục (cột lửa), Triều Cường (sóng thần cuộn), Lôi Phạt (mây giông + sét liên hoàn), Bình Minh Rực Lửa (mặt trời mọc + lông phượng), Thiên Biến Vạn Hóa (gậy như ý + đàn khỉ).

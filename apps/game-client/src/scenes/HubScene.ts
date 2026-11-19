@@ -9,6 +9,7 @@ import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
+import { Music } from "../audio/Music.ts";
 import { addAmbience } from "../art/ambience.ts";
 import { addFashionFx } from "../art/fashionFx.ts";
 import { openGiftCode } from "../ui/giftCode.ts";
@@ -243,12 +244,21 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    const soundBtn = new Button(this, cx - 130, m.y + 230, 240, 58, GameState.soundOn ? "🔊 Âm thanh: Bật" : "🔇 Âm thanh: Tắt", {
+    const musicBtn = new Button(this, cx - 30, m.y + 230, 170, 58, Music.enabled ? "🎵 Nhạc: Bật" : "🎵 Nhạc: Tắt", {
+      color: COLORS.purple,
+      fontSize: 20,
+      onClick: () => {
+        Music.setEnabled(!Music.enabled);
+        musicBtn.setText(Music.enabled ? "🎵 Nhạc: Bật" : "🎵 Nhạc: Tắt");
+      },
+    });
+    m.root.add(musicBtn);
+    const soundBtn = new Button(this, cx - 210, m.y + 230, 170, 58, GameState.soundOn ? "🔊 Âm: Bật" : "🔇 Âm: Tắt", {
       color: COLORS.blue,
-      fontSize: 22,
+      fontSize: 20,
       onClick: () => {
         GameState.setSound(!GameState.soundOn);
-        soundBtn.setText(GameState.soundOn ? "🔊 Âm thanh: Bật" : "🔇 Âm thanh: Tắt");
+        soundBtn.setText(GameState.soundOn ? "🔊 Âm: Bật" : "🔇 Âm: Tắt");
         Sfx.click();
       },
     });
@@ -259,9 +269,9 @@ export class HubScene extends Phaser.Scene {
         : "💾 Tiến trình lưu trên trình duyệt này.\nĐăng nhập claude.ai (khi được mời) để lưu đám mây.";
     m.root.add(txt(this, m.x + 40, m.y + 280, storageInfo, 18, { weight: "700", color: COLORS.textDim }));
     let armed = false;
-    const reset = new Button(this, cx + 150, m.y + 230, 220, 58, "Xóa tiến trình", {
+    const reset = new Button(this, cx + 170, m.y + 230, 200, 58, "Xóa tiến trình", {
       color: COLORS.red,
-      fontSize: 22,
+      fontSize: 20,
       onClick: () => {
         if (!armed) {
           armed = true;
@@ -293,6 +303,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.12.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.13.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

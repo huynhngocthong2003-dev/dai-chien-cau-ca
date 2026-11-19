@@ -1,6 +1,6 @@
 # PROJECT STATUS
 
-Cập nhật: 2026-11-19 (v0.9.0)
+Cập nhật: 2026-11-19 (v0.13.0)
 
 | Giai đoạn | Trạng thái |
 |---|---|
@@ -25,7 +25,6 @@ Cập nhật: 2026-11-19 (v0.9.0)
 - Lưu đám mây chỉ hoạt động cho người xem đã đăng nhập claude.ai và có quyền Contributor trở lên; khách xem qua link công khai lưu trên trình duyệt.
 - Tiến trình do client ghi → chưa chống gian lận hoàn toàn. Trận PvP do máy chủ tính nhưng dựa trên save do client ghi.
 - Database + Edge Function đã triển khai thủ công qua Supabase Management API (2026-11-19). Lần sau có thể tự động bằng secret GitHub `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`.
-- Chưa có nhạc nền.
 - Chưa chạy thử trên thiết bị Android/iOS thật.
 - Web độc lập (GitHub Pages) đã có quy trình tự động nhưng chưa đăng được: cần chủ dự án tạo repository và cấp quyền GitHub.
 - Trên web độc lập (ngoài claude.ai) tiến trình chỉ lưu trên trình duyệt cho đến khi có Supabase (GĐ4).

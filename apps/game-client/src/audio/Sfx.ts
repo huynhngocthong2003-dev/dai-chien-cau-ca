@@ -1,4 +1,5 @@
 import { GameState } from "../state/GameState.ts";
+import { Music } from "./Music.ts";
 
 /**
  * Âm thanh tổng hợp bằng WebAudio – không cần tải file, nhẹ cho điện thoại.
@@ -21,6 +22,7 @@ class SfxEngine {
       this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       const d = this.noiseBuf.getChannelData(0);
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      Music.attach(this.ctx);
     } catch {
       this.ctx = null;
     }

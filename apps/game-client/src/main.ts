@@ -9,6 +9,8 @@ import { RodScene } from "./scenes/RodScene.ts";
 import { ShopScene } from "./scenes/ShopScene.ts";
 import { AccountScene } from "./scenes/AccountScene.ts";
 import { DESIGN_H, installWide, targetWidth } from "./ui/wide.ts";
+import { Music, type MusicTheme } from "./audio/Music.ts";
+import { Sfx } from "./audio/Sfx.ts";
 import { DeathMatchScene } from "./scenes/DeathMatchScene.ts";
 import { BattleScene } from "./scenes/BattleScene.ts";
 import { ProfileScene } from "./scenes/ProfileScene.ts";
@@ -48,6 +50,27 @@ async function start() {
   // Điện thoại (đặc biệt khi mở dạng ứng dụng toàn màn hình): kích thước màn hình
   // có thể đổi sau khi game khởi động → đo lại nhiều lần để khung game luôn vừa.
   const rewide = installWide(game);
+  // nhạc nền theo màn: sảnh vui, câu cá êm, săn Boss căng thẳng, đấu sinh tử dồn dập
+  const themeFor = (sc: Phaser.Scene): MusicTheme => {
+    const k = sc.scene.key;
+    if (k === "Hub") return "hub";
+    if (k === "Fishing") return (sc as unknown as { bossHunt?: boolean }).bossHunt ? "boss" : "fishing";
+    if (k === "Battle" || k === "DeathMatch") return "battle";
+    return "calm";
+  };
+  const hookMusic = () => {
+    for (const sc of game.scene.scenes) {
+      if (sc.scene.key === "Boot") continue;
+      sc.events.on(Phaser.Scenes.Events.CREATE, () => Music.play(themeFor(sc)));
+      if (sc.sys.settings.status === Phaser.Scenes.RUNNING) Music.play(themeFor(sc));
+    }
+  };
+  // trình duyệt chỉ cho phát âm thanh sau lần chạm/bấm phím đầu tiên
+  const unlock = () => Sfx.unlock();
+  window.addEventListener("pointerdown", unlock, { passive: true });
+  window.addEventListener("keydown", unlock);
+  if (game.scene.scenes.length) hookMusic();
+  else game.events.once(Phaser.Core.Events.READY, () => setTimeout(hookMusic, 0));
   const refresh = () => {
     game.scale.refresh();
     rewide();
