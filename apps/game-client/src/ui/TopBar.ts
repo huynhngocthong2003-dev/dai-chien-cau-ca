@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { extraX, safeX } from "./wide.ts";
 import { PROGRESSION } from "@dccc/game-config";
-import { CHARACTER_BY_ID } from "@dccc/game-data";
+import { CHARACTER_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
 import type { PlayerSave } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { characterHeadTexture } from "../art/textures.ts";
@@ -19,6 +19,7 @@ export class TopBar extends Phaser.GameObjects.Container {
   private avatar!: Phaser.GameObjects.Image;
   private nameT!: Phaser.GameObjects.Text;
   private levelT!: Phaser.GameObjects.Text;
+  private titleT?: Phaser.GameObjects.Text;
   private xpBar!: Bar;
   private goldT: Phaser.GameObjects.Text;
   private gemT: Phaser.GameObjects.Text;
@@ -56,7 +57,8 @@ export class TopBar extends Phaser.GameObjects.Container {
       this.nameT = txt(scene, x + 74, 6, "", 22).setOrigin(0, 0);
       this.levelT = txt(scene, x + 74, 36, "", 18, { color: COLORS.textGold }).setOrigin(0, 0);
       this.xpBar = new Bar(scene, x + 140, 40, 150, 18, 0x7c4dff, "");
-      this.add([this.nameT, this.levelT, this.xpBar]);
+      this.titleT = txt(scene, x + 302, 40, "", 16, { weight: "800" }).setOrigin(0, 0.5);
+      this.add([this.nameT, this.levelT, this.xpBar, this.titleT]);
       // bấm avatar / tên để mở Hồ Sơ (có nút sang Tài Khoản)
       const hit = scene.add.zone(x, 4, 300, 70).setOrigin(0).setInteractive({ useHandCursor: true });
       hit.on("pointerup", () => {
@@ -120,6 +122,8 @@ export class TopBar extends Phaser.GameObjects.Container {
       this.avatar.setTexture(characterHeadTexture(this.scene, c, s.characters[c.id]?.equip)).setDisplaySize(62, 74);
       this.nameT.setText(s.name);
       this.levelT.setText(`Cấp ${s.level}`);
+      const tt = s.titles.equipped ? TITLE_BY_ID.get(s.titles.equipped) : null;
+      this.titleT?.setText(tt ? `${tt.icon} ${tt.name}` : "").setColor(tt?.color ?? "#ffffff");
       const need = PROGRESSION.xpToNext(s.level);
       this.xpBar.set(s.xp / need);
       this.xpBar.label?.setText(`${formatNum(s.xp)}/${formatNum(need)}`);

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.0] – 2026-11-19 – Giai đoạn 3 & 5: Nhiệm vụ, Điểm danh, Vòng Quay, Danh hiệu, Xếp hạng, Hội
+### Thêm
+- **Nhiệm Vụ** (sảnh → 📜): 7 nhiệm vụ ngày (câu cá, vớt rác, tái chế, bắt Boss, thắng Sinh Tử, quay vòng quay), làm mới 0h giờ VN.
+- **Điểm danh 7 ngày** liên tiếp (ngày 7: 100 💎 + 5.000 vàng; lỡ 1 ngày quay lại ngày 1).
+- **Vòng Quay May Mắn** (sảnh → 🎡): 1 lượt miễn phí/ngày, thêm lượt 30 💎; có thể trúng 150 💎 hoặc Ngọc Long Hồn.
+- **19 danh hiệu vui** mở khi đạt yêu cầu: Kẻ Săn Lùng Rác, Vua Nhặt Rác, Chiến Binh Xanh, Thiên Thần Tái Chế, Sát Thủ Đại Dương, Thần Câu Ngàn Năm, Thợ Săn Boss, Diệt Boss Vô Song, Đấu Sĩ Máu Lửa, Chiến Thần Bất Diệt, Đầu Bếp Cá Nướng, Phù Thủy Đột Biến, Đại Gia Làng Chài, Lực Sĩ Kéo Cá, Con Nghiện Vòng Quay, Chuyên Cần Gương Mẫu… Đeo danh hiệu để hiện cạnh tên (thanh trên, hồ sơ, xếp hạng).
+- **Bảng Xếp Hạng** (cần tài khoản): Cấp, Câu cá, Săn Boss, Sinh tử, Nhặt rác, Hội. **Danh hiệu Top**: 👑 Top 1 (Vua Câu Cá, Vua Nhặt Rác, Chiến Thần Sinh Tử…), 🥈 Top 2, 🥉 Top 3, 🏅 Top 10.
+- **Hội Câu Cá** (cần tài khoản): lập hội với tên + ký hiệu + lời giới thiệu, tìm & vào hội (tối đa 30), xem thành viên, thách đấu, chủ hội mời ra, rời hội (tự nhường chủ hội).
+
 ## [0.8.1] – 2026-11-19 – Lấp đầy màn hình điện thoại, biểu tượng mới
 ### Sửa / Thêm
 - **Màn hình dài (iPhone 12 Pro 19,5:9…)**: game giãn ngang theo tỉ lệ màn hình (tối đa 1600×720), nền kéo kín hai bên, thanh trên cùng bám mép và chừa tai thỏ; bệ câu nối dài sang trái; lưới chức năng ở sảnh dạt sát mép phải.

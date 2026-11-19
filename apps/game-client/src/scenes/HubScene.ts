@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { extraX, safeX } from "../ui/wide.ts";
-import { CHARACTER_BY_ID, COSMETICS, EVENTS, FISH_BY_ID, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
+import { CHARACTER_BY_ID, CHECKIN_REWARDS, COSMETICS, EVENTS, FISH_BY_ID, QUESTS, ROD_BY_ID, TITLES, ZONES, ZONE_BY_ID } from "@dccc/game-data";
+import { checkinState, dayKey, questProgress, refreshDaily, titleProgress } from "@dccc/shared";
 import { playerNameSchema } from "@dccc/validation";
 import { GameState } from "../state/GameState.ts";
 import { auraTexture, characterHeadTexture, characterTexture, cosmeticTexture, dockTexture, fishSilhouetteTexture, fishTexture, rodIconTexture, zoneTexture } from "../art/textures.ts";
@@ -13,13 +14,8 @@ import { addFashionFx } from "../art/fashionFx.ts";
 import { openGiftCode } from "../ui/giftCode.ts";
 import { htmlOverlay } from "../ui/htmlOverlay.ts";
 
-/** Tính năng sẽ có ở giai đoạn sau – hiển thị rõ ràng là "sắp ra mắt", không giả lập. */
-const COMING: Record<string, string> = {
-  spin: "Vòng Quay & Gacha sẽ mở ở Giai đoạn 3.",
-  quest: "Nhiệm vụ ngày/tuần & điểm danh sẽ mở ở Giai đoạn 3.",
-  rank: "Bảng xếp hạng online sẽ mở ở Giai đoạn 5.",
-  clan: "Hội Câu Cá sẽ mở ở Giai đoạn 5.",
-};
+/** Tính năng chưa mở (hiện chưa có – mọi mục ở sảnh đã hoạt động). */
+const COMING: Record<string, string> = {};
 
 export class HubScene extends Phaser.Scene {
   constructor() {
@@ -104,6 +100,14 @@ export class HubScene extends Phaser.Scene {
     const fishIcon = fishTexture(this, FISH_BY_ID.get("f_ca_chep")!);
     const bookIcon = fishSilhouetteTexture(this, FISH_BY_ID.get("f_boss_hoa_nguc_bao_ngu")!);
     const shopIcon = cosmeticTexture(this, CHARACTER_BY_ID.get("c_be_tom")!, COSMETICS.find((c) => c.id === "w_canh_thien_than")!.id);
+    // có việc cần nhận: điểm danh hôm nay / nhiệm vụ xong / danh hiệu đạt
+    const fresh = refreshDaily(s, Date.now());
+    const questBadge =
+      !checkinState(s, Date.now(), CHECKIN_REWARDS.length).done ||
+      QUESTS.some((q) => !fresh.daily.claimed.includes(q.id) && questProgress(fresh, q) >= q.target) ||
+      TITLES.some((t) => !s.titles.owned.includes(t.id) && titleProgress(s, t) >= t.target)
+        ? "!"
+        : undefined;
     const items: { icon: string; iconKey?: string; label: string; color: number; act: () => void; locked?: string; badge?: string }[] = [
       { icon: "🧑", iconKey: charIcon, label: "Nhân Vật", color: COLORS.blue, act: () => goTo(this, "Characters") },
       { icon: "🎣", iconKey: rodIcon, label: "Cần Câu", color: COLORS.blue, act: () => goTo(this, "Rods") },
@@ -112,11 +116,11 @@ export class HubScene extends Phaser.Scene {
       { icon: "📖", iconKey: bookIcon, label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
       { icon: "⚙️", label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
       { icon: "⚔️", label: "Đấu Sinh Tử", color: COLORS.red, act: () => goTo(this, "DeathMatch"), badge: s.roasted.length ? `🍖${s.roasted.length}` : undefined },
-      { icon: "🎡", label: "Vòng Quay", color: COLORS.purple, act: () => {}, locked: "spin" },
-      { icon: "📜", label: "Nhiệm Vụ", color: COLORS.purple, act: () => {}, locked: "quest" },
+      { icon: "🎡", label: "Vòng Quay", color: COLORS.purple, act: () => goTo(this, "Wheel"), badge: s.daily.freeSpinUsed && s.daily.day === dayKey(Date.now()) ? undefined : "FREE" },
+      { icon: "📜", label: "Nhiệm Vụ", color: COLORS.purple, act: () => goTo(this, "Quests"), badge: questBadge },
       { icon: "🎉", label: "Sự Kiện", color: COLORS.orange, act: () => this.openEvents(), badge: eventsLeft ? "!" : undefined },
-      { icon: "🏆", label: "Xếp Hạng", color: COLORS.purple, act: () => {}, locked: "rank" },
-      { icon: "🛡️", label: "Hội", color: COLORS.purple, act: () => {}, locked: "clan" },
+      { icon: "🏆", label: "Xếp Hạng", color: COLORS.purple, act: () => goTo(this, "Ranking") },
+      { icon: "🛡️", label: "Hội", color: COLORS.purple, act: () => goTo(this, "Guild") },
     ];
     items.forEach((it, i) => {
       const col = i % 3;
@@ -286,6 +290,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.8.1 · Giai đoạn 2–4`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.9.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

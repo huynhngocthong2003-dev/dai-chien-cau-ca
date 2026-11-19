@@ -1,15 +1,15 @@
 # PROJECT STATUS
 
-Cập nhật: 2026-11-19 (v0.8.0)
+Cập nhật: 2026-11-19 (v0.9.0)
 
 | Giai đoạn | Trạng thái |
 |---|---|
 | 0 – Thiết kế & khởi tạo | ✅ Hoàn thành |
 | 1 – Gameplay MVP | ✅ Hoàn thành (chơi đơn, lưu đám mây tạm thời qua Artifact) |
 | 2 – Phát triển nhân vật | ✅ Hoàn thành phần cốt lõi (nâng cấp, đột phá, thức tỉnh, tiến hóa cần & cá, săn Boss). Còn lại: phụ kiện, trang phục, skin cần, hợp thể cần |
-| 3 – Kinh tế | ⏳ Cửa hàng, trang phục, trang sức, nguồn kim cương đã có. Còn: vòng quay/gacha, nhiệm vụ, điểm danh, thành tựu |
+| 3 – Kinh tế | ✅ Cửa hàng, trang phục, kim cương, vòng quay, nhiệm vụ ngày, điểm danh, danh hiệu/thành tựu. Còn: nạp tiền thật (chờ chủ dự án chọn cách xác nhận thanh toán) |
 | 4 – Multiplayer | ⏳ Tài khoản online, hồ sơ, bạn bè, **Đấu Sinh Tử người–người do máy chủ tính** (Edge Function). Còn: Colyseus thời gian thực, giao dịch đồ |
-| 5 – Cộng đồng | ⬜ |
+| 5 – Cộng đồng | ✅ Hồ sơ, bạn bè, Hội, Bảng Xếp Hạng + danh hiệu Top (cần triển khai database bằng 2 secret GitHub) |
 | 6 – Phát hành | ⬜ |
 
 ## Đã kiểm thử
