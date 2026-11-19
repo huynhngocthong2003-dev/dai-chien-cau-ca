@@ -1,6 +1,9 @@
 import Phaser from "phaser";
 import {
   applyCatch,
+  decideSync,
+  decodeBackup,
+  encodeBackup,
   redeemGiftCode,
   buildLoadout,
   buyCosmetic,
@@ -29,9 +32,10 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { CATALOG, CHARACTERS, CHARACTER_BY_ID, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHARACTERS, CHARACTER_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
+import * as Online from "./online.ts";
 
 function uid(prefix: string): string {
   const r = crypto.getRandomValues(new Uint32Array(2));
@@ -46,6 +50,10 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   private _save!: PlayerSave;
   storage: SaveStorage = new MemorySaveStorage();
   loadWarning: string | null = null;
+  /** Người dùng tài khoản online đang đăng nhập (nếu có). */
+  online: Online.OnlineUser | null = null;
+  /** Bộ lưu trên máy/Artifact – dùng lại khi đăng xuất. */
+  private baseStorage: SaveStorage = new MemorySaveStorage();
   soundOn = true;
 
   get save(): PlayerSave {
@@ -53,7 +61,23 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   }
 
   async init(): Promise<void> {
+    await this.initLocal();
+    if (Online.onlineConfigured()) {
+      const user = await Online.currentUser();
+      if (user) {
+        try {
+          const msg = await this.adoptAccount(user);
+          if (msg && msg.includes("cất")) this.loadWarning = msg;
+        } catch (e) {
+          this.loadWarning = `Chưa đồng bộ được tài khoản: ${(e as Error).message}. Đang chơi bằng dữ liệu trên máy.`;
+        }
+      }
+    }
+  }
+
+  private async initLocal(): Promise<void> {
     this.storage = await detectStorage();
+    this.baseStorage = this.storage;
     try {
       this.soundOn = localStorage.getItem("dccc_sound") !== "off";
     } catch {
@@ -156,7 +180,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   }
 
   redeem(code: string) {
-    return this.run(redeemGiftCode(this._save, code, CHARACTERS, Date.now()));
+    return this.run(redeemGiftCode(this._save, code, { characters: CHARACTERS, rods: RODS }, Date.now()));
   }
 
   /** Đồ đang mặc của nhân vật (để vẽ). */
@@ -234,6 +258,74 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     } catch {
       /* bỏ qua */
     }
+  }
+
+  // ------------------------------------------------------------ tài khoản online
+  /** Gắn tài khoản: chọn bản lưu (tài khoản hay máy), chuyển sang lưu online. */
+  async adoptAccount(user: Online.OnlineUser): Promise<string> {
+    const remoteRaw = await Online.fetchRemoteSave(user.id);
+    let remote: PlayerSave | null = null;
+    if (remoteRaw) {
+      const p = parseSave(remoteRaw);
+      if (p.ok && this.isConsistent(p.save)) remote = refillBossTickets(p.save, Date.now());
+      else await this.baseStorage.backup(remoteRaw);
+    }
+    const d = decideSync(this._save, remote);
+    if (d.backupLocal) await this.baseStorage.backup(this._save);
+    if (d.use === "remote" && remote) this._save = remote;
+    const online = new Online.OnlineSaveStorage(user, this.baseStorage);
+    this.storage = online;
+    this.online = user;
+    await online.save(this._save);
+    if (d.upload) await online.flush();
+    this.emit("changed", this._save);
+    this.emit("account", user);
+    return d.reason;
+  }
+
+  async signUp(email: string, password: string, name: string) {
+    const r = await Online.signUp(email, password, name);
+    if (!r.ok || !r.user) return r;
+    this.rename(name);
+    return { ...r, message: await this.adoptAccount(r.user) };
+  }
+
+  async signIn(email: string, password: string) {
+    const r = await Online.signIn(email, password);
+    if (!r.ok || !r.user) return r;
+    return { ...r, message: await this.adoptAccount(r.user) };
+  }
+
+  async signOut() {
+    if (this.storage instanceof Online.OnlineSaveStorage) await this.storage.flush();
+    await Online.signOut();
+    this.online = null;
+    this.storage = this.baseStorage;
+    await this.persist();
+    this.emit("account", null);
+  }
+
+  async syncNow(): Promise<string | null> {
+    if (!(this.storage instanceof Online.OnlineSaveStorage)) return "Chưa đăng nhập";
+    await this.storage.save(this._save);
+    await this.storage.flush();
+    return this.storage.lastError;
+  }
+
+  // ------------------------------------------------------------ mã sao lưu
+  exportBackup(): Promise<string> {
+    return encodeBackup(this._save);
+  }
+
+  async importBackup(code: string): Promise<{ ok: true; save: PlayerSave } | { ok: false; error: string }> {
+    const d = await decodeBackup(code);
+    if (!d.ok) return d;
+    const p = parseSave(d.data);
+    if (!p.ok) return { ok: false, error: "Dữ liệu sao lưu không hợp lệ hoặc của phiên bản game khác" };
+    if (!this.isConsistent(p.save)) return { ok: false, error: "Sao lưu chứa vật phẩm không tồn tại trong game" };
+    await this.baseStorage.backup(this._save);
+    this.commit(refillBossTickets(p.save, Date.now()));
+    return { ok: true, save: this._save };
   }
 
   async reset() {

@@ -39,6 +39,34 @@ if (mode === "fish") {
     drawCharacter(ctx, ch.appearance, { headOnly: true });
     ctx.restore();
   });
+} else if (mode === "icon") {
+  c.width = 512;
+  c.height = 512;
+  const g = ctx.createRadialGradient(256, 200, 40, 256, 256, 360);
+  g.addColorStop(0, "#4fc3f7");
+  g.addColorStop(1, "#0b2a4a");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 512, 512);
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    for (let x = 0; x <= 512; x += 16) ctx.lineTo(x, 330 + i * 40 + Math.sin(x / 40 + i) * 8);
+    ctx.lineTo(512, 512);
+    ctx.lineTo(0, 512);
+    ctx.fill();
+  }
+  const boss = FISHES.find((f) => f.id === "f_boss_lao_ngu")!;
+  ctx.save();
+  ctx.translate(150, 210);
+  ctx.rotate(-0.35);
+  ctx.scale(1.15, 1.15);
+  drawFish(ctx, boss);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(-30, 150);
+  ctx.scale(1.55, 1.55);
+  drawCharacter(ctx, CHARACTERS[0]!.appearance, { headOnly: true });
+  ctx.restore();
 } else if (mode === "cos") {
   c.width = 8 * CHAR_W;
   c.height = 3 * CHAR_H;

@@ -81,4 +81,30 @@ export const RODS: RodDef[] = [
       effects: [{ kind: "boss_damage", value: 0.2 }, { kind: "luck_bonus", value: 20 }, { kind: "crit", chance: 0.1, multiplier: 3 }] },
     { kind: "event", eventId: "ev_mua_1" }, { shaft: "#000000", handle: "#aa00ff", glow: "#ea80fc", line: "#f3e5f5", wrap: "#ea80fc", ornament: "orb" },
     "Phần thưởng tối thượng của mùa giải đầu tiên."),
+  // ===================== LR – cần siêu cấp, nhận bằng mã quà tặng =====================
+  {
+    id: "r_huyet_ma_long",
+    name: "Cần Huyết Ma Long",
+    rarity: "LR",
+    pull: 330,
+    durability: 500,
+    reelSpeed: 2.0,
+    rareRate: 30,
+    antiSnap: 40,
+    passive: {
+      id: "rp_huyet_long_phe_hon",
+      name: "Huyết Long Phệ Hồn",
+      description: "30% chí mạng x3, +50% sát thương Boss, dây tự hồi 15 độ bền/giây, lực căng tăng chậm hơn 20%, +30 may mắn.",
+      effects: [
+        { kind: "crit", chance: 0.3, multiplier: 3 },
+        { kind: "boss_damage", value: 0.5 },
+        { kind: "durability_regen", perSec: 15 },
+        { kind: "tension_gain_reduce", value: 0.2 },
+        { kind: "luck_bonus", value: 30 },
+      ],
+    },
+    unlock: { kind: "code", codeHash: "05904fa21589be0c4ca8160600" },
+    visual: { shaft: "#1a0b0e", handle: "#7f0000", glow: "#ff1744", line: "#ff5252", wrap: "#ff1744", ornament: "dragon_eye", veins: "#ff1744" },
+    description: "Rèn từ xương Hắc Long và máu Hỏa Long. Khi giật cần, sấm đỏ xé toạc mặt biển.",
+  },
 ];

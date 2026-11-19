@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0] – 2026-11-19 – Tài khoản, sao lưu, cần siêu cấp, toàn màn hình
+### Thêm
+- **Tài khoản online** (Supabase Auth): tạo tài khoản / đăng nhập bằng email + mật khẩu, tự đồng bộ tiến trình, giữ đăng nhập khi tải lại, đăng xuất. Bật bằng 2 biến `SUPABASE_URL`, `SUPABASE_ANON_KEY` (xem `docs/ACCOUNTS_SETUP.md`).
+- Database: `profiles`, `player_saves`, `player_save_backups` với RLS (mỗi người chỉ thấy dữ liệu của mình), máy chủ tự sao lưu lịch sử 30 bản. Kiểm thử trên PostgreSQL thật: `pnpm test:db`.
+- **Sao lưu bằng mã**: tạo mã chứa toàn bộ tiến trình (nén gzip + tổng kiểm tra), dán vào máy khác để khôi phục; bản cũ được cất trước khi thay.
+- Màn **Tài Khoản** (bấm avatar góc trái hoặc Cài Đặt → Tài khoản).
+- **Cần Huyết Ma Long** (LR, đỏ đen): mạnh nhất game, đầu cần mắt rồng huyết ngọc, cánh dơi, vân sét đỏ, khói và tàn lửa; nhận bằng mã quà `ruby2602`.
+- **Nút toàn màn hình ⛶** trên thanh trên cùng; hỗ trợ "Thêm vào Màn hình chính" (manifest, biểu tượng, mở toàn màn hình nằm ngang).
+### Sửa
+- Ô đổi tên / nhập mã bị lệch hoặc không hiện trên điện thoại: thay bằng lớp phủ HTML tự canh theo khung game, cho phép gõ chữ trên iOS/Android.
+- Thanh trên cùng cập nhật trạng thái lưu sau khi đăng nhập.
+### Kiểm thử
+- 67 unit test, test database RLS, E2E: câu cá, cửa hàng, mã quà, tài khoản (máy chủ giả) + sao lưu mã, điện thoại cảm ứng.
+
 ## [0.4.0] – 2026-11-19 – Nhân vật LR, mã quà tặng, cần câu mới
 ### Thêm
 - Bậc độ hiếm mới **LR** (trên UR) với 2 nhân vật mạnh nhất game, nhận bằng mã quà tặng:

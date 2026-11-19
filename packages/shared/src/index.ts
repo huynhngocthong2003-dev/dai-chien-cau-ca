@@ -8,3 +8,5 @@ export * from "./progression.ts";
 export * from "./migrate.ts";
 export * from "./shop.ts";
 export * from "./giftcode.ts";
+export * from "./backup.ts";
+export * from "./sync.ts";

@@ -139,7 +139,8 @@ export type RodOrnament =
   | "feather"
   | "star"
   | "trident"
-  | "orb";
+  | "orb"
+  | "dragon_eye";
 
 export interface RodDef {
   id: string;
@@ -161,6 +162,8 @@ export interface RodDef {
     wrap: string;
     /** Vật trang trí đầu cần. */
     ornament: RodOrnament;
+    /** Vân sét chạy dọc thân cần (chỉ cần đặc biệt). */
+    veins?: string;
   };
   description: string;
 }

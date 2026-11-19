@@ -9,6 +9,7 @@ import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
 import { addAmbience } from "../art/ambience.ts";
 import { openGiftCode } from "../ui/giftCode.ts";
+import { htmlOverlay } from "../ui/htmlOverlay.ts";
 
 /** Tính năng sẽ có ở giai đoạn sau – hiển thị rõ ràng là "sắp ra mắt", không giả lập. */
 const COMING: Record<string, string> = {
@@ -142,14 +143,19 @@ export class HubScene extends Phaser.Scene {
   }
 
   private openSettings() {
-    const m = modal(this, 620, 470, "Cài Đặt");
+    const m = modal(this, 620, 540, "Cài Đặt");
     const s = GameState.save;
     const cx = m.x + m.w / 2;
     m.root.add(txt(this, m.x + 40, m.y + 80, "Tên người chơi", 22));
-    const input = this.add.dom(cx - 60, m.y + 140).createFromHTML(
-      `<input id="player-name" maxlength="16" value="${s.name.replace(/"/g, "")}" style="width:300px;font:700 22px 'Baloo 2',sans-serif;padding:6px 12px;border-radius:12px;border:3px solid #1b1530;background:#fff8e1;color:#1b1530">`,
+    htmlOverlay(
+      this,
+      m.root,
+      cx - 60,
+      m.y + 140,
+      340,
+      52,
+      `<input id="player-name" maxlength="16" value="${s.name.replace(/[&<>"]/g, "")}" style="width:100%;height:100%;box-sizing:border-box;font:700 22px 'Baloo 2',sans-serif;padding:4px 12px;border-radius:12px;border:3px solid #1b1530;background:#fff8e1;color:#1b1530">`,
     );
-    m.root.add(input);
     m.root.add(
       new Button(this, cx + 190, m.y + 140, 140, 52, "Đổi tên", {
         color: COLORS.green,
@@ -194,6 +200,16 @@ export class HubScene extends Phaser.Scene {
     });
     m.root.add(reset);
     m.root.add(
+      new Button(this, cx - 80, m.y + 380, 240, 56, "👤 Tài khoản", {
+        color: COLORS.blue,
+        fontSize: 22,
+        onClick: () => {
+          m.close();
+          goTo(this, "Account");
+        },
+      }),
+    );
+    m.root.add(
       new Button(this, cx + 160, m.y + 380, 220, 56, "🎁 Mã quà", {
         color: COLORS.purple,
         fontSize: 22,
@@ -203,6 +219,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 360, `Mã người chơi: ${s.playerId}\nPhiên bản 0.4.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.5.0 · Giai đoạn 2–3`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

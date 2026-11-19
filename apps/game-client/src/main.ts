@@ -7,6 +7,7 @@ import { InventoryScene } from "./scenes/InventoryScene.ts";
 import { CharacterScene } from "./scenes/CharacterScene.ts";
 import { RodScene } from "./scenes/RodScene.ts";
 import { ShopScene } from "./scenes/ShopScene.ts";
+import { AccountScene } from "./scenes/AccountScene.ts";
 
 async function start() {
   // Chờ font tiếng Việt tải xong (tối đa 3 giây) để chữ không bị nhảy.
@@ -28,11 +29,10 @@ async function start() {
       width: 1280,
       height: 720,
     },
-    dom: { createContainer: true },
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
     fps: { target: 60 },
-    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene],
+    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 }

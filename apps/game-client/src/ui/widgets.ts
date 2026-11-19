@@ -227,7 +227,14 @@ export function modal(scene: Phaser.Scene, w: number, h: number, title: string, 
   const y = (height - h) / 2;
   const p = panel(scene, x, y, w, h, 0.98);
   const titleT = txt(scene, width / 2, y + 34, title, 32, { color: COLORS.textGold }).setOrigin(0.5);
+  // Ẩn các ô nhập HTML của màn bên dưới để không nổi lên trên hộp thoại
+  const hiddenBelow = [...document.querySelectorAll<HTMLElement>(".dccc-overlay")].filter((el) => el.style.visibility !== "hidden");
+  hiddenBelow.forEach((el) => (el.style.visibility = "hidden"));
+  let closed = false;
   const close = () => {
+    if (closed) return;
+    closed = true;
+    hiddenBelow.forEach((el) => el.isConnected && (el.style.visibility = ""));
     scene.tweens.add({ targets: root, alpha: 0, duration: 140, onComplete: () => root.destroy() });
     onClose?.();
   };

@@ -2,30 +2,31 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { buildLoadout, characterStats, createNewSave, hashGiftCode, redeemGiftCode } from "@dccc/shared";
-import { CATALOG, CHARACTERS, CHARACTER_BY_ID, ROD_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHARACTERS, CHARACTER_BY_ID, RODS, ROD_BY_ID } from "@dccc/game-data";
+import { rodStats } from "@dccc/shared";
 import { parseSave } from "@dccc/validation";
 
 const fresh = () => createNewSave("p_gift", "Gift", CATALOG, Date.now());
 
 describe("Mã quà tặng", () => {
   it("pine2606 → Gà Kim Kê, sapphire2601 → Khỉ Lam Ngọc Hầu", () => {
-    const a = redeemGiftCode(fresh(), "pine2606", CHARACTERS, Date.now());
+    const a = redeemGiftCode(fresh(), "pine2606", { characters: CHARACTERS, rods: RODS }, Date.now());
     expect(a.ok && a.character?.id).toBe("c_kim_ke");
-    const b = redeemGiftCode(fresh(), "sapphire2601", CHARACTERS, Date.now());
+    const b = redeemGiftCode(fresh(), "sapphire2601", { characters: CHARACTERS, rods: RODS }, Date.now());
     expect(b.ok && b.character?.id).toBe("c_lam_ngoc_hau");
   });
 
   it("không phân biệt hoa/thường và khoảng trắng", () => {
-    expect(redeemGiftCode(fresh(), "  PINE 2606 ", CHARACTERS, Date.now()).ok).toBe(true);
+    expect(redeemGiftCode(fresh(), "  PINE 2606 ", { characters: CHARACTERS, rods: RODS }, Date.now()).ok).toBe(true);
   });
 
   it("mỗi mã chỉ dùng một lần; mã sai bị từ chối", () => {
-    const a = redeemGiftCode(fresh(), "pine2606", CHARACTERS, Date.now());
+    const a = redeemGiftCode(fresh(), "pine2606", { characters: CHARACTERS, rods: RODS }, Date.now());
     if (!a.ok) throw new Error(a.error);
     expect(a.save.characters.c_kim_ke).toBeDefined();
-    expect(redeemGiftCode(a.save, "pine2606", CHARACTERS, Date.now()).ok).toBe(false);
-    expect(redeemGiftCode(fresh(), "pine2607", CHARACTERS, Date.now()).ok).toBe(false);
-    expect(redeemGiftCode(fresh(), "x", CHARACTERS, Date.now()).ok).toBe(false);
+    expect(redeemGiftCode(a.save, "pine2606", { characters: CHARACTERS, rods: RODS }, Date.now()).ok).toBe(false);
+    expect(redeemGiftCode(fresh(), "pine2607", { characters: CHARACTERS, rods: RODS }, Date.now()).ok).toBe(false);
+    expect(redeemGiftCode(fresh(), "x", { characters: CHARACTERS, rods: RODS }, Date.now()).ok).toBe(false);
     expect(parseSave(JSON.parse(JSON.stringify(a.save))).ok).toBe(true);
   });
 
@@ -45,6 +46,7 @@ describe("Mã quà tặng", () => {
       const src = readFileSync(f, "utf8").toLowerCase();
       expect(src.includes("pine2606"), f).toBe(false);
       expect(src.includes("sapphire2601"), f).toBe(false);
+      expect(src.includes("ruby2602"), f).toBe(false);
     }
     expect(hashGiftCode("pine2606")).not.toContain("pine");
   });
@@ -68,5 +70,27 @@ describe("Nhân vật LR mạnh nhất", () => {
     const lr = buildLoadout(CHARACTER_BY_ID.get("c_kim_ke")!, 1, rod, 1);
     const ur = buildLoadout(CHARACTER_BY_ID.get("c_than_sam")!, 1, rod, 1);
     expect(lr.pull).toBeGreaterThan(ur.pull);
+  });
+});
+
+describe("Cần Huyết Ma Long (LR)", () => {
+  it("ruby2602 mở khóa cần, dùng một lần", () => {
+    const r = redeemGiftCode(fresh(), "RUBY2602", { characters: CHARACTERS, rods: RODS }, Date.now());
+    expect(r.ok && r.rod?.id).toBe("r_huyet_ma_long");
+    if (!r.ok) return;
+    expect(r.save.rods.r_huyet_ma_long).toEqual({ level: 1, stars: 1 });
+    expect(redeemGiftCode(r.save, "ruby2602", { characters: CHARACTERS, rods: RODS }, Date.now()).ok).toBe(false);
+    expect(parseSave(JSON.parse(JSON.stringify(r.save))).ok).toBe(true);
+  });
+  it("mạnh hơn mọi cần câu khác ở mọi chỉ số chính", () => {
+    const top = rodStats(ROD_BY_ID.get("r_huyet_ma_long")!, 1);
+    for (const r of RODS.filter((x) => x.id !== "r_huyet_ma_long")) {
+      const o = rodStats(r, 1);
+      expect(top.pull).toBeGreaterThan(o.pull);
+      expect(top.durability).toBeGreaterThan(o.durability);
+      expect(top.reelSpeed).toBeGreaterThan(o.reelSpeed);
+      expect(top.rareRate).toBeGreaterThan(o.rareRate);
+      expect(top.antiSnap).toBeGreaterThan(o.antiSnap);
+    }
   });
 });

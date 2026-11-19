@@ -207,6 +207,72 @@ export function drawOrnament(ctx: CanvasRenderingContext2D, kind: RodOrnament, s
       outlineFill(ctx, g);
       break;
     }
+    case "dragon_eye": {
+      // cánh dơi đen hai bên
+      for (const sx of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(sx * s * 0.25, -s * 0.55);
+        ctx.quadraticCurveTo(sx * s * 1.1, -s * 1.45, sx * s * 1.45, -s * 0.95);
+        ctx.lineTo(sx * s * 1.15, -s * 0.8);
+        ctx.lineTo(sx * s * 1.25, -s * 0.55);
+        ctx.lineTo(sx * s * 0.95, -s * 0.5);
+        ctx.lineTo(sx * s * 0.95, -s * 0.25);
+        ctx.quadraticCurveTo(sx * s * 0.55, -s * 0.35, sx * s * 0.25, -s * 0.2);
+        ctx.closePath();
+        const wg = ctx.createLinearGradient(0, -s * 1.4, 0, 0);
+        wg.addColorStop(0, "#3a0008");
+        wg.addColorStop(1, "#0d0d0d");
+        outlineFill(ctx, wg, 2);
+        ctx.strokeStyle = "rgba(255,23,68,0.8)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(sx * s * 0.3, -s * 0.5);
+        ctx.lineTo(sx * s * 1.3, -s * 0.95);
+        ctx.moveTo(sx * s * 0.3, -s * 0.45);
+        ctx.lineTo(sx * s * 1.0, -s * 0.5);
+        ctx.stroke();
+      }
+      // sừng đen
+      for (const sx of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(sx * s * 0.18, -s * 1.0);
+        ctx.quadraticCurveTo(sx * s * 0.35, -s * 1.45, sx * s * 0.55, -s * 1.6);
+        ctx.quadraticCurveTo(sx * s * 0.3, -s * 1.3, sx * s * 0.05, -s * 1.08);
+        ctx.closePath();
+        outlineFill(ctx, "#1a1a1a", 1.8);
+      }
+      // móng vuốt ôm ngọc
+      for (const a of [-0.9, 0, 0.9]) {
+        ctx.save();
+        ctx.rotate(a);
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.08, 0);
+        ctx.quadraticCurveTo(-s * 0.22, -s * 0.55, s * 0.02, -s * 0.95);
+        ctx.quadraticCurveTo(s * 0.05, -s * 0.5, s * 0.1, 0);
+        ctx.closePath();
+        outlineFill(ctx, "#111", 1.8);
+        ctx.restore();
+      }
+      // huyết ngọc
+      ctx.beginPath();
+      ctx.arc(0, -s * 0.72, s * 0.42, 0, Math.PI * 2);
+      const og = ctx.createRadialGradient(-s * 0.12, -s * 0.85, 1, 0, -s * 0.72, s * 0.45);
+      og.addColorStop(0, "#ffffff");
+      og.addColorStop(0.18, "#ff8a80");
+      og.addColorStop(0.55, "#ff1744");
+      og.addColorStop(1, "#5a0010");
+      outlineFill(ctx, og, 2.2);
+      // đồng tử rồng
+      ctx.fillStyle = "#0d0000";
+      ctx.beginPath();
+      ctx.ellipse(0, -s * 0.72, s * 0.07, s * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath();
+      ctx.arc(-s * 0.14, -s * 0.88, s * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
     case "none":
       break;
   }
@@ -284,6 +350,25 @@ export function drawRodIcon(ctx: CanvasRenderingContext2D, rod: RodDef, w: numbe
   sg.addColorStop(1, shade(rod.visual.shaft, -0.35));
   outlineFill(ctx, sg, 2.2 * t);
   ctx.shadowBlur = 0;
+  // vân sét đỏ dọc thân (cần đặc biệt)
+  if (rod.visual.veins) {
+    ctx.save();
+    ctx.shadowColor = rod.visual.veins;
+    ctx.shadowBlur = 8 * t;
+    ctx.strokeStyle = rod.visual.veins;
+    ctx.lineWidth = 1.3 * t;
+    ctx.beginPath();
+    let up = true;
+    for (let k = 0.3; k <= 0.98; k += 0.035) {
+      const wv = 4.2 - 3 * ((k - 0.3) / 0.7);
+      const y = (up ? -1 : 1) * wv * 0.55 * t;
+      if (k === 0.3) ctx.moveTo(len * k, y);
+      else ctx.lineTo(len * k, y);
+      up = !up;
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
   // quấn chỉ + khoen
   for (const k of [0.42, 0.58, 0.72, 0.85, 0.95]) {
     const wv = 4.2 - 3 * ((k - 0.3) / 0.7);

@@ -11,7 +11,7 @@ require('fs').mkdirSync(out, { recursive: true });
 async function redeem(p, code) {
   await p.mouse.click(1186, 300); // Cài Đặt
   await p.waitForTimeout(400);
-  await p.mouse.click(800, 505); // 🎁 Mã quà
+  await p.mouse.click(800, 470); // 🎁 Mã quà
   await p.waitForSelector('#gift-code');
   await p.fill('#gift-code', code);
   await p.mouse.click(640, 410); // Nhận quà

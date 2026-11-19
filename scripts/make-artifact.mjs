@@ -9,7 +9,11 @@ const src = readFileSync("apps/game-client/dist-single/index.html", "utf8");
 const head = src.match(/<head>([\s\S]*?)<\/head>/i)?.[1] ?? "";
 const body = src.match(/<body>([\s\S]*?)<\/body>/i)?.[1] ?? "";
 const title = head.match(/<title>[\s\S]*?<\/title>/i)?.[0] ?? "<title>Đại Chiến Câu Cá</title>";
-const links = [...head.matchAll(/<link[^>]+>/gi)].map((m) => m[0]).join("\n");
+// Bỏ manifest/biểu tượng PWA: trang Artifact không phục vụ file riêng
+const links = [...head.matchAll(/<link[^>]+>/gi)]
+  .map((m) => m[0])
+  .filter((l) => !/rel="(manifest|apple-touch-icon)"/.test(l))
+  .join("\n");
 const styles = [...head.matchAll(/<style[\s\S]*?<\/style>/gi)].map((m) => m[0]).join("\n");
 const scripts = [...head.matchAll(/<script[\s\S]*?<\/script>/gi)].map((m) => m[0]).join("\n");
 if (!scripts) throw new Error("Không tìm thấy script trong bản build");

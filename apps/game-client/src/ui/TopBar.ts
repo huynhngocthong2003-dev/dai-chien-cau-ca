@@ -4,7 +4,8 @@ import { CHARACTER_BY_ID } from "@dccc/game-data";
 import type { PlayerSave } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { characterHeadTexture } from "../art/textures.ts";
-import { Bar, Button, formatNum, txt } from "./widgets.ts";
+import { Bar, Button, formatNum, goTo, toast, txt } from "./widgets.ts";
+import { isFullscreen, toggleFullscreen } from "./fullscreen.ts";
 import { COLORS } from "./theme.ts";
 
 export interface TopBarOpts {
@@ -22,7 +23,9 @@ export class TopBar extends Phaser.GameObjects.Container {
   private gemT: Phaser.GameObjects.Text;
   private stoneT: Phaser.GameObjects.Text;
   private soulT: Phaser.GameObjects.Text;
+  private storageT: Phaser.GameObjects.Text;
   private handler = (s: PlayerSave) => this.refresh(s);
+  private accountHandler = () => this.refresh(GameState.save);
 
   constructor(scene: Phaser.Scene, o: TopBarOpts = {}) {
     super(scene, 0, 0);
@@ -51,6 +54,12 @@ export class TopBar extends Phaser.GameObjects.Container {
       this.levelT = txt(scene, x + 74, 36, "", 18, { color: COLORS.textGold }).setOrigin(0, 0);
       this.xpBar = new Bar(scene, x + 140, 40, 150, 18, 0x7c4dff, "");
       this.add([this.nameT, this.levelT, this.xpBar]);
+      // bấm avatar / tên để mở Tài Khoản
+      const hit = scene.add.zone(x, 4, 300, 70).setOrigin(0).setInteractive({ useHandCursor: true });
+      hit.on("pointerup", () => {
+        if (scene.scene.key !== "Account") goTo(scene, "Account");
+      });
+      this.add(hit);
     }
     // tiền tệ + nguyên liệu
     const CW = 128;
@@ -68,13 +77,31 @@ export class TopBar extends Phaser.GameObjects.Container {
     this.gemT = chip(x0 + (CW + 8), "💎", COLORS.diamond);
     this.stoneT = chip(x0 + 2 * (CW + 8), "🔷", 0x7c4dff);
     this.soulT = chip(x0 + 3 * (CW + 8), "🔮", 0xea80fc);
-    const storage = GameState.storage.kind === "cloud" ? "☁️ Đám mây" : "💾 Trên máy";
-    this.add(txt(scene, x0 - 10, 38, storage, 15, { color: COLORS.textDim, weight: "700" }).setOrigin(1, 0.5));
+    // nút toàn màn hình
+    const fsBtn = new Button(scene, x0 - 32, 38, 52, 48, isFullscreen() ? "🗗" : "⛶", {
+      color: COLORS.blue,
+      fontSize: 26,
+      onClick: () => {
+        void toggleFullscreen().then((msg) => {
+          if (msg) toast(scene, msg);
+        });
+      },
+    });
+    const onFs = () => fsBtn.setText(isFullscreen() ? "🗗" : "⛶");
+    document.addEventListener("fullscreenchange", onFs);
+    this.once(Phaser.GameObjects.Events.DESTROY, () => document.removeEventListener("fullscreenchange", onFs));
+    this.add(fsBtn);
+    this.storageT = txt(scene, x0 - 66, 38, "", 15, { color: COLORS.textDim, weight: "700" }).setOrigin(1, 0.5);
+    this.add(this.storageT);
     this.setDepth(500);
     scene.add.existing(this);
     this.refresh(GameState.save);
     GameState.on("changed", this.handler);
-    this.once(Phaser.GameObjects.Events.DESTROY, () => GameState.off("changed", this.handler));
+    GameState.on("account", this.accountHandler);
+    this.once(Phaser.GameObjects.Events.DESTROY, () => {
+      GameState.off("changed", this.handler);
+      GameState.off("account", this.accountHandler);
+    });
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
   }
 
@@ -83,6 +110,8 @@ export class TopBar extends Phaser.GameObjects.Container {
     this.gemT.setText(formatNum(s.diamonds));
     this.stoneT.setText(formatNum(s.materials.stones));
     this.soulT.setText(formatNum(s.materials.soul));
+    const k = GameState.storage.kind;
+    this.storageT.setText(k === "online" ? "☁️ Tài khoản" : k === "cloud" ? "☁️ Đám mây" : "💾 Trên máy");
     if (this.nameT) {
       const c = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
       this.avatar.setTexture(characterHeadTexture(this.scene, c, s.characters[c.id]?.equip)).setDisplaySize(62, 74);

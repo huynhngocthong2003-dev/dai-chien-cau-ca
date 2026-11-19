@@ -4,7 +4,7 @@ import { CHARACTERS, FISHES, FISH_BY_ID, RODS, ZONES } from "@dccc/game-data";
 describe("Dữ liệu game", () => {
   it("có đủ số lượng tối thiểu", () => {
     expect(CHARACTERS.length).toBeGreaterThanOrEqual(12);
-    expect(RODS.length).toBeGreaterThanOrEqual(15);
+    expect(RODS.length).toBeGreaterThanOrEqual(16);
     expect(FISHES.length).toBeGreaterThanOrEqual(50);
     expect(ZONES.length).toBeGreaterThanOrEqual(6);
   });

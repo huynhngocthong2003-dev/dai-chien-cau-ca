@@ -8,7 +8,7 @@ Cập nhật: 2026-11-19
 | 1 – Gameplay MVP | ✅ Hoàn thành (chơi đơn, lưu đám mây tạm thời qua Artifact) |
 | 2 – Phát triển nhân vật | ✅ Hoàn thành phần cốt lõi (nâng cấp, đột phá, thức tỉnh, tiến hóa cần & cá, săn Boss). Còn lại: phụ kiện, trang phục, skin cần, hợp thể cần |
 | 3 – Kinh tế | ⏳ Cửa hàng, trang phục, trang sức, nguồn kim cương đã có. Còn: vòng quay/gacha, nhiệm vụ, điểm danh, thành tựu |
-| 4 – Multiplayer | ⬜ |
+| 4 – Multiplayer | ⏳ Tài khoản online + database có RLS đã có (chờ chủ dự án tạo dự án Supabase). Còn: server Colyseus, PvP |
 | 5 – Cộng đồng | ⬜ |
 | 6 – Phát hành | ⬜ |
 
@@ -28,3 +28,5 @@ Cập nhật: 2026-11-19
 - Cân bằng kinh tế Giai đoạn 2 mới kiểm bằng test, cần chơi thử dài để tinh chỉnh tốc độ kiếm Đá/Linh Hồn.
 - Giao dịch quần áo/trang sức giữa người chơi chờ Giai đoạn 4 (cần server). Hiện chỉ bán lại cho cửa hàng.
 - Tiến trình chơi trước bản 0.3.0 có thể đã bị tạo mới khi tải lại trang (lỗi đã sửa).
+- Tài khoản online chưa chạy trên web thật cho đến khi có dự án Supabase (xem docs/ACCOUNTS_SETUP.md). Đã kiểm thử bằng máy chủ giả và PostgreSQL thật.
+- iPhone Safari không hỗ trợ nút toàn màn hình cho trang web: dùng "Thêm vào MH chính".

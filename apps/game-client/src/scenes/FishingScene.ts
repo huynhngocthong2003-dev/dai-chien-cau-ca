@@ -45,6 +45,7 @@ export class FishingScene extends Phaser.Scene {
   private rodOrn!: Phaser.GameObjects.Image;
   private rodReel!: Phaser.GameObjects.Image;
   private rodFx?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private rodSmoke?: Phaser.GameObjects.Particles.ParticleEmitter;
   private bobber!: Phaser.GameObjects.Image;
   private fishImg!: Phaser.GameObjects.Image;
   private hero!: Phaser.GameObjects.Image;
@@ -127,6 +128,20 @@ export class FishingScene extends Phaser.Scene {
         })
         .setDepth(6);
       this.tweens.add({ targets: this.rodOrn, scale: 1.12, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    }
+    if (rodDef.visual.veins) {
+      // khói đen + tàn lửa đỏ bay ra từ đầu cần siêu cấp
+      this.rodSmoke = this.add
+        .particles(0, 0, "p_ember", {
+          speed: { min: 20, max: 80 },
+          angle: { min: 200, max: 340 },
+          lifespan: 1100,
+          frequency: 45,
+          scale: { start: 1.6, end: 0 },
+          tint: [0xff1744, 0xb71c1c, 0x111111],
+          blendMode: Phaser.BlendModes.NORMAL,
+        })
+        .setDepth(6);
     }
     this.bobber = this.add.image(0, 0, "bobber").setOrigin(0.5, 0.6).setVisible(false).setDepth(4);
 
@@ -709,6 +724,23 @@ export class FishingScene extends Phaser.Scene {
       g.lineStyle(width(i), shaft, 1);
       g.lineBetween(pts[i]!.x, pts[i]!.y, pts[i + 1]!.x, pts[i + 1]!.y);
     }
+    // vân sét đỏ (cần đặc biệt) – nhấp nháy
+    if (rod.visual.veins) {
+      const flick = 0.55 + 0.45 * Math.abs(Math.sin(this.t / 90));
+      g.lineStyle(2.2, hexToInt(rod.visual.veins), flick);
+      g.beginPath();
+      for (let i = 1; i < n; i++) {
+        const p0 = pts[i]!;
+        const p1 = pts[i + 1]!;
+        const ang = Math.atan2(p1.y - p0.y, p1.x - p0.x) - Math.PI / 2;
+        const off = (i % 2 ? 1 : -1) * width(i) * 0.3;
+        const px = p0.x + Math.cos(ang) * off;
+        const py = p0.y + Math.sin(ang) * off;
+        if (i === 1) g.moveTo(px, py);
+        else g.lineTo(px, py);
+      }
+      g.strokePath();
+    }
     // ánh sáng dọc thân
     g.lineStyle(1.6, 0xffffff, 0.45);
     for (let i = 1; i < n - 1; i++) g.lineBetween(pts[i]!.x - 1, pts[i]!.y - 1.5, pts[i + 1]!.x - 1, pts[i + 1]!.y - 1.5);
@@ -736,6 +768,7 @@ export class FishingScene extends Phaser.Scene {
     const tipAng = Math.atan2(last.y - prev.y, last.x - prev.x);
     this.rodOrn.setPosition(last.x, last.y).setRotation(tipAng + Math.PI / 2);
     this.rodFx?.setPosition(last.x, last.y);
+    this.rodSmoke?.setPosition(last.x, last.y);
 
     // dây câu
     if (this.lineSnapped || this.mode === "idle" || this.mode === "charging") {

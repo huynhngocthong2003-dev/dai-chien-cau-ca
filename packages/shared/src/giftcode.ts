@@ -3,8 +3,8 @@
  * Lưu ý: băm phía client chỉ giấu mã khỏi người đọc code; Giai đoạn 4 việc
  * đổi mã chuyển lên server (Edge Function) để kiểm soát hoàn toàn.
  */
-import type { CharacterDef } from "./types.ts";
-import { addLedger, clone, newCharProgress, type ActionResult, type PlayerSave } from "./save.ts";
+import type { CharacterDef, RodDef } from "./types.ts";
+import { addLedger, clone, newCharProgress, newRodProgress, type ActionResult, type PlayerSave } from "./save.ts";
 
 const SALT = "dccc:gift:v1:";
 
@@ -15,7 +15,11 @@ export function normalizeCode(code: string): string {
 
 /** Băm 53-bit (cyrb53) hai vòng, trả về chuỗi hex 26 ký tự. Tất định trên mọi nền tảng. */
 export function hashGiftCode(code: string): string {
-  const str = SALT + normalizeCode(code);
+  return hash53x2(SALT + normalizeCode(code));
+}
+
+/** Băm không mật mã (cyrb53 ×2) – dùng cho mã băm và tổng kiểm tra. */
+export function hash53x2(str: string): string {
   const round = (seed: number) => {
     let h1 = 0xdeadbeef ^ seed;
     let h2 = 0x41c6ce57 ^ seed;
@@ -31,20 +35,27 @@ export function hashGiftCode(code: string): string {
   return round(7) + round(1337).slice(0, 12);
 }
 
-export type RedeemResult = ActionResult & { character?: CharacterDef };
+export type RedeemResult = ActionResult & { character?: CharacterDef; rod?: RodDef };
 
-/** Đổi mã: mở khóa nhân vật có unlock.kind === "code" khớp mã băm. Mỗi mã dùng một lần. */
-export function redeemGiftCode(save: PlayerSave, code: string, characters: CharacterDef[], now: number): RedeemResult {
+/** Đổi mã: mở khóa nhân vật / cần câu có unlock.kind === "code" khớp mã băm. Mỗi mã dùng một lần. */
+export function redeemGiftCode(
+  save: PlayerSave,
+  code: string,
+  catalog: { characters: CharacterDef[]; rods: RodDef[] },
+  now: number,
+): RedeemResult {
   const norm = normalizeCode(code);
   if (norm.length < 4 || norm.length > 32) return { ok: false, error: "Mã không hợp lệ" };
   const h = hashGiftCode(norm);
   if (save.redeemedCodes.includes(h)) return { ok: false, error: "Bạn đã dùng mã này rồi" };
-  const char = characters.find((c) => c.unlock.kind === "code" && c.unlock.codeHash === h);
-  if (!char) return { ok: false, error: "Mã không đúng hoặc đã hết hạn" };
+  const char = catalog.characters.find((c) => c.unlock.kind === "code" && c.unlock.codeHash === h);
+  const rod = char ? undefined : catalog.rods.find((r) => r.unlock.kind === "code" && r.unlock.codeHash === h);
+  if (!char && !rod) return { ok: false, error: "Mã không đúng hoặc đã hết hạn" };
   const s = clone(save);
   s.redeemedCodes.push(h);
-  if (!s.characters[char.id]) s.characters[char.id] = newCharProgress();
-  addLedger(s, `gift_${h.slice(0, 16)}`, "diamonds", 0, `gift_code:${char.id}`, now);
+  if (char && !s.characters[char.id]) s.characters[char.id] = newCharProgress();
+  if (rod && !s.rods[rod.id]) s.rods[rod.id] = newRodProgress();
+  addLedger(s, `gift_${h.slice(0, 16)}`, "diamonds", 0, `gift_code:${(char ?? rod)!.id}`, now);
   s.updatedAt = now;
-  return { ok: true, save: s, character: char };
+  return { ok: true, save: s, character: char, rod };
 }

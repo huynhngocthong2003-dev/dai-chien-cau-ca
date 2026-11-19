@@ -7,7 +7,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     files: ["tests/e2e/**/*.cjs"],
-    languageOptions: { sourceType: "commonjs", globals: { require: "readonly", process: "readonly", window: "readonly", localStorage: "readonly" } },
+    languageOptions: { sourceType: "commonjs", globals: { require: "readonly", process: "readonly", window: "readonly", localStorage: "readonly", URL: "readonly" } },
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
   { files: ["tests/e2e/**/*.mjs"], languageOptions: { globals: { process: "readonly", window: "readonly", localStorage: "readonly" } } },

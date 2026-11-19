@@ -31,6 +31,11 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
+        env:
+          # Tài khoản online: đặt trong Settings → Secrets and variables → Actions → Variables.
+          # Khóa "anon" của Supabase là khóa công khai (an toàn nhờ RLS). KHÔNG dùng service_role key.
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/game-client/dist

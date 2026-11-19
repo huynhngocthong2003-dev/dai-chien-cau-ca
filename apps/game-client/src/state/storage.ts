@@ -8,7 +8,7 @@
  */
 
 export interface SaveStorage {
-  readonly kind: "cloud" | "local" | "memory";
+  readonly kind: "cloud" | "local" | "memory" | "online";
   load(): Promise<unknown | null>;
   save(data: unknown): Promise<void>;
   clear(): Promise<void>;

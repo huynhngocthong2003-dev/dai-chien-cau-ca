@@ -15,6 +15,7 @@
     "@dccc/game-data": "workspace:*",
     "@dccc/shared": "workspace:*",
     "@dccc/validation": "workspace:*",
+    "@supabase/supabase-js": "2.119.0",
     "phaser": "3.90.0"
   },
   "devDependencies": {
