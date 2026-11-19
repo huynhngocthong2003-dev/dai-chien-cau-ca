@@ -89,7 +89,7 @@ export class ZoneScene extends Phaser.Scene {
     c.add(panel(this, X, Y, 540, 614, 0.95));
     c.add(txt(this, X + 270, Y + 34, z.name, 34, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
     c.add(txt(this, X + 24, Y + 64, z.description, 18, { wrap: 492, weight: "700", color: COLORS.textDim }));
-    c.add(txt(this, X + 24, Y + 118, `Yêu cầu cấp ${z.requiredLevel} · Độ khó ${"★".repeat(z.difficulty)}`, 18, { color: COLORS.textGold }));
+    c.add(txt(this, X + 24, Y + 118, `Yêu cầu cấp ${z.requiredLevel} · Độ khó ${"★".repeat(z.difficulty)} · Boss: ${FISH_BY_ID.get(z.bossId)!.name}`, 17, { color: COLORS.textGold, wrap: 500 }));
     // danh sách cá
     c.add(txt(this, X + 24, Y + 148, "Cá trong khu vực (đã câu được sẽ hiện màu):", 17, { weight: "700" }));
     const list = [...z.spawn.map((sp) => sp.fishId), z.bossId];
@@ -113,7 +113,9 @@ export class ZoneScene extends Phaser.Scene {
         }).setOrigin(0.5),
       );
     });
-    const btn = new Button(this, X + 270, Y + 566, 300, 72, unlocked ? "Bắt Đầu Câu!" : `Cần cấp ${z.requiredLevel}`, {
+    GameState.refreshDaily();
+    const tickets = GameState.save.materials.bossTickets;
+    const btn = new Button(this, X + 145, Y + 566, 250, 72, unlocked ? "Câu Cá" : `Cần cấp ${z.requiredLevel}`, {
       color: COLORS.orange,
       fontSize: 30,
       disabled: !unlocked,
@@ -123,6 +125,20 @@ export class ZoneScene extends Phaser.Scene {
       },
     });
     btn.on("disabled-click", () => toast(this, `Đạt cấp ${z.requiredLevel} để mở khóa ${z.name}. Câu thêm cá để lên cấp!`));
+    const hunt = new Button(this, X + 400, Y + 566, 230, 72, "Săn Boss", {
+      color: COLORS.red,
+      fontSize: 26,
+      sub: `🎫 Vé: ${tickets}`,
+      disabled: !unlocked || tickets < 1,
+      onClick: () => {
+        GameState.select("selectedZoneId", z.id);
+        goTo(this, "Fishing", { zoneId: z.id, bossHunt: true });
+      },
+    });
+    hunt.on("disabled-click", () =>
+      toast(this, !unlocked ? `Mở khóa khu vực ở cấp ${z.requiredLevel}` : "Hết Vé Boss. Vé hồi lên 3 mỗi ngày, hoặc nhận khi bắt cá Huyền Thoại/Thần Thoại."),
+    );
+    c.add(hunt);
     c.add(btn);
   }
 }

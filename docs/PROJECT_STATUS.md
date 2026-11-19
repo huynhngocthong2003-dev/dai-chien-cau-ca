@@ -6,15 +6,15 @@ Cập nhật: 2026-11-19
 |---|---|
 | 0 – Thiết kế & khởi tạo | ✅ Hoàn thành |
 | 1 – Gameplay MVP | ✅ Hoàn thành (chơi đơn, lưu đám mây tạm thời qua Artifact) |
-| 2 – Phát triển nhân vật | ⏳ Dữ liệu 12/15/55 đã có; chưa có nâng cấp/tiến hóa/săn Boss |
+| 2 – Phát triển nhân vật | ✅ Hoàn thành phần cốt lõi (nâng cấp, đột phá, thức tỉnh, tiến hóa cần & cá, săn Boss). Còn lại: phụ kiện, trang phục, skin cần, hợp thể cần |
 | 3 – Kinh tế | ⬜ |
 | 4 – Multiplayer | ⬜ |
 | 5 – Cộng đồng | ⬜ |
 | 6 – Phát hành | ⬜ |
 
 ## Đã kiểm thử
-- 24 unit test (dữ liệu, tính tất định, cân bằng bằng bot mô phỏng, kinh tế, chống nhận trùng, schema save).
-- E2E Playwright: chơi 1 ván bằng chuột (quăng → giật → kéo → kỹ năng → bắt cá) → lưu kho → bán cá → các màn hình → hiển thị điện thoại ngang. Chạy trên cả bản dev và bản build 1 file. Không lỗi console.
+- 39 unit test (phát triển nhân vật/cần/cá, vé Boss, chuyển đổi save v1→v2, dữ liệu, tính tất định, cân bằng bằng bot mô phỏng, kinh tế, chống nhận trùng, schema save).
+- E2E Playwright: chơi 1 ván bằng chuột (quăng → giật → kéo → kỹ năng → bắt cá) → lưu kho → bán cá → các màn hình → Săn Boss (Boss chắc chắn cắn, trừ đúng 1 vé) → hiển thị điện thoại ngang. Chạy trên bản dev, bản 1 file và bản GitHub Pages. Chạy trên cả bản dev và bản build 1 file. Không lỗi console.
 - `pnpm typecheck`, `pnpm lint` sạch.
 
 ## Vấn đề đã biết
@@ -23,3 +23,6 @@ Cập nhật: 2026-11-19
 - Tiến trình do client ghi → chưa chống gian lận (sẽ giải quyết ở GĐ4).
 - Chưa có nhạc nền.
 - Chưa chạy thử trên thiết bị Android/iOS thật.
+- Web độc lập (GitHub Pages) đã có quy trình tự động nhưng chưa đăng được: cần chủ dự án tạo repository và cấp quyền GitHub.
+- Trên web độc lập (ngoài claude.ai) tiến trình chỉ lưu trên trình duyệt cho đến khi có Supabase (GĐ4).
+- Cân bằng kinh tế Giai đoạn 2 mới kiểm bằng test, cần chơi thử dài để tinh chỉnh tốc độ kiếm Đá/Linh Hồn.

@@ -1,12 +1,28 @@
 import Phaser from "phaser";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
-import { canUnlock, type CharRarity, type UnlockCondition } from "@dccc/shared";
+import { canAfford, canUnlock, type CharRarity, type Cost, type UnlockCondition } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { Button, fadeIn, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
 import { Sfx } from "../audio/Sfx.ts";
+
+export interface DevInfo {
+  /** Nhãn nút, ví dụ "Nâng cấp", "Đột phá". null = đã tối đa. */
+  label: string | null;
+  cost: Cost | null;
+  run: () => { ok: true } | { ok: false; error: string };
+  successMsg: string;
+}
+
+export function costText(c: Cost): string {
+  const parts = [];
+  if (c.gold) parts.push(`🪙 ${c.gold.toLocaleString("vi-VN")}`);
+  if (c.stones) parts.push(`🔷 ${c.stones}`);
+  if (c.soul) parts.push(`🔮 ${c.soul}`);
+  return parts.join("   ");
+}
 
 export interface GearItem {
   id: string;
@@ -43,6 +59,9 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
   protected abstract cols: number;
   protected abstract cardIcon(item: T, x: number, y: number, w: number, h: number): Phaser.GameObjects.GameObject;
   protected abstract renderInfo(d: Phaser.GameObjects.Container, item: T, owned: boolean): void;
+  protected abstract devInfo(item: T): DevInfo;
+  /** Nhãn nhỏ dưới tên trên thẻ (vd "Lv.12 ★★"). */
+  protected abstract cardBadge(item: T): string;
 
   create() {
     this.input.enabled = true;
@@ -80,6 +99,7 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
       c.add(icon);
       c.add(txt(this, x + 8, y + 4, it.rarity, 18, { color: CHAR_RARITY_COLOR[it.rarity] }));
       c.add(txt(this, x + cw / 2, y + ch - 16, it.name, 15, { align: "center", weight: "700" }).setOrigin(0.5));
+      if (isOwned) c.add(txt(this, x + cw / 2, y + ch - 36, this.cardBadge(it), 14, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
       if (equipped) c.add(txt(this, x + cw - 6, y + 4, "✔", 20, { color: "#69f0ae" }).setOrigin(1, 0));
       else if (!isOwned) c.add(txt(this, x + cw - 6, y + 4, "🔒", 18).setOrigin(1, 0));
       const z = this.add.zone(x + cw / 2, y + ch / 2, cw, ch).setInteractive({ useHandCursor: true });
@@ -104,9 +124,9 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
     const equipped = GameState.save[this.field] === it.id;
     let btn: Button;
     if (owned) {
-      btn = new Button(this, 1058, 664, 300, 62, equipped ? "Đang sử dụng" : "Sử dụng", {
+      btn = new Button(this, 940, 664, 150, 62, equipped ? "Đang dùng" : "Sử dụng", {
         color: COLORS.green,
-        fontSize: 26,
+        fontSize: 22,
         disabled: equipped,
         onClick: () => {
           GameState.select(this.field, it.id);
@@ -114,6 +134,27 @@ export abstract class GearScene<T extends GearItem> extends Phaser.Scene {
           this.render();
         },
       });
+      const dev = this.devInfo(it);
+      if (dev.label && dev.cost) {
+        const err = canAfford(GameState.save, dev.cost);
+        d.add(txt(this, 1058, 616, costText(dev.cost), 18, { align: "center", color: err ? "#ff8a80" : COLORS.textGold }).setOrigin(0.5));
+        const devBtn = new Button(this, 1140, 664, 230, 62, dev.label, {
+          color: COLORS.orange,
+          fontSize: 22,
+          disabled: !!err,
+          onClick: () => {
+            const r = dev.run();
+            if (!r.ok) return toast(this, r.error, COLORS.red);
+            Sfx.levelUp();
+            toast(this, dev.successMsg, COLORS.green);
+            this.render();
+          },
+        });
+        devBtn.on("disabled-click", () => toast(this, err ?? ""));
+        d.add(devBtn);
+      } else {
+        d.add(txt(this, 1140, 664, "★ ĐÃ TỐI ĐA ★", 22, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
+      }
     } else {
       const chk = canUnlock(GameState.save, it.unlock);
       const label = it.unlock.kind === "gold" ? `Mua · ${it.unlock.amount.toLocaleString("vi-VN")} 🪙` : chk.ok ? "Mở khóa" : chk.reason;

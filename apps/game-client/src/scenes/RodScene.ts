@@ -1,12 +1,12 @@
 import Phaser from "phaser";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
 import { RODS } from "@dccc/game-data";
-import { rodStats, type RodDef } from "@dccc/shared";
+import { nextRodAction, rodMaxLevel, rodStats, type RodDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
-import { GearScene, unlockText } from "./GearScene.ts";
+import { GearScene, unlockText, type DevInfo } from "./GearScene.ts";
 
 function drawRod(g: Phaser.GameObjects.Graphics, rod: RodDef, x: number, y: number, len: number) {
   const x0 = x - len * 0.4;
@@ -42,9 +42,22 @@ export class RodScene extends GearScene<RodDef> {
     return g;
   }
 
+  protected cardBadge(r: RodDef) {
+    const p = GameState.save.rods[r.id];
+    return p ? `Lv.${p.level} ${"★".repeat(p.stars)}` : "";
+  }
+
+  protected devInfo(r: RodDef): DevInfo {
+    const { action, cost } = nextRodAction(GameState.save, r);
+    const label = { upgrade: "Nâng cấp", evolve: "Tiến hóa ★", max: null }[action];
+    const msg = action === "evolve" ? `${r.name} tiến hóa! +10% chỉ số, mở thêm 10 cấp.` : `${r.name} lên cấp!`;
+    return { label, cost, run: () => GameState.developRod(r), successMsg: msg };
+  }
+
   protected renderInfo(d: Phaser.GameObjects.Container, r: RodDef, owned: boolean) {
-    const level = GameState.save.rods[r.id]?.level ?? 1;
-    const st = rodStats(r, level);
+    const prog = GameState.save.rods[r.id] ?? { level: 1, stars: 1 };
+    const level = prog.level;
+    const st = rodStats(r, prog);
     const g = this.add.graphics();
     drawRod(g, r, 1058, 200, 300);
     if (!owned) g.setAlpha(0.45);
@@ -58,13 +71,13 @@ export class RodScene extends GearScene<RodDef> {
         this,
         872,
         394,
-        `💪 Lực kéo ${st.pull}    🧵 Độ bền ${st.durability}\n🌀 Thu dây x${st.reelSpeed}    ✨ Cá hiếm +${st.rareRate}%\n🛡 Chống đứt ${st.antiSnap}%    Cấp ${level}`,
+        `💪 Lực kéo ${st.pull}    🧵 Độ bền ${st.durability}\n🌀 Thu dây x${st.reelSpeed}    ✨ Cá hiếm +${st.rareRate}%\n🛡 Chống đứt ${st.antiSnap}%    Cấp ${level}/${rodMaxLevel(prog.stars)} ${"★".repeat(prog.stars)}`,
         17,
         { weight: "700" },
       ).setLineSpacing(4),
     );
     d.add(txt(this, 872, 488, `⭐ ${r.passive.name}`, 19, { color: "#80deea" }));
     d.add(txt(this, 872, 516, r.passive.description, 16, { weight: "500", wrap: 372 }));
-    d.add(txt(this, 872, 590, `Mở khóa: ${unlockText(r.unlock)}`, 16, { color: COLORS.textGold, wrap: 372 }));
+    if (!owned) d.add(txt(this, 872, 580, `Mở khóa: ${unlockText(r.unlock)}`, 16, { color: COLORS.textGold, wrap: 372 }));
   }
 }

@@ -436,7 +436,28 @@ function fillBody(ctx: CanvasRenderingContext2D, g: BodyGeo, a: FishAppearance, 
   ctx.ellipse(g.cx + g.l * 0.05, g.cy - g.h * 0.28, g.l * 0.35, g.h * 0.16, -0.05, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
-  ctx.lineWidth = 3.5;
+  // bóng bụng (ambient occlusion) + viền sáng phía lưng
+  ctx.save();
+  ctx.clip(g.path);
+  const ao = ctx.createLinearGradient(0, g.cy + g.h * 0.1, 0, g.cy + g.h / 2);
+  ao.addColorStop(0, "rgba(20,10,40,0)");
+  ao.addColorStop(1, "rgba(20,10,40,0.28)");
+  ctx.fillStyle = ao;
+  ctx.fillRect(g.cx - g.l, g.cy, g.l * 2, g.h);
+  ctx.translate(0, 5);
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(255,255,255,0.32)";
+  ctx.stroke(g.path);
+  ctx.restore();
+  // điểm bóng loáng
+  ctx.fillStyle = "rgba(255,255,255,0.75)";
+  ctx.beginPath();
+  ctx.ellipse(g.eye.x - g.eyeR * 3.2, g.cy - g.h * 0.3, g.eyeR * 0.9, g.eyeR * 0.35, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(g.eye.x - g.eyeR * 4.6, g.cy - g.h * 0.27, g.eyeR * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 4.5;
   ctx.strokeStyle = OUTLINE;
   ctx.lineJoin = "round";
   ctx.stroke(g.path);

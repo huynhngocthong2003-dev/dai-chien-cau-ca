@@ -2,7 +2,7 @@
 
 Game câu cá 2D hoạt hình: quăng cần, chống lại cá quái vật vùng vẫy, sưu tầm 55 loài cá, 12 nhân vật, 15 cần câu và 6 khu vực. Mục tiêu dài hạn: PvP online thật (Colyseus), hội, sự kiện.
 
-**Trạng thái:** Giai đoạn 1 (Gameplay MVP) – xem [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+**Trạng thái:** Giai đoạn 2 (Phát triển nhân vật) – xem [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 ## Chơi ngay
 - Bản web: https://claude.ai/artifact/UUQjn9CvJUM84c6iH2vXTZ (chủ dự án chia sẻ qua menu Share).

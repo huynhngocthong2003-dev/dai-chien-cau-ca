@@ -2,12 +2,21 @@ import Phaser from "phaser";
 import {
   applyCatch,
   buildLoadout,
+  consumeBossTicket,
   createNewSave,
+  decomposeFishes,
+  developCharacter,
+  developFish,
+  developRod,
+  refillBossTickets,
+  toggleFishLock,
   recordFail,
   sellFishes,
   unlockItem,
+  type CharacterDef,
   type FishDef,
   type Loadout,
+  type RodDef,
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
@@ -50,7 +59,8 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     if (raw) {
       const parsed = parseSave(raw);
       if (parsed.ok && this.isConsistent(parsed.save)) {
-        this._save = parsed.save;
+        this._save = refillBossTickets(parsed.save, Date.now());
+        await this.persist();
         return;
       }
       this.loadWarning = "Dữ liệu lưu bị hỏng hoặc không hợp lệ, đã tạo tài khoản mới.";
@@ -89,10 +99,10 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     const s = this._save;
     const c = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
     const r = ROD_BY_ID.get(s.selectedRodId)!;
-    return buildLoadout(c, s.characters[c.id]?.level ?? 1, r, s.rods[r.id]?.level ?? 1);
+    return buildLoadout(c, s.characters[c.id] ?? 1, r, s.rods[r.id] ?? 1);
   }
 
-  catchFish(fish: FishDef, weightKg: number, zoneId: string) {
+  catchFish(fish: FishDef, weightKg: number, zoneId: string, bossHunt = false) {
     const res = applyCatch(this._save, {
       txId: uid("c"),
       fish,
@@ -100,6 +110,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
       zoneId,
       passives: this.loadout().passives,
       now: Date.now(),
+      bossHunt,
     });
     if (res.ok) {
       this.commit(res.save);
@@ -122,6 +133,44 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     const res = unlockItem(this._save, kind, id, cond, uid("u"), Date.now());
     if (res.ok) this.commit(res.save);
     return res;
+  }
+
+  /** Áp dụng một hành động thuần túy; commit nếu thành công. */
+  private run<R extends { ok: true; save: PlayerSave } | { ok: false; error: string }>(r: R): R {
+    if (r.ok) this.commit(r.save);
+    return r;
+  }
+
+  developCharacter(c: CharacterDef) {
+    return this.run(developCharacter(this._save, c, uid("dc"), Date.now()));
+  }
+
+  developRod(r: RodDef) {
+    return this.run(developRod(this._save, r, uid("dr"), Date.now()));
+  }
+
+  developFish(fishUid: string) {
+    return this.run(developFish(this._save, fishUid, FISH_BY_ID, uid("df"), Date.now()));
+  }
+
+  decompose(uids: string[]) {
+    return this.run(decomposeFishes(this._save, uids, FISH_BY_ID, uid("dx"), Date.now()));
+  }
+
+  toggleLock(fishUid: string) {
+    return this.run(toggleFishLock(this._save, fishUid, Date.now()));
+  }
+
+  /** Hồi vé (nếu sang ngày mới) rồi tiêu 1 vé Boss. */
+  useBossTicket() {
+    const refreshed = refillBossTickets(this._save, Date.now());
+    if (refreshed !== this._save) this.commit(refreshed);
+    return this.run(consumeBossTicket(this._save, uid("bt"), Date.now()));
+  }
+
+  refreshDaily() {
+    const refreshed = refillBossTickets(this._save, Date.now());
+    if (refreshed !== this._save) this.commit(refreshed);
   }
 
   select(field: "selectedCharacterId" | "selectedRodId" | "selectedZoneId", id: string) {

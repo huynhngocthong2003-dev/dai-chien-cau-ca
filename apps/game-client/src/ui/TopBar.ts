@@ -20,6 +20,8 @@ export class TopBar extends Phaser.GameObjects.Container {
   private xpBar!: Bar;
   private goldT: Phaser.GameObjects.Text;
   private gemT: Phaser.GameObjects.Text;
+  private stoneT: Phaser.GameObjects.Text;
+  private soulT: Phaser.GameObjects.Text;
   private handler = (s: PlayerSave) => this.refresh(s);
 
   constructor(scene: Phaser.Scene, o: TopBarOpts = {}) {
@@ -50,20 +52,24 @@ export class TopBar extends Phaser.GameObjects.Container {
       this.xpBar = new Bar(scene, x + 140, 40, 150, 18, 0x7c4dff, "");
       this.add([this.nameT, this.levelT, this.xpBar]);
     }
-    // tiền tệ
+    // tiền tệ + nguyên liệu
+    const CW = 128;
     const chip = (cx: number, icon: string, color: number) => {
       const cg = scene.add.graphics();
-      cg.fillStyle(0x0a1628, 0.9).fillRoundedRect(cx, 18, 168, 40, 20);
-      cg.lineStyle(2.5, color).strokeRoundedRect(cx, 18, 168, 40, 20);
-      const it = scene.add.text(cx + 8, 38, icon, { fontSize: "24px", padding: { top: 4 } }).setOrigin(0, 0.5);
-      const t = txt(scene, cx + 156, 38, "0", 22).setOrigin(1, 0.5);
+      cg.fillStyle(0x0a1628, 0.9).fillRoundedRect(cx, 18, CW, 40, 20);
+      cg.lineStyle(2.5, color).strokeRoundedRect(cx, 18, CW, 40, 20);
+      const it = scene.add.text(cx + 6, 38, icon, { fontSize: "22px", padding: { top: 4 } }).setOrigin(0, 0.5);
+      const t = txt(scene, cx + CW - 12, 38, "0", 20).setOrigin(1, 0.5);
       this.add([cg, it, t]);
       return t;
     };
-    this.goldT = chip(W - 372, "🪙", COLORS.gold);
-    this.gemT = chip(W - 190, "💎", COLORS.diamond);
-    const storage = GameState.storage.kind === "cloud" ? "☁️ Lưu đám mây" : "💾 Lưu trên máy này";
-    this.add(txt(scene, W - 380, 38, storage, 15, { color: COLORS.textDim, weight: "700" }).setOrigin(1, 0.5));
+    const x0 = W - 16 - 4 * CW - 3 * 8;
+    this.goldT = chip(x0, "🪙", COLORS.gold);
+    this.gemT = chip(x0 + (CW + 8), "💎", COLORS.diamond);
+    this.stoneT = chip(x0 + 2 * (CW + 8), "🔷", 0x7c4dff);
+    this.soulT = chip(x0 + 3 * (CW + 8), "🔮", 0xea80fc);
+    const storage = GameState.storage.kind === "cloud" ? "☁️ Đám mây" : "💾 Trên máy";
+    this.add(txt(scene, x0 - 10, 38, storage, 15, { color: COLORS.textDim, weight: "700" }).setOrigin(1, 0.5));
     this.setDepth(500);
     scene.add.existing(this);
     this.refresh(GameState.save);
@@ -75,6 +81,8 @@ export class TopBar extends Phaser.GameObjects.Container {
   refresh(s: PlayerSave) {
     this.goldT.setText(formatNum(s.gold));
     this.gemT.setText(formatNum(s.diamonds));
+    this.stoneT.setText(formatNum(s.materials.stones));
+    this.soulT.setText(formatNum(s.materials.soul));
     if (this.nameT) {
       const c = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
       this.avatar.setTexture(characterHeadTexture(this.scene, c)).setDisplaySize(62, 74);

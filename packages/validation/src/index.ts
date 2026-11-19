@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SAVE_VERSION, type PlayerSave } from "@dccc/shared";
+import { SAVE_VERSION, migrateSave, type PlayerSave } from "@dccc/shared";
 
 const id = z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/);
 const nonNegInt = z.number().int().min(0).max(1e12);
@@ -11,6 +11,8 @@ export const ownedFishSchema = z.object({
   zoneId: id,
   caughtAt: nonNegInt,
   level: z.number().int().min(1).max(200),
+  stars: z.number().int().min(1).max(5),
+  locked: z.boolean(),
 });
 
 export const playerSaveSchema = z.object({
@@ -24,8 +26,13 @@ export const playerSaveSchema = z.object({
   selectedCharacterId: id,
   selectedRodId: id,
   selectedZoneId: id,
-  characters: z.record(id, z.object({ level: z.number().int().min(1).max(200) })),
-  rods: z.record(id, z.object({ level: z.number().int().min(1).max(200) })),
+  characters: z.record(
+    id,
+    z.object({ level: z.number().int().min(1).max(60), breakthrough: z.number().int().min(0).max(5), awakened: z.boolean() }),
+  ),
+  rods: z.record(id, z.object({ level: z.number().int().min(1).max(50), stars: z.number().int().min(1).max(5) })),
+  materials: z.object({ stones: nonNegInt, soul: nonNegInt, bossTickets: z.number().int().min(0).max(99) }),
+  bossTicketDay: z.string().max(10),
   fishes: z.array(ownedFishSchema).max(1000),
   stats: z.object({
     totalCaught: nonNegInt,
@@ -38,7 +45,7 @@ export const playerSaveSchema = z.object({
   ledger: z.array(
     z.object({
       txId: id,
-      currency: z.enum(["gold", "diamonds", "xp"]),
+      currency: z.enum(["gold", "diamonds", "xp", "stones", "soul", "bossTickets"]),
       amount: z.number().int(),
       reason: z.string().max(128),
       at: nonNegInt,
@@ -50,7 +57,7 @@ export const playerSaveSchema = z.object({
 });
 
 export function parseSave(raw: unknown): { ok: true; save: PlayerSave } | { ok: false; error: string } {
-  const r = playerSaveSchema.safeParse(raw);
+  const r = playerSaveSchema.safeParse(migrateSave(raw));
   if (!r.success) return { ok: false, error: r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") };
   return { ok: true, save: r.data as PlayerSave };
 }

@@ -45,7 +45,7 @@ await shot("02-zone");
 step("Bản đồ khu vực");
 
 // Bắt đầu câu
-await page.mouse.click(990, 658);
+await page.mouse.click(865, 658);
 await waitScene("Fishing");
 await page.waitForTimeout(500);
 await shot("03-fishing-idle");
@@ -95,7 +95,8 @@ for (let round = 1; round <= 4 && result !== "caught"; round++) {
 const save = await page.evaluate(() => JSON.parse(localStorage.getItem("dccc_save_v1") ?? "null"));
 if (result === "caught") {
   if (!save || save.fishes.length < 1) errors.push("Bắt được cá nhưng không có trong save");
-  step(`Save: cấp ${save.level}, ${save.fishes.length} cá, ${save.gold} vàng`);
+  step(`Save: cấp ${save.level}, ${save.fishes.length} cá, ${save.gold} vàng, ${save.materials.stones} đá`);
+  if (save.materials.stones < 1) errors.push("Bắt cá không rơi Đá Nâng Cấp");
 }
 
 // Kho cá + bán cá
@@ -106,7 +107,7 @@ await shot("06-inventory");
 step("Kho cá");
 const goldBefore = save?.gold ?? 0;
 if (save?.fishes.length) {
-  await page.mouse.click(1058, 662);
+  await page.mouse.click(1058, 600);
   await page.waitForTimeout(400);
   const after = await page.evaluate(() => JSON.parse(localStorage.getItem("dccc_save_v1")));
   if (after.gold <= goldBefore || after.fishes.length !== save.fishes.length - 1) errors.push("Bán cá không cộng vàng");
@@ -132,6 +133,32 @@ await waitScene("Rods");
 await page.waitForTimeout(500);
 await shot("09-rods");
 step("Màn hình nhân vật & cần câu");
+
+// Săn Boss: vào bản đồ → nút Săn Boss → Boss chắc chắn cắn câu, tiêu 1 vé
+await page.mouse.click(62, 38);
+await waitScene("Hub");
+await page.waitForTimeout(400);
+await page.mouse.click(420, 640);
+await waitScene("Zone");
+await page.waitForTimeout(500);
+const ticketsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("dccc_save_v1")).materials.bossTickets);
+await page.mouse.click(1120, 658);
+await waitScene("Fishing");
+await page.waitForTimeout(400);
+await page.mouse.move(700, 450);
+await page.mouse.down();
+await page.waitForTimeout(500);
+await page.mouse.up();
+await page.waitForFunction(() => window.__game.scene.getScene("Fishing").session !== null, null, { timeout: 5000 });
+const huntFish = await page.evaluate(() => window.__game.scene.getScene("Fishing").fishDef.rarity);
+const ticketsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("dccc_save_v1")).materials.bossTickets);
+if (huntFish !== "boss") errors.push(`Săn Boss nhưng cá là ${huntFish}`);
+if (ticketsAfter !== ticketsBefore - 1) errors.push(`Vé Boss không bị trừ đúng: ${ticketsBefore} → ${ticketsAfter}`);
+await page.waitForFunction(() => window.__game.scene.getScene("Fishing").session?.phase === "bite", null, { timeout: 15000 });
+await page.mouse.click(700, 450);
+await page.waitForTimeout(2500);
+await shot("09b-boss-hunt");
+step(`Săn Boss: cá ${huntFish}, vé ${ticketsBefore} → ${ticketsAfter}`);
 
 // Điện thoại (ngang)
 const phone = await browser.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });

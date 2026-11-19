@@ -7,6 +7,7 @@ import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
+import { addAmbience } from "../art/ambience.ts";
 
 /** Tính năng sẽ có ở giai đoạn sau – hiển thị rõ ràng là "sắp ra mắt", không giả lập. */
 const COMING: Record<string, string> = {
@@ -30,12 +31,13 @@ export class HubScene extends Phaser.Scene {
     const W = 1280;
     const s = GameState.save;
     const zone = ZONE_BY_ID.get(s.selectedZoneId)!;
-    this.add.image(0, 0, zoneTexture(this, zone)).setOrigin(0);
-    this.add.rectangle(0, 0, W, 720, 0x061428, 0.25).setOrigin(0);
+    this.add.image(0, 0, zoneTexture(this, zone)).setOrigin(0).setDepth(-10);
+    addAmbience(this, zone, { baseDepth: -9, vignetteDepth: -6 });
+    this.add.rectangle(0, 0, W, 720, 0x061428, 0.15).setOrigin(0).setDepth(-6);
 
     // Boss nhảy khỏi mặt nước làm nền sinh động
     const boss = FISH_BY_ID.get(zone.bossId)!;
-    const bossImg = this.add.image(620, 470, fishTexture(this, boss)).setAlpha(0).setScale(1.25);
+    const bossImg = this.add.image(620, 470, fishTexture(this, boss)).setAlpha(0).setScale(1.25).setDepth(-7);
     const leap = () => {
       bossImg.setPosition(560, 520).setAngle(-35).setAlpha(1);
       this.tweens.add({ targets: bossImg, x: 700, y: 300, angle: 0, duration: 900, ease: "Sine.easeOut", yoyo: false,
@@ -46,10 +48,22 @@ export class HubScene extends Phaser.Scene {
     this.time.delayedCall(800, leap);
     this.time.addEvent({ delay: 6500, loop: true, callback: leap });
 
-    this.add.image(0, 330, dockTexture(this)).setOrigin(0);
+    this.add.image(0, 330, dockTexture(this)).setOrigin(0).setDepth(-5);
     const char = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
-    const aura = this.add.image(190, 384, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.25).setAlpha(0.55);
-    const hero = this.add.image(190, 384, characterTexture(this, char)).setOrigin(0.5, 1).setScale(1.15);
+    const aura = this.add.image(190, 384, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.25).setAlpha(0.55).setDepth(-5);
+    const hero = this.add.image(190, 384, characterTexture(this, char)).setOrigin(0.5, 1).setScale(1.15).setDepth(-4);
+    // tàn lửa bay lên quanh nhân vật
+    this.add
+      .particles(190, 360, "p_ember", {
+        x: { min: -60, max: 60 },
+        speedY: { min: -80, max: -30 },
+        lifespan: 1600,
+        frequency: 140,
+        scale: { start: 1.2, end: 0 },
+        tint: Phaser.Display.Color.HexStringToColor(char.appearance.aura).color,
+        blendMode: Phaser.BlendModes.ADD,
+      })
+      .setDepth(-4);
     this.tweens.add({ targets: [hero], scaleY: 1.18, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     this.tweens.add({ targets: aura, alpha: 0.2, scale: 1.35, duration: 1200, yoyo: true, repeat: -1 });
     txt(this, 190, 400, `${char.name} · ${char.title}`, 20, { align: "center" }).setOrigin(0.5, 0);
@@ -124,7 +138,7 @@ export class HubScene extends Phaser.Scene {
       scale: { start: 1.4, end: 0.3 },
       quantity: 26,
       stopAfter: 26,
-    });
+    }).setDepth(-6);
   }
 
   private openSettings() {
@@ -179,6 +193,6 @@ export class HubScene extends Phaser.Scene {
       },
     });
     m.root.add(reset);
-    m.root.add(txt(this, m.x + 40, m.y + 360, `Mã người chơi: ${s.playerId}\nPhiên bản 0.1.0 · Giai đoạn 1 (MVP)`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 360, `Mã người chơi: ${s.playerId}\nPhiên bản 0.2.0 · Giai đoạn 2`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

@@ -5,6 +5,7 @@ import {
   FishingSession,
   Rng,
   chooseFish,
+  huntBoss,
   randomSeed,
   rollWeight,
   catchRewards,
@@ -17,6 +18,7 @@ import {
 import { GameState } from "../state/GameState.ts";
 import { auraTexture, characterTexture, dockTexture, fishTexture, zoneTexture } from "../art/textures.ts";
 import { HORIZON } from "../art/Backgrounds.ts";
+import { addAmbience } from "../art/ambience.ts";
 import { hexToInt, parseHex } from "../art/color.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -29,6 +31,8 @@ const ROD_LEN = 230;
 
 export class FishingScene extends Phaser.Scene {
   private zone!: ZoneDef;
+  private bossHunt = false;
+  private huntLabel?: Phaser.GameObjects.Text;
   private loadout!: Loadout;
   private mode: Mode = "idle";
   private session: FishingSession | null = null;
@@ -74,8 +78,9 @@ export class FishingScene extends Phaser.Scene {
     super("Fishing");
   }
 
-  init(data: { zoneId?: string }) {
+  init(data: { zoneId?: string; bossHunt?: boolean }) {
     this.zone = ZONE_BY_ID.get(data.zoneId ?? GameState.save.selectedZoneId)!;
+    this.bossHunt = !!data.bossHunt;
     this.mode = "idle";
     this.session = null;
     this.fishDef = null;
@@ -93,14 +98,18 @@ export class FishingScene extends Phaser.Scene {
     const char = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
 
     this.add.image(0, 0, zoneTexture(this, this.zone)).setOrigin(0);
-    this.fishImg = this.add.image(900, HORIZON + 100, "__DEFAULT").setVisible(false);
-    this.water = this.add.graphics();
+    this.fishImg = this.add.image(900, HORIZON + 100, "__DEFAULT").setVisible(false).setDepth(1);
+    this.water = this.add.graphics().setDepth(2);
+    addAmbience(this, this.zone);
     this.addWeather();
-    this.add.image(0, HORIZON - 42, dockTexture(this)).setOrigin(0);
-    this.aura = this.add.image(190, 388, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.1).setAlpha(0);
-    this.hero = this.add.image(190, 388, characterTexture(this, char)).setOrigin(0.5, 1).setScale(0.95);
-    this.rodG = this.add.graphics();
-    this.bobber = this.add.image(0, 0, "bobber").setOrigin(0.5, 0.6).setVisible(false);
+    this.add.image(0, HORIZON - 42, dockTexture(this)).setOrigin(0).setDepth(3);
+    const awakened = !!GameState.save.characters[char.id]?.awakened;
+    this.aura = this.add.image(190, 388, auraTexture(this, char)).setOrigin(0.5, 1).setScale(1.1).setAlpha(awakened ? 0.45 : 0).setDepth(3);
+    if (awakened) this.tweens.add({ targets: this.aura, alpha: 0.2, scale: 1.2, duration: 900, yoyo: true, repeat: -1 });
+    this.hero = this.add.image(190, 388, characterTexture(this, char)).setOrigin(0.5, 1).setScale(0.95).setDepth(4);
+    this.tweens.add({ targets: this.hero, scaleY: 0.97, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    this.rodG = this.add.graphics().setDepth(5);
+    this.bobber = this.add.image(0, 0, "bobber").setOrigin(0.5, 0.6).setVisible(false).setDepth(4);
 
     // UI cố định
     const top = this.add.graphics();
@@ -109,6 +118,8 @@ export class FishingScene extends Phaser.Scene {
     txt(this, 116, 38, this.zone.name, 24, { color: COLORS.textGold }).setOrigin(0, 0.5);
     const rod = ROD_BY_ID.get(s.selectedRodId)!;
     txt(this, 16, 80, `${char.name} · ${rod.name}`, 16, { weight: "700", color: COLORS.textDim });
+    this.huntLabel = txt(this, 16, 104, "", 18, { color: "#ff8a80" });
+    this.refreshHuntLabel();
 
     this.hint = txt(this, 640, 640, "", 30, { align: "center" }).setOrigin(0.5).setDepth(50);
     this.alertT = txt(this, 640, 220, "", 56, { align: "center", stroke: 10 }).setOrigin(0.5).setDepth(60).setAlpha(0);
@@ -232,11 +243,30 @@ export class FishingScene extends Phaser.Scene {
     this.fishImg.setVisible(false);
     this.hud.setVisible(false);
     this.powerBar.setVisible(false);
-    this.hint.setText("Nhấn giữ màn hình (hoặc Space) để lấy lực, thả ra để quăng cần");
+    this.hint.setText(
+      this.bossHunt ? "SĂN BOSS: mỗi lần quăng tốn 1 vé – Boss chắc chắn cắn câu!" : "Nhấn giữ màn hình (hoặc Space) để lấy lực, thả ra để quăng cần",
+    );
     this.tweens.add({ targets: this.hint, alpha: 0.5, yoyo: true, repeat: -1, duration: 700 });
   }
 
+  private refreshHuntLabel() {
+    this.huntLabel?.setText(this.bossHunt ? `⚔ SĂN BOSS · 🎫 còn ${GameState.save.materials.bossTickets} vé` : "");
+  }
+
   private cast() {
+    if (this.bossHunt) {
+      const r = GameState.useBossTicket();
+      if (!r.ok) {
+        toast(this, r.error, COLORS.red);
+        this.bossHunt = false;
+        this.refreshHuntLabel();
+        this.mode = "idle";
+        this.powerBar.setVisible(false);
+        this.hint.setText("Chế độ câu thường – giữ rồi thả để quăng cần");
+        return;
+      }
+      this.refreshHuntLabel();
+    }
     this.tweens.killTweensOf(this.hint);
     this.hint.setAlpha(1);
     this.mode = "flying";
@@ -270,7 +300,7 @@ export class FishingScene extends Phaser.Scene {
     this.ripple(this.castX, HORIZON);
     const seed = randomSeed();
     const rng = new Rng(seed);
-    const fish = chooseFish(this.zone, FISH_BY_ID, this.loadout, power, rng);
+    const fish = this.bossHunt ? huntBoss(FISH_BY_ID.get(this.zone.bossId)!) : chooseFish(this.zone, FISH_BY_ID, this.loadout, power, rng);
     this.fishDef = fish;
     this.weightKg = rollWeight(fish, rng);
     this.session = new FishingSession({ fish, loadout: this.loadout, seed: rng.int(1, 2 ** 31) });
@@ -502,7 +532,7 @@ export class FishingScene extends Phaser.Scene {
       },
       onComplete: () => {
         this.splash(this.fishX, HORIZON, big ? 26 : 14);
-        this.fishImg.setDepth(0);
+        this.fishImg.setDepth(1);
         this.jumping = false;
       },
     });
@@ -513,7 +543,7 @@ export class FishingScene extends Phaser.Scene {
     this.mode = "landing";
     Sfx.setReeling(false);
     const f = this.fishDef!;
-    const res = GameState.catchFish(f, this.weightKg, this.zone.id);
+    const res = GameState.catchFish(FISH_BY_ID.get(f.id)!, this.weightKg, this.zone.id, this.bossHunt);
     this.hud.setVisible(false);
     this.hint.setText("");
     this.fishImg.clearTint().setAlpha(1).setDepth(6);
@@ -572,9 +602,9 @@ export class FishingScene extends Phaser.Scene {
       this.tweens.add({ targets: img, y: 290, duration: 1200, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
       c.add(txt(this, 640, 410, f.name, 36, { color: FISH_RARITY_COLOR[f.rarity], align: "center" }).setOrigin(0.5));
       c.add(txt(this, 640, 448, `${FISH_RARITY_LABEL[f.rarity]} · ${this.weightKg} kg · Lực chiến ${formatNum(fishPower(f))}`, 22, { align: "center", weight: "700" }).setOrigin(0.5));
-      const r = catchRewards(f, this.loadout.passives);
+      const r = catchRewards(f, this.loadout.passives, this.bossHunt);
       c.add(
-        txt(this, 640, 486, error ? `⚠ ${error}` : `+${formatNum(r.xp)} KN   +${formatNum(r.gold)} 🪙   · Đã cất vào Kho Cá`, 22, {
+        txt(this, 640, 486, error ? `⚠ ${error}` : `+${formatNum(r.xp)} KN  +${formatNum(r.gold)}🪙  +${r.stones}🔷${r.soul ? `  +${r.soul}🔮` : ""}${r.tickets ? `  +${r.tickets}🎫` : ""}`, 22, {
           align: "center",
           color: error ? "#ff8a80" : "#b9f6ca",
         }).setOrigin(0.5),
@@ -612,7 +642,7 @@ export class FishingScene extends Phaser.Scene {
     if (this.mode !== "result") return;
     this.resultC?.destroy(true);
     this.resultC = undefined;
-    this.fishImg.setAlpha(1).setAngle(0).setDepth(0);
+    this.fishImg.setAlpha(1).setAngle(0).setDepth(1);
     this.toIdle();
   }
 
