@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.28.3] – 2026-11-20 – Nút chat câu cá luôn hiện
+### Sửa
+- Nút **💬 Chat** trong màn câu cá giờ **luôn hiện**. Trước đây nếu lúc vào game tài khoản chưa kết nối được máy chủ (mạng chập chờn) thì nút bị ẩn hoàn toàn → người chơi không thấy phần trò chuyện. Giờ bấm vào sẽ báo lý do và cách khắc phục.
+
 ## [0.28.2] – 2026-11-20 – Thu gọn khung chat câu cá
 ### Thêm
 - Khung chat lúc câu cá có thêm nút **▾** ngay góc khung để thu gọn (mở lại bằng nút "💬 Chat" ở thanh trên – nút hiện số tin mới khi đang thu gọn).

@@ -35,14 +35,17 @@ export class FishingChat {
   ) {}
 
   start() {
-    if (!GameState.online) return;
+    // nút luôn hiện; chưa kết nối tài khoản thì bấm vào sẽ báo lý do
     this.btn = new Button(this.scene, 740, 38, 150, 46, "💬 Chat", { color: COLORS.blue, fontSize: 18, onClick: () => this.toggle() }).setDepth(45);
+    if (!GameState.online) return;
     void this.poll();
     this.timer = window.setInterval(() => void this.poll(), POLL_MS);
     this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
   }
 
   private toggle() {
+    if (!GameState.online)
+      return toast(this.scene, "Chưa kết nối tài khoản online (mất mạng?) – kiểm tra mạng rồi tải lại trang để trò chuyện", COLORS.red);
     this.open = !this.open;
     if (this.open) {
       this.unread = 0;
