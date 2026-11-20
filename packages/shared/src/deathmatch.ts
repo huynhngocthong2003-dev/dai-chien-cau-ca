@@ -287,3 +287,13 @@ export function resolvePvp(
     },
   };
 }
+
+/** Chiến lực đội hình: tổng lực chiến 3 con cá mạnh nhất (tính cả đột biến). */
+export function teamPower(save: PlayerSave, fishById: Map<string, FishDef>, formById?: Map<string, FishFormDef>): number {
+  return save.fishes
+    .filter((o) => fishById.has(o.fishId))
+    .map((o) => ownedFishPower(fishById.get(o.fishId)!, o, o.form ? formById?.get(o.form) : null))
+    .sort((a, b) => b - a)
+    .slice(0, 3)
+    .reduce((a, b) => a + b, 0);
+}

@@ -5,7 +5,7 @@
 import type { MetricKey, QuestDef, RankCategory, RewardDef, TitleDef, WheelPrizeDef } from "./types.ts";
 import type { Rng } from "./rng.ts";
 import { dayKey } from "./progression.ts";
-import { addLedger, clone, markTx, type ActionResult, type PlayerSave } from "./save.ts";
+import { addLedger, clone, markTx, newCharProgress, newRodProgress, type ActionResult, type PlayerSave } from "./save.ts";
 
 // ------------------------------------------------------------------ phần thưởng
 /** Cộng phần thưởng vào save (đã clone) và ghi sổ. */
@@ -31,6 +31,40 @@ export function grantReward(s: PlayerSave, r: RewardDef, txId: string, why: stri
     addLedger(s, txId, "bossTickets", r.bossTickets, why, now);
   }
   if (r.evoItem) s.evoItems[r.evoItem] = (s.evoItems[r.evoItem] ?? 0) + 1;
+  if (r.characterId) {
+    if (!s.characters[r.characterId]) s.characters[r.characterId] = newCharProgress();
+    else {
+      // trùng nhân vật → 30 Mảnh Linh Hồn
+      s.materials.soul += DUPLICATE_CHAR_SOUL;
+      addLedger(s, txId, "soul", DUPLICATE_CHAR_SOUL, `${why}:dup`, now);
+    }
+  }
+  if (r.rodId) {
+    if (!s.rods[r.rodId]) s.rods[r.rodId] = newRodProgress();
+    else {
+      // trùng cần câu → 60 Đá Nâng Cấp
+      s.materials.stones += DUPLICATE_ROD_STONES;
+      addLedger(s, txId, "stones", DUPLICATE_ROD_STONES, `${why}:dup`, now);
+    }
+  }
+}
+
+/** Quà nhân vật/cần câu đã sở hữu từ trước (sẽ đổi thành nguyên liệu). */
+export function isDuplicate(save: PlayerSave, r: RewardDef): boolean {
+  return (!!r.characterId && !!save.characters[r.characterId]) || (!!r.rodId && !!save.rods[r.rodId]);
+}
+
+export const DUPLICATE_CHAR_SOUL = 30;
+export const DUPLICATE_ROD_STONES = 60;
+
+/** Đổi phần quà "bốc ngẫu nhiên trong nhóm" thành quà cụ thể. */
+export function resolveReward(r: RewardDef, rng: Rng): RewardDef {
+  const out: RewardDef = { ...r };
+  if (r.characterPool?.length) out.characterId = r.characterPool[rng.int(0, r.characterPool.length - 1)];
+  if (r.rodPool?.length) out.rodId = r.rodPool[rng.int(0, r.rodPool.length - 1)];
+  delete out.characterPool;
+  delete out.rodPool;
+  return out;
 }
 
 export function rewardText(r: RewardDef, evoName?: (id: string) => string): string {
@@ -41,6 +75,10 @@ export function rewardText(r: RewardDef, evoName?: (id: string) => string): stri
   if (r.soul) parts.push(`${r.soul} 🔮`);
   if (r.bossTickets) parts.push(`${r.bossTickets} 🎫`);
   if (r.evoItem) parts.push(evoName ? evoName(r.evoItem) : "Vật phẩm đột biến");
+  if (r.characterId) parts.push(`Nhân vật ${evoName ? evoName(r.characterId) : r.characterId}`);
+  if (r.rodId) parts.push(`Cần ${evoName ? evoName(r.rodId) : r.rodId}`);
+  if (r.characterPool) parts.push("1 Nhân vật hiếm");
+  if (r.rodPool) parts.push("1 Cần câu hiếm");
   return parts.join(" + ");
 }
 
@@ -143,7 +181,7 @@ export function spinWheel(
   rng: Rng,
   txId: string,
   now: number,
-): ActionResult & { prize?: WheelPrizeDef; index?: number; free?: boolean } {
+): ActionResult & { prize?: WheelPrizeDef; index?: number; free?: boolean; reward?: RewardDef; dup?: boolean } {
   if (save.appliedTx.includes(txId)) return { ok: false, error: "Giao dịch trùng lặp" };
   const fresh = refreshDaily(save, now);
   const free = !fresh.daily.freeSpinUsed;
@@ -155,11 +193,13 @@ export function spinWheel(
     addLedger(s, txId, "diamonds", -WHEEL_COST_DIAMONDS, "wheel:spin", now);
   }
   const prize = rng.pickWeighted(prizes, (p) => p.weight);
-  grantReward(s, prize.reward, txId, `wheel:${prize.id}`, now);
+  const reward = resolveReward(prize.reward, rng);
+  const dup = isDuplicate(save, reward);
+  grantReward(s, reward, txId, `wheel:${prize.id}`, now);
   s.stats.spins = (s.stats.spins ?? 0) + 1;
   markTx(s, txId);
   s.updatedAt = now;
-  return { ok: true, save: s, prize, index: prizes.indexOf(prize), free };
+  return { ok: true, save: s, prize, index: prizes.indexOf(prize), free, reward, dup };
 }
 
 /** Quay x10: 270 💎 (rẻ hơn 10%), món ngon có tỉ lệ ra ×1,6 so với quay lẻ (không đảm bảo). */
@@ -173,7 +213,7 @@ export function spinWheel10(
   rng: Rng,
   txId: string,
   now: number,
-): ActionResult & { prizes?: WheelPrizeDef[]; indexes?: number[] } {
+): ActionResult & { prizes?: WheelPrizeDef[]; indexes?: number[]; rewards?: RewardDef[]; dups?: boolean[] } {
   if (save.appliedTx.includes(txId)) return { ok: false, error: "Giao dịch trùng lặp" };
   if (save.diamonds < WHEEL_COST_10) return { ok: false, error: `Cần ${WHEEL_COST_10} 💎 để quay 10 lần` };
   const s = clone(refreshDaily(save, now));
@@ -183,11 +223,18 @@ export function spinWheel10(
   const boosted = (p: WheelPrizeDef) => (good(p) ? p.weight * WHEEL_X10_GOOD_BOOST : p.weight);
   const got: WheelPrizeDef[] = [];
   for (let i = 0; i < 10; i++) got.push(rng.pickWeighted(prizes, boosted));
-  for (const p of got) grantReward(s, p.reward, txId, `wheel:${p.id}`, now);
+  const rewards: RewardDef[] = [];
+  const dups: boolean[] = [];
+  for (const p of got) {
+    const r = resolveReward(p.reward, rng);
+    dups.push(isDuplicate(s, r));
+    grantReward(s, r, txId, `wheel:${p.id}`, now);
+    rewards.push(r);
+  }
   s.stats.spins = (s.stats.spins ?? 0) + 10;
   markTx(s, txId);
   s.updatedAt = now;
-  return { ok: true, save: s, prizes: got, indexes: got.map((p) => prizes.indexOf(p)) };
+  return { ok: true, save: s, prizes: got, indexes: got.map((p) => prizes.indexOf(p)), rewards, dups };
 }
 
 // ------------------------------------------------------------------ danh hiệu
@@ -224,6 +271,7 @@ const RANK_TITLES: Record<RankCategory, [string, string, string, string]> = {
   bosses: ["Diệt Boss Chí Tôn", "Khắc Tinh Thủy Quái", "Thợ Săn Boss Lừng Danh", "Top 10 Săn Boss"],
   dmWins: ["Chiến Thần Sinh Tử", "Đấu Sĩ Bất Bại", "Sát Thủ Đấu Trường", "Top 10 Đấu Sĩ"],
   junk: ["Vua Nhặt Rác", "Nữ Hoàng Tái Chế", "Hiệp Sĩ Môi Trường", "Top 10 Kẻ Săn Lùng Rác"],
+  teamPower: ["Bá Chủ Đại Dương", "Hải Vương Chiến Lực", "Thủy Quân Vô Địch", "Top 10 Đội Hình Mạnh"],
 };
 
 /** Danh hiệu theo thứ hạng (1-based) trong một bảng xếp hạng; null nếu ngoài top 10. */

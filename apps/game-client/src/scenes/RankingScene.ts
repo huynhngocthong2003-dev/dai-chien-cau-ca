@@ -1,6 +1,6 @@
 import Phaser from "phaser";
-import { CHARACTER_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
-import { rankTitle, type RankCategory } from "@dccc/shared";
+import { CHARACTER_BY_ID, FISH_BY_ID, FORM_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
+import { rankTitle, teamPower, type RankCategory } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
 import { characterHeadTexture } from "../art/textures.ts";
@@ -16,12 +16,13 @@ const TABS: [Tab, string, string][] = [
   ["bosses", "👑 Săn Boss", "Boss"],
   ["dmWins", "⚔ Sinh tử", "Thắng"],
   ["junk", "♻ Nhặt rác", "Rác"],
+  ["teamPower", "🐟 Chiến lực", "⚔"],
   ["guild", "🛡 Hội", "Điểm"],
 ];
 
 /** Bảng Xếp Hạng: top 50 mỗi hạng mục, danh hiệu cho top 10, hạng của mình. */
 export class RankingScene extends Phaser.Scene {
-  private tab: Tab = "caught";
+  private tab: Tab = "teamPower";
   private body?: Phaser.GameObjects.Container;
   private tabs: Button[] = [];
   private page = 0;
@@ -36,7 +37,7 @@ export class RankingScene extends Phaser.Scene {
     fadeIn(this);
     menuBackdrop(this);
     new TopBar(this, { title: "Bảng Xếp Hạng", onBack: () => goTo(this, "Hub") });
-    this.tabs = TABS.map(([t, label], i) => new Button(this, 115 + i * 206, 118, 196, 50, label, { color: COLORS.blue, fontSize: 19, onClick: () => ((this.tab = t), (this.page = 0), void this.fetchData()) }));
+    this.tabs = TABS.map(([t, label], i) => new Button(this, 99 + i * 180, 118, 172, 50, label, { color: COLORS.blue, fontSize: 17, onClick: () => ((this.tab = t), (this.page = 0), void this.fetchData()) }));
     void this.fetchData();
   }
 
@@ -110,8 +111,9 @@ export class RankingScene extends Phaser.Scene {
       c.add(txt(this, 1210, y + 30, `${formatNum(r.score)} ${unit}`, 22, { color: COLORS.textGold }).setOrigin(1, 0.5));
     });
     const myT = mine ? rankTitle(cat, mine) : null;
+    const myTeam = cat === "teamPower" ? ` · Đội hình của bạn ⚔ ${formatNum(teamPower(GameState.save, FISH_BY_ID, FORM_BY_ID))}` : "";
     c.add(
-      txt(this, 60, 682, mine ? `Hạng của bạn: #${mine}${myT ? ` – ${myT.icon} ${myT.name}` : " – lọt Top 10 để nhận danh hiệu!"}` : "Bạn chưa có điểm ở bảng này", 19, { color: "#80d8ff" }).setOrigin(0, 0.5),
+      txt(this, 60, 682, mine ? `Hạng của bạn: #${mine}${myT ? ` – ${myT.icon} ${myT.name}` : " – lọt Top 10 để nhận danh hiệu!"}${myTeam}` : `Bạn chưa có điểm ở bảng này${myTeam}`, 17, { color: "#80d8ff" }).setOrigin(0, 0.5),
     );
     if (pages > 1) {
       c.add(new Button(this, 1060, 682, 60, 40, "◀", { color: COLORS.blue, disabled: this.page === 0, onClick: () => ((this.page -= 1), this.renderRows(cat, rows, mine)) }));

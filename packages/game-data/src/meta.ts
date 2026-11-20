@@ -40,6 +40,8 @@ export const WHEEL_PRIZES: WheelPrizeDef[] = [
   { id: "wh_bang_ha", label: "Tinh Thể Băng Hà", icon: "❄️", color: "#80d8ff", weight: 0.8, reward: { evoItem: "e_tinh_the_bang_ha" } },
   { id: "wh_sam_thach", label: "Sấm Thạch", icon: "⚡", color: "#ffee58", weight: 0.8, reward: { evoItem: "e_sam_thach" } },
   { id: "wh_jackpot", label: "500 KC", icon: "👑", color: "#ff4081", weight: 0.5, reward: { diamonds: 500 } },
+  { id: "wh_can_hiem", label: "Cần Câu Hiếm", icon: "🎣", color: "#00bfa5", weight: 0.3, reward: { rodPool: ["r_long_cot", "r_phuong_hoang", "r_long_cot", "r_phuong_hoang", "r_hai_than"] } },
+  { id: "wh_nhan_vat_hiem", label: "Nhân Vật Hiếm", icon: "🌟", color: "#e040fb", weight: 0.2, reward: { characterPool: ["c_long_vuong_tu", "c_hoa_than", "c_long_vuong_tu", "c_hoa_than", "c_hai_vuong", "c_than_sam"] } },
   { id: "wh_phuong_than", label: "Lông Phượng Thần", icon: "🪶", color: "#ff6d00", weight: 0.12, reward: { evoItem: "e_long_phuong_than" } },
 ];
 

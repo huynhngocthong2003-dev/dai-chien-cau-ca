@@ -286,3 +286,15 @@ do $$ begin
 end $$;
 reset role;
 select 'DB MATCHMAKING TEST OK' as result;
+
+-- ================= Xếp hạng chiến lực đội hình =================
+update public.player_cards set stats = stats || '{"teamPower": 900}' where user_id = '11111111-1111-1111-1111-111111111111';
+update public.player_cards set stats = stats || '{"teamPower": 1500}' where user_id = '22222222-2222-2222-2222-222222222222';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  if (select user_id from public.leaderboard('teamPower', 10) where rank = 1) <> '22222222-2222-2222-2222-222222222222' then raise exception 'Hạng 1 chiến lực sai'; end if;
+  if public.my_rank('teamPower') <> 2 then raise exception 'my_rank chiến lực sai'; end if;
+end $$;
+reset role;
+select 'DB TEAM POWER RANK TEST OK' as result;

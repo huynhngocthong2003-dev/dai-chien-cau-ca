@@ -3,7 +3,7 @@
  * Chỉ hoạt động khi đã đăng nhập tài khoản online.
  */
 import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
-import { ownedFishPower, winRate, type MatchResult, type PlayerSave, type PvpMatchRecord, type RankCategory } from "@dccc/shared";
+import { ownedFishPower, teamPower, winRate, type MatchResult, type PlayerSave, type PvpMatchRecord, type RankCategory } from "@dccc/shared";
 import { getClient } from "./online.ts";
 
 export interface ShowcaseFish {
@@ -22,7 +22,7 @@ export interface PlayerCard {
   friend_code: string;
   level: number;
   avatar: string;
-  stats: { caught?: number; bosses?: number; dmWins?: number; dmLosses?: number; species?: number; junk?: number; title?: string | null };
+  stats: { caught?: number; bosses?: number; dmWins?: number; dmLosses?: number; species?: number; junk?: number; teamPower?: number; title?: string | null };
   showcase: ShowcaseFish[];
 }
 
@@ -57,6 +57,7 @@ export function cardFromSave(save: PlayerSave): Omit<PlayerCard, "user_id" | "fr
       dmLosses: save.stats.dmLosses ?? 0,
       species: Object.keys(save.stats.species).length,
       junk: save.stats.junkCaught ?? 0,
+      teamPower: teamPower(save, FISH_BY_ID, FORM_BY_ID),
       title: save.titles.equipped,
     },
     showcase,

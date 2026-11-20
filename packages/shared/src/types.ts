@@ -305,6 +305,12 @@ export interface RewardDef {
   bossTickets?: number;
   /** Vật phẩm tiến hóa đột biến (id). */
   evoItem?: string;
+  /** Mở khóa nhân vật / cần câu (đã có thì đổi thành nguyên liệu). */
+  characterId?: string;
+  rodId?: string;
+  /** Bốc ngẫu nhiên 1 nhân vật / cần câu trong nhóm (dùng cho Vòng Quay). */
+  characterPool?: string[];
+  rodPool?: string[];
 }
 
 /** Chỉ số dùng để tính nhiệm vụ / danh hiệu. */
@@ -353,7 +359,7 @@ export interface WheelPrizeDef {
   reward: RewardDef;
 }
 
-export type RankCategory = "level" | "caught" | "bosses" | "dmWins" | "junk";
+export type RankCategory = "level" | "caught" | "bosses" | "dmWins" | "junk" | "teamPower";
 
 export interface TopupPackageDef {
   id: "kc100" | "kc300" | "auto2d";

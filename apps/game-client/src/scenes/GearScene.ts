@@ -43,7 +43,7 @@ export function unlockText(u: UnlockCondition): string {
     case "gold":
       return `${u.amount.toLocaleString("vi-VN")} vàng${u.level ? ` · cần cấp ${u.level}` : ""}`;
     case "gacha":
-      return "Nhận từ Vòng Quay (Giai đoạn 3)";
+      return "Vòng Quay May Mắn (ô ✦ Hiếm – tỉ lệ rất thấp)";
     case "event":
       return "Phần thưởng sự kiện mùa giải";
     case "code":

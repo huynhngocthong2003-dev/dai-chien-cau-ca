@@ -1,6 +1,10 @@
 import Phaser from "phaser";
-import { EVO_ITEM_BY_ID, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES } from "@dccc/game-data";
-import { WHEEL_COST_10, WHEEL_COST_DIAMONDS, rewardText } from "@dccc/shared";
+import { CHARACTER_BY_ID, EVO_ITEM_BY_ID, ROD_BY_ID, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES } from "@dccc/game-data";
+import { CHAR_RARITY_COLOR } from "@dccc/game-config";
+import { characterTexture, rodIconTexture } from "../art/textures.ts";
+
+const nameOf = (id: string) => EVO_ITEM_BY_ID.get(id)?.name ?? CHARACTER_BY_ID.get(id)?.name ?? ROD_BY_ID.get(id)?.name ?? id;
+import { DUPLICATE_CHAR_SOUL, DUPLICATE_ROD_STONES, WHEEL_COST_10, WHEEL_COST_DIAMONDS, rewardText, type RewardDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
@@ -93,7 +97,7 @@ export class WheelScene extends Phaser.Scene {
     const best = r.indexes!.reduce((b, i) => (WHEEL_PRIZES[i]!.weight < WHEEL_PRIZES[b]!.weight ? i : b), r.indexes![0]!);
     this.rotateTo(best, 3000, () => {
       this.spinning = false;
-      this.showX10(r.prizes!);
+      this.showX10(r.prizes!, r.rewards, r.dups);
       this.updateBtn();
     });
   }
@@ -120,7 +124,26 @@ export class WheelScene extends Phaser.Scene {
     });
   }
 
-  private showX10(prizes: typeof WHEEL_PRIZES) {
+  /** Màn khoe trúng nhân vật / cần câu hiếm. */
+  private bigWin(rw: RewardDef) {
+    Sfx.catchFanfare(true);
+    this.cameras.main.flash(600, 255, 255, 255);
+    const ch = rw.characterId ? CHARACTER_BY_ID.get(rw.characterId) : null;
+    const rod = rw.rodId ? ROD_BY_ID.get(rw.rodId) : null;
+    const m = modal(this, 700, 520, ch ? "🌟 NHẬN NHÂN VẬT HIẾM!" : "🎣 NHẬN CẦN CÂU HIẾM!", () => this.updateBtn());
+    const cx = m.x + m.w / 2;
+    const col = hexToInt(CHAR_RARITY_COLOR[(ch ?? rod)!.rarity]);
+    m.root.add(this.add.image(cx, m.y + 240, "p_spark").setTint(col).setScale(14).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD));
+    const img = ch ? this.add.image(cx, m.y + 360, characterTexture(this, ch, {})).setOrigin(0.5, 1).setScale(1.1) : this.add.image(cx, m.y + 240, rodIconTexture(this, rod!)).setScale(1.6);
+    img.setScale(img.scale * 0.2);
+    this.tweens.add({ targets: img, scale: img.scale * 5, duration: 600, ease: "Back.easeOut" });
+    m.root.add(img);
+    m.root.add(this.add.particles(cx, m.y + 240, "p_spark", { speed: { min: 150, max: 450 }, lifespan: 1200, scale: { start: 1.4, end: 0 }, tint: [col, 0xffffff], quantity: 60, stopAfter: 60, blendMode: Phaser.BlendModes.ADD }));
+    m.root.add(txt(this, cx, m.y + 400, `${(ch ?? rod)!.rarity} · ${(ch ?? rod)!.name}`, 30, { color: CHAR_RARITY_COLOR[(ch ?? rod)!.rarity], align: "center" }).setOrigin(0.5));
+    m.root.add(new Button(this, cx, m.y + m.h - 46, 220, 54, "Tuyệt vời!", { color: COLORS.orange, fontSize: 22, onClick: () => m.close() }));
+  }
+
+  private showX10(prizes: typeof WHEEL_PRIZES, rewards: RewardDef[] = [], dups: boolean[] = []) {
     const good = prizes.filter((p) => p.weight <= WHEEL_GOOD_WEIGHT).length;
     if (good) {
       Sfx.catchFanfare(true);
@@ -139,7 +162,9 @@ export class WheelScene extends Phaser.Scene {
       const ic = this.add.text(x + 76, y + 64, p.icon, { fontSize: "54px", padding: { top: 10 } }).setOrigin(0.5).setScale(0);
       this.tweens.add({ targets: ic, scale: 1, delay: i * 90, duration: 260, ease: "Back.easeOut" });
       m.root.add(ic);
-      m.root.add(txt(this, x + 76, y + 138, p.label, 16, { align: "center", color: isGood ? "#ffd54f" : "#ffffff", wrap: 140 }).setOrigin(0.5));
+      const rw = rewards[i];
+      const nm = rw?.characterId ? CHARACTER_BY_ID.get(rw.characterId)?.name : rw?.rodId ? ROD_BY_ID.get(rw.rodId)?.name : null;
+      m.root.add(txt(this, x + 76, y + 138, nm ? `${nm}${dups[i] ? "\n(đã có → nguyên liệu)" : ""}` : p.label, nm ? 14 : 16, { align: "center", color: isGood ? "#ffd54f" : "#ffffff", wrap: 140 }).setOrigin(0.5));
     });
     m.root.add(new Button(this, m.x + m.w / 2, m.y + m.h - 44, 220, 54, "Nhận", { color: COLORS.green, fontSize: 22, onClick: () => m.close() }));
   }
@@ -180,8 +205,10 @@ export class WheelScene extends Phaser.Scene {
         this.add
           .particles(CX, CY, "p_spark", { speed: { min: 200, max: 600 }, lifespan: 1000, scale: { start: 1.5, end: 0 }, tint: [hexToInt(p.color), 0xffffff], quantity: big ? 80 : 30, stopAfter: big ? 80 : 30, blendMode: Phaser.BlendModes.ADD })
           .setDepth(100);
-        this.info.setText(`${p.icon} Trúng: ${rewardText(p.reward, (id) => EVO_ITEM_BY_ID.get(id)?.name ?? id)}!`);
-        toast(this, `🎉 Bạn trúng ${p.label}!`, COLORS.green);
+        const rw = r.reward ?? p.reward;
+        this.info.setText(`${p.icon} Trúng: ${rewardText(rw, nameOf)}!${r.dup ? `\n(đã có → đổi thành ${rw.characterId ? `${DUPLICATE_CHAR_SOUL} Linh Hồn` : `${DUPLICATE_ROD_STONES} Đá`})` : ""}`);
+        if ((rw.characterId || rw.rodId) && !r.dup) this.bigWin(rw);
+        else toast(this, `🎉 Bạn trúng ${p.label}!`, COLORS.green);
         this.updateBtn();
       },
     });

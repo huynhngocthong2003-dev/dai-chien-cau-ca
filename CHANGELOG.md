@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.16.0] – 2026-11-20 – Nhân vật & cần câu từ Vòng Quay, xếp hạng Chiến Lực
+### Thêm
+- Vòng Quay thêm ô **🌟 Nhân Vật Hiếm** (~0,2%/lượt: Ngao Thiên, Viêm Hỏa – SSR; Thủy Tổ, Lôi Vũ – UR hiếm hơn) và **🎣 Cần Câu Hiếm** (~0,3%/lượt: Long Cốt, Phượng Hoàng – SSR; Hải Thần – UR). Đây là các nhân vật/cần trước đây chưa có cách nhận. Trúng món đã có → đổi thành 30 Linh Hồn (nhân vật) / 60 Đá (cần câu). Màn khoe riêng khi trúng.
+- **Bảng Xếp Hạng Chiến Lực đội hình** (tab mặc định 🐟 Chiến lực): tổng lực chiến 3 con cá mạnh nhất (tính cả đột biến). Danh hiệu Top: 👑 Bá Chủ Đại Dương, 🥈 Hải Vương Chiến Lực, 🥉 Thủy Quân Vô Địch, 🏅 Top 10 Đội Hình Mạnh. Hiện chiến lực đội hình của bạn.
+
 ## [0.15.0] – 2026-11-20 – Vòng Quay mới: 17 phần quà + Quay x10
 ### Thêm
 - Vòng Quay May Mắn có **17 phần quà**: thêm 40 Đá, 15.000 Vàng, 3 Vé Boss, 15 Linh Hồn, Lõi Dung Nham, Tinh Thể Băng Hà, Sấm Thạch, **👑 500 KC** và **🪶 Lông Phượng Thần** (cực hiếm).
