@@ -210,7 +210,11 @@ export class FishingScene extends Phaser.Scene {
     this.together = new FishingTogether(this, this.zone.id);
     this.together.start();
     // khung chat thu gọn: trò chuyện mà không rời chỗ câu
-    new FishingChat(this, this.together).start();
+    new FishingChat(this, this.together, (open) => {
+      // khung chat to chiếm góc trái-dưới → dời dòng hướng dẫn sang phải cho khỏi bị che
+      if (open) this.hint.setPosition(990, 470).setWordWrapWidth(520).setFontSize(26);
+      else this.hint.setPosition(640, 640).setWordWrapWidth(0).setFontSize(30);
+    }).start();
     this.toIdle();
     this.auto = false;
     this.autoBtn = new Button(this, 540, 38, 200, 46, "", { color: COLORS.purple, fontSize: 18, onClick: () => this.toggleAuto() }).setDepth(45);

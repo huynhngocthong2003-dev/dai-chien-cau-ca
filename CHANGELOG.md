@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.28.5] – 2026-11-20 – Khung chat câu cá to hơn nữa
+### Thay đổi
+- Khung chat lúc câu cá to hơn nữa: 700×302, chữ tin nhắn cỡ 21, tiêu đề 24, ô nhập chữ 22 (cao 54), nút Gửi/▾ to hơn.
+- Khi mở khung chat, dòng hướng dẫn ("CÁ CẮN! BẤM NGAY!", "Kéo!"…) tự dời sang bên phải phía trên nút KÉO để không bị che; thu gọn chat thì về chỗ cũ.
+
 ## [0.28.4] – 2026-11-20 – Khung chat câu cá to hơn
 ### Thay đổi
 - Khung chat lúc câu cá to hơn, dễ đọc trên điện thoại: khung 560×234 (trước 430×186), chữ tin nhắn cỡ 16 (trước 13), tiêu đề 19, ô nhập chữ 18 và cao hơn, nút Gửi và nút ▾ thu gọn to hơn; mỗi dòng hiện tới ~62 ký tự.
