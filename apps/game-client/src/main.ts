@@ -20,6 +20,7 @@ import { RankingScene } from "./scenes/RankingScene.ts";
 import { GuildScene } from "./scenes/GuildScene.ts";
 import { TopupScene } from "./scenes/TopupScene.ts";
 import { PlazaScene } from "./scenes/PlazaScene.ts";
+import { RaceScene } from "./scenes/RaceScene.ts";
 
 async function start() {
   // Chờ font tiếng Việt tải xong (tối đa 3 giây) để chữ không bị nhảy.
@@ -44,7 +45,7 @@ async function start() {
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
     fps: { target: 60 },
-    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, BattleScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene],
+    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, BattleScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 
@@ -56,7 +57,7 @@ async function start() {
     const k = sc.scene.key;
     if (k === "Hub" || k === "Plaza") return "hub";
     if (k === "Fishing") return (sc as unknown as { bossHunt?: boolean }).bossHunt ? "boss" : "fishing";
-    if (k === "Battle" || k === "DeathMatch") return "battle";
+    if (k === "Battle" || k === "DeathMatch" || k === "Race") return "battle";
     return "calm";
   };
   const hookMusic = () => {

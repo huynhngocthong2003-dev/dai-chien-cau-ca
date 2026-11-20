@@ -154,6 +154,8 @@ export class HubScene extends Phaser.Scene {
     // Quảng Trường: gặp gỡ, trò chuyện, khoe cá
     const pz = new Button(this, 92 - extraX(this) + safeX(this), 190, 150, 50, "🏙 Quảng Trường", { color: COLORS.orange, fontSize: 17, onClick: () => goTo(this, "Plaza") });
     pz.setDepth(20);
+    const rc = new Button(this, 92 - extraX(this) + safeX(this), 250, 150, 50, "🏁 Đua Cá", { color: COLORS.green, fontSize: 18, onClick: () => goTo(this, "Race") });
+    rc.setDepth(20);
     if (GameState.online && !HubScene.socialSynced) {
       HubScene.socialSynced = true;
       void GameState.claimTopups()
@@ -317,6 +319,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.19.1 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.20.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

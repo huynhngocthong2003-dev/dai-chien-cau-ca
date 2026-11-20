@@ -67,6 +67,8 @@ export const playerSaveSchema = z.object({
     junkCaught: nonNegInt.optional(),
     roastedEaten: nonNegInt.optional(),
     spins: nonNegInt.optional(),
+    races: nonNegInt.optional(),
+    raceWins: nonNegInt.optional(),
   }),
   daily: z.object({
     day: z.string().max(10),

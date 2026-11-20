@@ -18,3 +18,4 @@ export * from "./forms.ts";
 export * from "./meta.ts";
 export * from "./topup.ts";
 export * from "./plaza.ts";
+export * from "./race.ts";

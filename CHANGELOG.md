@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.20.0] – 2026-11-20 – 🏁 Đua Cá
+### Thêm
+- Nút **🏁 Đua Cá** ở sảnh. Nhân vật **cưỡi lên con cá người chơi chọn**, đua 1.200m trên 3 làn nước với 4 đối thủ.
+- **Mỗi con cá có chỉ số đua riêng** – ⚡ Tốc độ, 🚀 Tăng tốc, 💪 Thể lực – **ngẫu nhiên khi câu được** (gieo từ mã riêng của từng con; cá cũ trong kho cũng có). Độ hiếm, cấp, sao, thể đột biến và cân nặng ảnh hưởng chỉ số. Xếp hạng **S/A/B/C/D**.
+- **Đường đua**: 🌿 rong biển (chậm), 🪨 đá (chậm nặng, mất tăng tốc), 🌊 dòng xiết (tăng tốc). Đổi làn bằng nút ▲▼, vuốt lên/xuống, phím ↑↓/W S.
+- **Kỹ năng TĂNG TỐC** (nút / Space / Shift) khi đầy năng lượng: vọt nhanh 45%, **xé toạc rong biển**; hiệu ứng màn hình chớp màu theo hệ của cá, vòng sóng xung kích, vệt tốc độ, bóng mờ + tia nước theo màu hệ, máy quay phóng nhẹ.
+- 3 giải: **Tập Sự** (phí 50, giải 250/120/60), **Chuyên Nghiệp** (cấp 8, phí 300, giải 1.500+💎2/700/350), **Huyền Thoại** (cấp 20, phí 1.500, giải 7.000+💎8/3.000/1.500). Đối thủ máy mạnh dần theo giải và biết né chướng ngại.
+- Thưởng qua sổ cái (phí ghi danh + thưởng mỗi cuộc đua chỉ nhận 1 lần).
+
 ## [0.19.1] – 2026-11-20 – Cân bằng: câu khó hơn, Boss hiếm hơn
 ### Thay đổi
 - **Boss bất ngờ khi câu thường hiếm hơn ~3 lần**: ~0,6% mỗi lần quăng (trước 1,7–2%), tối đa 1,2% dù may mắn cao. Săn Boss bằng vé vẫn chắc chắn gặp.

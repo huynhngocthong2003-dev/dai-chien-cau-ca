@@ -130,6 +130,9 @@ export interface PlayerSave {
     roastedEaten?: number;
     /** Số lần quay Vòng Quay May Mắn. */
     spins?: number;
+    /** Đua Cá: số cuộc đua đã nhận thưởng / số lần về nhất. */
+    races?: number;
+    raceWins?: number;
   };
   /** Nhiệm vụ ngày: mốc chỉ số đầu ngày + nhiệm vụ đã nhận thưởng + lượt quay miễn phí. */
   daily: { day: string; base: Partial<Record<string, number>>; claimed: string[]; freeSpinUsed: boolean };

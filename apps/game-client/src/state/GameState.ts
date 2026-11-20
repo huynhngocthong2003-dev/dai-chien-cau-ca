@@ -5,6 +5,9 @@ import {
   applyCatch,
   applyJunkCatch,
   applyDeathMatch,
+  applyRaceEntry,
+  applyRaceResult,
+  type RaceLeague,
   applyForm,
   applyPvpOutcome,
   eatRoasted,
@@ -189,6 +192,20 @@ class GameStateStore extends Phaser.Events.EventEmitter {
 
   catchJunk(j: JunkDef) {
     return this.run(applyJunkCatch(this._save, j, uid("j"), Date.now()));
+  }
+
+  // ------------------------------------------------------------ Đua Cá
+  /** Ghi danh (trừ phí). Trả về mã ghi danh để nhận thưởng sau cuộc đua. */
+  raceEntry(league: RaceLeague, fishUid: string) {
+    const txId = uid("race");
+    const r = this.run(applyRaceEntry(this._save, { txId, league, fishUid, now: Date.now() }));
+    return r.ok ? { ok: true as const, entryTx: txId } : r;
+  }
+
+  raceResult(entryTx: string, league: RaceLeague, place: number) {
+    const r = applyRaceResult(this._save, { entryTx, league, place, now: Date.now() });
+    if (r.ok) this.commit(r.save);
+    return r;
   }
 
   // ------------------------------------------------------------ Đấu Sinh Tử
