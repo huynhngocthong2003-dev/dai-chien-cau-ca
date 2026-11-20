@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { makeScrollArea } from "../ui/scrollArea.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { TIER_COLOR, TIER_LABEL } from "@dccc/game-config";
 import { CHARACTER_BY_ID, COSMETICS, ECO_MESSAGE, JUNK, JUNK_BY_ID, SHOP_ITEMS } from "@dccc/game-data";
@@ -40,6 +41,8 @@ export class ShopScene extends Phaser.Scene {
   private selected: string | null = null;
   private body?: Phaser.GameObjects.Container;
   private tabBtns: Button[] = [];
+  /** Vị trí cuộn của từng tab (giữ nguyên khi chọn đồ / mua đồ). */
+  private scrolls: Record<string, number> = {};
 
   constructor() {
     super("Shop");
@@ -73,7 +76,7 @@ export class ShopScene extends Phaser.Scene {
   private render() {
     TABS.forEach((t, i) => this.tabBtns[i]!.setColor(t.id === this.tab ? COLORS.orange : COLORS.blue));
     this.body?.destroy(true);
-    const c = this.add.container(0, 0);
+    let c = this.add.container(0, 0);
     this.body = c;
     if (this.tab === "market") return this.renderMarket(c);
     if (this.tab === "items") return this.renderItems(c);
@@ -81,12 +84,20 @@ export class ShopScene extends Phaser.Scene {
     if (eco) this.renderEcoBanner(c);
     const list = eco ? COSMETICS.filter((it) => it.price.currency === "eco") : COSMETICS.filter((it) => it.slot === this.tab && it.price.currency !== "eco");
     if (!this.selected || !list.some((x) => x.id === this.selected)) this.selected = list[0]!.id;
+    // lưới đồ cuộn được (lăn chuột / kéo thanh cuộn / vuốt)
+    const outer = c;
+    const top0 = eco ? 424 : 146;
+    const grid = this.add.container(0, 0);
+    outer.add(grid);
+    c = grid;
+    let area: { dragged: () => boolean } | null = null;
     list.forEach((it, i) => {
-      const x = 16 + (i % 5) * 165;
+      const x = 16 + (i % 5) * 163;
       const y = (eco ? 430 : 152) + Math.floor(i / 5) * 278;
       const owned = GameState.save.wardrobe[it.id] ?? 0;
       const tc = TIER_COLOR[it.tier];
-      this.card(c, x, y, 158, 268, it.id === this.selected, tc, () => {
+      this.card(c, x, y, 156, 268, it.id === this.selected, tc, () => {
+        if (area?.dragged()) return;
         this.selected = it.id;
         this.render();
       });
@@ -98,7 +109,18 @@ export class ShopScene extends Phaser.Scene {
       c.add(txt(this, x + 79, y + 214, it.name, 15, { align: "center", wrap: 150 }).setOrigin(0.5));
       c.add(txt(this, x + 79, y + 248, priceText(it.price), 17, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
     });
-    this.renderCosmeticDetail(c, COSMETICS.find((x) => x.id === this.selected)!);
+    const key = `${this.tab}`;
+    area = makeScrollArea(this, outer, grid, {
+      left: 8,
+      right: 846,
+      top: top0,
+      bottom: 712,
+      trackX: 836,
+      contentH: Math.ceil(list.length / 5) * 278 + 12,
+      scroll: this.scrolls[key] ?? 0,
+      onScroll: (v) => (this.scrolls[key] = v),
+    });
+    this.renderCosmeticDetail(outer, COSMETICS.find((x) => x.id === this.selected)!);
   }
 
   private card(c: Phaser.GameObjects.Container, x: number, y: number, w: number, h: number, sel: boolean, color: string, onClick: () => void) {

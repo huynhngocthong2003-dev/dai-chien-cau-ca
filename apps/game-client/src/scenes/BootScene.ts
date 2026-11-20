@@ -16,7 +16,9 @@ export class BootScene extends Phaser.Scene {
     GameState.init()
       .then(() => {
         (window as unknown as { __ready: boolean }).__ready = true;
-        this.scene.start("Hub");
+        // bắt buộc tạo tài khoản / đăng nhập trước khi vào game
+        if (GameState.needsLogin) this.scene.start("Account", { required: true });
+        else this.scene.start("Hub");
       })
       .catch((e: unknown) => {
         console.error(e);

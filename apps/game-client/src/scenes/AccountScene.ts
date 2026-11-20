@@ -22,16 +22,25 @@ function esc(s: string) {
 export class AccountScene extends Phaser.Scene {
   private body?: Phaser.GameObjects.Container;
   private busy = false;
+  /** Màn bắt buộc khi vào game: phải đăng nhập / tạo tài khoản mới vào được sảnh. */
+  private required = false;
 
   constructor() {
     super("Account");
+  }
+
+  init(data?: { required?: boolean }) {
+    this.required = !!data?.required || GameState.needsLogin;
   }
 
   create() {
     this.input.enabled = true;
     fadeIn(this);
     menuBackdrop(this);
-    new TopBar(this, { title: "Tài Khoản", onBack: () => goTo(this, "Hub") });
+    new TopBar(this, {
+      title: this.required ? "Đăng Nhập Để Chơi" : "Tài Khoản",
+      onBack: () => (GameState.needsLogin ? toast(this, "Hãy tạo tài khoản hoặc đăng nhập để vào game 🎣", COLORS.blue) : goTo(this, "Hub")),
+    });
     this.render();
   }
 
@@ -39,7 +48,8 @@ export class AccountScene extends Phaser.Scene {
     this.body?.destroy(true);
     const c = this.add.container(0, 0);
     this.body = c;
-    this.renderProfile(c);
+    if (this.required && GameState.needsLogin) this.renderWelcome(c);
+    else this.renderProfile(c);
     this.renderOnline(c);
     this.renderBackup(c);
   }
@@ -65,6 +75,38 @@ export class AccountScene extends Phaser.Scene {
         fontSize: 22,
         onClick: () => this.renameDialog(),
       }),
+    );
+  }
+
+  /** Lời chào khi bắt buộc đăng nhập. */
+  private renderWelcome(c: Phaser.GameObjects.Container) {
+    const s = GameState.save;
+    c.add(panel(this, 16, 92, 404, 614, 0.95));
+    c.add(txt(this, 218, 140, "🎣 Chào mừng!", 34, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+    c.add(
+      txt(
+        this,
+        218,
+        330,
+        "Tạo tài khoản miễn phí (email + mật khẩu) để:\n\n☁️ Lưu tiến trình an toàn trên máy chủ\n📱 Chơi tiếp trên mọi thiết bị\n👥 Kết bạn, nhắn tin, Quảng Trường\n🏁 Đua cá & Đấu Sinh Tử với người thật\n🏆 Lên Bảng Xếp Hạng",
+        18,
+        { align: "center", weight: "700", wrap: 370 },
+      )
+        .setOrigin(0.5)
+        .setLineSpacing(5),
+    );
+    const hasProgress = s.stats.totalCaught > 0 || s.level > 1;
+    c.add(
+      txt(
+        this,
+        218,
+        560,
+        hasProgress
+          ? `Máy này đã có tiến trình (cấp ${s.level}, ${s.stats.totalCaught} cá).\nTạo tài khoản mới sẽ GIỮ NGUYÊN và đưa lên tài khoản.`
+          : "Đã có tài khoản? Nhập email + mật khẩu rồi bấm Đăng nhập.",
+        15,
+        { align: "center", weight: "700", wrap: 370, color: hasProgress ? "#69f0ae" : COLORS.textDim },
+      ).setOrigin(0.5),
     );
   }
 
@@ -110,8 +152,8 @@ export class AccountScene extends Phaser.Scene {
           fontSize: 21,
           onClick: async () => {
             await GameState.signOut();
-            toast(this, "Đã đăng xuất. Tiến trình vẫn được giữ trên máy này.");
-            this.render();
+            toast(this, "Đã đăng xuất. Đăng nhập lại để tiếp tục chơi.");
+            this.scene.restart({ required: true });
           },
         }),
       );
@@ -152,7 +194,9 @@ export class AccountScene extends Phaser.Scene {
         Sfx.levelUp();
         const msg = (r as { message?: string }).message;
         toast(this, msg || "Đăng nhập thành công", COLORS.green);
-        this.render();
+        // vào game ngay sau khi đăng nhập / tạo tài khoản ở màn bắt buộc
+        if (this.required) this.time.delayedCall(900, () => goTo(this, "Hub"));
+        else this.render();
       } catch (e) {
         toast(this, `Lỗi: ${(e as Error).message}`, COLORS.red);
       } finally {

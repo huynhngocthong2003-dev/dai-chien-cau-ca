@@ -609,3 +609,45 @@ do $$ begin
 end $$;
 reset role;
 select 'DB RACE LOBBY TEST OK' as result;
+
+-- ================= Lời mời đua cá (bảng xác nhận 10 giây) =================
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ declare j jsonb; begin
+  j := public.race_lobby_create('tap_su', 'random', '{"fishId":"f_ca_ro"}');
+  delete from _lobby;
+  insert into _lobby values ((j ->> 'lobby_id')::bigint, j ->> 'code');
+  perform public.race_lobby_invite((select id from _lobby), '22222222-2222-2222-2222-222222222222');
+  begin perform public.race_lobby_invite((select id from _lobby), '22222222-2222-2222-2222-222222222222'); raise exception 'LỖI: mời dồn dập';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+  if (public.race_lobby_state((select id from _lobby)) -> 'invites' -> 0 ->> 'status') <> 'pending' then raise exception 'Chủ phòng không thấy lời mời đang chờ'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  if (select count(*) from public.race_my_invites()) <> 0 then raise exception 'LỖI: người khác thấy lời mời'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ declare r record; begin
+  select * into r from public.race_my_invites() limit 1;
+  if r.code <> (select code from _lobby) or r.from_name <> 'An' or r.members <> 1 then raise exception 'Lời mời sai: %', r; end if;
+  perform public.race_invite_respond(r.id, false);
+  if (select count(*) from public.race_my_invites()) <> 0 then raise exception 'Từ chối rồi vẫn hiện'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  if (public.race_lobby_state((select id from _lobby)) -> 'invites' -> 0 ->> 'status') <> 'declined' then raise exception 'Chủ phòng không thấy bị từ chối'; end if;
+end $$;
+reset role;
+update public.race_invites set created_at = now() - interval '20 seconds';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+select public.race_lobby_invite((select id from _lobby), '22222222-2222-2222-2222-222222222222') \g /dev/null
+reset role;
+update public.race_invites set created_at = now() - interval '13 seconds' where status = 'pending';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ begin
+  if (select count(*) from public.race_my_invites()) <> 0 then raise exception 'Lời mời quá 12 giây vẫn hiện'; end if;
+end $$;
+reset role;
+select 'DB RACE INVITES TEST OK' as result;

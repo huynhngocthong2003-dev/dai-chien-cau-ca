@@ -85,6 +85,13 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   loadWarning: string | null = null;
   /** Người dùng tài khoản online đang đăng nhập (nếu có). */
   online: Online.OnlineUser | null = null;
+  /** Máy này có phiên đăng nhập (kể cả khi tạm thời chưa đồng bộ được vì mất mạng). */
+  hadSession = false;
+
+  /** Bắt buộc đăng nhập: bản game có máy chủ tài khoản mà người chơi chưa đăng nhập. */
+  get needsLogin(): boolean {
+    return Online.onlineConfigured() && !this.online && !this.hadSession;
+  }
   /** Bộ lưu trên máy/Artifact – dùng lại khi đăng xuất. */
   private baseStorage: SaveStorage = new MemorySaveStorage();
   soundOn = true;
@@ -98,6 +105,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     if (Online.onlineConfigured()) {
       const user = await Online.currentUser();
       if (user) {
+        this.hadSession = true;
         try {
           const msg = await this.adoptAccount(user);
           if (msg && msg.includes("cất")) this.loadWarning = msg;
@@ -496,6 +504,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   async signUp(email: string, password: string, name: string) {
     const r = await Online.signUp(email, password, name);
     if (!r.ok || !r.user) return r;
+    this.hadSession = true;
     this.rename(name);
     try {
       return { ...r, message: await this.adoptAccount(r.user) };
@@ -507,6 +516,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   async signIn(email: string, password: string) {
     const r = await Online.signIn(email, password);
     if (!r.ok || !r.user) return r;
+    this.hadSession = true;
     try {
       return { ...r, message: await this.adoptAccount(r.user) };
     } catch (e) {
@@ -518,6 +528,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     if (this.storage instanceof Online.OnlineSaveStorage) await this.storage.flush();
     await Online.signOut();
     this.online = null;
+    this.hadSession = false;
     this.storage = this.baseStorage;
     await this.persist();
     this.emit("account", null);

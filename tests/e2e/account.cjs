@@ -2,7 +2,9 @@
  * E2E tài khoản & sao lưu.
  *  A. Sao lưu bằng mã: máy 1 tạo mã → máy 2 (trình duyệt sạch) khôi phục → tiến trình giống hệt.
  *  B. Tài khoản online với máy chủ Supabase GIẢ (chặn request trong trình duyệt):
- *     tạo tài khoản → máy khác đăng nhập nhận đúng tiến trình → sai mật khẩu báo lỗi → đăng xuất.
+ *     vào game là gặp màn BẮT BUỘC đăng nhập (không vào sảnh được) → máy có tiến trình cũ tạo tài khoản
+ *     (tiến trình được giữ & đưa lên máy chủ) → vào sảnh → máy khác: sai mật khẩu bị chặn, đúng thì vào sảnh
+ *     nhận đúng tiến trình → tải lại giữ đăng nhập → đăng xuất quay về màn đăng nhập.
  * Chạy: node tests/e2e/account.cjs <url-không-cấu-hình> <url-có-cấu-hình-https://fake.supabase.test> [thư-mục-ảnh]
  *   (bản B cần dev server chạy với VITE_SUPABASE_URL=https://fake.supabase.test VITE_SUPABASE_ANON_KEY=test)
  */
@@ -24,6 +26,18 @@ async function open(browser, url, setup) {
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
   await p.waitForTimeout(400);
+  return p;
+}
+/** Mở bản có máy chủ: phải dừng ở màn đăng nhập bắt buộc. */
+async function openGate(browser, url, setup) {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const p = await ctx.newPage();
+  p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
+  p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('401') && !m.text().includes('400')) errs.push('console: ' + m.text()); });
+  if (setup) await setup(p);
+  await p.goto(url, { waitUntil: 'domcontentloaded' });
+  await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Account'), null, { timeout: 30000 });
+  await p.waitForTimeout(600);
   return p;
 }
 const save = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('dccc_save_v1')));
@@ -174,37 +188,52 @@ async function playOneFish(p) {
       });
     };
 
-    // Máy 3: chơi rồi tạo tài khoản
-    const p3 = await open(browser, urlOnline, mock);
-    await playOneFish(p3);
+    // Máy 3: đã có tiến trình từ trước (chơi khách ở bản cũ) → gặp màn bắt buộc → tạo tài khoản
+    const p3 = await openGate(browser, urlOnline, mock);
+    await p3.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('dccc_save_v1'));
+      s.fishes = [{ uid: 'old1', fishId: 'f_ca_chep', level: 3, stars: 1, weightKg: 2, zoneId: 'z_ben_tan_thu', caughtAt: 1, locked: false }];
+      s.stats.totalCaught = 7;
+      s.stats.species = { f_ca_chep: 7 };
+      localStorage.setItem('dccc_save_v1', JSON.stringify(s));
+    });
+    await p3.reload({ waitUntil: 'domcontentloaded' });
+    await p3.waitForFunction(() => window.__ready && window.__game.scene.isActive('Account'), null, { timeout: 30000 });
+    await p3.waitForTimeout(600);
+    await p3.screenshot({ path: `${out}/acc-0-gate.png` });
+    // không vào sảnh được khi chưa đăng nhập
+    await p3.mouse.click(60, 38); // nút ← Về
+    await p3.waitForTimeout(800);
+    if (!(await p3.evaluate(() => window.__game.scene.isActive('Account')))) errs.push('Chưa đăng nhập mà vẫn rời được màn đăng nhập');
+    else step('Vào game: bắt buộc đăng nhập / tạo tài khoản (không vào sảnh được)');
     const s3 = await save(p3);
-    await toAccount(p3);
     await p3.fill('#acc-email', 'ca@vi.du');
     await p3.fill('#acc-pass', 'matkhau123');
     await p3.fill('#acc-name', 'Vua Câu Cá');
     await p3.mouse.click(1050, 252); // Tạo tài khoản
     await p3.waitForFunction(() => window.__game && JSON.parse(localStorage.getItem('dccc_save_v1')).name === 'Vua Câu Cá', null, { timeout: 8000 }).catch(() => errs.push('Tạo tài khoản không đổi tên'));
+    await p3.waitForFunction(() => window.__game.scene.isActive('Hub'), null, { timeout: 10000 }).catch(() => errs.push('Tạo tài khoản xong không vào sảnh'));
     await p3.waitForTimeout(1200);
     await p3.screenshot({ path: `${out}/acc-4-online.png` });
     const remote = [...db.saves.values()][0];
-    if (!remote || remote.save.playerId !== s3.playerId) errs.push('Tạo tài khoản không tải tiến trình lên máy chủ');
+    if (!remote || remote.save.playerId !== s3.playerId || remote.save.stats.totalCaught !== 7) errs.push('Tạo tài khoản không giữ / không tải tiến trình cũ lên máy chủ');
     else step(`Tạo tài khoản: tiến trình (${remote.save.fishes.length} cá) đã lên máy chủ, RLS chấp nhận`);
     await p3.context().close();
 
     // Máy 4: trình duyệt sạch, sai mật khẩu rồi đăng nhập đúng
-    const p4 = await open(browser, urlOnline, mock);
-    await toAccount(p4);
+    const p4 = await openGate(browser, urlOnline, mock);
     await p4.fill('#acc-email', 'ca@vi.du');
     await p4.fill('#acc-pass', 'saimatkhau');
     await p4.mouse.click(1050, 178);
     await p4.waitForTimeout(1200);
     const wrong = await save(p4);
-    if (wrong.playerId === s3.playerId) errs.push('Sai mật khẩu mà vẫn tải được tiến trình');
+    if (wrong.playerId === s3.playerId || !(await p4.evaluate(() => window.__game.scene.isActive('Account')))) errs.push('Sai mật khẩu mà vẫn vào được');
     else step('Sai mật khẩu: bị từ chối');
     await p4.fill('#acc-pass', 'matkhau123');
     await p4.mouse.click(1050, 178);
     await p4.waitForFunction((id) => JSON.parse(localStorage.getItem('dccc_save_v1')).playerId === id, s3.playerId, { timeout: 8000 }).catch(() => {});
     const s4 = await save(p4);
+    await p4.waitForFunction(() => window.__game.scene.isActive('Hub'), null, { timeout: 10000 }).catch(() => errs.push('Đăng nhập xong không vào sảnh'));
     if (s4.playerId !== s3.playerId || s4.fishes.length !== s3.fishes.length) errs.push('Đăng nhập máy khác không nhận đúng tiến trình');
     else step('Máy 4 đăng nhập: nhận đúng tiến trình từ tài khoản');
     await p4.waitForTimeout(800);
@@ -214,9 +243,11 @@ async function playOneFish(p) {
     await p4.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 20000 });
     await toAccount(p4);
     await p4.mouse.click(860, 370); // Đăng xuất
-    await p4.waitForTimeout(800);
+    await p4.waitForTimeout(1200);
     await p4.screenshot({ path: `${out}/acc-6-logout.png` });
-    step('Tải lại trang giữ đăng nhập, đăng xuất được');
+    const gated = await p4.evaluate(() => window.__game.scene.isActive('Account') && window.__game.scene.getScene('Account').required);
+    if (!gated) errs.push('Đăng xuất không quay về màn đăng nhập bắt buộc');
+    else step('Tải lại trang giữ đăng nhập; đăng xuất → quay về màn đăng nhập');
   }
 
   await browser.close();

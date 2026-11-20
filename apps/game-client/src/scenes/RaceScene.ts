@@ -200,7 +200,7 @@ export class RaceScene extends Phaser.Scene {
     if (this.pendingJoin) {
       const code = this.pendingJoin;
       this.pendingJoin = null;
-      this.time.delayedCall(300, () => void this.joinLobby(code));
+      window.setTimeout(() => this.scene.isActive() && void this.joinLobby(code), 300);
     }
   }
 
@@ -467,7 +467,8 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
-  private async joinLobby(code: string) {
+  /** Vào phòng bằng mã (cũng được gọi từ bảng lời mời). */
+  async joinLobby(code: string) {
     if (!GameState.online) return toast(this, "Đăng nhập tài khoản online để vào phòng", COLORS.red);
     const racer = this.myNetRacer();
     if (!racer) return toast(this, "Hãy câu ít nhất 1 con cá để đua nhé!", COLORS.red);
@@ -572,6 +573,17 @@ export class RaceScene extends Phaser.Scene {
           body.add(txt(this, m.x + 566, y, `${fdef.name}${mb.racer.stats ? ` (${mb.racer.stats.grade})` : ""}`, 15, { weight: "700" }).setOrigin(0, 0.5));
         }
         body.add(txt(this, m.x + m.w - 50, y, mb.ready ? "✅ Sẵn sàng" : "⏳ Chưa", 16, { color: mb.ready ? "#69f0ae" : "#ffd740" }).setOrigin(1, 0.5));
+      }
+      // lời mời đã gửi (người chưa vào phòng)
+      if (l.invites?.length) {
+        const label = { pending: "⏳ đang chờ", accepted: "✅ đồng ý", declined: "✖ từ chối", expired: "⌛ không trả lời" } as const;
+        body.add(
+          txt(this, m.x + 40, m.y + 530, `📨 Đã mời: ${l.invites.slice(0, 4).map((i) => `${i.name} (${label[i.status]})`).join(" · ")}`, 15, {
+            weight: "700",
+            color: COLORS.textDim,
+            wrap: m.w - 80,
+          }).setOrigin(0, 0.5),
+        );
       }
       // nút
       const by = m.y + m.h - 46;

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.26.0] – 2026-11-20 – Bắt buộc tài khoản, lời mời đua hiện bảng xác nhận, Cửa Hàng cuộn được
+### Thay đổi
+- **Vào game bắt buộc tạo tài khoản / đăng nhập** (bản có máy chủ): màn "Đăng Nhập Để Chơi" với lời chào và lợi ích; không vào được sảnh khi chưa đăng nhập. Máy đã có tiến trình chơi khách từ trước → **tạo tài khoản giữ nguyên tiến trình** và đưa lên máy chủ. Đăng nhập/tạo xong vào thẳng sảnh; đăng xuất → quay về màn đăng nhập. Mất mạng tạm thời khi đã có phiên đăng nhập vẫn chơi được trên máy.
+### Thêm
+- **Lời mời đua cá hiện bảng xác nhận** ở MỌI màn hình của người được mời: "🏁 X mời bạn đua cá!" + giải, bản đồ, số người, phí; **đếm ngược 10 giây** với ✅ Vào phòng / ✖ Từ chối – hết giờ tự từ chối. Đang đua thì chờ đua xong mới hiện. Chủ phòng thấy trạng thái lời mời (đang chờ / từ chối / không trả lời); chặn mời dồn dập cùng 1 người.
+- **Cửa Hàng có thanh cuộn** (lăn chuột, kéo thanh cuộn, vuốt): xem hết đồ ở mọi tab, giữ vị trí cuộn khi chọn/mua đồ. Bộ Sưu Tập dùng chung khung cuộn này.
+- Database: `race_invites` + RPC `race_my_invites`, `race_invite_respond`.
+
 ## [0.25.0] – 2026-11-20 – Đua Cá: phòng riêng mời bạn bè
 ### Thêm
 - Nút **🏠 Phòng bạn bè** ở màn Đua Cá: **tạo phòng** (mã 6 ký tự, nút 📋 Chép) hoặc **nhập mã** để vào phòng bạn tạo.

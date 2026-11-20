@@ -26,6 +26,11 @@ export class HubScene extends Phaser.Scene {
   }
 
   create() {
+    // chưa đăng nhập (vd. vừa đăng xuất) → về màn tài khoản bắt buộc
+    if (GameState.needsLogin) {
+      this.scene.start("Account", { required: true });
+      return;
+    }
     this.input.enabled = true;
     fadeIn(this);
     const W = 1280;
@@ -319,6 +324,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.25.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.26.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

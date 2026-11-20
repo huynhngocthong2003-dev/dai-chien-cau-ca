@@ -616,6 +616,8 @@ export interface RaceLobby {
   status: "open" | "started" | "closed";
   room_id: number | null;
   members: RaceLobbyMember[];
+  /** Lời mời gần đây (người chưa vào phòng): đang chờ / từ chối / hết hạn. */
+  invites?: { name: string; status: "pending" | "accepted" | "declined" | "expired" }[];
 }
 export const raceLobbyCreate = async (league: RaceLeague, map: string, racer: RaceNetRacer) =>
   (await rpc("race_lobby_create", { p_league: league, p_map: map, p_racer: racer })) as RaceLobby;
@@ -628,3 +630,16 @@ export const raceLobbyReady = async (id: number, ready: boolean, racer: RaceNetR
 export const raceLobbyStart = async (id: number) => (await rpc("race_lobby_start", { p_lobby: id })) as RaceRoom;
 export const raceRoomGet = async (id: number) => ((await rpc("race_room_get", { p_room: id })) as RaceRoom | null) ?? null;
 export const raceLobbyInvite = (id: number, friend: string) => rpc("race_lobby_invite", { p_lobby: id, p_friend: friend });
+
+// ------------------------------------------------------------ Lời mời đua cá (bảng xác nhận 10 giây)
+export interface RaceInvite {
+  id: number;
+  code: string;
+  from_name: string;
+  league: RaceLeague;
+  map: string;
+  members: number;
+  created_at: string;
+}
+export const raceMyInvites = async () => ((await rpc("race_my_invites")) as RaceInvite[] | null) ?? [];
+export const raceInviteRespond = (id: number, accept: boolean) => rpc("race_invite_respond", { p_id: id, p_accept: accept });

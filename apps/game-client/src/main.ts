@@ -21,6 +21,7 @@ import { GuildScene } from "./scenes/GuildScene.ts";
 import { TopupScene } from "./scenes/TopupScene.ts";
 import { PlazaScene } from "./scenes/PlazaScene.ts";
 import { RaceScene } from "./scenes/RaceScene.ts";
+import { installRaceInvites } from "./ui/raceInvites.ts";
 
 async function start() {
   // Chờ font tiếng Việt tải xong (tối đa 3 giây) để chữ không bị nhảy.
@@ -52,6 +53,8 @@ async function start() {
   // Điện thoại (đặc biệt khi mở dạng ứng dụng toàn màn hình): kích thước màn hình
   // có thể đổi sau khi game khởi động → đo lại nhiều lần để khung game luôn vừa.
   const rewide = installWide(game);
+  // lời mời đua cá: bảng xác nhận 10 giây ở mọi màn hình
+  installRaceInvites(game);
   // nhạc nền theo màn: sảnh vui, câu cá êm, săn Boss căng thẳng, đấu sinh tử dồn dập
   const themeFor = (sc: Phaser.Scene): MusicTheme => {
     const k = sc.scene.key;
