@@ -29,6 +29,32 @@ function tierOf(p: (typeof WHEEL_PRIZES)[number]) {
   const r = rate1(p);
   return [...TIERS].reverse().find((t) => r >= t.min) ?? TIERS[0]!;
 }
+/** Thứ tự ô trên vòng: xếp xen kẽ để 2 ô cạnh nhau (kể cả ô cuối – ô đầu) không cùng cấp màu. */
+const DISPLAY: number[] = (() => {
+  const groups = new Map<string, number[]>();
+  WHEEL_PRIZES.forEach((p, i) => {
+    const t = tierOf(p).name;
+    groups.set(t, [...(groups.get(t) ?? []), i]);
+  });
+  const out: number[] = [];
+  let prev = "";
+  while (out.length < WHEEL_PRIZES.length) {
+    const left = WHEEL_PRIZES.length - out.length;
+    const cands = [...groups.entries()].filter(([t, l]) => l.length && t !== prev).sort((a, b) => b[1].length - a[1].length);
+    // ô cuối không trùng màu ô đầu
+    const firstTier = out.length ? tierOf(WHEEL_PRIZES[out[0]!]!).name : "";
+    const pick = (left === 1 ? cands.find(([t]) => t !== firstTier) : undefined) ?? cands[0] ?? [...groups.entries()].find(([, l]) => l.length)!;
+    out.push(pick[1].shift()!);
+    prev = pick[0];
+  }
+  return out;
+})();
+/** Vị trí hiển thị của một phần quà. */
+const slotOf = (prizeIndex: number) => DISPLAY.indexOf(prizeIndex);
+
+/** Món tỉ lệ thấp (Huyền Thoại / Thần Thoại) → màn TRÚNG ĐỘC ĐẮC. */
+const isJackpot = (p: (typeof WHEEL_PRIZES)[number]) => rate1(p) < 0.01;
+
 const pct = (x: number) => (x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toFixed(2)}%`);
 
 const CX = 460;
@@ -58,7 +84,7 @@ export class WheelScene extends Phaser.Scene {
     this.wheel = this.add.container(CX, CY);
     const g = this.add.graphics();
     g.fillStyle(0x1b1530, 1).fillCircle(0, 0, R + 14);
-    WHEEL_PRIZES.forEach((p, i) => {
+    DISPLAY.map((pi) => WHEEL_PRIZES[pi]!).forEach((p, i) => {
       const a0 = -Math.PI / 2 + i * seg - seg / 2;
       // màu ô theo cấp bậc tỉ lệ
       g.fillStyle(hexToInt(tierOf(p).color), 1).slice(0, 0, R, a0, a0 + seg).fillPath();
@@ -66,7 +92,7 @@ export class WheelScene extends Phaser.Scene {
       g.lineStyle(3, 0x1b1530, 1).beginPath().moveTo(0, 0).lineTo(Math.cos(a0) * R, Math.sin(a0) * R).strokePath();
     });
     this.wheel.add(g);
-    WHEEL_PRIZES.forEach((p, i) => {
+    DISPLAY.map((pi) => WHEEL_PRIZES[pi]!).forEach((p, i) => {
       const a = -Math.PI / 2 + i * seg;
       const ic = this.add.text(Math.cos(a) * R * 0.8, Math.sin(a) * R * 0.8, p.icon, { fontSize: "30px", padding: { top: 8 } }).setOrigin(0.5).setRotation(a + Math.PI / 2);
       // chữ chạy dọc theo bán kính cho vừa ô hẹp
@@ -115,9 +141,11 @@ export class WheelScene extends Phaser.Scene {
     this.spinning = true;
     this.info.setText("");
     const best = r.indexes!.reduce((b, i) => (WHEEL_PRIZES[i]!.weight < WHEEL_PRIZES[b]!.weight ? i : b), r.indexes![0]!);
-    this.rotateTo(best, 3000, () => {
+    this.rotateTo(slotOf(best), 3000, () => {
       this.spinning = false;
-      this.showX10(r.prizes!, r.rewards, r.dups);
+      const jp = r.prizes!.filter(isJackpot);
+      if (jp.length) this.jackpot(jp, () => this.showX10(r.prizes!, r.rewards, r.dups));
+      else this.showX10(r.prizes!, r.rewards, r.dups);
       this.updateBtn();
     });
   }
@@ -142,6 +170,52 @@ export class WheelScene extends Phaser.Scene {
       },
       onComplete: done,
     });
+  }
+
+  /** Màn TRÚNG ĐỘC ĐẮC: tối màn hình, tia sáng xoay, mưa vàng & pháo hoa, món quà phóng to. */
+  private jackpot(items: (typeof WHEEL_PRIZES)[number][], then?: () => void) {
+    Sfx.catchFanfare(true);
+    this.time.delayedCall(350, () => Sfx.catchFanfare(true));
+    this.cameras.main.flash(700, 255, 230, 120);
+    this.cameras.main.shake(600, 0.012);
+    const ex = Math.max(0, (this.scale.gameSize.width - 1280) / 2);
+    const root = this.add.container(0, 0).setDepth(1500);
+    const dim = this.add.rectangle(-ex, 0, 1280 + 2 * ex, 720, 0x000000, 0.82).setOrigin(0).setInteractive();
+    root.add(dim);
+    const top = items.reduce((a, b) => (b.weight < a.weight ? b : a));
+    const col = hexToInt(tierOf(top).color);
+    const rays = this.add.container(640, 340);
+    for (let i = 0; i < 18; i++) rays.add(this.add.image(0, 0, "p_ray").setOrigin(0.5, 0).setAngle(i * 20).setTint(i % 2 ? col : 0xffd54f).setAlpha(0.55).setBlendMode(Phaser.BlendModes.ADD));
+    this.tweens.add({ targets: rays, angle: 360, duration: 8000, repeat: -1 });
+    root.add(rays);
+    // mưa vàng + pháo hoa
+    root.add(this.add.particles(0, -20, "p_spark", { x: { min: -ex, max: 1280 + ex }, speedY: { min: 200, max: 420 }, speedX: { min: -40, max: 40 }, lifespan: 2600, scale: { start: 1.2, end: 0.4 }, tint: [0xffd54f, 0xffffff, 0xff8a65, col], frequency: 20, blendMode: Phaser.BlendModes.ADD }));
+    for (let k = 0; k < 6; k++)
+      this.time.delayedCall(200 + k * 380, () => {
+        const fx = this.add.particles(Phaser.Math.Between(200, 1080), Phaser.Math.Between(120, 400), "p_spark", { speed: { min: 150, max: 480 }, lifespan: 1100, scale: { start: 1.4, end: 0 }, tint: [Phaser.Math.RND.pick([0xff1744, 0x40c4ff, 0x69f0ae, 0xffd54f, 0xea80fc]), 0xffffff], quantity: 60, stopAfter: 60, blendMode: Phaser.BlendModes.ADD });
+        root.add(fx);
+      });
+    const title = txt(this, 640, 110, "🎉 TRÚNG ĐỘC ĐẮC! 🎉", 66, { color: "#ffd54f", align: "center", stroke: 12 }).setOrigin(0.5).setScale(0.2);
+    this.tweens.add({ targets: title, scale: 1, duration: 500, ease: "Back.easeOut" });
+    this.tweens.add({ targets: title, scale: 1.08, duration: 420, yoyo: true, repeat: -1, delay: 500 });
+    root.add(title);
+    items.slice(0, 4).forEach((p, i, arr) => {
+      const x = 640 + (i - (arr.length - 1) / 2) * 230;
+      const icon = this.add.text(x, 330, p.icon, { fontSize: arr.length > 1 ? "110px" : "160px", padding: { top: 24 } }).setOrigin(0.5).setScale(0);
+      this.tweens.add({ targets: icon, scale: 1, angle: { from: -30, to: 0 }, delay: 300 + i * 200, duration: 600, ease: "Back.easeOut" });
+      this.tweens.add({ targets: icon, y: 316, duration: 700, yoyo: true, repeat: -1, delay: 900 + i * 200, ease: "Sine.easeInOut" });
+      root.add(icon);
+      const t = tierOf(p);
+      root.add(txt(this, x, 470, `${p.label}\n${t.name} · ${pct(rate1(p))}`, arr.length > 1 ? 20 : 30, { color: t.color, align: "center" }).setOrigin(0.5));
+    });
+    const ok = new Button(this, 640, 620, 280, 70, "NHẬN THƯỞNG", { color: COLORS.orange, fontSize: 28, onClick: () => {
+      root.destroy(true);
+      this.updateBtn();
+      then?.();
+    } });
+    ok.setAlpha(0);
+    this.tweens.add({ targets: ok, alpha: 1, delay: 900, duration: 300 });
+    root.add(ok);
   }
 
   /** Bảng tỉ lệ rơi từng món, phân màu theo cấp bậc. */
@@ -232,7 +306,7 @@ export class WheelScene extends Phaser.Scene {
     // ô trúng phải dừng dưới kim (đỉnh) → góc quay = -index*seg (+ lệch ngẫu nhiên trong ô)
     const jitter = (Math.random() - 0.5) * segDeg * 0.6;
     const cur = ((this.wheel.angle % 360) + 360) % 360;
-    const target = 360 * 6 + ((360 - r.index! * segDeg - cur + 360) % 360) + jitter;
+    const target = 360 * 6 + ((360 - slotOf(r.index!) * segDeg - cur + 360) % 360) + jitter;
     let lastTick = 0;
     this.tweens.add({
       targets: this.wheel,
@@ -260,6 +334,7 @@ export class WheelScene extends Phaser.Scene {
         const rw = r.reward ?? p.reward;
         this.info.setText(`${p.icon} Trúng: ${rewardText(rw, nameOf)}!${r.dup ? `\n(đã có → đổi thành ${rw.characterId ? `${DUPLICATE_CHAR_SOUL} Linh Hồn` : `${DUPLICATE_ROD_STONES} Đá`})` : ""}`);
         if ((rw.characterId || rw.rodId) && !r.dup) this.bigWin(rw);
+        else if (isJackpot(p)) this.jackpot([p]);
         else toast(this, `🎉 Bạn trúng ${p.label}!`, COLORS.green);
         this.updateBtn();
       },

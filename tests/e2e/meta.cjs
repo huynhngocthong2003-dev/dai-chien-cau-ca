@@ -44,15 +44,21 @@ const errs = [];
   const d0 = (await save()).diamonds;
   await p.mouse.click(1040, 500);
   await p.waitForTimeout(4800);
+  await p.mouse.click(640, 620); // đóng màn Độc Đắc nếu có
+  await p.waitForTimeout(300);
   const w1 = await save();
   if ((w1.stats.spins ?? 0) !== 1 || !w1.daily.freeSpinUsed) errs.push('Quay miễn phí không ghi nhận');
   else console.log(`• Quay miễn phí: ${w1.ledger.filter((l) => l.reason.startsWith('wheel:')).map((l) => l.reason).join(', ')}`);
   await p.screenshot({ path: `${out}/wheel.png` });
   await p.mouse.click(1040, 500);
   await p.waitForTimeout(4800);
+  await p.mouse.click(640, 620);
+  await p.waitForTimeout(300);
   const w2 = await save();
-  const won = w2.ledger.filter((l) => l.currency === 'diamonds' && l.reason.startsWith('wheel:wh_')).slice(-1)[0];
-  const exp = w1.diamonds - 30 + (won && won.at > w1.updatedAt - 1 ? won.amount : 0);
+  // kim cương trúng trong đúng lượt quay thứ 2 (cùng mã giao dịch với dòng trừ 30 💎)
+  const paid = w2.ledger.filter((l) => l.reason === 'wheel:spin').slice(-1)[0];
+  const won = paid ? w2.ledger.filter((l) => l.txId === paid.txId && l.currency === 'diamonds' && l.amount > 0).reduce((a, l) => a + l.amount, 0) : 0;
+  const exp = w1.diamonds - 30 + won;
   if ((w2.stats.spins ?? 0) !== 2 || w2.diamonds !== exp) errs.push(`Quay lần 2 trừ kim cương sai: ${w1.diamonds} → ${w2.diamonds}`);
   else console.log(`• Quay lần 2: −30 💎 (${d0} → ${w2.diamonds})`);
 
@@ -67,9 +73,12 @@ const errs = [];
   await p.waitForTimeout(3600);
   await p.screenshot({ path: `${out}/wheel-x10.png` });
   const x1 = await save();
-  const wonKc = x1.ledger.filter((l) => l.currency === 'diamonds' && l.amount > 0 && l.reason.startsWith('wheel:wh_') && l.at >= x1.updatedAt - 5).reduce((a, l) => a + l.amount, 0);
+  const paid10 = x1.ledger.filter((l) => l.reason === 'wheel:spin10').slice(-1)[0];
+  const wonKc = paid10 ? x1.ledger.filter((l) => l.txId === paid10.txId && l.currency === 'diamonds' && l.amount > 0).reduce((a, l) => a + l.amount, 0) : 0;
   if ((x1.stats.spins ?? 0) !== (x0.stats.spins ?? 0) + 10 || x1.diamonds !== x0.diamonds - 270 + wonKc) errs.push(`Quay x10 sai: ${x0.diamonds} → ${x1.diamonds}, spins ${x1.stats.spins}`);
   else console.log(`• Quay x10: −270 💎, +10 lượt quay`);
+  await p.mouse.click(640, 620); // NHẬN THƯỞNG (màn Độc Đắc nếu có)
+  await p.waitForTimeout(500);
   await p.mouse.click(640, 100 + 520 - 44); // Nhận
   await p.waitForTimeout(300);
 

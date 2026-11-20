@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.17.1] – 2026-11-20
+### Thêm / Sửa
+- Vòng Quay: các ô **xếp xen kẽ màu** – không còn 2 ô cùng cấp màu nằm cạnh nhau.
+- **Màn "TRÚNG ĐỘC ĐẮC!"** khi trúng món tỉ lệ thấp (Huyền Thoại / Thần Thoại, < 1%): tối màn hình, tia sáng xoay, mưa vàng, pháo hoa, quà phóng to kèm cấp & tỉ lệ. Quay x10 có món độc đắc sẽ hiện màn này trước bảng kết quả.
+
 ## [0.17.0] – 2026-11-20 – 24 Skin nhân vật, tỉ lệ Vòng Quay theo cấp màu
 ### Thêm
 - **Ô trang bị mới "Skin"** – bộ trang phục trọn bộ (thay mũ + áo + trang sức, có đạo cụ riêng). Tab 🧸 Skin ở Cửa Hàng (mở đầu tiên), hàng Skin trong Tủ Đồ. **24 skin**:
