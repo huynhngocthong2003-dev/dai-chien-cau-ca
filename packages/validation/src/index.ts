@@ -42,7 +42,7 @@ export const playerSaveSchema = z.object({
       equip: z.object({ hat: id.optional(), outfit: id.optional(), accessory: id.optional(), wings: id.optional(), horns: id.optional(), skin: id.optional() }),
     }),
   ),
-  rods: z.record(id, z.object({ level: z.number().int().min(1).max(50), stars: z.number().int().min(1).max(5) })),
+  rods: z.record(id, z.object({ level: z.number().int().min(1).max(50), stars: z.number().int().min(1).max(5), wear: z.number().int().min(0).max(100000).optional() })),
   materials: z.object({ stones: nonNegInt, soul: nonNegInt, bossTickets: z.number().int().min(0).max(99) }),
   bossTicketDay: z.string().max(10),
   wardrobe: z.record(id, z.number().int().min(1).max(99)),

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.0] – 2026-11-20 – Khu cao cấp câu khó hơn + độ bền cần câu
+### Thay đổi
+- **Khu câu cao cấp khó hơn hẳn** (theo độ khó khu 1→6): cá dai hơn (máu tới ~×1,9 ở khu cuối), quẫy mạnh & kéo dây xa hơn, cửa sổ giật cần ngắn hơn (tới −25%), báo hiệu quẫy và lúc "cá mệt" ngắn hơn. Cùng con cá, cùng trang bị: khu khó kéo lâu hơn ≥1,4 lần và dễ xổng hơn.
+### Thêm – 🔧 Độ bền cần câu
+- Mỗi cần có **số lượt câu** tối đa theo độ hiếm (N 60 · R 80 · SR 100 · SSR 130 · UR 170 · LR 220) + thêm theo sao & cấp. Mỗi lần quăng tốn 1 lượt, **đứt dây tốn thêm 2**.
+- Hết lượt: không quăng được, hiện hộp **🔧 Sửa cần** (vàng, tỷ lệ với độ mòn – sửa sớm rẻ hơn; cần càng xịn sửa càng đắt). Câu tự động hết lượt thì tự dừng.
+- Màn câu cá hiện "🔧 còn/tối đa lượt" (vàng khi sắp hết, đỏ khi hết); màn Cần Câu hiện lượt câu + nút Sửa. Sửa cần ghi sổ cái.
+
 ## [0.26.2] – 2026-11-20 – Đua Cá: báo đúng thứ hạng về đích
 ### Sửa
 - **Lỗi ai về đích cũng được báo "VỀ NHẤT"** khi đua với người chơi: trước đây mỗi máy chỉ đếm những tay đua nó tự tính (mình + máy), bỏ qua người chơi thật đã về trước. Giờ thứ hạng tính cả người chơi khác đã về đích → báo đúng **🥇 VỀ NHẤT / 🥈 VỀ NHÌ / 🥉 VỀ BA / VỀ ĐÍCH HẠNG N**.

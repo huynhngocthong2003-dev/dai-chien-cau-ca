@@ -53,6 +53,8 @@ export interface RodProgress {
   level: number;
   /** Sao tiến hóa (1..5). Giới hạn cấp = 10 × sao. */
   stars: number;
+  /** Số lượt câu đã dùng kể từ lần sửa gần nhất (hết lượt phải sửa cần). */
+  wear?: number;
 }
 
 export interface Materials {

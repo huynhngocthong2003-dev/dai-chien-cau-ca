@@ -111,6 +111,24 @@ export interface FishingSessionOptions {
   fish: FishDef;
   loadout: Loadout;
   seed: number;
+  /** Độ khó khu câu (1..6) – khu cao cấp câu khó hơn. */
+  zoneDifficulty?: number;
+}
+
+/**
+ * Hệ số độ khó theo khu câu (1 = khu tân thủ … 6 = khu cuối):
+ * cá dai hơn, quẫy mạnh & kéo xa hơn, cửa sổ giật cần / báo hiệu / "cá mệt" ngắn hơn.
+ */
+export function zoneDifficultyMods(d = 1) {
+  const k = Math.min(6, Math.max(1, d)) - 1;
+  return {
+    hp: 1 + k * 0.18,
+    struggle: 1 + k * 0.1,
+    push: 1 + k * 0.12,
+    biteWindow: 1 - k * 0.05,
+    tell: 1 - k * 0.07,
+    tired: 1 - k * 0.07,
+  };
 }
 
 interface TimedBuff {
@@ -162,6 +180,7 @@ export class FishingSession {
   private jumpFailed = false;
   private tiredHit = false;
   private readonly mods: StyleMods;
+  private readonly zmods: ReturnType<typeof zoneDifficultyMods>;
   private buffs = {
     reel: [] as TimedBuff[],
     stun: [] as TimedBuff[],
@@ -191,11 +210,12 @@ export class FishingSession {
     this.rng = new Rng(opts.seed);
     this.style = fightStyle(opts.fish);
     this.mods = STYLE_MODS[this.style];
+    this.zmods = zoneDifficultyMods(opts.zoneDifficulty ?? 1);
     const p = opts.loadout.passives;
     const isBoss = this.fish.rarity === "boss";
 
-    this.fishMaxHp = this.fish.hp;
-    this.fishHp = this.fish.hp;
+    this.fishMaxHp = Math.round(this.fish.hp * this.zmods.hp);
+    this.fishHp = this.fishMaxHp;
     this.maxDurability = opts.loadout.durability;
     this.durability = this.maxDurability;
 
@@ -224,7 +244,7 @@ export class FishingSession {
     this.snapBonus = sumPassive(p, "snap_threshold", (e) => e.value);
     this.critChance = sumPassive(p, "crit", (e) => e.chance);
     this.critMul = Math.max(1.5, ...p.filter((e) => e.kind === "crit").map((e) => (e as { multiplier: number }).multiplier));
-    this.biteWindow = FISHING.biteWindow * (1 + sumPassive(p, "bite_window_bonus", (e) => e.value));
+    this.biteWindow = FISHING.biteWindow * this.zmods.biteWindow * (1 + sumPassive(p, "bite_window_bonus", (e) => e.value));
 
     const biteSpeed = sumPassive(p, "bite_speed", (e) => e.value) + opts.loadout.speed / 400;
     const delay = this.rng.range(FISHING.biteDelayMin, FISHING.biteDelayMax) / (1 + biteSpeed);
@@ -352,14 +372,14 @@ export class FishingSession {
       this.struggling = false;
       this.frenzy = false;
       this.phaseUntil = this.time + this.calmDuration();
-      this.tiredUntil = this.time + TIRED_WINDOW_MS;
+      this.tiredUntil = this.time + TIRED_WINDOW_MS * this.zmods.tired;
       this.tiredHit = false;
       this.events.push({ type: "struggle_end" });
     }
   }
 
   private struggleStrength(): number {
-    let s = STRUGGLE_BY_RARITY[this.fish.rarity] * this.mods.strength * (0.55 + 0.45 * this.hpRatio) * (1 - this.struggleReduce);
+    let s = STRUGGLE_BY_RARITY[this.fish.rarity] * this.mods.strength * this.zmods.struggle * (0.55 + 0.45 * this.hpRatio) * (1 - this.struggleReduce);
     if (this.frenzy) s *= 1.35;
     const calm = this.buffs.calm.filter((b) => b.until > this.time).reduce((m, b) => Math.max(m, b.value), 0);
     return s * (1 - calm);
@@ -415,7 +435,7 @@ export class FishingSession {
         this.endStruggle();
       } else if (!this.warning) {
         this.warning = true;
-        this.warnUntil = this.time + this.mods.tellMs;
+        this.warnUntil = this.time + this.mods.tellMs * this.zmods.tell;
         this.events.push({ type: "warn" });
       } else if (this.time >= this.warnUntil) {
         this.warning = false;
@@ -488,7 +508,7 @@ export class FishingSession {
       this.tension -= FISHING.tensionDecayPerSec * (1 + this.tensionDecayBonus) * dt;
       this.distance += FISHING.idleDriftPerSec * (stunned ? 0 : 1) * dt;
     }
-    if (strength > 0) this.distance += FISHING.struggleDistancePerSec * strength * this.mods.push * dt;
+    if (strength > 0) this.distance += FISHING.struggleDistancePerSec * strength * this.mods.push * this.zmods.push * dt;
 
     this.tension = Math.max(0, Math.min(this.maxTension, this.tension));
     this.distance = Math.max(this.hpRatio > 0 ? 6 : 0, this.distance);

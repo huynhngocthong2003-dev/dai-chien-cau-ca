@@ -4,6 +4,10 @@ import { FISHING, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config
 import { CHARACTER_BY_ID, ECO_MESSAGE, FISH_BY_ID, EVO_ITEMS, JUNK, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import {
   FishingSession,
+  SNAP_EXTRA_WEAR,
+  rodRepairCost,
+  rodUsesLeft,
+  rodMaxUses,
   FIGHT_STYLE_INFO,
   CAST_EVENT_INFO,
   applyCastEvent,
@@ -37,7 +41,7 @@ import { HORIZON } from "../art/Backgrounds.ts";
 import { addAmbience } from "../art/ambience.ts";
 import { addFashionFx } from "../art/fashionFx.ts";
 import { hexToInt, parseHex } from "../art/color.ts";
-import { Bar, Button, fadeIn, formatNum, goTo, panel, toast, txt } from "../ui/widgets.ts";
+import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
 import { FishingTogether } from "../ui/fishingTogether.ts";
@@ -62,6 +66,7 @@ export class FishingScene extends Phaser.Scene {
   private castEvent: CastEventKind | null = null;
   private castEventLeft = 0;
   private eventLabel?: Phaser.GameObjects.Text;
+  private usesT?: Phaser.GameObjects.Text;
   private comboT?: Phaser.GameObjects.Text;
   /** Người chơi khác cùng khu (câu cùng nhau). */
   private together?: FishingTogether;
@@ -187,6 +192,8 @@ export class FishingScene extends Phaser.Scene {
     txt(this, 116, 38, this.zone.name, 24, { color: COLORS.textGold }).setOrigin(0, 0.5);
     const rod = ROD_BY_ID.get(s.selectedRodId)!;
     txt(this, 16, 80, `${char.name} · ${rod.name}`, 16, { weight: "700", color: COLORS.textDim });
+    this.usesT = txt(this, 330, 80, "", 16, { weight: "700", color: "#b2ebf2" }).setDepth(50);
+    this.refreshUses();
     this.huntLabel = txt(this, 16, 104, "", 18, { color: "#ff8a80" });
     this.refreshHuntLabel();
 
@@ -385,7 +392,53 @@ export class FishingScene extends Phaser.Scene {
     this.huntLabel?.setText(this.bossHunt ? `⚔ SĂN BOSS · 🎫 còn ${GameState.save.materials.bossTickets} vé` : "");
   }
 
+  /** Hiện số lượt câu còn lại của cần đang dùng. */
+  private refreshUses() {
+    const rod = ROD_BY_ID.get(GameState.save.selectedRodId)!;
+    const prog = GameState.save.rods[rod.id]!;
+    const left = rodUsesLeft(rod, prog);
+    const max = rodMaxUses(rod, prog);
+    this.usesT?.setText(`🔧 ${left}/${max} lượt`).setColor(left === 0 ? "#ff5252" : left <= max * 0.15 ? "#ffd740" : "#b2ebf2");
+  }
+
+  /** Hết lượt câu → hộp sửa cần. */
+  private repairDialog() {
+    const rod = ROD_BY_ID.get(GameState.save.selectedRodId)!;
+    const cost = rodRepairCost(rod, GameState.save.rods[rod.id]!);
+    const m = modal(this, 600, 320, "🔧 Cần câu đã hết lượt");
+    m.root.add(txt(this, 640, m.y + 110, `${rod.name} đã mòn sau nhiều lần câu.\nSửa để câu tiếp: ${formatNum(cost)} vàng`, 20, { align: "center" }).setOrigin(0.5));
+    m.root.add(
+      new Button(this, 640, m.y + 230, 300, 64, `🔧 Sửa cần · ${formatNum(cost)}🪙`, {
+        color: COLORS.green,
+        fontSize: 22,
+        onClick: () => {
+          const r = GameState.repairRod(rod.id);
+          if (!r.ok) return toast(this, r.error, COLORS.red);
+          Sfx.coin();
+          m.close();
+          this.refreshUses();
+          toast(this, `${rod.name} đã được sửa – đầy lượt câu!`, COLORS.green);
+        },
+      }),
+    );
+  }
+
   private cast() {
+    // mỗi lần quăng tốn 1 lượt câu của cần; hết lượt phải sửa
+    const wear = GameState.wearRod(1);
+    if (!wear.ok) {
+      this.mode = "idle";
+      this.powerBar.setVisible(false);
+      if (this.auto) {
+        this.auto = false;
+        this.reelHeld = false;
+        this.refreshAutoBtn();
+      }
+      this.hint.setText("Cần đã hết lượt câu – hãy sửa cần 🔧");
+      this.repairDialog();
+      return;
+    }
+    this.refreshUses();
     if (this.bossHunt) {
       const r = GameState.useBossTicket();
       if (!r.ok) {
@@ -454,7 +507,7 @@ export class FishingScene extends Phaser.Scene {
         : chooseFish(this.zone, FISH_BY_ID, applyCastEvent(this.loadout, this.castEvent), power, rng);
     this.fishDef = fish;
     this.weightKg = rollWeight(fish, rng);
-    this.session = new FishingSession({ fish, loadout: this.loadout, seed: rng.int(1, 2 ** 31) });
+    this.session = new FishingSession({ fish, loadout: this.loadout, seed: rng.int(1, 2 ** 31), zoneDifficulty: this.zone.difficulty });
     this.mode = "fishing";
     this.together?.setState("waiting");
     this.nibbleAt = this.t + Phaser.Math.Between(700, 1500);
@@ -675,6 +728,8 @@ export class FishingScene extends Phaser.Scene {
         this.endRound("escaped");
         break;
       case "snapped":
+        GameState.wearRod(SNAP_EXTRA_WEAR);
+        this.refreshUses();
         Sfx.snap();
         this.lineSnapped = true;
         this.cameras.main.shake(250, 0.012);

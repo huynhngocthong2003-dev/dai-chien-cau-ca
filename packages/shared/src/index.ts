@@ -19,3 +19,4 @@ export * from "./meta.ts";
 export * from "./topup.ts";
 export * from "./plaza.ts";
 export * from "./race.ts";
+export * from "./rodwear.ts";

@@ -1,10 +1,11 @@
 import Phaser from "phaser";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
 import { RODS } from "@dccc/game-data";
-import { nextRodAction, rodMaxLevel, rodStats, type RodDef } from "@dccc/shared";
+import { nextRodAction, rodMaxLevel, rodMaxUses, rodRepairCost, rodStats, rodUsesLeft, type RodDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { rodIconTexture } from "../art/textures.ts";
-import { txt } from "../ui/widgets.ts";
+import { Button, formatNum, toast, txt } from "../ui/widgets.ts";
+import { Sfx } from "../audio/Sfx.ts";
 import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
 import { GearScene, unlockText, type DevInfo } from "./GearScene.ts";
@@ -77,5 +78,27 @@ export class RodScene extends GearScene<RodDef> {
     d.add(txt(this, 872, 488, `⭐ ${r.passive.name}`, 19, { color: "#80deea" }));
     d.add(txt(this, 872, 516, r.passive.description, 16, { weight: "500", wrap: 372 }));
     if (!owned) d.add(txt(this, 872, 580, `Mở khóa: ${unlockText(r.unlock)}`, 16, { color: COLORS.textGold, wrap: 372 }));
+    else {
+      // độ bền: lượt câu còn lại + sửa cần
+      const p = GameState.save.rods[r.id]!;
+      const left = rodUsesLeft(r, p);
+      const max = rodMaxUses(r, p);
+      const cost = rodRepairCost(r, p);
+      d.add(txt(this, 872, 590, `🔧 Lượt câu: ${left}/${max}`, 18, { color: left === 0 ? "#ff5252" : left <= max * 0.15 ? "#ffd740" : "#b2ebf2" }).setOrigin(0, 0.5));
+      if (cost > 0)
+        d.add(
+          new Button(this, 1170, 590, 170, 42, `Sửa · ${formatNum(cost)}🪙`, {
+            color: left === 0 ? COLORS.red : COLORS.green,
+            fontSize: 17,
+            onClick: () => {
+              const res = GameState.repairRod(r.id);
+              if (!res.ok) return toast(this, res.error, COLORS.red);
+              Sfx.coin();
+              toast(this, `${r.name} đã được sửa – đầy ${max} lượt câu!`, COLORS.green);
+              this.scene.restart();
+            },
+          }),
+        );
+    }
   }
 }

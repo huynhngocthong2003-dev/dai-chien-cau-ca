@@ -6,6 +6,8 @@ import {
   applyJunkCatch,
   applyDeathMatch,
   applyRaceEntry,
+  applyRodRepair,
+  applyRodWear,
   applyRaceResult,
   type RaceLeague,
   applyForm,
@@ -200,6 +202,18 @@ class GameStateStore extends Phaser.Events.EventEmitter {
 
   catchJunk(j: JunkDef) {
     return this.run(applyJunkCatch(this._save, j, uid("j"), Date.now()));
+  }
+
+  // ------------------------------------------------------------ Độ bền cần câu
+  /** Tốn lượt câu của cần đang dùng (mỗi lần quăng; đứt dây tốn thêm). */
+  wearRod(amount = 1) {
+    return this.run(applyRodWear(this._save, ROD_BY_ID.get(this._save.selectedRodId)!, amount, Date.now()));
+  }
+
+  repairRod(rodId: string) {
+    const r = applyRodRepair(this._save, ROD_BY_ID.get(rodId)!, uid("rr"), Date.now());
+    if (r.ok) this.commit(r.save);
+    return r;
   }
 
   // ------------------------------------------------------------ Đua Cá
