@@ -20,6 +20,7 @@ import {
   equipTitle,
   refreshDaily,
   spinWheel,
+  spinWheel10,
   type QuestDef,
   type TitleDef,
   recycleAll,
@@ -60,7 +61,7 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { FISH_FORMS, CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { FISH_FORMS, CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 import * as Online from "./online.ts";
@@ -284,6 +285,10 @@ class GameStateStore extends Phaser.Events.EventEmitter {
 
   claimCheckin() {
     return this.run(claimCheckin(this._save, CHECKIN_REWARDS, uid("ci"), Date.now()));
+  }
+
+  spinWheel10() {
+    return this.run(spinWheel10(this._save, WHEEL_PRIZES, WHEEL_GOOD_WEIGHT, new Rng(randomSeed()), uid("w10"), Date.now()));
   }
 
   spinWheel() {

@@ -1,8 +1,8 @@
 import Phaser from "phaser";
-import { EVO_ITEM_BY_ID, WHEEL_PRIZES } from "@dccc/game-data";
-import { WHEEL_COST_DIAMONDS, rewardText } from "@dccc/shared";
+import { EVO_ITEM_BY_ID, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES } from "@dccc/game-data";
+import { WHEEL_COST_10, WHEEL_COST_DIAMONDS, rewardText } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
-import { Button, fadeIn, goTo, panel, toast, txt } from "../ui/widgets.ts";
+import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
@@ -45,8 +45,9 @@ export class WheelScene extends Phaser.Scene {
     this.wheel.add(g);
     WHEEL_PRIZES.forEach((p, i) => {
       const a = -Math.PI / 2 + i * seg;
-      const ic = this.add.text(Math.cos(a) * R * 0.72, Math.sin(a) * R * 0.72, p.icon, { fontSize: "40px", padding: { top: 10 } }).setOrigin(0.5).setRotation(a + Math.PI / 2);
-      const t = txt(this, Math.cos(a) * R * 0.45, Math.sin(a) * R * 0.45, p.label, 17, { align: "center" }).setOrigin(0.5).setRotation(a + Math.PI / 2);
+      const ic = this.add.text(Math.cos(a) * R * 0.8, Math.sin(a) * R * 0.8, p.icon, { fontSize: "30px", padding: { top: 8 } }).setOrigin(0.5).setRotation(a + Math.PI / 2);
+      // chữ chạy dọc theo bán kính cho vừa ô hẹp
+      const t = txt(this, Math.cos(a) * R * 0.48, Math.sin(a) * R * 0.48, p.label, 13, { align: "center" }).setOrigin(0.5).setRotation(a);
       this.wheel.add([ic, t]);
     });
     // đèn viền
@@ -65,11 +66,13 @@ export class WheelScene extends Phaser.Scene {
 
     panel(this, 820, 120, 440, 586, 0.92);
     txt(this, 1040, 160, "🎡 Thử vận may!", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5);
-    txt(this, 1040, 260, `Mỗi ngày 1 lượt MIỄN PHÍ.\nThêm lượt: ${WHEEL_COST_DIAMONDS} 💎 / lượt.\n\nCó thể trúng 150 kim cương\nhoặc Ngọc Long Hồn cực hiếm!`, 19, { align: "center", weight: "700", wrap: 400 }).setOrigin(0.5);
-    this.info = txt(this, 1040, 420, "", 22, { align: "center", color: "#b9f6ca", wrap: 400 }).setOrigin(0.5);
-    this.btn = new Button(this, 1040, 560, 340, 80, "", { color: COLORS.orange, fontSize: 30, onClick: () => this.spin() });
+    txt(this, 1040, 250, `Mỗi ngày 1 lượt MIỄN PHÍ · thêm lượt ${WHEEL_COST_DIAMONDS} 💎\nQuay x10: ${WHEEL_COST_10} 💎 – tỉ lệ ra đồ ngon CAO HƠN!\n\nGiải lớn: 👑 500 KC · 🪶 Lông Phượng Thần\n🐉🌋❄️⚡ vật phẩm đột biến`, 17, { align: "center", weight: "700", wrap: 410 }).setOrigin(0.5);
+    this.info = txt(this, 1040, 400, "", 20, { align: "center", color: "#b9f6ca", wrap: 400 }).setOrigin(0.5);
+    this.btn = new Button(this, 1040, 500, 340, 70, "", { color: COLORS.orange, fontSize: 26, onClick: () => this.spin() });
+    const x10 = new Button(this, 1040, 588, 340, 70, `QUAY x10 · ${WHEEL_COST_10} 💎`, { color: COLORS.purple, fontSize: 24, sub: "Tỉ lệ đồ ngon ×1,6", onClick: () => this.spin10() });
+    this.tweens.add({ targets: x10, angle: { from: -1.5, to: 1.5 }, duration: 400, yoyo: true, repeat: -1 });
     this.tweens.add({ targets: this.btn, scale: 1.05, duration: 600, yoyo: true, repeat: -1 });
-    txt(this, 1040, 660, `Đã quay: ${GameState.save.stats.spins ?? 0} lần`, 16, { align: "center", color: COLORS.textDim, weight: "700" }).setOrigin(0.5).setName("count");
+    txt(this, 1040, 672, `Đã quay: ${GameState.save.stats.spins ?? 0} lần`, 16, { align: "center", color: COLORS.textDim, weight: "700" }).setOrigin(0.5).setName("count");
     this.updateBtn();
     this.input.keyboard?.on("keydown-SPACE", () => this.spin());
   }
@@ -78,6 +81,67 @@ export class WheelScene extends Phaser.Scene {
     const free = !GameState.save.daily.freeSpinUsed;
     this.btn.setText(free ? "QUAY MIỄN PHÍ" : `QUAY · ${WHEEL_COST_DIAMONDS} 💎`);
     (this.children.getByName("count") as Phaser.GameObjects.Text | null)?.setText(`Đã quay: ${GameState.save.stats.spins ?? 0} lần`);
+  }
+
+  /** Quay 10 lần: vòng quay dừng ở món ngon nhất, sau đó hiện bảng 10 món. */
+  private spin10() {
+    if (this.spinning) return;
+    const r = GameState.spinWheel10();
+    if (!r.ok) return toast(this, r.error, COLORS.red);
+    this.spinning = true;
+    this.info.setText("");
+    const best = r.indexes!.reduce((b, i) => (WHEEL_PRIZES[i]!.weight < WHEEL_PRIZES[b]!.weight ? i : b), r.indexes![0]!);
+    this.rotateTo(best, 3000, () => {
+      this.spinning = false;
+      this.showX10(r.prizes!);
+      this.updateBtn();
+    });
+  }
+
+  private rotateTo(index: number, duration: number, done: () => void) {
+    const segDeg = 360 / WHEEL_PRIZES.length;
+    const jitter = (Math.random() - 0.5) * segDeg * 0.6;
+    const cur = ((this.wheel.angle % 360) + 360) % 360;
+    const target = 360 * 6 + ((360 - index * segDeg - cur + 360) % 360) + jitter;
+    let lastTick = 0;
+    this.tweens.add({
+      targets: this.wheel,
+      angle: this.wheel.angle + target,
+      duration,
+      ease: "Cubic.easeOut",
+      onUpdate: () => {
+        const k = Math.floor(this.wheel.angle / segDeg);
+        if (k !== lastTick) {
+          lastTick = k;
+          Sfx.click();
+        }
+      },
+      onComplete: done,
+    });
+  }
+
+  private showX10(prizes: typeof WHEEL_PRIZES) {
+    const good = prizes.filter((p) => p.weight <= WHEEL_GOOD_WEIGHT).length;
+    if (good) {
+      Sfx.catchFanfare(true);
+      this.cameras.main.flash(400, 255, 235, 120);
+    } else Sfx.coin();
+    const m = modal(this, 900, 520, `🎡 Kết quả quay x10${good ? ` · ${good} món ngon!` : ""}`, () => this.updateBtn());
+    prizes.forEach((p, i) => {
+      const x = m.x + 40 + (i % 5) * 166;
+      const y = m.y + 90 + Math.floor(i / 5) * 190;
+      const g = this.add.graphics();
+      const isGood = p.weight <= WHEEL_GOOD_WEIGHT;
+      g.fillStyle(isGood ? 0x3a2f10 : 0x0a1628, 1).fillRoundedRect(x, y, 152, 170, 14);
+      g.lineStyle(isGood ? 4 : 2, hexToInt(p.color)).strokeRoundedRect(x, y, 152, 170, 14);
+      m.root.add(g);
+      if (isGood) m.root.add(this.add.image(x + 76, y + 64, "p_spark").setTint(hexToInt(p.color)).setScale(5).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD));
+      const ic = this.add.text(x + 76, y + 64, p.icon, { fontSize: "54px", padding: { top: 10 } }).setOrigin(0.5).setScale(0);
+      this.tweens.add({ targets: ic, scale: 1, delay: i * 90, duration: 260, ease: "Back.easeOut" });
+      m.root.add(ic);
+      m.root.add(txt(this, x + 76, y + 138, p.label, 16, { align: "center", color: isGood ? "#ffd54f" : "#ffffff", wrap: 140 }).setOrigin(0.5));
+    });
+    m.root.add(new Button(this, m.x + m.w / 2, m.y + m.h - 44, 220, 54, "Nhận", { color: COLORS.green, fontSize: 22, onClick: () => m.close() }));
   }
 
   private spin() {

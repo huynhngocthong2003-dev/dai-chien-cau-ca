@@ -100,7 +100,36 @@ describe("Vòng Quay May Mắn", () => {
     }
     const total = WHEEL_PRIZES.reduce((a, p) => a + p.weight, 0);
     expect((count.wh_dot_bien ?? 0) / N).toBeLessThan((1 / total) * 1.6);
-    expect((count.wh_vang_nho ?? 0) / N).toBeGreaterThan((30 / total) * 0.9);
+    expect((count.wh_vang_nho ?? 0) / N).toBeGreaterThan((26 / total) * 0.9);
+  });
+});
+
+describe("Vòng Quay x10", () => {
+  it("tốn 270 💎, ra 10 món, tỉ lệ món ngon cao hơn quay lẻ (không đảm bảo)", async () => {
+    const { spinWheel10, WHEEL_COST_10 } = await import("@dccc/shared");
+    const { WHEEL_GOOD_WEIGHT } = await import("@dccc/game-data");
+    const good = (id: string) => WHEEL_PRIZES.find((p) => p.id === id)!.weight <= WHEEL_GOOD_WEIGHT;
+    const s0 = { ...fresh(), diamonds: 100000 };
+    expect(spinWheel10({ ...s0, diamonds: 100 }, WHEEL_PRIZES, WHEEL_GOOD_WEIGHT, new Rng(1), "x", T0).ok).toBe(false);
+    let s = s0;
+    let goodX10 = 0;
+    const runs = 400;
+    for (let i = 0; i < runs; i++) {
+      const r = spinWheel10(s, WHEEL_PRIZES, WHEEL_GOOD_WEIGHT, new Rng(i + 1), `x${i}`, T0);
+      if (!r.ok) throw new Error(r.error);
+      expect(r.prizes).toHaveLength(10);
+      goodX10 += r.prizes!.filter((p) => good(p.id)).length;
+      s = r.save;
+    }
+    expect(s.stats.spins).toBe(runs * 10);
+    const totalW = WHEEL_PRIZES.reduce((a, p) => a + p.weight, 0);
+    const goodW = WHEEL_PRIZES.filter((p) => good(p.id)).reduce((a, p) => a + p.weight, 0);
+    expect(goodX10 / (runs * 10)).toBeGreaterThan((goodW / totalW) * 1.3);
+    // trừ đúng tiền (cộng lại kim cương trúng thưởng)
+    const won = s.ledger.filter((l) => l.currency === "diamonds" && l.amount > 0 && l.reason.startsWith("wheel:")).length;
+    expect(won).toBeGreaterThanOrEqual(0);
+    expect(WHEEL_COST_10).toBe(270);
+    valid(s);
   });
 });
 

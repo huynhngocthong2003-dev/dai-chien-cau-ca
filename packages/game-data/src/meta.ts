@@ -24,15 +24,27 @@ export const CHECKIN_REWARDS: RewardDef[] = [
 
 /** Vòng Quay May Mắn – trọng số ẩn với người chơi. */
 export const WHEEL_PRIZES: WheelPrizeDef[] = [
-  { id: "wh_vang_nho", label: "500 Vàng", icon: "🪙", color: "#ffca28", weight: 30, reward: { gold: 500 } },
-  { id: "wh_da", label: "10 Đá", icon: "🔷", color: "#7c4dff", weight: 18, reward: { stones: 10 } },
-  { id: "wh_kc_nho", label: "20 KC", icon: "💎", color: "#29b6f6", weight: 14, reward: { diamonds: 20 } },
-  { id: "wh_vang_lon", label: "3.000 Vàng", icon: "💰", color: "#ff9800", weight: 14, reward: { gold: 3000 } },
-  { id: "wh_ve_boss", label: "1 Vé Boss", icon: "🎫", color: "#ef5350", weight: 10, reward: { bossTickets: 1 } },
-  { id: "wh_linh_hon", label: "3 Linh Hồn", icon: "🔮", color: "#ea80fc", weight: 9, reward: { soul: 3 } },
-  { id: "wh_kc_lon", label: "150 KC", icon: "💠", color: "#00e5ff", weight: 3, reward: { diamonds: 150 } },
-  { id: "wh_dot_bien", label: "Ngọc Long Hồn", icon: "🐉", color: "#00b0ff", weight: 1, reward: { evoItem: "e_ngoc_long_hon" } },
+  { id: "wh_vang_nho", label: "500 Vàng", icon: "🪙", color: "#ffca28", weight: 26, reward: { gold: 500 } },
+  { id: "wh_da", label: "10 Đá", icon: "🔷", color: "#7c4dff", weight: 16, reward: { stones: 10 } },
+  { id: "wh_kc_nho", label: "20 KC", icon: "💎", color: "#29b6f6", weight: 12, reward: { diamonds: 20 } },
+  { id: "wh_vang_lon", label: "3.000 Vàng", icon: "💰", color: "#ff9800", weight: 12, reward: { gold: 3000 } },
+  { id: "wh_ve_boss", label: "1 Vé Boss", icon: "🎫", color: "#ef5350", weight: 9, reward: { bossTickets: 1 } },
+  { id: "wh_linh_hon", label: "3 Linh Hồn", icon: "🔮", color: "#ea80fc", weight: 8, reward: { soul: 3 } },
+  { id: "wh_da_lon", label: "40 Đá", icon: "💠", color: "#651fff", weight: 5, reward: { stones: 40 } },
+  { id: "wh_vang_khung", label: "15.000 Vàng", icon: "🏆", color: "#ffd600", weight: 4, reward: { gold: 15000 } },
+  { id: "wh_ve_boss_3", label: "3 Vé Boss", icon: "🎟️", color: "#d50000", weight: 3, reward: { bossTickets: 3 } },
+  { id: "wh_kc_lon", label: "150 KC", icon: "💎", color: "#00e5ff", weight: 2.5, reward: { diamonds: 150 } },
+  { id: "wh_linh_hon_lon", label: "15 Linh Hồn", icon: "👻", color: "#aa00ff", weight: 2, reward: { soul: 15 } },
+  { id: "wh_dot_bien", label: "Ngọc Long Hồn", icon: "🐉", color: "#00b0ff", weight: 0.8, reward: { evoItem: "e_ngoc_long_hon" } },
+  { id: "wh_dung_nham", label: "Lõi Dung Nham", icon: "🌋", color: "#ff3d00", weight: 0.8, reward: { evoItem: "e_loi_dung_nham" } },
+  { id: "wh_bang_ha", label: "Tinh Thể Băng Hà", icon: "❄️", color: "#80d8ff", weight: 0.8, reward: { evoItem: "e_tinh_the_bang_ha" } },
+  { id: "wh_sam_thach", label: "Sấm Thạch", icon: "⚡", color: "#ffee58", weight: 0.8, reward: { evoItem: "e_sam_thach" } },
+  { id: "wh_jackpot", label: "500 KC", icon: "👑", color: "#ff4081", weight: 0.5, reward: { diamonds: 500 } },
+  { id: "wh_phuong_than", label: "Lông Phượng Thần", icon: "🪶", color: "#ff6d00", weight: 0.12, reward: { evoItem: "e_long_phuong_than" } },
 ];
+
+/** Món "ngon" (trọng số ≤ 5): quay x10 được tăng tỉ lệ ra. */
+export const WHEEL_GOOD_WEIGHT = 5;
 
 /** Danh hiệu vui – mở khi đạt yêu cầu, đeo để hiện cạnh tên. */
 export const TITLES: TitleDef[] = [

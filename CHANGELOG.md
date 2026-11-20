@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.0] – 2026-11-20 – Vòng Quay mới: 17 phần quà + Quay x10
+### Thêm
+- Vòng Quay May Mắn có **17 phần quà**: thêm 40 Đá, 15.000 Vàng, 3 Vé Boss, 15 Linh Hồn, Lõi Dung Nham, Tinh Thể Băng Hà, Sấm Thạch, **👑 500 KC** và **🪶 Lông Phượng Thần** (cực hiếm).
+- Nút **QUAY x10 · 270 💎** (rẻ hơn 10%): tỉ lệ ra **đồ ngon ×1,6** so với quay lẻ (không đảm bảo). Vòng quay dừng ở món ngon nhất, sau đó hiện bảng 10 phần quà, món ngon phát sáng.
+
 ## [0.14.1] – 2026-11-20
 ### Thêm
 - Cá **Huyền Thoại** đột biến: thêm vương miện vàng, quầng ánh kim, sao lấp lánh.

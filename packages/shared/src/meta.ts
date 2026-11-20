@@ -162,6 +162,34 @@ export function spinWheel(
   return { ok: true, save: s, prize, index: prizes.indexOf(prize), free };
 }
 
+/** Quay x10: 270 💎 (rẻ hơn 10%), món ngon có tỉ lệ ra ×1,6 so với quay lẻ (không đảm bảo). */
+export const WHEEL_COST_10 = 270;
+export const WHEEL_X10_GOOD_BOOST = 1.6;
+
+export function spinWheel10(
+  save: PlayerSave,
+  prizes: WheelPrizeDef[],
+  goodWeight: number,
+  rng: Rng,
+  txId: string,
+  now: number,
+): ActionResult & { prizes?: WheelPrizeDef[]; indexes?: number[] } {
+  if (save.appliedTx.includes(txId)) return { ok: false, error: "Giao dịch trùng lặp" };
+  if (save.diamonds < WHEEL_COST_10) return { ok: false, error: `Cần ${WHEEL_COST_10} 💎 để quay 10 lần` };
+  const s = clone(refreshDaily(save, now));
+  s.diamonds -= WHEEL_COST_10;
+  addLedger(s, txId, "diamonds", -WHEEL_COST_10, "wheel:spin10", now);
+  const good = (p: WheelPrizeDef) => p.weight <= goodWeight;
+  const boosted = (p: WheelPrizeDef) => (good(p) ? p.weight * WHEEL_X10_GOOD_BOOST : p.weight);
+  const got: WheelPrizeDef[] = [];
+  for (let i = 0; i < 10; i++) got.push(rng.pickWeighted(prizes, boosted));
+  for (const p of got) grantReward(s, p.reward, txId, `wheel:${p.id}`, now);
+  s.stats.spins = (s.stats.spins ?? 0) + 10;
+  markTx(s, txId);
+  s.updatedAt = now;
+  return { ok: true, save: s, prizes: got, indexes: got.map((p) => prizes.indexOf(p)) };
+}
+
 // ------------------------------------------------------------------ danh hiệu
 export function titleProgress(save: PlayerSave, t: TitleDef): number {
   return Math.min(t.target, metric(save, t.metric));
