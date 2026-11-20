@@ -40,6 +40,7 @@ import { hexToInt, parseHex } from "../art/color.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
+import { FishingTogether } from "../ui/fishingTogether.ts";
 
 type Mode = "idle" | "charging" | "flying" | "fishing" | "landing" | "result";
 
@@ -62,6 +63,8 @@ export class FishingScene extends Phaser.Scene {
   private castEventLeft = 0;
   private eventLabel?: Phaser.GameObjects.Text;
   private comboT?: Phaser.GameObjects.Text;
+  /** Người chơi khác cùng khu (câu cùng nhau). */
+  private together?: FishingTogether;
 
   // hiển thị
   private water!: Phaser.GameObjects.Graphics;
@@ -196,6 +199,8 @@ export class FishingScene extends Phaser.Scene {
 
     this.buildHud();
     this.setupInput();
+    this.together = new FishingTogether(this, this.zone.id);
+    this.together.start();
     this.toIdle();
     this.auto = false;
     this.autoBtn = new Button(this, 540, 38, 200, 46, "", { color: COLORS.purple, fontSize: 18, onClick: () => this.toggleAuto() }).setDepth(45);
@@ -309,6 +314,7 @@ export class FishingScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- vòng đời
   private toIdle() {
+    this.together?.setState("idle");
     this.mode = "idle";
     this.session = null;
     this.fishDef = null;
@@ -450,6 +456,7 @@ export class FishingScene extends Phaser.Scene {
     this.weightKg = rollWeight(fish, rng);
     this.session = new FishingSession({ fish, loadout: this.loadout, seed: rng.int(1, 2 ** 31) });
     this.mode = "fishing";
+    this.together?.setState("waiting");
     this.nibbleAt = this.t + Phaser.Math.Between(700, 1500);
     this.hint.setText("Đang chờ cá cắn… Bấm khi phao chìm hẳn!");
     this.fishImg.setTexture(this.junk ? junkTexture(this, this.junk) : fishTexture(this, fish));
@@ -486,6 +493,7 @@ export class FishingScene extends Phaser.Scene {
       if (s.phase === "reeling") this.updateReeling(s);
     }
     this.autoStep(dt);
+    this.together?.update(dt);
     if (this.mode === "fishing" && s?.phase === "bite") {
       this.bobber.setPosition(this.castX + Math.sin(this.t / 30) * 3, HORIZON + 14);
     }
@@ -589,6 +597,7 @@ export class FishingScene extends Phaser.Scene {
         break;
       case "hooked": {
         Sfx.hook();
+        if (!this.junk) this.together?.setState("reeling");
         this.bobber.setVisible(false);
         this.hud.setVisible(true);
         this.fishX = this.castX;
@@ -758,6 +767,8 @@ export class FishingScene extends Phaser.Scene {
       }
     }
     const res = this.junk ? GameState.catchJunk(this.junk) : GameState.catchFish(FISH_BY_ID.get(f.id)!, this.weightKg, this.zone.id, this.bossHunt);
+    if (res.ok && !this.junk) this.together?.setState("caught", { fishId: f.id, formId: null, kg: this.weightKg });
+    else this.together?.setState("idle");
     // vật phẩm tiến hóa đột biến – tỉ lệ rất thấp
     let evo: EvoItemDef | null = null;
     if (res.ok && !this.junk) {
@@ -817,6 +828,7 @@ export class FishingScene extends Phaser.Scene {
 
   private endRound(kind: "missed" | "escaped" | "snapped") {
     this.mode = "result";
+    this.together?.setState("idle");
     Sfx.setReeling(false);
     this.hud.setVisible(false);
     this.bobber.setVisible(false);

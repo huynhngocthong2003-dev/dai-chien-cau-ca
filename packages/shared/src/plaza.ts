@@ -107,3 +107,14 @@ export function showOffMessage(show: PlazaShow, fish: FishDef, formName?: string
 
 /** Biểu cảm có sẵn. */
 export const PLAZA_EMOTES = ["👋", "😂", "😎", "🔥", "❤️", "🎣", "😭", "👍"] as const;
+
+// ------------------------------------------------------------------ câu cùng nhau
+/** Số chỗ câu cho người chơi khác ở mỗi khu (máy chủ chia 0..5). */
+export const FISHING_SPOTS = 6;
+/**
+ * Vị trí chỗ câu trên bến xa (tọa độ thiết kế): cách đều 120px, nằm giữa bục của mình (x < 330)
+ * và đồng hồ lực căng (x > 1160) → không ai che ai, không che giao diện.
+ */
+export function fishingSpotX(spot: number): number {
+  return 470 + Math.min(FISHING_SPOTS - 1, Math.max(0, spot)) * 120;
+}

@@ -513,3 +513,43 @@ export async function raceMembers(roomId: number): Promise<RaceMemberState[]> {
   if (error) throw new Error(friendlyRpc(error.message));
   return (data as RaceMemberState[]) ?? [];
 }
+
+// ------------------------------------------------------------ Câu cùng nhau
+export interface FishingCatch {
+  fishId: string;
+  formId: string | null;
+  kg: number;
+}
+export interface FishingPresence {
+  user_id: string;
+  zone_id: string;
+  spot: number;
+  name: string;
+  title: string | null;
+  level: number;
+  look: PlazaLook;
+  state: "idle" | "waiting" | "reeling" | "caught";
+  catch: FishingCatch | null;
+  catch_at: string | null;
+}
+export const fishingJoin = async (zone: string, look: PlazaLook) => ((await rpc("fishing_join", { p_zone: zone, p_look: look })) as number | null) ?? -1;
+export const fishingLeave = () => rpc("fishing_leave");
+
+export async function fishingUpdate(me: string, st: { state: FishingPresence["state"]; catch?: FishingCatch | null }): Promise<void> {
+  const sb = await getClient();
+  const { error } = await sb.from("fishing_presence").update(st).eq("user_id", me);
+  if (error) throw new Error(friendlyRpc(error.message));
+}
+
+export async function fishingList(zone: string): Promise<FishingPresence[]> {
+  const sb = await getClient();
+  const since = new Date(Date.now() - 60_000).toISOString();
+  const { data, error } = await sb
+    .from("fishing_presence")
+    .select("user_id, zone_id, spot, name, title, level, look, state, catch, catch_at")
+    .eq("zone_id", zone)
+    .gt("updated_at", since)
+    .limit(20);
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as FishingPresence[]) ?? [];
+}

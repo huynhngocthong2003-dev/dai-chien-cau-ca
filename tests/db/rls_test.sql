@@ -448,3 +448,44 @@ do $$ begin
   if (select finish_ms from public.race_members where user_id = '11111111-1111-1111-1111-111111111111') <> 41000 then raise exception 'Không ghi được thời gian về đích'; end if;
 end $$;
 select 'DB RACE TEST OK' as result;
+
+-- ================= Câu cùng nhau =================
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  if public.fishing_join('z_ben_tan_thu', '{"c":"c_be_tom"}') <> 0 then raise exception 'Người đầu phải ở chỗ 0'; end if;
+  if public.fishing_join('z_ben_tan_thu', '{"c":"c_be_tom"}') <> 0 then raise exception 'Vào lại phải giữ chỗ cũ'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ begin
+  if public.fishing_join('z_ben_tan_thu', '{}') <> 1 then raise exception 'Người thứ 2 phải ở chỗ 1 (không chồng)'; end if;
+  if public.fishing_join('z_vuc_sau', '{}') <> 0 then raise exception 'Đổi khu phải lấy chỗ ở khu mới'; end if;
+  if public.fishing_join('z_ben_tan_thu', '{}') <> 1 then raise exception 'Quay lại khu cũ lấy chỗ trống thấp nhất'; end if;
+  update public.fishing_presence set state = 'caught', catch = '{"fishId":"f_ca_ro","kg":1.2}' where user_id = '22222222-2222-2222-2222-222222222222';
+  if (select catch_at from public.fishing_presence where user_id = '22222222-2222-2222-2222-222222222222') is null then raise exception 'Thiếu thời điểm câu được'; end if;
+  if (select name from public.fishing_presence where user_id = '22222222-2222-2222-2222-222222222222') <> 'Bình' then raise exception 'Tên phải lấy từ hồ sơ'; end if;
+  begin update public.fishing_presence set spot = 0 where user_id = '22222222-2222-2222-2222-222222222222'; raise exception 'LỖI: tự giành chỗ';
+  exception when insufficient_privilege then null; end;
+  update public.fishing_presence set state = 'reeling' where user_id = '11111111-1111-1111-1111-111111111111';
+end $$;
+reset role;
+do $$ begin
+  if (select state from public.fishing_presence where user_id = '11111111-1111-1111-1111-111111111111') <> 'idle' then raise exception 'LỖI: sửa trạng thái người khác'; end if;
+end $$;
+-- 6 chỗ đầy → người thứ 7 nhận −1
+insert into auth.users (id) select gen_random_uuid() from generate_series(1, 6);
+insert into public.fishing_presence (user_id, zone_id, spot)
+  select id, 'z_full', (row_number() over ())::int - 1 from (select id from auth.users where id not in (select user_id from public.fishing_presence) and id::text not like '1111%' limit 6) u;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  if public.fishing_join('z_full', '{}') <> -1 then raise exception 'Khu đầy phải trả −1'; end if;
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  begin perform 1 from public.fishing_presence; raise exception 'LỖI: khách xem được';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'DB FISHING TOGETHER TEST OK' as result;

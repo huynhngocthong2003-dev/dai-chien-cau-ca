@@ -58,3 +58,13 @@ describe("Quảng Trường", () => {
     expect(msg.length).toBeLessThanOrEqual(200);
   });
 });
+
+describe("Câu cùng nhau – chỗ câu", () => {
+  it("6 chỗ cách đều, không chồng nhau, không đè bục của mình hay đồng hồ lực căng", async () => {
+    const { FISHING_SPOTS, fishingSpotX } = await import("@dccc/shared");
+    const xs = Array.from({ length: FISHING_SPOTS }, (_, i) => fishingSpotX(i));
+    for (let i = 1; i < xs.length; i++) expect(xs[i]! - xs[i - 1]!).toBeGreaterThanOrEqual(110); // nhân vật rộng ~80px
+    expect(Math.min(...xs) - 50).toBeGreaterThan(330);
+    expect(Math.max(...xs) + 60).toBeLessThan(1160);
+  });
+});

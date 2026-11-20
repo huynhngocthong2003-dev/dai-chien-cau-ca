@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0] – 2026-11-20 – Câu cá cùng nhau
+### Thêm
+- **Mỗi khu câu, người chơi ngồi câu cùng nhau**: người khác cùng khu đứng trên **bến xa** bên kia mặt nước, **mỗi người một chỗ câu riêng do máy chủ chia** (6 chỗ cách đều 120px, giữa bục của mình và đồng hồ lực căng → không ai che ai, không che giao diện). Vào lại khu giữ chỗ cũ; khu đủ 6 người thì người tới sau chờ chỗ.
+- Thấy họ **thả câu (phao đỏ), kéo cá (cần cong, nước sủi)**, và **giơ con cá vừa câu được** kèm số kg trên đầu. Mặc đúng nhân vật + trang phục; bấm vào người khác → xem trang cá nhân.
+- Góc trái hiện "🎣 N người đang câu cùng khu".
+- Database: `fishing_presence` + RPC `fishing_join` (khóa theo khu khi chia chỗ), `fishing_leave`; chỉ sửa được trạng thái của mình, không tự giành chỗ, tên lấy từ hồ sơ.
+
 ## [0.21.0] – 2026-11-20 – Đua Cá với người chơi
 ### Thêm
 - Nút **👥 ĐUA VỚI NGƯỜI** (cạnh 🤖 ĐUA VỚI MÁY): vào hàng chờ theo giải, ghép tối đa 5 người (đủ 2 người chờ ≥15 giây là xuất phát; máy lấp chỗ trống). **Chờ quá 2 phút chưa có ai → tự đua với máy** (hoặc bấm "🤖 Đua với máy ngay"). Phí vào cửa chỉ trừ khi bắt đầu đua.
