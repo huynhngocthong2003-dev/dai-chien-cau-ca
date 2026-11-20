@@ -48,7 +48,7 @@ export const playerSaveSchema = z.object({
   wardrobe: z.record(id, z.number().int().min(1).max(99)),
   redeemedCodes: z.array(z.string().regex(/^[0-9a-f]{20,32}$/)).max(200),
   claimedEvents: z.array(id).max(500),
-  roasted: z.array(z.object({ id, fishId: id, level: z.number().int().min(1).max(200), stars: z.number().int().min(1).max(5) })).max(200),
+  roasted: z.array(z.object({ id, fishId: id, level: z.number().int().min(1).max(200), stars: z.number().int().min(1).max(5) })).max(2000),
   showcase: z.array(id).max(3),
   evoItems: z.record(id, z.number().int().min(1).max(9999)),
   defense: z.array(id).max(3),
@@ -91,8 +91,37 @@ export const playerSaveSchema = z.object({
   updatedAt: timestamp,
 });
 
+/**
+ * Gọt các danh sách / số đếm vượt giới hạn về trong giới hạn TRƯỚC khi kiểm tra,
+ * để một chỉ số "quá nhiều" (vd tích hơn 200 cá nướng) không làm cả bản lưu bị coi là hỏng.
+ */
+export function sanitizeSave(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const s = raw as Record<string, unknown>;
+  const tail = (k: string, n: number) => {
+    if (Array.isArray(s[k]) && (s[k] as unknown[]).length > n) s[k] = (s[k] as unknown[]).slice(-n);
+  };
+  tail("roasted", 2000);
+  tail("redeemedCodes", 200);
+  tail("claimedEvents", 500);
+  tail("pvpApplied", 500);
+  tail("appliedTx", 500);
+  tail("ledger", 200);
+  tail("showcase", 3);
+  tail("defense", 3);
+  const mats = s.materials as Record<string, unknown> | undefined;
+  if (mats && typeof mats.bossTickets === "number" && mats.bossTickets > 99) mats.bossTickets = 99;
+  const wardrobe = s.wardrobe as Record<string, unknown> | undefined;
+  if (wardrobe && typeof wardrobe === "object") for (const k of Object.keys(wardrobe)) if (typeof wardrobe[k] === "number" && (wardrobe[k] as number) > 99) wardrobe[k] = 99;
+  const titles = s.titles as Record<string, unknown> | undefined;
+  if (titles && Array.isArray(titles.owned) && titles.owned.length > 200) titles.owned = titles.owned.slice(0, 200);
+  const evo = s.evoItems as Record<string, unknown> | undefined;
+  if (evo && typeof evo === "object") for (const k of Object.keys(evo)) if (typeof evo[k] === "number" && (evo[k] as number) > 9999) evo[k] = 9999;
+  return s;
+}
+
 export function parseSave(raw: unknown): { ok: true; save: PlayerSave } | { ok: false; error: string } {
-  const r = playerSaveSchema.safeParse(migrateSave(raw));
+  const r = playerSaveSchema.safeParse(sanitizeSave(migrateSave(raw)));
   if (!r.success) return { ok: false, error: r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") };
   return { ok: true, save: r.data as PlayerSave };
 }

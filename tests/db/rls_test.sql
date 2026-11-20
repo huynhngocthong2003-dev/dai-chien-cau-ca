@@ -354,3 +354,22 @@ do $$ begin
 end $$;
 reset role;
 select 'DB WORLD CHAT TEST OK' as result;
+
+-- ================= Chặn ghi đè tiến trình =================
+insert into public.player_saves (user_id, save, save_version, player_id, level)
+values ('33333333-3333-3333-3333-333333333333', '{"version":8,"stats":{"totalCaught":300}}', 8, 'p_old', 11)
+on conflict (user_id) do update set save = excluded.save, player_id = excluded.player_id, level = excluded.level;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  begin update public.player_saves set save = '{"version":8,"stats":{"totalCaught":0}}', player_id = 'p_new', level = 1 where user_id = '33333333-3333-3333-3333-333333333333';
+    raise exception 'LỖI: ghi đè được bằng tiến trình mới tinh';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+-- cùng mã người chơi thì cập nhật bình thường
+update public.player_saves set save = '{"version":8,"stats":{"totalCaught":305}}', level = 11 where user_id = '33333333-3333-3333-3333-333333333333';
+reset role;
+do $$ begin
+  if (select player_id from public.player_saves where user_id = '33333333-3333-3333-3333-333333333333') <> 'p_old' then raise exception 'Tiến trình cũ bị mất'; end if;
+end $$;
+select 'DB SAVE GUARD TEST OK' as result;

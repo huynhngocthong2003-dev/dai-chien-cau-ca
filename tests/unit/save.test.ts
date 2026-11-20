@@ -71,3 +71,20 @@ describe("Hồi quy: lưu rồi tải lại với thời gian thật", () => {
     expect(back.ok, back.ok ? "" : back.error).toBe(true);
   });
 });
+
+describe("Bản lưu có danh sách quá dài không bị coi là hỏng (lỗi mất tài khoản 19/11)", () => {
+  it("hơn 200 cá nướng, quá 99 vé Boss → vẫn đọc được, chỉ gọt bớt", async () => {
+    const { createNewSave } = await import("@dccc/shared");
+    const { CATALOG } = await import("@dccc/game-data");
+    const { parseSave } = await import("@dccc/validation");
+    const s = createNewSave("p_big", "Ông dà sẹt sì", CATALOG, Date.now()) as unknown as Record<string, unknown> & { roasted: unknown[]; materials: { bossTickets: number } };
+    s.roasted = Array.from({ length: 2600 }, (_, i) => ({ id: `r${i}`, fishId: "f_ca_ro", level: 3, stars: 1 }));
+    s.materials.bossTickets = 150;
+    const r = parseSave(JSON.parse(JSON.stringify(s)));
+    if (!r.ok) throw new Error(r.error);
+    expect(r.save.roasted.length).toBe(2000);
+    expect(r.save.roasted[1999]!.id).toBe("r2599");
+    expect(r.save.materials.bossTickets).toBe(99);
+    expect(r.save.name).toBe("Ông dà sẹt sì");
+  });
+});

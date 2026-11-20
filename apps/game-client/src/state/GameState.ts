@@ -452,7 +452,14 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     if (remoteRaw) {
       const p = parseSave(remoteRaw);
       if (p.ok && this.isConsistent(p.save)) remote = refillBossTickets(p.save, Date.now());
-      else await this.baseStorage.backup(remoteRaw);
+      else {
+        // KHÔNG BAO GIỜ ghi đè tài khoản khi không đọc được bản trên máy chủ (bản game cũ / dữ liệu lạ):
+        // giữ nguyên dữ liệu tài khoản, chơi tạm trên máy và báo người chơi tải lại trang.
+        await this.baseStorage.backup(remoteRaw);
+        console.warn("Không đọc được bản lưu trên tài khoản:", p.ok ? "tham chiếu dữ liệu không tồn tại" : p.error);
+        this.online = null;
+        throw new Error("Không đọc được tiến trình trên tài khoản (có thể bản game đã cũ). Hãy tải lại trang để cập nhật – dữ liệu tài khoản vẫn an toàn");
+      }
     }
     const d = decideSync(this._save, remote);
     if (d.backupLocal) await this.baseStorage.backup(this._save);
@@ -473,13 +480,21 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     const r = await Online.signUp(email, password, name);
     if (!r.ok || !r.user) return r;
     this.rename(name);
-    return { ...r, message: await this.adoptAccount(r.user) };
+    try {
+      return { ...r, message: await this.adoptAccount(r.user) };
+    } catch (e) {
+      return { ok: false as const, error: (e as Error).message };
+    }
   }
 
   async signIn(email: string, password: string) {
     const r = await Online.signIn(email, password);
     if (!r.ok || !r.user) return r;
-    return { ...r, message: await this.adoptAccount(r.user) };
+    try {
+      return { ...r, message: await this.adoptAccount(r.user) };
+    } catch (e) {
+      return { ok: false as const, error: (e as Error).message };
+    }
   }
 
   async signOut() {
@@ -515,7 +530,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   }
 
   async reset() {
-    this._save = createNewSave(uid("p"), "Cần Thủ", CATALOG, Date.now());
+    this._save = createNewSave(this._save.playerId, "Cần Thủ", CATALOG, Date.now());
     await this.persist();
     this.emit("changed", this._save);
   }

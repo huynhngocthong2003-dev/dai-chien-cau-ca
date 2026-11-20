@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.1] – 2026-11-20 – Sửa lỗi mất tài khoản / đăng nhập không hiện tiến trình
+### Sửa
+- **Nguyên nhân**: bản lưu có **hơn 200 cá nướng** (hoặc danh sách khác vượt giới hạn) bị kiểm tra dữ liệu coi là "hỏng" → khi đăng nhập game tưởng tài khoản trống và **tải bản nhân vật mới lên đè**.
+- Kiểm tra dữ liệu giờ **gọt bớt** danh sách quá dài thay vì từ chối cả bản lưu; giới hạn cá nướng nâng lên 2000.
+- Nếu vẫn không đọc được bản trên tài khoản, game **không bao giờ ghi đè** nữa – chơi tạm trên máy và báo tải lại trang.
+- Máy chủ: trigger `player_saves_guard` **chặn** mọi lần ghi đè bằng tiến trình khác có cấp/số cá thấp hơn (tự sao lưu bản bị chặn). Đã áp dụng lên máy chủ.
+- "Xóa tiến trình" giữ nguyên mã người chơi để không bị lớp chặn cản.
+
 ## [0.18.0] – 2026-11-20 – Hồ sơ chi tiết, trang cá nhân người chơi, nhắn tin, chat Thế Giới, trạng thái online
 ### Thêm
 - **Hồ Sơ mới**: trái – avatar (chấm online), tên, **danh hiệu**, cấp, **UID** (bấm để sao chép), mã kết bạn, 5 ô thống kê (thêm Chiến lực), cá trưng bày; phải – **mô hình nhân vật đứng trên bục, cầm cần câu đang dùng**, mặc đồ/skin đang mặc, nút đổi nhân vật/cần câu.
