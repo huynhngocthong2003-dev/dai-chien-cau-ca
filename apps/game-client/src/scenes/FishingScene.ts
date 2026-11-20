@@ -4,6 +4,12 @@ import { FISHING, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config
 import { CHARACTER_BY_ID, ECO_MESSAGE, FISH_BY_ID, EVO_ITEMS, JUNK, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import {
   FishingSession,
+  FIGHT_STYLE_INFO,
+  CAST_EVENT_INFO,
+  applyCastEvent,
+  castEventWeightMul,
+  rollCastEvent,
+  type CastEventKind,
   Rng,
   chooseFish,
   huntBoss,
@@ -51,6 +57,11 @@ export class FishingScene extends Phaser.Scene {
   /** Rác vớt nhầm (nếu lần này không phải cá). */
   private junk: JunkDef | null = null;
   private weightKg = 0;
+  /** Sự kiện quăng cần đang diễn ra (đàn cá quý / mùa cá lớn). */
+  private castEvent: CastEventKind | null = null;
+  private castEventLeft = 0;
+  private eventLabel?: Phaser.GameObjects.Text;
+  private comboT?: Phaser.GameObjects.Text;
 
   // hiển thị
   private water!: Phaser.GameObjects.Graphics;
@@ -177,6 +188,9 @@ export class FishingScene extends Phaser.Scene {
     this.refreshHuntLabel();
 
     this.hint = txt(this, 640, 640, "", 30, { align: "center" }).setOrigin(0.5).setDepth(50);
+    this.eventLabel = txt(this, 16, 132, "", 18, { color: "#ffe082" }).setDepth(50);
+    this.castEvent = null;
+    this.castEventLeft = 0;
     this.alertT = txt(this, 640, 220, "", 56, { align: "center", stroke: 10 }).setOrigin(0.5).setDepth(60).setAlpha(0);
     this.powerBar = new Bar(this, 140, 250, 160, 24, COLORS.orange, "Lực quăng").setVisible(false).setDepth(50);
 
@@ -210,6 +224,8 @@ export class FishingScene extends Phaser.Scene {
     this.hpBar = new Bar(this, 420, 56, 520, 26, COLORS.red, "");
     this.distBar = new Bar(this, 420, 90, 520, 20, COLORS.blue, "");
     c.add([this.fishNameT, this.hpBar, this.distBar]);
+    this.comboT = txt(this, 680, 146, "", 30, { align: "center", color: "#ffd740" }).setOrigin(0.5);
+    c.add(this.comboT);
 
     // đồng hồ lực căng (dọc, bên phải)
     const gx = 1200;
@@ -350,7 +366,7 @@ export class FishingScene extends Phaser.Scene {
       if (s.phase === "bite") s.hook();
       else if (s.phase === "reeling") {
         const limit = FISHING.dangerTension * (s.struggling ? 0.55 : 0.82);
-        this.reelHeld = s.tension < limit;
+        this.reelHeld = s.tension < limit && !s.warning && !s.jumping;
         if (s.struggling && s.skillCooldownLeft <= 0) this.useSkill();
       }
     } else if (this.mode === "result" && this.autoT > 1800) {
@@ -410,12 +426,26 @@ export class FishingScene extends Phaser.Scene {
     this.ripple(this.castX, HORIZON);
     const seed = randomSeed();
     const rng = new Rng(seed);
+    // sự kiện ngẫu nhiên khi quăng cần
+    if (this.castEventLeft > 0) this.castEventLeft--;
+    else this.castEvent = null;
+    if (!this.castEvent && !this.bossHunt) {
+      const ev = rollCastEvent(rng);
+      if (ev) {
+        this.castEvent = ev;
+        this.castEventLeft = CAST_EVENT_INFO[ev].casts - 1;
+        this.flashAlert(CAST_EVENT_INFO[ev].name, ev === "school" ? "#ffe082" : "#80d8ff", 48, 640, 200);
+        toast(this, CAST_EVENT_INFO[ev].desc, COLORS.gold);
+        Sfx.catchFanfare(false);
+      }
+    }
+    this.eventLabel?.setText(this.castEvent ? `${CAST_EVENT_INFO[this.castEvent].name.replace("!", "")} · còn ${this.castEventLeft + 1} lần` : "");
     this.junk = this.bossHunt ? null : rollJunk(rng, JUNK, FISHING.junkChance);
     const fish = this.junk
       ? junkAsFish(this.junk)
       : this.bossHunt
         ? huntBoss(pickZoneBoss(this.zone, FISH_BY_ID, rng) ?? FISH_BY_ID.get(this.zone.bossId)!)
-        : chooseFish(this.zone, FISH_BY_ID, this.loadout, power, rng);
+        : chooseFish(this.zone, FISH_BY_ID, applyCastEvent(this.loadout, this.castEvent), power, rng);
     this.fishDef = fish;
     this.weightKg = rollWeight(fish, rng);
     this.session = new FishingSession({ fish, loadout: this.loadout, seed: rng.int(1, 2 ** 31) });
@@ -485,7 +515,10 @@ export class FishingScene extends Phaser.Scene {
       this.fishY = HORIZON + 95 + Math.sin(this.t / (s.struggling ? 70 : 400)) * thrash;
       this.fishImg.setPosition(this.fishX, this.fishY).setAngle(Math.sin(this.t / (s.struggling ? 50 : 500)) * (s.struggling ? 14 : 4));
       const stun = s.isActive("stun") || s.isActive("freeze");
-      this.fishImg.setTint(s.isActive("freeze") ? 0x9fe8ff : stun ? 0xb0a0c0 : s.struggling ? 0x8a4a5a : 0x3a5a7a).setAlpha(0.85);
+      const warnFlash = s.warning && Math.floor(this.t / 90) % 2 === 0;
+      this.fishImg
+        .setTint(s.isActive("freeze") ? 0x9fe8ff : stun ? 0xb0a0c0 : warnFlash ? 0xffeb3b : s.tired ? 0x9cffb0 : s.struggling ? 0x8a4a5a : 0x3a5a7a)
+        .setAlpha(0.85);
     }
     if (s.struggling && Math.random() < 0.15) this.splash(this.fishX, HORIZON, 3);
 
@@ -510,7 +543,10 @@ export class FishingScene extends Phaser.Scene {
     this.fishNameT.setColor(FISH_RARITY_COLOR[f.rarity]);
     const dangerFlash = s.tension > FISHING.dangerTension && Math.floor(this.t / 150) % 2 === 0;
     this.reelBtn.setColor(dangerFlash ? COLORS.red : COLORS.orange);
-    if (s.tension > FISHING.dangerTension) this.hint.setText("Dây quá căng! Thả tay ra!");
+    if (s.jumping) this.hint.setText("CÁ ĐANG NHẢY – NHẢ TAY ĐỂ NÉ!");
+    else if (s.warning) this.hint.setText("⚠ Cá sắp quẫy – nhả tay!");
+    else if (s.tired) this.hint.setText("CÁ MỆT RỒI – KÉO NGAY! ✨");
+    else if (s.tension > FISHING.dangerTension) this.hint.setText("Dây quá căng! Thả tay ra!");
     else if (s.struggling) this.hint.setText(s.frenzy ? "CÁ CUỒNG NỘ! Cẩn thận lực căng!" : "Cá đang vùng vẫy – nhả bớt dây!");
     else this.hint.setText(reeling ? "Kéo! Kéo! Kéo!" : "Giữ nút KÉO để thu dây");
   }
@@ -558,7 +594,11 @@ export class FishingScene extends Phaser.Scene {
         this.fishX = this.castX;
         this.fishY = HORIZON + 95;
         this.fishImg.setVisible(true).setPosition(this.fishX, this.fishY);
-        this.fishNameT.setText(this.junk ? `♻ Rác: ${this.junk.name}` : `${f.name} · ${FISH_RARITY_LABEL[f.rarity]}`);
+        this.fishNameT.setText(
+          this.junk ? `♻ Rác: ${this.junk.name}` : `${f.name} · ${FISH_RARITY_LABEL[f.rarity]} · ${FIGHT_STYLE_INFO[this.session!.style].name}`,
+        );
+        this.comboT?.setText("");
+        if (!this.junk) toast(this, `💡 ${FIGHT_STYLE_INFO[this.session!.style].tip}`);
         {
           const line = pickLine(hookPool(!!this.junk, f.rarity), this.junk || f.rarity === "boss" ? 0.6 : 0.4);
           if (line) speechBubble(this, 230, 238, line);
@@ -582,6 +622,31 @@ export class FishingScene extends Phaser.Scene {
         break;
       case "jump":
         if (!this.junk) this.fishJump();
+        break;
+      case "warn":
+        this.floatText("⚠", this.fishX, this.fishY - 70, "#ffeb3b");
+        this.tweens.add({ targets: this.fishImg, scaleX: this.fishImg.scaleX * 1.12, duration: 90, yoyo: true, repeat: 2 });
+        this.ripple(this.fishX, HORIZON, 1.2);
+        break;
+      case "dodge":
+        Sfx.crit();
+        this.floatText(`NÉ ĐẸP! -${formatNum(e.amount)}`, this.fishX, this.fishY - 90, "#69f0ae");
+        this.showCombo(e.combo);
+        break;
+      case "jump_fail":
+        Sfx.danger();
+        this.cameras.main.shake(160, 0.008);
+        this.floatText("Giật lúc cá nhảy! Dây căng!", this.fishX, this.fishY - 90, "#ff5252");
+        break;
+      case "perfect":
+        Sfx.crit();
+        this.floatText(e.combo > 1 ? `HOÀN HẢO x${e.combo}!` : "HOÀN HẢO!", this.fishX, this.fishY - 80, "#ffd740");
+        this.sparks(this.fishX, this.fishY, 0xffd740);
+        this.showCombo(e.combo);
+        break;
+      case "combo_break":
+        this.comboT?.setText("");
+        this.floatText("Mất combo", 680, 170, "#ff8a80");
         break;
       case "crit":
         Sfx.crit();
@@ -645,6 +710,12 @@ export class FishingScene extends Phaser.Scene {
     if (dmg > 0) this.floatText(`-${formatNum(dmg)}`, this.fishX, this.fishY - 50, "#ff8a80");
   }
 
+  private showCombo(n: number) {
+    if (!this.comboT) return;
+    this.comboT.setText(n >= 2 ? `COMBO x${n}` : "").setScale(1.4);
+    this.tweens.add({ targets: this.comboT, scale: 1, duration: 220, ease: "Back.easeOut" });
+  }
+
   private fishJump() {
     if (this.jumping || !this.fishDef) return;
     this.jumping = true;
@@ -679,6 +750,13 @@ export class FishingScene extends Phaser.Scene {
     this.mode = "landing";
     Sfx.setReeling(false);
     const f = this.fishDef!;
+    if (!this.junk && this.session) {
+      const mul = (1 + this.session.weightBonus) * castEventWeightMul(this.castEvent);
+      if (mul > 1) {
+        this.weightKg = Math.round(this.weightKg * mul * 100) / 100;
+        if (this.session.weightBonus > 0) toast(this, `Combo x${this.session.maxCombo}: cá nặng thêm ${Math.round(this.session.weightBonus * 100)}%!`, COLORS.gold);
+      }
+    }
     const res = this.junk ? GameState.catchJunk(this.junk) : GameState.catchFish(FISH_BY_ID.get(f.id)!, this.weightKg, this.zone.id, this.bossHunt);
     // vật phẩm tiến hóa đột biến – tỉ lệ rất thấp
     let evo: EvoItemDef | null = null;

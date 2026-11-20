@@ -10,7 +10,7 @@ import { WORLD_H, WORLD_W, drawDock, drawZoneBackground } from "./Backgrounds.ts
 import { drawJunk } from "./JunkArt.ts";
 
 /** Tạo texture từ hàm vẽ Canvas 2D (chỉ tạo một lần, lazy). */
-function canvasTexture(
+export function canvasTexture(
   scene: Phaser.Scene,
   key: string,
   w: number,

@@ -11,7 +11,7 @@ import { hexToInt } from "../art/color.ts";
 import { openChat } from "./chat.ts";
 
 /** Chỉ giữ đồ hợp lệ (đề phòng dữ liệu hồ sơ cũ / lạ). */
-function safeEquip(e: Partial<Record<string, string>> | undefined): Partial<Record<CosmeticSlot, string>> {
+export function safeEquip(e: Partial<Record<string, string>> | undefined): Partial<Record<CosmeticSlot, string>> {
   const out: Partial<Record<CosmeticSlot, string>> = {};
   for (const [k, v] of Object.entries(e ?? {})) {
     const it = v ? COSMETIC_BY_ID.get(v) : undefined;

@@ -11,7 +11,12 @@ export type FishingEvent =
   | { type: "hooked" }
   | { type: "struggle_start"; frenzy: boolean }
   | { type: "struggle_end" }
+  | { type: "warn" }
   | { type: "jump" }
+  | { type: "dodge"; combo: number; amount: number }
+  | { type: "jump_fail" }
+  | { type: "perfect"; combo: number }
+  | { type: "combo_break" }
   | { type: "crit"; amount: number }
   | { type: "damage"; amount: number }
   | { type: "skill"; skillId: string }
@@ -32,6 +37,75 @@ const STRUGGLE_BY_RARITY: Record<FishRarity, number> = {
 };
 
 export const TICK_MS = 50;
+
+/** Kiểu vùng vẫy của từng loài – người chơi học cách đối phó với từng con. */
+export type FightStyle = "steady" | "darter" | "diver" | "jumper" | "boss" | "junk";
+
+export const FIGHT_STYLE_INFO: Record<FightStyle, { name: string; tip: string }> = {
+  steady: { name: "Bền bỉ", tip: "Quẫy đều đặn – nhả dây khi thấy báo hiệu" },
+  darter: { name: "Giật lắt nhắt", tip: "Quẫy ngắn liên tục – báo hiệu rất nhanh!" },
+  diver: { name: "Lặn sâu", tip: "Quẫy lâu, kéo dây ra xa – đừng cố kéo khi nó lặn" },
+  jumper: { name: "Hay nhảy", tip: "Thường nhảy khỏi mặt nước – NHẢ TAY khi cá bay lên để né" },
+  boss: { name: "Chúa tể", tip: "Đủ mọi chiêu – canh báo hiệu, né cú nhảy, kéo khi nó mệt" },
+  junk: { name: "Rác", tip: "Cứ kéo thôi" },
+};
+
+interface StyleMods {
+  calm: number;
+  struggle: number;
+  strength: number;
+  push: number;
+  jump: number;
+  tellMs: number;
+}
+const STYLE_MODS: Record<FightStyle, StyleMods> = {
+  steady: { calm: 1, struggle: 1, strength: 1, push: 1, jump: 0.35, tellMs: 650 },
+  darter: { calm: 0.55, struggle: 0.5, strength: 0.85, push: 0.8, jump: 0.2, tellMs: 420 },
+  diver: { calm: 1.1, struggle: 1.45, strength: 1.05, push: 1.6, jump: 0, tellMs: 750 },
+  jumper: { calm: 0.95, struggle: 0.9, strength: 0.95, push: 0.9, jump: 0.9, tellMs: 600 },
+  boss: { calm: 0.9, struggle: 1.1, strength: 1, push: 1.15, jump: 0.55, tellMs: 600 },
+  junk: { calm: 1, struggle: 1, strength: 1, push: 1, jump: 0, tellMs: 650 },
+};
+
+/** Xác định kiểu vùng vẫy (tất định theo loài). */
+export function fightStyle(fish: Pick<FishDef, "id" | "rarity" | "spd">): FightStyle {
+  if (fish.id.startsWith("j_")) return "junk";
+  if (fish.rarity === "boss") return "boss";
+  let h = 0;
+  for (const ch of fish.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  if (fish.spd >= 70 && h % 3 !== 0) return "darter";
+  const pool: FightStyle[] = ["steady", "darter", "diver", "jumper"];
+  return pool[h % pool.length]!;
+}
+
+/** Cửa sổ "cá mệt" sau mỗi lần quẫy: kéo lúc này gây sát thương lớn và tăng combo. */
+export const TIRED_WINDOW_MS = 900;
+/** Thời gian cá bay trên không – nhả tay để né. */
+export const JUMP_WINDOW_MS = 750;
+/** Combo cao nhất → thưởng cân nặng (tối đa +25%). */
+export function comboWeightBonus(maxCombo: number): number {
+  return Math.min(0.25, maxCombo * 0.03);
+}
+
+/** Sự kiện ngẫu nhiên khi quăng cần – giữ hiệu lực vài lần quăng. */
+export type CastEventKind = "school" | "giant";
+export const CAST_EVENT_INFO: Record<CastEventKind, { name: string; desc: string; casts: number }> = {
+  school: { name: "🌟 ĐÀN CÁ QUÝ!", desc: "Cá hiếm dễ cắn hơn trong 3 lần quăng", casts: 3 },
+  giant: { name: "🐋 MÙA CÁ LỚN!", desc: "Cá nặng hơn 35% trong 3 lần quăng", casts: 3 },
+};
+export function rollCastEvent(rng: Rng): CastEventKind | null {
+  const r = rng.next();
+  if (r < 0.05) return "school";
+  if (r < 0.08) return "giant";
+  return null;
+}
+/** Áp hiệu ứng sự kiện vào đội hình (đàn cá quý: +60 may mắn). */
+export function applyCastEvent(loadout: Loadout, ev: CastEventKind | null): Loadout {
+  return ev === "school" ? { ...loadout, luck: loadout.luck + 60 } : loadout;
+}
+export function castEventWeightMul(ev: CastEventKind | null): number {
+  return ev === "giant" ? 1.35 : 1;
+}
 
 export interface FishingSessionOptions {
   fish: FishDef;
@@ -68,6 +142,15 @@ export class FishingSession {
   skillReadyAt = 0;
   biteAt: number;
   biteUntil = 0;
+  readonly style: FightStyle;
+  /** Đang báo hiệu sắp quẫy (người chơi nên nhả tay). */
+  warning = false;
+  /** Cá đang bay trên không – kéo lúc này bị phạt. */
+  jumpUntil = 0;
+  /** Cửa sổ cá mệt. */
+  tiredUntil = 0;
+  combo = 0;
+  maxCombo = 0;
 
   private phaseUntil: number;
   private reeling = false;
@@ -75,6 +158,10 @@ export class FishingSession {
   private critTimer = 0;
   private events: FishingEvent[] = [];
   private wasDanger = false;
+  private warnUntil = 0;
+  private jumpFailed = false;
+  private tiredHit = false;
+  private readonly mods: StyleMods;
   private buffs = {
     reel: [] as TimedBuff[],
     stun: [] as TimedBuff[],
@@ -102,6 +189,8 @@ export class FishingSession {
     this.loadout = opts.loadout;
     this.seed = opts.seed;
     this.rng = new Rng(opts.seed);
+    this.style = fightStyle(opts.fish);
+    this.mods = STYLE_MODS[this.style];
     const p = opts.loadout.passives;
     const isBoss = this.fish.rarity === "boss";
 
@@ -154,6 +243,16 @@ export class FishingSession {
   }
   get skillCooldownLeft(): number {
     return Math.max(0, this.skillReadyAt - this.time);
+  }
+  get jumping(): boolean {
+    return this.jumpUntil > this.time;
+  }
+  get tired(): boolean {
+    return this.tiredUntil > this.time;
+  }
+  /** Thưởng cân nặng nhờ combo. */
+  get weightBonus(): number {
+    return comboWeightBonus(this.maxCombo);
   }
   get isOver(): boolean {
     return this.phase === "caught" || this.phase === "escaped" || this.phase === "snapped" || this.phase === "missed";
@@ -242,23 +341,25 @@ export class FishingSession {
 
   private calmDuration() {
     const [a, b] = FISHING.calmPhaseMs;
-    return Math.round(this.rng.range(a, b) / (0.6 + this.fish.spd / 100));
+    return Math.round((this.rng.range(a, b) / (0.6 + this.fish.spd / 100)) * this.mods.calm);
   }
   private struggleDuration() {
     const [a, b] = FISHING.strugglePhaseMs;
-    return Math.round(this.rng.range(a, b) * (0.8 + this.fish.spd / 250));
+    return Math.round(this.rng.range(a, b) * (0.8 + this.fish.spd / 250) * this.mods.struggle);
   }
   private endStruggle() {
     if (this.struggling) {
       this.struggling = false;
       this.frenzy = false;
       this.phaseUntil = this.time + this.calmDuration();
+      this.tiredUntil = this.time + TIRED_WINDOW_MS;
+      this.tiredHit = false;
       this.events.push({ type: "struggle_end" });
     }
   }
 
   private struggleStrength(): number {
-    let s = STRUGGLE_BY_RARITY[this.fish.rarity] * (0.55 + 0.45 * this.hpRatio) * (1 - this.struggleReduce);
+    let s = STRUGGLE_BY_RARITY[this.fish.rarity] * this.mods.strength * (0.55 + 0.45 * this.hpRatio) * (1 - this.struggleReduce);
     if (this.frenzy) s *= 1.35;
     const calm = this.buffs.calm.filter((b) => b.until > this.time).reduce((m, b) => Math.max(m, b.value), 0);
     return s * (1 - calm);
@@ -299,16 +400,46 @@ export class FishingSession {
     const frozen = this.isActive("freeze");
     const stunned = this.isActive("stun") || frozen;
 
-    // Chuyển pha vùng vẫy
+    // Chuyển pha vùng vẫy: yên → BÁO HIỆU → quẫy → mệt (cửa sổ vàng) → yên
     if (!stunned && this.time >= this.phaseUntil) {
       if (this.struggling) {
         this.endStruggle();
-      } else {
+      } else if (!this.warning) {
+        this.warning = true;
+        this.warnUntil = this.time + this.mods.tellMs;
+        this.events.push({ type: "warn" });
+      } else if (this.time >= this.warnUntil) {
+        this.warning = false;
         this.struggling = true;
         this.frenzy = this.hpRatio < 0.35 && this.rng.chance(0.5);
         this.phaseUntil = this.time + this.struggleDuration();
         this.events.push({ type: "struggle_start", frenzy: this.frenzy });
-        if (this.rng.chance(0.55)) this.events.push({ type: "jump" });
+        if (this.rng.chance(this.mods.jump)) {
+          this.jumpUntil = this.time + JUMP_WINDOW_MS;
+          this.jumpFailed = false;
+          this.events.push({ type: "jump" });
+        }
+      }
+    }
+
+    // Cú nhảy: kéo khi cá đang bay → giật mạnh dây; nhả tay suốt cú nhảy → né thành công
+    if (this.jumpUntil > 0) {
+      if (this.time < this.jumpUntil) {
+        if (this.reeling && !this.jumpFailed) {
+          this.jumpFailed = true;
+          this.tension += 15;
+          this.breakCombo();
+          this.events.push({ type: "jump_fail" });
+        }
+      } else {
+        if (!this.jumpFailed) {
+          this.combo++;
+          this.maxCombo = Math.max(this.maxCombo, this.combo);
+          const amount = this.fishMaxHp * 0.03 * (1 + Math.min(10, this.combo) * 0.1);
+          this.fishHp = Math.max(0, this.fishHp - amount);
+          this.events.push({ type: "dodge", combo: this.combo, amount });
+        }
+        this.jumpUntil = 0;
       }
     }
 
@@ -322,7 +453,16 @@ export class FishingSession {
 
     if (this.reeling) {
       // Kéo khi cá vùng vẫy gây ít sát thương hơn
-      const dmgPerSec = this.loadout.pull * this.pullMul * (this.struggling && !stunned ? 0.45 : 1);
+      // Kéo đúng lúc cá mệt: lần đầu trong cửa sổ → "Hoàn hảo", tăng combo
+      const tired = this.tiredUntil > this.time && !this.struggling;
+      if (tired && !this.tiredHit) {
+        this.tiredHit = true;
+        this.combo++;
+        this.maxCombo = Math.max(this.maxCombo, this.combo);
+        this.events.push({ type: "perfect", combo: this.combo });
+      }
+      const tiredMul = tired ? 1.6 + 0.15 * Math.min(10, this.combo) : 1;
+      const dmgPerSec = this.loadout.pull * this.pullMul * tiredMul * (this.struggling && !stunned ? 0.45 : 1);
       this.critTimer += TICK_MS;
       if (this.critTimer >= 250) {
         this.critTimer -= 250;
@@ -339,7 +479,7 @@ export class FishingSession {
       this.tension -= FISHING.tensionDecayPerSec * (1 + this.tensionDecayBonus) * dt;
       this.distance += FISHING.idleDriftPerSec * (stunned ? 0 : 1) * dt;
     }
-    if (strength > 0) this.distance += FISHING.struggleDistancePerSec * strength * dt;
+    if (strength > 0) this.distance += FISHING.struggleDistancePerSec * strength * this.mods.push * dt;
 
     this.tension = Math.max(0, Math.min(this.maxTension, this.tension));
     this.distance = Math.max(this.hpRatio > 0 ? 6 : 0, this.distance);
@@ -347,6 +487,7 @@ export class FishingSession {
     // Hao mòn dây khi quá căng
     if (this.tension > FISHING.dangerTension) {
       if (!this.wasDanger) this.events.push({ type: "danger" });
+      if (this.reeling) this.breakCombo();
       this.wasDanger = true;
       const over = (this.tension - FISHING.dangerTension) / (this.maxTension - FISHING.dangerTension);
       const atMax = this.tension >= this.maxTension ? 2.5 : 1;
@@ -358,6 +499,13 @@ export class FishingSession {
     }
 
     this.checkEnd();
+  }
+
+  private breakCombo() {
+    if (this.combo > 0) {
+      this.combo = 0;
+      this.events.push({ type: "combo_break" });
+    }
   }
 
   private checkEnd() {

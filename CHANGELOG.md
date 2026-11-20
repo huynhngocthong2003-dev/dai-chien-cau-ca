@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.19.0] – 2026-11-20 – Câu cá có kỹ năng + Quảng Trường
+### Thêm – câu cá đỡ chán
+- **Mỗi loài cá vùng vẫy một kiểu**: Bền bỉ, Giật lắt nhắt, Lặn sâu, Hay nhảy, Chúa tể (Boss). Tên kiểu hiện cạnh tên cá, kèm mẹo đối phó khi cá cắn câu.
+- **Báo hiệu trước khi cá quẫy** (cá nháy vàng + ⚠): nhả tay kịp thì không bị căng dây. Cá giật lắt nhắt báo hiệu rất nhanh.
+- **Né cú nhảy**: cá bay khỏi mặt nước thì NHẢ TAY → "NÉ ĐẸP!" gây sát thương + combo; kéo lúc cá bay → dây giật căng, mất combo.
+- **Cá mệt – kéo ngay!** Sau mỗi lần quẫy có cửa sổ ~0,9 giây (cá chuyển xanh): kéo lúc này → "HOÀN HẢO!", sát thương lớn, tăng combo.
+- **Combo** (mất khi kéo lúc dây quá căng): combo cao nhất cộng tới **+25% cân nặng** cá bắt được.
+- **Sự kiện khi quăng cần**: 🌟 Đàn Cá Quý (cá hiếm dễ cắn hơn 3 lần quăng), 🐋 Mùa Cá Lớn (cá nặng hơn 35% trong 3 lần quăng).
+- Câu tự động cũng biết nhả tay khi cá báo hiệu/nhảy.
+### Thêm – 🏙 Quảng Trường
+- Nút **🏙 Quảng Trường** ở sảnh: bến cảng hoàng hôn với đài phun nước tượng cá chép vàng, tiệm mồi, bảng tin, dây đèn lồng.
+- **Tự điều khiển nhân vật**: bấm vào nền để đi tới, kéo **cần điều khiển ảo** (điện thoại) hoặc dùng **phím mũi tên / WASD**. Thấy người chơi khác đi lại (cập nhật ~1–2 giây), mặc đúng nhân vật + trang phục của họ.
+- **Trò chuyện**: ô chat gửi lên Kênh Thế Giới, lời nói hiện thành **bong bóng trên đầu** nhân vật; khung nhật ký chat nhỏ (bấm để mở Chat Thế Giới).
+- **8 biểu cảm** 👋😂😎🔥❤️🎣😭👍 bay lên trên đầu.
+- **🐟 Khoe cá**: chọn cá xịn nhất trong kho (xếp theo độ hiếm/thể đột biến/cân nặng) → cá được giơ trên đầu nhân vật kèm số kg, và báo lên Kênh Thế Giới.
+- Bấm vào người khác → xem trang cá nhân (kết bạn, nhắn tin, đấu).
+- Database: bảng `plaza_presence` (RLS: chỉ tự cập nhật mình; tên/cấp/danh hiệu do máy chủ gắn – không giả danh).
+### Sửa
+- E2E chơi thử không còn báo lỗi khi ván đầu vớt phải rác.
+
 ## [0.18.1] – 2026-11-20 – Sửa lỗi mất tài khoản / đăng nhập không hiện tiến trình
 ### Sửa
 - **Nguyên nhân**: bản lưu có **hơn 200 cá nướng** (hoặc danh sách khác vượt giới hạn) bị kiểm tra dữ liệu coi là "hỏng" → khi đăng nhập game tưởng tài khoản trống và **tải bản nhân vật mới lên đè**.

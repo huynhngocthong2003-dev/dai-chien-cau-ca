@@ -17,3 +17,4 @@ export * from "./deathmatch.ts";
 export * from "./forms.ts";
 export * from "./meta.ts";
 export * from "./topup.ts";
+export * from "./plaza.ts";

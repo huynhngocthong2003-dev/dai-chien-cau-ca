@@ -3,7 +3,7 @@
  * Chỉ hoạt động khi đã đăng nhập tài khoản online.
  */
 import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
-import { ownedFishPower, teamPower, winRate, type MatchResult, type PlayerSave, type PvpMatchRecord, type RankCategory } from "@dccc/shared";
+import { ownedFishPower, teamPower, winRate, type MatchResult, type PlazaShow, type PlayerSave, type PvpMatchRecord, type RankCategory } from "@dccc/shared";
 import { getClient } from "./online.ts";
 
 export interface ShowcaseFish {
@@ -426,4 +426,48 @@ export async function sendWorld(me: string, body: string): Promise<void> {
   const sb = await getClient();
   const { error } = await sb.from("world_messages").insert({ user_id: me, body: body.trim().slice(0, 200) });
   if (error) throw new Error(friendlyRpc(error.message));
+}
+
+// ------------------------------------------------------------ Quảng Trường
+export interface PlazaLook {
+  c: string;
+  equip?: Partial<Record<string, string>>;
+}
+export interface PlazaPresence {
+  user_id: string;
+  name: string;
+  title: string | null;
+  level: number;
+  x: number;
+  y: number;
+  look: PlazaLook;
+  showing: PlazaShow | null;
+  emote: string | null;
+  emote_at: string | null;
+  updated_at: string;
+}
+
+export async function plazaUpsert(me: string, p: { x: number; y: number; look: PlazaLook; showing: PlazaShow | null; emote: string | null }): Promise<void> {
+  const sb = await getClient();
+  const { error } = await sb.from("plaza_presence").upsert({ user_id: me, ...p });
+  if (error) throw new Error(friendlyRpc(error.message));
+}
+
+/** Người đang ở quảng trường (cập nhật trong 90 giây gần nhất). */
+export async function plazaList(): Promise<PlazaPresence[]> {
+  const sb = await getClient();
+  const since = new Date(Date.now() - 90_000).toISOString();
+  const { data, error } = await sb
+    .from("plaza_presence")
+    .select("user_id, name, title, level, x, y, look, showing, emote, emote_at, updated_at")
+    .gt("updated_at", since)
+    .order("updated_at", { ascending: false })
+    .limit(40);
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as PlazaPresence[]) ?? [];
+}
+
+export async function plazaLeave(me: string): Promise<void> {
+  const sb = await getClient();
+  await sb.from("plaza_presence").delete().eq("user_id", me);
 }

@@ -1,6 +1,6 @@
 # PROJECT STATUS
 
-Cập nhật: 2026-11-19 (v0.13.0)
+Cập nhật: 2026-11-20 (v0.19.0)
 
 | Giai đoạn | Trạng thái |
 |---|---|
@@ -9,10 +9,11 @@ Cập nhật: 2026-11-19 (v0.13.0)
 | 2 – Phát triển nhân vật | ✅ Hoàn thành phần cốt lõi (nâng cấp, đột phá, thức tỉnh, tiến hóa cần & cá, săn Boss). Còn lại: phụ kiện, trang phục, skin cần, hợp thể cần |
 | 3 – Kinh tế | ✅ Cửa hàng, trang phục, kim cương, vòng quay, nhiệm vụ ngày, điểm danh, danh hiệu/thành tựu. Còn: nạp tiền thật (chờ chủ dự án chọn cách xác nhận thanh toán) |
 | 4 – Multiplayer | ⏳ Tài khoản online, hồ sơ, bạn bè, **Đấu Sinh Tử người–người do máy chủ tính** (Edge Function). Còn: Colyseus thời gian thực, giao dịch đồ |
-| 5 – Cộng đồng | ✅ Hồ sơ, bạn bè, Hội, Bảng Xếp Hạng + danh hiệu Top (cần triển khai database bằng 2 secret GitHub) |
+| 5 – Cộng đồng | ✅ Hồ sơ, bạn bè, Hội, Bảng Xếp Hạng + danh hiệu Top, nhắn tin, Chat Thế Giới, **Quảng Trường** (đi lại, chat bong bóng, biểu cảm, khoe cá) |
 | 6 – Phát hành | ⬜ |
 
 ## Đã kiểm thử
+- v0.19.0: 126 unit test (thêm: kiểu vùng vẫy, báo hiệu, né nhảy, combo, sự kiện quăng cần, di chuyển & khoe cá ở Quảng Trường); DB test Quảng Trường (RLS, không giả danh, không đứng/di chuyển hộ); E2E Quảng Trường (thấy người khác, bong bóng chat, bấm nền/phím/cần điều khiển, biểu cảm, chat, rời đi) + toàn bộ E2E cũ.
 - 97 unit test (thêm: cơ chế trận đấu, Đấu Sinh Tử, cá nướng → KN nhân vật, PvP áp dụng 1 lần, thể đột biến chỉ cho Boss với tỉ lệ ẩn)
 - E2E Đấu Sinh Tử: đột biến Boss, chọn đội, đấu máy, thắng/thua, cho nhân vật ăn cá nướng, trưng bày.
 - DB test: RLS hồ sơ/bạn bè/PvP trên PostgreSQL 16.

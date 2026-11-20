@@ -73,6 +73,11 @@ for (let round = 1; round <= 4 && result !== "caught"; round++) {
     });
     if (!st || st.phase !== "reeling") {
       result = st?.phase ?? "unknown";
+      // vớt phải rác (12%) không tính là bắt được cá – câu ván khác
+      if (result === "caught" && (await page.evaluate(() => !!window.__game.scene.getScene("Fishing").junk))) {
+        step("Vớt phải rác – câu ván khác");
+        result = "junk";
+      }
       break;
     }
     if (st.tension < 45) await page.mouse.down();

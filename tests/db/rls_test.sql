@@ -373,3 +373,33 @@ do $$ begin
   if (select player_id from public.player_saves where user_id = '33333333-3333-3333-3333-333333333333') <> 'p_old' then raise exception 'Tiến trình cũ bị mất'; end if;
 end $$;
 select 'DB SAVE GUARD TEST OK' as result;
+
+-- ================= Quảng Trường =================
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+insert into public.plaza_presence (user_id, name, level, x, y, look, emote) values ('22222222-2222-2222-2222-222222222222', 'ADMIN GIẢ', 99, 0.3, 0.6, '{"c":"c_be_tom"}', '👋');
+do $$ begin
+  if (select name from public.plaza_presence) <> 'Bình' then raise exception 'Tên quảng trường phải lấy từ hồ sơ'; end if;
+  if (select level from public.plaza_presence) = 99 then raise exception 'Cấp phải lấy từ hồ sơ'; end if;
+  if (select emote_at from public.plaza_presence) is null then raise exception 'Thiếu thời điểm biểu cảm'; end if;
+  begin insert into public.plaza_presence (user_id) values ('11111111-1111-1111-1111-111111111111'); raise exception 'LỖI: đứng hộ người khác';
+  exception when insufficient_privilege then null; end;
+  begin update public.plaza_presence set x = 5 where user_id = '22222222-2222-2222-2222-222222222222'; raise exception 'LỖI: ra ngoài quảng trường';
+  exception when check_violation then null; end;
+end $$;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  if (select count(*) from public.plaza_presence) <> 1 then raise exception 'Không thấy người khác ở quảng trường'; end if;
+  update public.plaza_presence set x = 0.9 where user_id = '22222222-2222-2222-2222-222222222222';
+end $$;
+reset role;
+do $$ begin
+  if abs((select x from public.plaza_presence) - 0.3) > 0.01 then raise exception 'LỖI: di chuyển hộ người khác'; end if;
+end $$;
+set role anon;
+do $$ begin
+  begin perform 1 from public.plaza_presence; raise exception 'LỖI: khách xem được quảng trường';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'DB PLAZA TEST OK' as result;
