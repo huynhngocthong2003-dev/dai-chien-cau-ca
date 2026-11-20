@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.21.0] – 2026-11-20 – Đua Cá với người chơi
+### Thêm
+- Nút **👥 ĐUA VỚI NGƯỜI** (cạnh 🤖 ĐUA VỚI MÁY): vào hàng chờ theo giải, ghép tối đa 5 người (đủ 2 người chờ ≥15 giây là xuất phát; máy lấp chỗ trống). **Chờ quá 2 phút chưa có ai → tự đua với máy** (hoặc bấm "🤖 Đua với máy ngay"). Phí vào cửa chỉ trừ khi bắt đầu đua.
+- Người chơi khác hiện trên đường đua (tên xanh 👤, đúng nhân vật + trang phục + cá của họ), vị trí/làn/tăng tốc cập nhật ~2,5 lần/giây và được nội suy mượt. Về đích thì chờ người khác tối đa 15 giây rồi xếp hạng chung.
+- Đối thủ máy trong phòng chạy giống hệt nhau trên mọi máy (cùng seed).
+- Database: `race_queue`, `race_rooms`, `race_members` + RPC ghép (khóa hàng chờ, không ghép trùng, tên lấy từ hồ sơ – không giả danh; chỉ sửa được vị trí của mình; người ngoài không xem được phòng).
+### Sửa
+- Xuất phát so le, làn đua giãn rộng – các tay đua không còn chồng lên nhau.
+
 ## [0.20.0] – 2026-11-20 – 🏁 Đua Cá
 ### Thêm
 - Nút **🏁 Đua Cá** ở sảnh. Nhân vật **cưỡi lên con cá người chơi chọn**, đua 1.200m trên 3 làn nước với 4 đối thủ.

@@ -92,6 +92,8 @@ export interface Racer {
   stats: RaceStats;
   /** null = người chơi điều khiển. */
   aiSkill: number | null;
+  /** Người chơi khác (vị trí nhận qua mạng, không mô phỏng ở máy này). */
+  remote?: boolean;
   lane: number;
   x: number;
   v: number;
@@ -184,21 +186,38 @@ export class RaceSession {
   private finishedOrder: string[] = [];
   private endAt: number | null = null;
 
-  constructor(player: Racer, opponents: Racer[], seed: number) {
+  private readonly meId: string;
+
+  /**
+   * @param order thứ tự xuất phát (đua nhiều người: theo ô do máy chủ chia, để mọi máy có cùng làn xuất phát).
+   */
+  constructor(player: Racer, opponents: Racer[], seed: number, order?: Racer[]) {
     this.rng = new Rng(seed);
     this.track = makeTrack(this.rng);
-    this.racers = [player, ...opponents];
+    this.meId = player.id;
+    this.racers = order ?? [player, ...opponents];
     // xếp làn xuất phát xen kẽ
     this.racers.forEach((r, i) => {
       r.lane = i % RACE.lanes;
-      r.x = -(Math.floor(i / RACE.lanes) * 6);
+      r.x = -i * 4; // xuất phát so le để không chồng lên nhau
       this.passed.set(r.id, new Set());
       this.aiPlan.set(r.id, new Set());
     });
   }
 
   get player(): Racer {
-    return this.racers[0]!;
+    return this.racers.find((r) => r.id === this.meId)!;
+  }
+
+  /** Cập nhật người chơi khác từ mạng. */
+  setRemote(id: string, st: { x: number; lane: number; boosting: boolean; finishTime: number | null }) {
+    const r = this.racers.find((x) => x.id === id && x.remote);
+    if (!r) return;
+    r.v = Math.max(0, (st.x - r.x) * 2);
+    r.x = st.x;
+    r.lane = Math.min(RACE.lanes - 1, Math.max(0, st.lane));
+    r.boostUntil = st.boosting ? this.time + 300 : Math.min(r.boostUntil, this.time);
+    if (st.finishTime !== null && r.finishTime === null) r.finishTime = st.finishTime;
   }
 
   drainEvents(): RaceEvent[] {
@@ -263,6 +282,7 @@ export class RaceSession {
     const dt = RACE.tickMs / 1000;
     this.time += RACE.tickMs;
     for (const r of this.racers) {
+      if (r.remote) continue;
       if (r.finishTime !== null) {
         r.x += r.v * dt;
         r.v *= 0.97;
@@ -315,7 +335,7 @@ export class RaceSession {
         if (r.id === this.player.id && this.endAt === null) this.endAt = this.time + 3000;
       }
     }
-    if (this.racers.every((r) => r.finishTime !== null)) this.over = true;
+    if (this.racers.every((r) => r.finishTime !== null || r.remote) && this.player.finishTime !== null) this.over = true;
     if (this.endAt !== null && this.time >= this.endAt) this.over = true;
     // giới hạn an toàn: 3 phút
     if (this.time > 180_000) this.over = true;

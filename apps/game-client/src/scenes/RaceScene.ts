@@ -18,6 +18,8 @@ import {
   type Racer,
 } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
+import * as Social from "../state/social.ts";
+import { safeEquip } from "../ui/playerProfile.ts";
 import { canvasTexture, characterTexture, fishTextureFor } from "../art/textures.ts";
 import { drawCurrent, drawFinish, drawRaceFar, drawRaceSky, drawRock, drawSeaweed } from "../art/RaceArt.ts";
 import { TopBar } from "../ui/TopBar.ts";
@@ -36,10 +38,13 @@ const ELEMENT_COLOR: Record<string, number> = {
   dark: 0xd500f9,
 };
 const GRADE_COLOR: Record<RaceStats["grade"], string> = { S: "#ff4081", A: "#ffd740", B: "#69f0ae", C: "#40c4ff", D: "#b0bec5" };
-const LANE_Y = [440, 530, 620];
-const LANE_SCALE = [0.82, 0.92, 1.02];
+const LANE_Y = [432, 540, 650];
+const LANE_SCALE = [0.74, 0.84, 0.94];
 const PX = 13; // pixel mỗi mét
 const ME_X = 400;
+/** Chờ ghép người chơi tối đa 2 phút, quá thì đua với máy. */
+const MATCH_WAIT_MS = 120_000;
+const NET_MS = 400;
 
 interface RacerView {
   r: Racer;
@@ -79,12 +84,25 @@ export class RaceScene extends Phaser.Scene {
   private standT!: Phaser.GameObjects.Text;
   private selectC?: Phaser.GameObjects.Container;
   private swipeY: number | null = null;
+  // đua nhiều người
+  private room: Social.RaceRoom | null = null;
+  private equips = new Map<string, Partial<Record<string, string>>>();
+  private remote = new Map<string, { x: number; t: number; v: number }>();
+  private netT = 0;
+  private netBusy = false;
+  private waitEndAt = 0;
+  private waitT?: Phaser.GameObjects.Text;
+  private matchTimer: number | null = null;
+  private matchModal: ReturnType<typeof modal> | null = null;
 
   constructor() {
     super("Race");
   }
 
   init() {
+    this.room = null;
+    this.equips = new Map();
+    this.remote = new Map();
     this.mode = "select";
     this.session = null;
     this.entryTx = null;
@@ -109,6 +127,7 @@ export class RaceScene extends Phaser.Scene {
     this.buildHud();
     this.setupInput();
     this.showSelect();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.stopMatchmaking(true));
   }
 
   // ------------------------------------------------------------------ chọn giải & cá
@@ -190,17 +209,96 @@ export class RaceScene extends Phaser.Scene {
     });
     c.add(txt(this, 1130, y0 + 4, `Hạng ${pick.stats.grade}`, 28, { color: GRADE_COLOR[pick.stats.grade], align: "center" }).setOrigin(0.5, 0));
     const L = RACE_LEAGUES[this.league];
-    c.add(
-      new Button(this, 1130, y0 + 100, 220, 76, "XUẤT PHÁT", {
-        color: COLORS.green,
-        fontSize: 28,
-        sub: `${L.name} · ${formatNum(L.fee)} vàng`,
-        onClick: () => this.start(),
-      }),
-    );
+    c.add(txt(this, 1130, y0 + 50, `${L.name} · phí ${formatNum(L.fee)} vàng`, 14, { align: "center", weight: "700" }).setOrigin(0.5));
+    c.add(new Button(this, 1130, y0 + 92, 230, 56, "🤖 ĐUA VỚI MÁY", { color: COLORS.green, fontSize: 21, onClick: () => this.start(null) }));
+    c.add(new Button(this, 1130, y0 + 154, 230, 56, "👥 ĐUA VỚI NGƯỜI", { color: COLORS.orange, fontSize: 21, onClick: () => void this.findPlayers() }));
   }
 
-  private start() {
+  /** Cá đang chọn → thông tin gửi cho người chơi khác. */
+  private myNetRacer(): Social.RaceNetRacer | null {
+    const s = GameState.save;
+    const own = s.fishes.find((f) => f.uid === this.fishUid);
+    if (!own) return null;
+    const stats = raceCandidates([own], FISH_BY_ID, FORM_BY_ID, 1)[0]!.stats;
+    return { fishId: own.fishId, formId: own.form ?? null, charId: s.selectedCharacterId, equip: GameState.equipOf(s.selectedCharacterId), stats };
+  }
+
+  // ------------------------------------------------------------------ ghép người chơi
+  private async findPlayers() {
+    if (!GameState.online) return toast(this, "Đăng nhập tài khoản online để đua với người chơi khác", COLORS.red);
+    const L = RACE_LEAGUES[this.league];
+    if (GameState.save.gold < L.fee) return toast(this, `Cần ${L.fee} vàng phí vào cửa`, COLORS.red);
+    const me = this.myNetRacer();
+    if (!me) return toast(this, "Hãy chọn một con cá", COLORS.red);
+    try {
+      await Social.raceQueueJoin(this.league, me);
+    } catch (e) {
+      return toast(this, (e as Error).message, COLORS.red);
+    }
+    const m = modal(this, 620, 380, "👥 Tìm người chơi", () => this.stopMatchmaking(true));
+    this.matchModal = m;
+    const status = txt(this, 640, m.y + 120, "Đang tìm đối thủ…", 22, { align: "center" }).setOrigin(0.5);
+    const timer = txt(this, 640, m.y + 170, "", 18, { align: "center", weight: "700", color: COLORS.textDim }).setOrigin(0.5);
+    const bar = new Bar(this, m.x + 60, m.y + 210, m.w - 120, 18, COLORS.orange, "");
+    m.root.add([status, timer, bar]);
+    m.root.add(
+      new Button(this, 640, m.y + m.h - 60, 300, 60, "🤖 Đua với máy ngay", {
+        color: COLORS.green,
+        fontSize: 21,
+        onClick: () => {
+          this.stopMatchmaking(true);
+          m.close();
+          this.start(null);
+        },
+      }),
+    );
+    const t0 = Date.now();
+    let busy = false;
+    const tick = async () => {
+      if (busy || this.matchModal !== m) return;
+      busy = true;
+      try {
+        const left = MATCH_WAIT_MS - (Date.now() - t0);
+        const room = await Social.raceFind(this.league);
+        if (this.matchModal !== m) return;
+        if (room) {
+          this.stopMatchmaking(false);
+          m.close();
+          this.start(room);
+          return;
+        }
+        if (left <= 0) {
+          this.stopMatchmaking(true);
+          m.close();
+          toast(this, "Chưa có người chơi nào – đua với máy nhé! 🤖", COLORS.blue);
+          this.start(null);
+          return;
+        }
+        const n = await Social.raceQueueCount(this.league);
+        if (this.matchModal !== m) return;
+        status.setText(n > 1 ? `Có ${n} người đang chờ – sắp xuất phát!` : "Đang tìm đối thủ…");
+        const sec = Math.ceil(left / 1000);
+        timer.setText(`Quá ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")} nữa sẽ đua với máy`);
+        bar.set(1 - left / MATCH_WAIT_MS);
+      } catch {
+        status.setText("⚠ Mất kết nối – đang thử lại…");
+      } finally {
+        busy = false;
+      }
+    };
+    void tick();
+    this.matchTimer = window.setInterval(() => void tick(), 2000);
+  }
+
+  private stopMatchmaking(leaveQueue: boolean) {
+    if (this.matchTimer !== null) window.clearInterval(this.matchTimer);
+    this.matchTimer = null;
+    const wasWaiting = this.matchModal !== null;
+    this.matchModal = null;
+    if (leaveQueue && wasWaiting && GameState.online) void Social.raceQueueLeave().catch(() => null);
+  }
+
+  private start(room: Social.RaceRoom | null) {
     const s = GameState.save;
     const own = s.fishes.find((f) => f.uid === this.fishUid);
     if (!own) return toast(this, "Hãy chọn một con cá", COLORS.red);
@@ -209,16 +307,37 @@ export class RaceScene extends Phaser.Scene {
     this.entryTx = entry.entryTx;
     const def = FISH_BY_ID.get(own.fishId)!;
     const stats = raceCandidates([own], FISH_BY_ID, FORM_BY_ID, 1)[0]!.stats;
-    const seed = randomSeed();
-    const rng = new Rng(seed);
     const me = newRacer("me", s.name, def.id, own.form ?? null, s.selectedCharacterId, stats, null);
-    const opp = makeRaceOpponents(this.league, FISHES, CHARACTERS.map((c) => c.id), rng, 4);
-    this.session = new RaceSession(me, opp, rng.int(1, 2 ** 31));
+    const chars = CHARACTERS.map((c) => c.id);
+    this.room = room;
+    this.equips = new Map([["me", GameState.equipOf(s.selectedCharacterId)]]);
+    this.remote = new Map();
+    this.waitEndAt = 0;
+    if (room) {
+      const myId = GameState.online?.id;
+      const humans = [...room.members].sort((a, b) => a.slot - b.slot).map((mb) => {
+        if (mb.user_id === myId) return me;
+        const r = mb.racer;
+        this.equips.set(mb.user_id, safeEquip(r.equip));
+        return { ...newRacer(mb.user_id, r.name ?? "Người chơi", r.fishId, r.formId ?? null, r.charId, r.stats, null), remote: true };
+      });
+      const ai = makeRaceOpponents(this.league, FISHES, chars, new Rng(room.seed), Math.max(0, 5 - humans.length));
+      this.session = new RaceSession(me, [], room.seed, [...humans, ...ai]);
+    } else {
+      const seed = randomSeed();
+      const rng = new Rng(seed);
+      this.session = new RaceSession(me, makeRaceOpponents(this.league, FISHES, chars, rng, 4), seed);
+    }
     this.selectC?.destroy();
     this.selectC = undefined;
     this.buildRacers();
     this.hud.setVisible(true);
-    this.countdown();
+    if (room) {
+      toast(this, `👥 Đã ghép ${room.members.length} người chơi – xuất phát cùng lúc!`, COLORS.green);
+      this.mode = "countdown";
+      this.layoutRace();
+      window.setTimeout(() => this.scene.isActive() && this.countdown(), Math.max(0, room.start_in_ms - 2400));
+    } else this.countdown();
   }
 
   // ------------------------------------------------------------------ dựng đường đua
@@ -237,10 +356,13 @@ export class RaceScene extends Phaser.Scene {
       const fish = this.add.image(0, 0, fishTextureFor(this, def, r.formId)).setDisplaySize(170, 106);
       const ch = CHARACTER_BY_ID.get(r.charId) ?? CHARACTER_BY_ID.get("c_be_tom")!;
       const rider = this.add
-        .image(-6, -22, characterTexture(this, ch, r.id === "me" ? GameState.equipOf(ch.id) : {}))
+        .image(-6, -22, characterTexture(this, ch, (this.equips.get(r.id) ?? {}) as never))
         .setOrigin(0.5, 1)
         .setScale(0.4);
-      const tag = txt(this, 0, -130, r.id === "me" ? "⭐ BẠN" : r.name, r.id === "me" ? 18 : 14, { align: "center", color: r.id === "me" ? "#ffeb3b" : "#ffffff" }).setOrigin(0.5);
+      const tag = txt(this, 0, -122, r.id === "me" ? "⭐ BẠN" : r.remote ? `👤 ${r.name}` : r.name, r.id === "me" ? 18 : 15, {
+        align: "center",
+        color: r.id === "me" ? "#ffeb3b" : r.remote ? "#80d8ff" : "#ffffff",
+      }).setOrigin(0.5);
       root.add([aura, wake, fish, rider, tag]);
       this.views.push({ r, root, fish, rider, wake, aura, tag, color, y: LANE_Y[r.lane]!, ghostT: 0 });
     }
@@ -347,9 +469,54 @@ export class RaceScene extends Phaser.Scene {
     if (this.mode === "race") {
       s.update(dt);
       for (const e of s.drainEvents()) this.onEvent(e);
-      if (s.over) this.finish();
+      if (this.room) this.netStep(dt);
+      if (s.over) {
+        if (!this.room) this.finish();
+        else {
+          // chờ người chơi khác về đích (tối đa 15 giây)
+          if (!this.waitEndAt) this.waitEndAt = Date.now() + 15000;
+          const pending = s.racers.some((r) => r.remote && r.finishTime === null);
+          if (pending && Date.now() < this.waitEndAt) {
+            if (!this.waitT) this.waitT = txt(this, 640, 330, "⏳ Chờ người chơi khác về đích…", 30, { align: "center" }).setOrigin(0.5).setDepth(1400);
+          } else {
+            this.waitT?.destroy();
+            this.waitT = undefined;
+            this.finish();
+          }
+        }
+      }
     }
     this.layoutRace(dt);
+  }
+
+  /** Gửi vị trí của mình + nhận vị trí người khác (~2,5 lần/giây). */
+  private netStep(dt: number) {
+    this.netT += dt;
+    if (this.netT < NET_MS || this.netBusy || !this.room || !this.session || !GameState.online) return;
+    this.netT = 0;
+    this.netBusy = true;
+    const s = this.session;
+    const me = s.player;
+    const roomId = this.room.room_id;
+    const myId = GameState.online.id;
+    void (async () => {
+      try {
+        await Social.raceUpdate(roomId, myId, { x: Math.min(1999, me.x), lane: me.lane, boosting: s.time < me.boostUntil, finish_ms: me.finishTime });
+        const rows = await Social.raceMembers(roomId);
+        const now = Date.now();
+        for (const row of rows) {
+          if (row.user_id === myId) continue;
+          const prev = this.remote.get(row.user_id);
+          const v = prev && now > prev.t ? Math.max(0, (row.x - prev.x) / ((now - prev.t) / 1000)) : 0;
+          this.remote.set(row.user_id, { x: row.x, t: now, v });
+          s.setRemote(row.user_id, { x: s.racers.find((r) => r.id === row.user_id)?.x ?? row.x, lane: row.lane, boosting: row.boosting, finishTime: row.finish_ms });
+        }
+      } catch {
+        /* mất mạng tạm – thử lại lần sau */
+      } finally {
+        this.netBusy = false;
+      }
+    })();
   }
 
   private layoutRace(dt = 0) {
@@ -382,6 +549,16 @@ export class RaceScene extends Phaser.Scene {
     }
     const fx = sx(RACE.length);
     this.finishImg.setVisible(fx < 1280 + ex + 200).setX(fx);
+    // người chơi khác: nội suy mượt giữa các lần nhận vị trí
+    const now = Date.now();
+    for (const r of s.racers) {
+      if (!r.remote) continue;
+      const st = this.remote.get(r.id);
+      if (!st) continue;
+      const target = r.finishTime !== null ? Math.max(st.x, RACE.length + 5) : st.x + st.v * Math.min(0.6, (now - st.t) / 1000);
+      r.x += (target - r.x) * Math.min(1, dt / 160);
+      r.v = st.v;
+    }
     // người đua
     for (const v of this.views) {
       const r = v.r;

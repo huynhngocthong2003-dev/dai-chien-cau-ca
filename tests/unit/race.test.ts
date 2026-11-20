@@ -152,3 +152,34 @@ describe("Đua Cá – phần thưởng qua sổ cái", () => {
     expect(list.map((x) => x.fish.uid)).toEqual(["b", "a"]);
   });
 });
+
+describe("Đua Cá nhiều người", () => {
+  it("máy (AI) chạy giống hệt nhau trên mọi máy dù người chơi điều khiển khác nhau", () => {
+    const def = FISH_BY_ID.get("f_ca_chep")!;
+    const human = (id: string, remote: boolean) => ({ ...newRacer(id, id, def.id, null, "c_be_tom", raceStats(mk(id, def.id), def), null), remote });
+    const ai = () => makeRaceOpponents("tap_su", FISHES, chars, new Rng(77), 3);
+    // máy A: A là mình, B từ xa; máy B: ngược lại. Thứ tự xuất phát theo ô.
+    const mkSession = (mine: "A" | "B") => {
+      const a = human(mine === "A" ? "me" : "A", mine !== "A");
+      const b = human(mine === "B" ? "me" : "B", mine !== "B");
+      const opp = ai();
+      return new RaceSession(mine === "A" ? a : b, [], 99, [a, b, ...opp]);
+    };
+    const sa = mkSession("A");
+    const sb = mkSession("B");
+    for (let i = 0; i < 2000 && !(sa.over && sb.over); i++) {
+      smartPlayer(sa); // A chơi khéo
+      sa.setRemote("B", { x: sb.player.x, lane: sb.player.lane, boosting: false, finishTime: sb.player.finishTime });
+      sb.setRemote("A", { x: sa.player.x, lane: sa.player.lane, boosting: false, finishTime: sa.player.finishTime });
+      sa.update(50);
+      sb.update(50);
+    }
+    const aiA = sa.racers.filter((r) => r.id.startsWith("ai")).map((r) => r.finishTime);
+    const aiB = sb.racers.filter((r) => r.id.startsWith("ai")).map((r) => r.finishTime);
+    expect(aiA).toEqual(aiB);
+    expect(sa.player.lane === undefined).toBe(false);
+    // hai máy cùng thứ hạng
+    const order = (s: RaceSession, me: string) => s.standings().map((r) => (r.id === "me" ? me : r.id));
+    expect(order(sa, "A")).toEqual(order(sb, "B"));
+  });
+});

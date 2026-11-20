@@ -34,7 +34,7 @@ const errs = [];
   if (!sel) errs.push('Không tự chọn cá tốt nhất');
   else console.log(`• Màn chọn giải/cá – cá được chọn: ${sel}`);
   // XUẤT PHÁT (nút ở 1130, 640)
-  await p.mouse.click(1130, 640);
+  await p.mouse.click(1130, 632);
   // trình duyệt ẩn chạy ~15 khung/giây nên đồng hồ Phaser chậm hơn thực tế → chờ lâu hơn
   await p.waitForFunction(() => window.__game.scene.getScene('Race').mode === 'race', null, { timeout: 30000 });
   const gold1 = await p.evaluate(() => JSON.parse(localStorage.getItem('dccc_save_v1')).gold);

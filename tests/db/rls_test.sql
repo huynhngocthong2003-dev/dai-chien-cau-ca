@@ -403,3 +403,48 @@ do $$ begin
 end $$;
 reset role;
 select 'DB PLAZA TEST OK' as result;
+
+-- ================= Đua Cá nhiều người =================
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+select public.race_queue_join('tap_su', '{"name":"ADMIN GIẢ","fishId":"f_ca_ro","stats":{"speed":50}}') \g /dev/null
+do $$ begin
+  if public.race_find('tap_su') is not null then raise exception 'LỖI: ghép khi chỉ có 1 người'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+select public.race_queue_join('tap_su', '{"fishId":"f_ca_chep"}') \g /dev/null
+do $$ begin
+  if public.race_queue_count('tap_su') <> 2 then raise exception 'Sai số người chờ'; end if;
+  -- vừa đủ 2 người nhưng chưa ai chờ đủ 15 giây → chưa ghép
+  if public.race_find('tap_su') is not null then raise exception 'LỖI: ghép quá sớm'; end if;
+end $$;
+reset role;
+update public.race_queue set joined_at = now() - interval '20 seconds' where user_id = '11111111-1111-1111-1111-111111111111';
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := public.race_find('tap_su');
+  if r is null then raise exception 'Không ghép được 2 người'; end if;
+  if jsonb_array_length(r -> 'members') <> 2 then raise exception 'Phòng phải có 2 người'; end if;
+  if (r -> 'members' -> 0 ->> 'user_id') <> '22222222-2222-2222-2222-222222222222' then raise exception 'Người gọi phải ở ô 0'; end if;
+  if exists (select 1 from jsonb_array_elements(r -> 'members') m where m -> 'racer' ->> 'name' = 'ADMIN GIẢ') then raise exception 'LỖI: giả danh trong đua'; end if;
+  if public.race_queue_count('tap_su') <> 0 then raise exception 'Hàng chờ chưa được dọn'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ declare r jsonb; begin
+  r := public.race_find('tap_su');
+  if r is null or jsonb_array_length(r -> 'members') <> 2 then raise exception 'Người được ghép không thấy phòng'; end if;
+  update public.race_members set x = 300, lane = 2, finish_ms = 41000 where user_id = '11111111-1111-1111-1111-111111111111';
+  update public.race_members set x = 1 where user_id = '22222222-2222-2222-2222-222222222222';
+  begin update public.race_members set slot = 4 where user_id = '11111111-1111-1111-1111-111111111111'; raise exception 'LỖI: đổi được ô';
+  exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  if (select count(*) from public.race_members) <> 0 then raise exception 'LỖI: người ngoài xem được phòng đua'; end if;
+end $$;
+reset role;
+do $$ begin
+  if (select x from public.race_members where user_id = '22222222-2222-2222-2222-222222222222') <> 0 then raise exception 'LỖI: sửa vị trí người khác'; end if;
+  if (select finish_ms from public.race_members where user_id = '11111111-1111-1111-1111-111111111111') <> 41000 then raise exception 'Không ghi được thời gian về đích'; end if;
+end $$;
+select 'DB RACE TEST OK' as result;

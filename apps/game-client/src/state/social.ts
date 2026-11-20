@@ -3,7 +3,7 @@
  * Chỉ hoạt động khi đã đăng nhập tài khoản online.
  */
 import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
-import { ownedFishPower, teamPower, winRate, type MatchResult, type PlazaShow, type PlayerSave, type PvpMatchRecord, type RankCategory } from "@dccc/shared";
+import { ownedFishPower, teamPower, winRate, type MatchResult, type PlazaShow, type RaceLeague, type RaceStats, type PlayerSave, type PvpMatchRecord, type RankCategory } from "@dccc/shared";
 import { getClient } from "./online.ts";
 
 export interface ShowcaseFish {
@@ -470,4 +470,46 @@ export async function plazaList(): Promise<PlazaPresence[]> {
 export async function plazaLeave(me: string): Promise<void> {
   const sb = await getClient();
   await sb.from("plaza_presence").delete().eq("user_id", me);
+}
+
+// ------------------------------------------------------------ Đua Cá nhiều người
+export interface RaceNetRacer {
+  name?: string;
+  fishId: string;
+  formId: string | null;
+  charId: string;
+  equip?: Partial<Record<string, string>>;
+  stats: RaceStats;
+}
+export interface RaceRoom {
+  room_id: number;
+  league: RaceLeague;
+  seed: number;
+  start_in_ms: number;
+  members: { user_id: string; slot: number; racer: RaceNetRacer }[];
+}
+export interface RaceMemberState {
+  user_id: string;
+  x: number;
+  lane: number;
+  boosting: boolean;
+  finish_ms: number | null;
+}
+
+export const raceQueueJoin = (league: RaceLeague, racer: RaceNetRacer) => rpc("race_queue_join", { p_league: league, p_racer: racer });
+export const raceQueueLeave = () => rpc("race_queue_leave");
+export const raceQueueCount = async (league: RaceLeague) => ((await rpc("race_queue_count", { p_league: league })) as number | null) ?? 0;
+export const raceFind = async (league: RaceLeague) => ((await rpc("race_find", { p_league: league })) as RaceRoom | null) ?? null;
+
+export async function raceUpdate(roomId: number, me: string, st: { x: number; lane: number; boosting: boolean; finish_ms: number | null }): Promise<void> {
+  const sb = await getClient();
+  const { error } = await sb.from("race_members").update(st).eq("room_id", roomId).eq("user_id", me);
+  if (error) throw new Error(friendlyRpc(error.message));
+}
+
+export async function raceMembers(roomId: number): Promise<RaceMemberState[]> {
+  const sb = await getClient();
+  const { data, error } = await sb.from("race_members").select("user_id, x, lane, boosting, finish_ms").eq("room_id", roomId);
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as RaceMemberState[]) ?? [];
 }
