@@ -18,6 +18,7 @@ import {
   applyPvpOutcome,
   setDefense,
   rollEvoDrop,
+  rollFormBoost,
   setShowcase,
   validateTeam,
   winRate,
@@ -25,7 +26,7 @@ import {
   type PlayerSave,
 } from "@dccc/shared";
 import { FISHING } from "@dccc/game-config";
-import { CATALOG, FISHES, FISH_BY_ID, FISH_FORMS, FORM_BY_ID } from "@dccc/game-data";
+import { CATALOG, EVO_ITEMS, EVO_ITEM_BY_ID, FISHES, FISH_BY_ID, FISH_FORMS, FORMS_BY_ITEM, FORM_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 
 function owned(id: string, fishId: string, level = 1, stars = 1, extra: Partial<OwnedFish> = {}): OwnedFish {
@@ -178,7 +179,7 @@ describe("Thể tiến hóa đột biến", () => {
     let divine = 0;
     const N = 200000;
     for (let i = 0; i < N; i++) {
-      const d = rollEvoDrop(rng, FISH_FORMS, false);
+      const d = rollEvoDrop(rng, EVO_ITEMS, false);
       if (d?.divine) divine++;
       else if (d) normal++;
     }
@@ -186,47 +187,70 @@ describe("Thể tiến hóa đột biến", () => {
     expect(normal / N).toBeLessThan(FISHING.evoDropChance * 1.2);
     expect(divine / N).toBeLessThan(normal / N / 4);
     let boss = 0;
-    for (let i = 0; i < N; i++) if (rollEvoDrop(rng, FISH_FORMS, true)) boss++;
+    for (let i = 0; i < N; i++) if (rollEvoDrop(rng, EVO_ITEMS, true)) boss++;
     expect(boss / N).toBeGreaterThan(((normal + divine) / N) * 2.4);
   });
 
-  it("chỉ cá Boss tiến hóa được; tỉ lệ ẩn; thất bại vẫn mất vật phẩm; chỉ số tăng đột biến, đổi hệ", () => {
+  it("chỉ cá Boss; dùng vật phẩm LUÔN thành công; ra 1 trong các dạng cùng hệ; đột biến lại ra dạng khác", () => {
     const boss = FISHES.find((f) => f.rarity === "boss")!;
-    const hoa = FORM_BY_ID.get("hoa")!;
+    const item = EVO_ITEM_BY_ID.get("e_loi_dung_nham")!;
+    const variants = FORMS_BY_ITEM.get(item.id)!;
+    expect(variants.map((v) => v.name)).toEqual(["Hỏa Viêm", "Hắc Viêm", "Lam Viêm", "Kim Viêm", "Lục Quỷ Hỏa"]);
     let s = saveWith([owned("a", boss.id, 5), owned("n", "f_ca_loc", 5)]);
-    expect(applyForm(s, "a", hoa, "t0", 1, FISH_BY_ID, 0).ok).toBe(false); // chưa có vật phẩm
-    for (const t of ["g1", "g2", "g3"]) {
-      const g = grantEvoItem(s, hoa.itemId, t, 1);
+    expect(applyForm(s, "a", item, FISH_FORMS, "t0", 1, FISH_BY_ID, new Rng(1)).ok).toBe(false); // chưa có vật phẩm
+    for (let i = 0; i < 80; i++) {
+      const g = grantEvoItem(s, item.id, `g${i}`, 1);
       if (!g.ok) throw new Error(g.error);
       s = g.save;
     }
-    // cá thường bị từ chối, không mất vật phẩm
-    const normal = applyForm(s, "n", hoa, "t1", 1, FISH_BY_ID, 0);
-    expect(normal.ok).toBe(false);
-    // thất bại: mất 1 vật phẩm, không đổi thể
-    const fail = applyForm(s, "a", hoa, "t2", 1, FISH_BY_ID, hoa.successRate + 0.01);
-    if (!fail.ok) throw new Error(fail.error);
-    expect(fail.success).toBe(false);
-    expect(fail.save.evoItems[hoa.itemId]).toBe(2);
-    expect(fail.save.fishes[0]!.form).toBeUndefined();
-    // thành công
-    const r = applyForm(fail.save, "a", hoa, "t3", 1, FISH_BY_ID, hoa.successRate - 0.01);
-    if (!r.ok) throw new Error(r.error);
-    expect(r.success).toBe(true);
-    s = r.save;
-    expect(s.fishes[0]!.form).toBe("hoa");
-    expect(s.evoItems[hoa.itemId]).toBe(1);
-    // mỗi thể có tỉ lệ khác nhau, thần hóa hiếm nhất
-    const rates = FISH_FORMS.map((f) => f.successRate);
-    expect(new Set(rates).size).toBeGreaterThan(2);
-    expect(FORM_BY_ID.get("than")!.successRate).toBe(Math.min(...rates));
-    const before = fishStats(boss, 5, 1);
-    const after = fishStats(boss, 5, 1, hoa);
-    expect(after.atk).toBeGreaterThan(before.atk * 1.7);
-    expect(after.element).toBe("fire");
-    const than = FORM_BY_ID.get("than")!;
-    expect(ownedFishPower(boss, { level: 5, stars: 1 }, than)).toBeGreaterThan(ownedFishPower(boss, { level: 5, stars: 1 }) * 1.7);
+    expect(applyForm(s, "n", item, FISH_FORMS, "t1", 1, FISH_BY_ID, new Rng(1)).ok).toBe(false); // cá thường
+    const seen = new Set<string>();
+    let prev: string | undefined;
+    for (let i = 0; i < 70; i++) {
+      const r = applyForm(s, "a", item, FISH_FORMS, `t${i + 2}`, 1, FISH_BY_ID, new Rng(100 + i));
+      if (!r.ok) throw new Error(r.error);
+      expect(r.form!.itemId).toBe(item.id);
+      expect(r.form!.id).not.toBe(prev); // đột biến lại luôn ra dạng khác
+      prev = r.form!.id;
+      seen.add(r.form!.id);
+      expect(r.save.evoItems[item.id]).toBe((s.evoItems[item.id] ?? 0) - 1);
+      s = r.save;
+    }
+    expect(seen.size).toBe(variants.length);
+    expect(FISH_FORMS.length).toBe(24);
     expect(parseSave(JSON.parse(JSON.stringify(s))).ok).toBe(true);
+  });
+
+  it("chỉ số tăng ngẫu nhiên từng chỉ số, có thể VƯỢT BẬC; mọi dạng đều mạnh hơn cá gốc", () => {
+    const boss = FISHES.find((f) => f.rarity === "boss")!;
+    const rng = new Rng(5);
+    let surges = 0;
+    const N = 4000;
+    for (let i = 0; i < N; i++) {
+      const { roll, surge } = rollFormBoost(rng);
+      for (const k of ["hp", "atk", "def"] as const) {
+        if (k === surge) expect(roll[k]).toBeGreaterThanOrEqual(1.8);
+        else {
+          expect(roll[k]).toBeGreaterThanOrEqual(0.8);
+          expect(roll[k]).toBeLessThanOrEqual(1.5);
+        }
+      }
+      if (surge) surges++;
+    }
+    expect(surges / N).toBeGreaterThan(0.08);
+    expect(surges / N).toBeLessThan(0.16);
+    const base = ownedFishPower(boss, { level: 5, stars: 1 });
+    for (const f of FISH_FORMS) {
+      const low = ownedFishPower(boss, { level: 5, stars: 1, formRoll: { hp: 0.8, atk: 0.8, def: 0.8 } }, f);
+      expect(low).toBeGreaterThan(base * 1.15);
+    }
+    // vượt bậc: cùng dạng nhưng công ×2,4 phần tăng → mạnh hơn hẳn
+    const hoa = FORM_BY_ID.get("hoa")!;
+    const avg = fishStats(boss, 5, 1, hoa, { hp: 1, atk: 1, def: 1 });
+    const surge = fishStats(boss, 5, 1, hoa, { hp: 1, atk: 2.4, def: 1 });
+    expect(surge.atk).toBeGreaterThan(avg.atk * 1.5);
+    expect(avg.element).toBe("fire");
+    expect(FISH_FORMS.every((f) => FORMS_BY_ITEM.get(f.itemId)!.length >= 2)).toBe(true);
   });
 });
 

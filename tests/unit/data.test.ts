@@ -34,8 +34,30 @@ describe("Dữ liệu game", () => {
   });
 
   it("mọi cá đều xuất hiện ở ít nhất một khu", () => {
-    const spawned = new Set(ZONES.flatMap((z) => [z.bossId, ...z.spawn.map((s) => s.fishId)]));
+    const spawned = new Set(ZONES.flatMap((z) => [z.bossId, ...(z.extraBosses ?? []), ...(z.secretBossId ? [z.secretBossId] : []), ...z.spawn.map((s) => s.fishId)]));
     for (const f of FISHES) expect(spawned.has(f.id), f.id).toBe(true);
+  });
+
+  it("mỗi khu có 1 Boss phụ siêu hiếm (tí hon hoặc khổng lồ), tỉ lệ cực thấp", async () => {
+    const { chooseFish, buildLoadout, createNewSave, Rng, canEvolveForm } = await import("@dccc/shared");
+    const { CATALOG, CHARACTER_BY_ID, ROD_BY_ID } = await import("@dccc/game-data");
+    for (const z of ZONES) {
+      const sb = FISH_BY_ID.get(z.secretBossId!)!;
+      expect(sb.rarity).toBe("boss");
+      expect(sb.appearance.scale <= 0.6 || sb.appearance.scale >= 2.5).toBe(true);
+      expect(canEvolveForm(sb)).toBe(true);
+    }
+    const save = createNewSave("p", "T", CATALOG, Date.now());
+    const lo = buildLoadout(CHARACTER_BY_ID.get(save.selectedCharacterId)!, save.characters[save.selectedCharacterId]!, ROD_BY_ID.get(save.selectedRodId)!, save.rods[save.selectedRodId]!);
+    const z = ZONES[0]!;
+    const rng = new Rng(77);
+    let hit = 0;
+    const N = 200000;
+    for (let i = 0; i < N; i++) if (chooseFish(z, FISH_BY_ID, lo, 0.5, rng).id === z.secretBossId) hit++;
+    expect(hit / N).toBeGreaterThan(0.0008);
+    expect(hit / N).toBeLessThan(0.004);
+    expect(canEvolveForm(FISHES.find((f) => f.rarity === "legendary"))).toBe(true);
+    expect(canEvolveForm(FISHES.find((f) => f.rarity === "common"))).toBe(false);
   });
 
   it("chỉ số cá hợp lệ", () => {

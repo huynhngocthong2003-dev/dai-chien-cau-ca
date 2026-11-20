@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.14.0] – 2026-11-20 – Đột biến mới: 24 dạng, 100% thành công, chỉ số ngẫu nhiên; Boss siêu hiếm
+### Thay đổi
+- **Đột biến luôn thành công** (khó ở khâu kiếm vật phẩm, rơi cực hiếm). Mỗi vật phẩm biến cá thành **ngẫu nhiên 1 trong 4–5 dạng cùng hệ**; đột biến lại sẽ ra dạng khác:
+  - 🐉 Ngọc Long Hồn: Thanh Long, Hắc Long, Kim Long, Huyết Long, Bích Ngọc Long
+  - 🌋 Lõi Dung Nham: Hỏa Viêm, Hắc Viêm, Lam Viêm, Kim Viêm, Lục Quỷ Hỏa
+  - ❄️ Tinh Thể Băng Hà: Băng Tinh, Tuyết Ma, Hàn Ngục, Tinh Vân Băng, Huyền Băng
+  - ⚡ Sấm Thạch: Lôi Quang, Tử Lôi, Bạo Lôi Long, Huyết Lôi, Băng Lôi
+  - 🪶 Lông Phượng Thần: Phượng Hoàng Thần, Thiên Thần Ngư, Ma Thần Ngư, Hải Thần Ngư
+- **Mỗi dạng có ngoại hình riêng** ngầu hơn: đổi màu thân/vây/mắt + lửa (đỏ/đen/xanh/vàng/lục), pha lê băng, sương tuyết, gai băng, sét (vàng/tím/đỏ/xanh), mây giông, bờm & râu rồng, cánh phượng hoàng, cánh thiên thần + hào quang… hiển thị ở Kho Cá, đội hình, trận đấu, hồ sơ.
+- **Chỉ số tăng ngẫu nhiên**: mỗi chỉ số (HP/Công/Thủ) nhận hệ số 0,8–1,5 phần tăng của dạng; **12% ĐỘT BIẾN VƯỢT BẬC** – một chỉ số nhận ×1,8–2,4. Màn khoe dạng mới hiện % tăng từng chỉ số.
+- Cá **Huyền Thoại** và **Thần Thoại** cũng đột biến được (trước chỉ Boss).
+### Thêm
+- **Boss phụ siêu hiếm** mỗi khu (≈0,15%/lần quăng): Chép Tí Hon Thần Tài, Kình Ngư Cầu Vồng (khổng lồ), Nóc Bông Gòn, Cổ Long Vương Dung Nham (khổng lồ), Cá Tuyết Mochi, Leviathan Diệt Thế (khổng lồ). Có cảnh báo "✦ BOSS SIÊU HIẾM! ✦".
+- Máy chủ Đấu Sinh Tử đã cập nhật để tính chỉ số đột biến mới.
+
 ## [0.13.1] – 2026-11-19
 ### Thêm
 - Nhân vật / cần câu **LR**: khung **cầu vồng 7 sắc** chạy vòng quanh thẻ (màu trôi liên tục, có quầng sáng), chữ "LR" tô cầu vồng; bảng chi tiết nhân vật LR và màn nhận nhân vật LR từ mã quà cũng viền cầu vồng + tia sáng 7 sắc.

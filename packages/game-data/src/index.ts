@@ -7,12 +7,14 @@ import { COSMETICS, SHOP_ITEMS } from "./cosmetics.ts";
 import { GIFT_REWARDS } from "./giftcodes.ts";
 import { ECO_MESSAGE, JUNK } from "./junk.ts";
 import { EVENTS } from "./events.ts";
-import { FISH_FORMS } from "./forms.ts";
+import { EVO_ITEMS, FISH_FORMS } from "./forms.ts";
 import { CHECKIN_REWARDS, QUESTS, TITLES, TOPUP_PACKAGES, WHEEL_PRIZES } from "./meta.ts";
 
-export { CHARACTERS, RODS, FISHES, ZONES, COSMETICS, SHOP_ITEMS, GIFT_REWARDS, JUNK, ECO_MESSAGE, EVENTS, FISH_FORMS };
+export { CHARACTERS, RODS, FISHES, ZONES, COSMETICS, SHOP_ITEMS, GIFT_REWARDS, JUNK, ECO_MESSAGE, EVENTS, FISH_FORMS, EVO_ITEMS };
 export const FORM_BY_ID = new Map(FISH_FORMS.map((f) => [f.id, f]));
-export const FORM_BY_ITEM = new Map(FISH_FORMS.map((f) => [f.itemId, f]));
+export const EVO_ITEM_BY_ID = new Map(EVO_ITEMS.map((i) => [i.id, i]));
+/** Các dạng đột biến mà mỗi vật phẩm có thể tạo ra. */
+export const FORMS_BY_ITEM = new Map(EVO_ITEMS.map((i) => [i.id, FISH_FORMS.filter((f) => f.itemId === i.id)]));
 export const JUNK_BY_ID = new Map(JUNK.map((j) => [j.id, j]));
 
 export const CATALOG: GameCatalog = { characters: CHARACTERS, rods: RODS, fishes: FISHES, zones: ZONES };

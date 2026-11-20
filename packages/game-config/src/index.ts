@@ -75,6 +75,8 @@ export const FISHING = {
   bossBaseChance: 0.015,
   /** Xác suất vớt phải rác (trước khi xét cá). */
   junkChance: 0.12,
+  /** Boss phụ siêu hiếm mỗi khu – 0,15% mỗi lần quăng (may mắn tăng nhẹ). */
+  secretBossChance: 0.0015,
   /** Tỉ lệ rơi vật phẩm tiến hóa khi bắt cá (Boss ×3). */
   evoDropChance: 0.006,
   divineDropChance: 0.0008,

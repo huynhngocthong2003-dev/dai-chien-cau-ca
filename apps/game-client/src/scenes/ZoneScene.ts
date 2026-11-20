@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
 import { FISH_BY_ID, ZONES } from "@dccc/game-data";
-import type { ZoneDef } from "@dccc/shared";
+import { zoneBosses, type ZoneDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { fishSilhouetteTexture, fishTexture } from "../art/textures.ts";
 import { Button, fadeIn, goTo, panel, toast, txt } from "../ui/widgets.ts";
@@ -89,24 +89,28 @@ export class ZoneScene extends Phaser.Scene {
     c.add(panel(this, X, Y, 540, 614, 0.95));
     c.add(txt(this, X + 270, Y + 34, z.name, 34, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
     c.add(txt(this, X + 24, Y + 64, z.description, 18, { wrap: 492, weight: "700", color: COLORS.textDim }));
-    c.add(txt(this, X + 24, Y + 118, `Yêu cầu cấp ${z.requiredLevel} · Độ khó ${"★".repeat(z.difficulty)} · Boss: ${FISH_BY_ID.get(z.bossId)!.name}`, 17, { color: COLORS.textGold, wrap: 500 }));
+    c.add(txt(this, X + 24, Y + 118, `Yêu cầu cấp ${z.requiredLevel} · Độ khó ${"★".repeat(z.difficulty)} · ${zoneBosses(z).length} Boss`, 17, { color: COLORS.textGold, wrap: 500 }));
     // danh sách cá
     c.add(txt(this, X + 24, Y + 148, "Cá trong khu vực (đã câu được sẽ hiện màu):", 17, { weight: "700" }));
-    const list = [...z.spawn.map((sp) => sp.fishId), z.bossId];
+    const list = [...z.spawn.map((sp) => sp.fishId), ...zoneBosses(z), ...(z.secretBossId ? [z.secretBossId] : [])];
+    // nhiều cá (có thêm Boss phụ) → lưới 5 cột cho vừa
+    const cols = list.length > 12 ? 5 : 4;
+    const cw = cols === 5 ? 94 : 116;
+    const step = cols === 5 ? 100 : 126;
     list.forEach((id, i) => {
       const f = FISH_BY_ID.get(id)!;
       const seen = (s.stats.species[id] ?? 0) > 0;
-      const col = i % 4;
-      const row = Math.floor(i / 4);
-      const fx = X + 82 + col * 126;
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const fx = X + 24 + cw / 2 + col * step;
       const fy = Y + 212 + row * 96;
       const bg = this.add.graphics();
-      bg.fillStyle(0x0a1628, 0.8).fillRoundedRect(fx - 58, fy - 36, 116, 88, 12);
-      bg.lineStyle(2.5, hexToInt(FISH_RARITY_COLOR[f.rarity])).strokeRoundedRect(fx - 58, fy - 36, 116, 88, 12);
+      bg.fillStyle(0x0a1628, 0.8).fillRoundedRect(fx - cw / 2, fy - 36, cw, 88, 12);
+      bg.lineStyle(f.rarity === "boss" ? 3.5 : 2.5, hexToInt(FISH_RARITY_COLOR[f.rarity])).strokeRoundedRect(fx - cw / 2, fy - 36, cw, 88, 12);
       c.add(bg);
-      c.add(this.add.image(fx, fy - 2, seen ? fishTexture(this, f) : fishSilhouetteTexture(this, f)).setDisplaySize(104, 65));
+      c.add(this.add.image(fx, fy - 2, seen ? fishTexture(this, f) : fishSilhouetteTexture(this, f)).setDisplaySize(cw - 12, (cw - 12) * 0.625));
       c.add(
-        txt(this, fx, fy + 38, seen ? f.name : FISH_RARITY_LABEL[f.rarity], 13, {
+        txt(this, fx, fy + 38, seen ? f.name : id === z.secretBossId ? "✦ Siêu hiếm" : FISH_RARITY_LABEL[f.rarity], 13, {
           align: "center",
           color: FISH_RARITY_COLOR[f.rarity],
           weight: "700",

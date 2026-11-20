@@ -28,6 +28,14 @@ export interface OwnedFish {
   losses?: number;
   /** Thể tiến hóa đột biến (id thể). */
   form?: string;
+  /** Hệ số tăng ngẫu nhiên của lần đột biến (mỗi chỉ số một hệ số; có thể "vượt bậc"). */
+  formRoll?: FormRoll;
+}
+
+export interface FormRoll {
+  hp: number;
+  atk: number;
+  def: number;
 }
 
 export interface CharProgress {

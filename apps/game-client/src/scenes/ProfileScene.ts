@@ -4,7 +4,7 @@ import { CHARACTER_BY_ID, FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import { ownedFishPower, winRate, type OwnedFish } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
-import { characterHeadTexture, fishTexture } from "../art/textures.ts";
+import { characterHeadTexture, fishTexture, fishTextureFor } from "../art/textures.ts";
 import { Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -119,7 +119,7 @@ export class ProfileScene extends Phaser.Scene {
     objs.push(g);
     const fm = f.form ? FORM_BY_ID.get(f.form) : null;
     if (fm) objs.push(this.add.image(x + w / 2, y + h * 0.33, "p_spark").setTint(hexToInt(fm.glow)).setScale(5).setAlpha(0.4));
-    objs.push(this.add.image(x + w / 2, y + h * 0.33, fishTexture(this, def)).setDisplaySize(w * 0.85, w * 0.53));
+    objs.push(this.add.image(x + w / 2, y + h * 0.33, fishTextureFor(this, def, f.form)).setDisplaySize(w * 0.85, w * 0.53));
     const r = f.wins + f.losses ? f.wins / (f.wins + f.losses) : null;
     objs.push(
       txt(this, x + w / 2, y + h * 0.7, `${def.name}${fm ? `\n${fm.name}` : ""}\nLv.${f.level} · ⚔${formatNum(f.power)}`, 15, {

@@ -258,4 +258,25 @@ export const FISHES: FishDef[] = [
   fish("f_ca_hong_long", "Cá Hồng Long", "legendary", "dark", 3, [Z3, Z4], 70, [10, 40],
     { shape: "long", body: "#c62828", belly: "#ffcdd2", fin: "#b71c1c", pattern: "scales", patternColor: "#ffd70088", teeth: true, eye: "glow", eyeColor: "#ffd600", glow: "#ff5252", scale: 1.4 },
     ["Long Huyết", "Tăng 30% tấn công khi dưới 50% HP."], "Loài cá cảnh quý nhất, đắt hơn vàng ròng."),
+
+
+  // ===== Boss phụ SIÊU HIẾM – mỗi khu 1 con, tí hon dễ thương hoặc khổng lồ =====
+  fish("f_sboss_chep_than_tai", "Chép Tí Hon Thần Tài", "boss", "light", 1, [Z1], 60, [0.05, 0.2],
+    { shape: "round", body: "#ffd600", belly: "#fffde7", fin: "#ff6f00", pattern: "scales", patternColor: "#ff8f0088", eye: "glow", eyeColor: "#d50000", glow: "#ffea00", scale: 0.55 },
+    ["Lộc Trời Ban", "Né mọi đòn trong 2 lượt."], "Bé xíu bằng ngón tay mà đem lộc cả năm – gặp được là trúng số!"),
+  fish("f_sboss_kinh_ngu_cau_vong", "Kình Ngư Cầu Vồng", "boss", "light", 2, [Z2], 40, [20000, 60000],
+    { shape: "round", body: "#ab47bc", belly: "#fff59d", fin: "#29b6f6", pattern: "stripes", patternColor: "#ff5252aa", horns: true, eye: "glow", eyeColor: "#ffffff", glow: "#ea80fc", scale: 2.5 },
+    ["Mưa Cầu Vồng", "Hồi 30% HP cả đội."], "Cá voi khổng lồ bảy sắc – chỉ hiện ra sau những cơn mưa hiếm hoi."),
+  fish("f_sboss_noc_bong_gon", "Nóc Bông Gòn", "boss", "water", 3, [Z3], 55, [0.1, 0.3],
+    { shape: "puffer", body: "#f8bbd0", belly: "#ffffff", fin: "#f06292", pattern: "spots", patternColor: "#ffffffcc", eye: "glow", eyeColor: "#7c4dff", glow: "#ff80ab", scale: 0.6 },
+    ["Ôm Mềm", "Làm đối thủ ngủ 1 lượt."], "Tròn ủm như cục bông, ai nhìn cũng muốn ôm – nhưng cực khó câu!"),
+  fish("f_sboss_co_long_vuong", "Cổ Long Vương Dung Nham", "boss", "fire", 4, [Z4], 62, [40000, 120000],
+    { shape: "serpent", body: "#3e2723", belly: "#ff6d00", fin: "#ffab00", pattern: "scales", patternColor: "#ff3d00cc", teeth: true, horns: true, spikes: true, eye: "glow", eyeColor: "#ffea00", glow: "#ff3d00", scale: 2.6 },
+    ["Diệt Thế Hỏa", "Thiêu đốt 15% HP mỗi lượt."], "Rồng cổ đại dài như dãy núi lửa, ngủ say ngàn năm dưới biển lửa."),
+  fish("f_sboss_ca_tuyet_mochi", "Cá Tuyết Mochi", "boss", "ice", 5, [Z5], 58, [0.08, 0.25],
+    { shape: "round", body: "#ffffff", belly: "#e1f5fe", fin: "#b3e5fc", pattern: "none", eye: "glow", eyeColor: "#29b6f6", glow: "#e1f5fe", scale: 0.55 },
+    ["Lăn Tuyết", "Đóng băng đối thủ 2 lượt."], "Viên mochi tuyết biết bơi, mềm mịn và lạnh buốt tay."),
+  fish("f_sboss_leviathan", "Leviathan Diệt Thế", "boss", "dark", 6, [Z6], 68, [80000, 250000],
+    { shape: "shark", body: "#0d0d1a", belly: "#4a148c", fin: "#7c4dff", pattern: "stripes", patternColor: "#00e5ffaa", teeth: true, horns: true, spikes: true, eye: "glow", eyeColor: "#00e5ff", glow: "#651fff", scale: 2.7 },
+    ["Nuốt Trời", "Nuốt chửng: hút 25% HP đối thủ."], "Quái vật cổ xưa lớn hơn cả hòn đảo – truyền thuyết của mọi cần thủ."),
 ];

@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { FORM_BY_ITEM, WHEEL_PRIZES } from "@dccc/game-data";
+import { EVO_ITEM_BY_ID, WHEEL_PRIZES } from "@dccc/game-data";
 import { WHEEL_COST_DIAMONDS, rewardText } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { Button, fadeIn, goTo, panel, toast, txt } from "../ui/widgets.ts";
@@ -116,7 +116,7 @@ export class WheelScene extends Phaser.Scene {
         this.add
           .particles(CX, CY, "p_spark", { speed: { min: 200, max: 600 }, lifespan: 1000, scale: { start: 1.5, end: 0 }, tint: [hexToInt(p.color), 0xffffff], quantity: big ? 80 : 30, stopAfter: big ? 80 : 30, blendMode: Phaser.BlendModes.ADD })
           .setDepth(100);
-        this.info.setText(`${p.icon} Trúng: ${rewardText(p.reward, (id) => FORM_BY_ITEM.get(id)?.itemName ?? id)}!`);
+        this.info.setText(`${p.icon} Trúng: ${rewardText(p.reward, (id) => EVO_ITEM_BY_ID.get(id)?.name ?? id)}!`);
         toast(this, `🎉 Bạn trúng ${p.label}!`, COLORS.green);
         this.updateBtn();
       },

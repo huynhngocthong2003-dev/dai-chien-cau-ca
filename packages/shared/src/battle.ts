@@ -4,6 +4,7 @@
 import type { Element, FishDef, FishFormDef } from "./types.ts";
 import { Rng } from "./rng.ts";
 import { fishStats, ownedFishPower } from "./progression.ts";
+import type { FormRoll } from "./save.ts";
 
 export interface Fighter {
   uid: string;
@@ -20,8 +21,8 @@ export interface Fighter {
   form: string | null;
 }
 
-export function makeFighter(f: FishDef, o: { uid: string; level: number; stars: number }, form?: FishFormDef | null): Fighter {
-  const s = fishStats(f, o.level, o.stars, form);
+export function makeFighter(f: FishDef, o: { uid: string; level: number; stars: number; formRoll?: FormRoll }, form?: FishFormDef | null): Fighter {
+  const s = fishStats(f, o.level, o.stars, form, o.formRoll);
   return {
     uid: o.uid,
     fishId: f.id,

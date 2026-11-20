@@ -1,18 +1,19 @@
 import Phaser from "phaser";
 import { extraX, screenRect } from "../ui/wide.ts";
 import { FISHING, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
-import { CHARACTER_BY_ID, ECO_MESSAGE, FISH_BY_ID, FISH_FORMS, JUNK, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
+import { CHARACTER_BY_ID, ECO_MESSAGE, FISH_BY_ID, EVO_ITEMS, JUNK, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import {
   FishingSession,
   Rng,
   chooseFish,
   huntBoss,
+  pickZoneBoss,
   junkAsFish,
   randomSeed,
   rollJunk,
   rollEvoDrop,
   autoFishActive,
-  type FishFormDef,
+  type EvoItemDef,
   type JunkDef,
   rollWeight,
   catchRewards,
@@ -413,7 +414,7 @@ export class FishingScene extends Phaser.Scene {
     const fish = this.junk
       ? junkAsFish(this.junk)
       : this.bossHunt
-        ? huntBoss(FISH_BY_ID.get(this.zone.bossId)!)
+        ? huntBoss(pickZoneBoss(this.zone, FISH_BY_ID, rng) ?? FISH_BY_ID.get(this.zone.bossId)!)
         : chooseFish(this.zone, FISH_BY_ID, this.loadout, power, rng);
     this.fishDef = fish;
     this.weightKg = rollWeight(fish, rng);
@@ -564,7 +565,12 @@ export class FishingScene extends Phaser.Scene {
         }
         this.splash(this.castX, HORIZON, 18);
         this.cameras.main.shake(180, 0.006);
-        if (f.rarity === "boss") this.flashAlert("BOSS XUẤT HIỆN!", "#ff3d00", 64);
+        if (f.id === this.zone.secretBossId) {
+          // Boss phụ siêu hiếm
+          this.flashAlert("✦ BOSS SIÊU HIẾM! ✦", "#ea80fc", 60);
+          this.cameras.main.flash(500, 234, 128, 252);
+          this.cameras.main.shake(500, 0.012);
+        } else if (f.rarity === "boss") this.flashAlert("BOSS XUẤT HIỆN!", "#ff3d00", 64);
         else if (["legendary", "mythic"].includes(f.rarity)) this.flashAlert(`${FISH_RARITY_LABEL[f.rarity].toUpperCase()}!`, FISH_RARITY_COLOR[f.rarity], 60);
         break;
       }
@@ -675,10 +681,10 @@ export class FishingScene extends Phaser.Scene {
     const f = this.fishDef!;
     const res = this.junk ? GameState.catchJunk(this.junk) : GameState.catchFish(FISH_BY_ID.get(f.id)!, this.weightKg, this.zone.id, this.bossHunt);
     // vật phẩm tiến hóa đột biến – tỉ lệ rất thấp
-    let evo: FishFormDef | null = null;
+    let evo: EvoItemDef | null = null;
     if (res.ok && !this.junk) {
-      evo = rollEvoDrop(new Rng(randomSeed()), FISH_FORMS, f.rarity === "boss");
-      if (evo && !GameState.grantEvoItem(evo.itemId).ok) evo = null;
+      evo = rollEvoDrop(new Rng(randomSeed()), EVO_ITEMS, f.rarity === "boss");
+      if (evo && !GameState.grantEvoItem(evo.id).ok) evo = null;
     }
     this.hud.setVisible(false);
     this.hint.setText("");
@@ -707,7 +713,7 @@ export class FishingScene extends Phaser.Scene {
   }
 
   /** Thông báo rơi vật phẩm tiến hóa cực hiếm. */
-  private showEvoDrop(form: FishFormDef) {
+  private showEvoDrop(form: EvoItemDef) {
     const col = hexToInt(form.glow);
     Sfx.catchFanfare(true);
     this.cameras.main.flash(500, (col >> 16) & 255, (col >> 8) & 255, col & 255);
@@ -715,15 +721,14 @@ export class FishingScene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x0a0a1e, 0.92).fillRoundedRect(-330, -120, 660, 240, 24);
     g.lineStyle(5, col).strokeRoundedRect(-330, -120, 660, 240, 24);
-    const icon = this.add.text(-230, 0, form.itemIcon, { fontSize: "96px", padding: { top: 16 } }).setOrigin(0.5);
+    const icon = this.add.text(-230, 0, form.icon, { fontSize: "96px", padding: { top: 16 } }).setOrigin(0.5);
     c.add([
       g,
       this.add.particles(-230, 0, "p_spark", { speed: { min: 60, max: 260 }, lifespan: 1100, frequency: 60, scale: { start: 1.2, end: 0 }, tint: [col, 0xffffff], blendMode: Phaser.BlendModes.ADD }),
       icon,
       txt(this, -130, -70, form.divine ? "✨ THẦN VẬT XUẤT THẾ! ✨" : "💠 VẬT PHẨM CỰC HIẾM!", 30, { color: form.glow }),
-      txt(this, -130, -24, form.itemName, 34, { color: "#ffffff" }),
-      txt(this, -130, 22, `Dùng trong Kho Cá → 🧬 Thể đột biến
- để biến cá sang ${form.name}`, 18, { weight: "700", color: COLORS.textDim }),
+      txt(this, -130, -24, form.name, 34, { color: "#ffffff" }),
+      txt(this, -130, 22, `Dùng cho cá Huyền Thoại/Thần Thoại/Boss → 🧬 Thể\nđột biến CHẮC CHẮN thành công!`, 18, { weight: "700", color: COLORS.textDim }),
     ]);
     c.setScale(0.2);
     this.tweens.add({ targets: c, scale: 1, duration: 420, ease: "Back.easeOut" });

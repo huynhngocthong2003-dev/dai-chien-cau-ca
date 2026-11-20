@@ -1,8 +1,9 @@
 import Phaser from "phaser";
-import type { AccessoryKind, CharacterDef, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, JunkDef, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
+import type { AccessoryKind, CharacterDef, FishFormDef, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, JunkDef, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
 import { TIER_COLOR, TIER_ORDER } from "@dccc/game-config";
 import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
-import { COSMETIC_BY_ID } from "@dccc/game-data";
+import { COSMETIC_BY_ID, FORM_BY_ID } from "@dccc/game-data";
+import { drawFormFish } from "./FormArt.ts";
 import { FISH_H, FISH_W, drawFish, drawFishSilhouette } from "./FishArt.ts";
 import { CHAR_H, CHAR_W, defaultLook, drawAura, drawCharacter, type Look } from "./CharacterArt.ts";
 import { WORLD_H, WORLD_W, drawDock, drawZoneBackground } from "./Backgrounds.ts";
@@ -32,6 +33,18 @@ function canvasTexture(
 export function fishTexture(scene: Phaser.Scene, fish: FishDef): string {
   const res = fish.appearance.scale >= 1.5 ? 1.4 : 1;
   return canvasTexture(scene, `fish_${fish.id}`, FISH_W, FISH_H, (ctx) => drawFish(ctx, fish), res);
+}
+
+/** Cá đã đột biến (ngoại hình riêng theo dạng). */
+export function formFishTexture(scene: Phaser.Scene, fish: FishDef, form: FishFormDef): string {
+  const res = fish.appearance.scale >= 1.5 ? 1.4 : 1;
+  return canvasTexture(scene, `fishform_${fish.id}_${form.id}`, FISH_W, FISH_H, (ctx) => drawFormFish(ctx, fish, form), res);
+}
+
+/** Texture cá theo dạng đột biến nếu có. */
+export function fishTextureFor(scene: Phaser.Scene, fish: FishDef, formId?: string | null): string {
+  const form = formId ? FORM_BY_ID.get(formId) : null;
+  return form ? formFishTexture(scene, fish, form) : fishTexture(scene, fish);
 }
 
 export function fishSilhouetteTexture(scene: Phaser.Scene, fish: FishDef): string {

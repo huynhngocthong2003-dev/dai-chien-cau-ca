@@ -51,7 +51,7 @@ import {
   type Difficulty,
   type Fighter,
   type FishDef,
-  type FishFormDef,
+  type EvoItemDef,
   type GameEventDef,
   type PvpMatchRecord,
   type JunkDef,
@@ -60,7 +60,7 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { FISH_FORMS, CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 import * as Online from "./online.ts";
@@ -218,8 +218,9 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     return this.run(grantEvoItem(this._save, itemId, uid("ev"), Date.now()));
   }
 
-  applyForm(fishUid: string, form: FishFormDef) {
-    return this.run(applyForm(this._save, fishUid, form, uid("fm"), Date.now(), FISH_BY_ID, new Rng(randomSeed()).next()));
+  /** Đột biến cá Boss bằng vật phẩm – luôn thành công, ra ngẫu nhiên 1 dạng + chỉ số tăng ngẫu nhiên. */
+  applyForm(fishUid: string, item: EvoItemDef) {
+    return this.run(applyForm(this._save, fishUid, item, FISH_FORMS, uid("fm"), Date.now(), FISH_BY_ID, new Rng(randomSeed())));
   }
 
   /** Áp kết quả một trận PvP vừa đấu (phía mình) rồi báo máy chủ. */

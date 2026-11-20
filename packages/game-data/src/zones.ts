@@ -8,6 +8,7 @@ export const ZONES: ZoneDef[] = [
     requiredLevel: 1,
     difficulty: 1,
     bossId: "f_boss_lao_ngu",
+    secretBossId: "f_sboss_chep_than_tai",
     spawn: [
       { fishId: "f_ca_ro", weight: 30 },
       { fishId: "f_ca_chep", weight: 24 },
@@ -27,6 +28,7 @@ export const ZONES: ZoneDef[] = [
     requiredLevel: 5,
     difficulty: 2,
     bossId: "f_boss_bao_chua_san_ho",
+    secretBossId: "f_sboss_kinh_ngu_cau_vong",
     spawn: [
       { fishId: "f_ca_he", weight: 28 },
       { fishId: "f_ca_bo", weight: 26 },
@@ -48,6 +50,7 @@ export const ZONES: ZoneDef[] = [
     requiredLevel: 10,
     difficulty: 3,
     bossId: "f_boss_hac_long",
+    secretBossId: "f_sboss_noc_bong_gon",
     spawn: [
       { fishId: "f_ca_den_long", weight: 28 },
       { fishId: "f_ca_ma", weight: 26 },
@@ -68,6 +71,7 @@ export const ZONES: ZoneDef[] = [
     requiredLevel: 16,
     difficulty: 4,
     bossId: "f_boss_hoa_nguc_bao_ngu",
+    secretBossId: "f_sboss_co_long_vuong",
     spawn: [
       { fishId: "f_ca_than_hong", weight: 28 },
       { fishId: "f_ca_dung_nham", weight: 26 },
@@ -87,6 +91,7 @@ export const ZONES: ZoneDef[] = [
     requiredLevel: 22,
     difficulty: 5,
     bossId: "f_boss_bang_de",
+    secretBossId: "f_sboss_ca_tuyet_mochi",
     spawn: [
       { fishId: "f_ca_tuyet", weight: 28 },
       { fishId: "f_ca_hoi_bang", weight: 24 },
@@ -108,6 +113,7 @@ export const ZONES: ZoneDef[] = [
     requiredLevel: 30,
     difficulty: 6,
     bossId: "f_boss_hai_than_cu_thu",
+    secretBossId: "f_sboss_leviathan",
     spawn: [
       { fishId: "f_ca_than_quang", weight: 26 },
       { fishId: "f_ca_sam_set", weight: 24 },

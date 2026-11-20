@@ -39,20 +39,19 @@ const errs = [];
     sc.render();
   });
   await p.waitForTimeout(300);
-  // Chỉ cá Boss mới có nút 🧬; tỉ lệ thành công ẩn → bấm đến khi thành công (thất bại vẫn mất vật phẩm)
-  let s, tries = 0;
-  for (; tries < 20; tries++) {
-    await p.mouse.click(1200, 130); // 🧬 Thể
-    await p.waitForTimeout(450);
-    if (tries === 0) await p.screenshot({ path: `${out}/forms.png` });
-    await p.mouse.click(140 + 24 + 91, 60 + 104 + 386); // Tiến hóa Long Hóa (modal 1000×600 tại 140,60)
-    await p.waitForTimeout(450);
-    s = await save();
-    if (s.fishes.find((f) => f.uid === 't4')?.form === 'long') break;
-  }
+  // Chỉ cá Boss mới có nút 🧬; dùng vật phẩm → đột biến CHẮC CHẮN thành công, ra 1 dạng của Ngọc Long Hồn
+  await p.mouse.click(1200, 130); // 🧬 Thể
+  await p.waitForTimeout(500);
+  await p.screenshot({ path: `${out}/forms.png` });
+  await p.mouse.click(120 + 20 + 96, 60 + 104 + 396); // "Đột biến 100%" – Ngọc Long Hồn (modal 1040×600 tại 120,60)
+  await p.waitForTimeout(1200);
+  await p.screenshot({ path: `${out}/form-reveal.png` });
+  let s = await save();
   const t4 = s.fishes.find((f) => f.uid === 't4');
-  if (t4?.form !== 'long' || s.evoItems.e_ngoc_long_hon !== 20 - (tries + 1)) errs.push(`Tiến hóa thể sai: ${JSON.stringify(t4)} ${JSON.stringify(s.evoItems)}`);
-  else console.log(`• Boss Lão Ngư đột biến Long Hóa sau ${tries + 1} lần thử (mỗi lần mất 1 Ngọc Long Hồn, tỉ lệ ẩn)`);
+  if (!['long', 'long_hac', 'long_kim', 'long_huyet', 'long_bich'].includes(t4?.form) || s.evoItems.e_ngoc_long_hon !== 19 || !t4.formRoll) errs.push(`Đột biến sai: ${JSON.stringify(t4)} ${JSON.stringify(s.evoItems)}`);
+  else console.log(`• Boss Lão Ngư đột biến thành "${t4.form}" ngay lần đầu (100%), hệ số ${JSON.stringify(t4.formRoll)}`);
+  await p.mouse.click(640, 60 + 600 - 46); // Tuyệt vời!
+  await p.waitForTimeout(400);
   // cá thường không có nút đột biến
   await p.evaluate(() => { const sc = window.__game.scene.getScene('Inventory'); sc.selectedUid = 't1'; sc.render(); });
   await p.waitForTimeout(300);

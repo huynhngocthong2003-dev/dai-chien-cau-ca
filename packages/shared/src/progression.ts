@@ -11,6 +11,7 @@ import {
   clone,
   markTx,
   type ActionResult,
+  type FormRoll,
   type OwnedFish,
   type PlayerSave,
 } from "./save.ts";
@@ -83,19 +84,21 @@ export function decomposeValue(f: FishDef, o: Pick<OwnedFish, "level" | "stars">
 }
 
 /** Chỉ số cá theo cấp (+8%/cấp), sao (+15%/sao) và thể tiến hóa (nếu có). */
-export function fishStats(f: FishDef, level = 1, stars = 1, form?: FishFormDef | null) {
+export function fishStats(f: FishDef, level = 1, stars = 1, form?: FishFormDef | null, roll?: FormRoll | null) {
   const m = (1 + 0.08 * (level - 1)) * (1 + 0.15 * (stars - 1));
+  // phần tăng của thể đột biến nhân với hệ số ngẫu nhiên của lần đột biến
+  const fm = (k: "hp" | "atk" | "def") => (form ? 1 + (form.mult[k] - 1) * (roll?.[k] ?? 1) : 1);
   return {
-    hp: Math.round(f.hp * m * (form?.mult.hp ?? 1)),
-    atk: Math.round(f.atk * m * (form?.mult.atk ?? 1)),
-    def: Math.round(f.def * m * (form?.mult.def ?? 1)),
+    hp: Math.round(f.hp * m * fm("hp")),
+    atk: Math.round(f.atk * m * fm("atk")),
+    def: Math.round(f.def * m * fm("def")),
     spd: f.spd + (stars - 1) * 2 + (form?.spdBonus ?? 0),
     element: form?.element ?? f.element,
   };
 }
 
-export function ownedFishPower(f: FishDef, o: Pick<OwnedFish, "level" | "stars">, form?: FishFormDef | null): number {
-  const s = fishStats(f, o.level, o.stars, form);
+export function ownedFishPower(f: FishDef, o: Pick<OwnedFish, "level" | "stars" | "formRoll">, form?: FishFormDef | null): number {
+  const s = fishStats(f, o.level, o.stars, form, o.formRoll);
   return Math.round(s.hp / 10 + s.atk * 2 + s.def * 1.5 + s.spd);
 }
 

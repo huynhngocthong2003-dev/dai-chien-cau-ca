@@ -21,6 +21,19 @@ export function bossChance(lf: number): number {
   return Math.min(0.08, FISHING.bossBaseChance * (1 + lf * 0.6));
 }
 
+/** Tất cả Boss của khu (Boss chính trước). */
+export function zoneBosses(zone: ZoneDef): string[] {
+  return [zone.bossId, ...(zone.extraBosses ?? [])];
+}
+
+/** Chọn ngẫu nhiên 1 Boss của khu (Boss chính trọng số 2, Boss phụ 1). */
+export function pickZoneBoss(zone: ZoneDef, fishById: Map<string, FishDef>, rng: Rng): FishDef | null {
+  const list = zoneBosses(zone)
+    .map((id, i) => ({ f: fishById.get(id), w: i === 0 ? 2 : 1 }))
+    .filter((x): x is { f: FishDef; w: number } => !!x.f);
+  return list.length ? rng.pickWeighted(list, (x) => x.w).f : null;
+}
+
 /** Chọn cá sẽ cắn câu. Boss có thể xuất hiện bất ngờ. */
 export function chooseFish(
   zone: ZoneDef,
@@ -30,8 +43,13 @@ export function chooseFish(
   rng: Rng,
 ): FishDef {
   const lf = luckFactor(loadout, castPower);
+  // Boss phụ siêu hiếm: cực kỳ khó gặp
+  if (zone.secretBossId && rng.chance(Math.min(0.004, FISHING.secretBossChance * (1 + lf * 0.5)))) {
+    const sb = fishById.get(zone.secretBossId);
+    if (sb) return sb;
+  }
   if (rng.chance(bossChance(lf))) {
-    const boss = fishById.get(zone.bossId);
+    const boss = pickZoneBoss(zone, fishById, rng);
     if (boss) return boss;
   }
   return rng.pickWeighted(spawnWeights(zone, fishById, lf), (w) => w.weight).fish;

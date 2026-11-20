@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { CHECKIN_REWARDS, FORM_BY_ITEM, QUESTS, TITLES } from "@dccc/game-data";
+import { CHECKIN_REWARDS, EVO_ITEM_BY_ID, QUESTS, TITLES } from "@dccc/game-data";
 import { checkinState, questProgress, rewardText, titleProgress, type RewardDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { Bar, Button, fadeIn, goTo, panel, toast, txt } from "../ui/widgets.ts";
@@ -10,7 +10,7 @@ import { hexToInt } from "../art/color.ts";
 import { Sfx } from "../audio/Sfx.ts";
 
 type Tab = "daily" | "checkin" | "titles";
-const evoName = (id: string) => FORM_BY_ITEM.get(id)?.itemName ?? "Vật phẩm đột biến";
+const evoName = (id: string) => EVO_ITEM_BY_ID.get(id)?.name ?? "Vật phẩm đột biến";
 const rw = (r: RewardDef) => rewardText(r, evoName);
 
 /** Nhiệm vụ ngày, điểm danh 7 ngày và danh hiệu. */

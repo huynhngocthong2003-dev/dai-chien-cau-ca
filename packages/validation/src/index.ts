@@ -18,6 +18,7 @@ export const ownedFishSchema = z.object({
   wins: nonNegInt.optional(),
   losses: nonNegInt.optional(),
   form: id.optional(),
+  formRoll: z.object({ hp: z.number().min(0).max(5), atk: z.number().min(0).max(5), def: z.number().min(0).max(5) }).optional(),
 });
 
 export const playerSaveSchema = z.object({

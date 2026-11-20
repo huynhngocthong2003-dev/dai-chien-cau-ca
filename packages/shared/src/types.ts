@@ -110,22 +110,38 @@ export interface CosmeticDef {
 
 /** Mã quà tặng phần thưởng tiền tệ (chỉ lưu mã băm). */
 /** Thể tiến hóa đột biến của cá – cần vật phẩm cực hiếm. */
+/** Vật phẩm đột biến (rơi cực hiếm khi câu cá). */
+export interface EvoItemDef {
+  id: string;
+  name: string;
+  icon: string;
+  glow: string;
+  /** Trọng số rơi trong nhóm thường; 0 = chỉ rơi ở nhóm thần vật. */
+  dropWeight: number;
+  divine: boolean;
+  description: string;
+}
+
+/** Hiệu ứng ngoại hình riêng của từng dạng đột biến. */
+export type FormAura =
+  | "flame" | "darkflame" | "blueflame"
+  | "ice" | "frost" | "abyss"
+  | "lightning" | "purplebolt" | "storm"
+  | "dragon" | "golddragon" | "blackdragon"
+  | "phoenix" | "angel";
+
+/** Một dạng đột biến: mỗi vật phẩm biến cá thành 1 trong vài dạng cùng hệ (ngẫu nhiên, luôn thành công). */
 export interface FishFormDef {
   id: string;
   name: string;
   itemId: string;
-  itemName: string;
-  itemIcon: string;
   mult: { hp: number; atk: number; def: number };
   spdBonus: number;
   /** Đổi thuộc tính (null = giữ nguyên). */
   element: Element | null;
   glow: string;
-  /** Trọng số rơi trong nhóm thường; 0 = chỉ rơi ở nhóm thần thoại. */
-  dropWeight: number;
-  divine: boolean;
-  /** Tỉ lệ tiến hóa thành công (ẩn với người chơi). Thất bại vẫn mất vật phẩm. */
-  successRate: number;
+  /** Ngoại hình sau đột biến: đổi màu thân/vây/mắt + hiệu ứng riêng. */
+  look: { body: string; belly: string; fin: string; pattern: "none" | "stripes" | "spots" | "scales"; patternColor: string; eyeColor: string; horns: boolean; spikes: boolean; teeth: boolean; aura: FormAura; palette?: [string, string, string] };
   description: string;
 }
 
@@ -264,6 +280,10 @@ export interface ZoneDef {
   difficulty: 1 | 2 | 3 | 4 | 5 | 6;
   spawn: { fishId: string; weight: number }[];
   bossId: string;
+  /** Boss phụ của khu (xuất hiện ngẫu nhiên như Boss chính). */
+  extraBosses?: string[];
+  /** Boss phụ SIÊU HIẾM của khu (tỉ lệ cực thấp, ngoại hình tí hon hoặc khổng lồ). */
+  secretBossId?: string;
   theme: {
     skyTop: string;
     skyBottom: string;

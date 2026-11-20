@@ -1,11 +1,11 @@
 import Phaser from "phaser";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { ECONOMY, FISH_RARITY_COLOR, FISH_RARITY_LABEL, RARITY_ORDER } from "@dccc/game-config";
-import { FISHES, FISH_BY_ID, FISH_FORMS, FORM_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
-import { canAfford, decomposeValue, evolveFodder, fishMaxLevel, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type OwnedFish } from "@dccc/shared";
+import { EVO_ITEMS, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { canAfford, canEvolveForm, decomposeValue, evolveFodder, fishMaxLevel, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
 import { costText } from "./GearScene.ts";
 import { GameState } from "../state/GameState.ts";
-import { fishSilhouetteTexture, fishTexture } from "../art/textures.ts";
+import { fishSilhouetteTexture, fishTextureFor, formFishTexture } from "../art/textures.ts";
 import { Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -99,6 +99,7 @@ export class InventoryScene extends Phaser.Scene {
     label: string,
     onClick: () => void,
     check?: "on" | "off" | "locked",
+    formId?: string,
   ) {
     const g = this.add.graphics();
     const col = hexToInt(FISH_RARITY_COLOR[f.rarity]);
@@ -112,7 +113,7 @@ export class InventoryScene extends Phaser.Scene {
       c.add(b);
       if (check !== "off") c.add(txt(this, x + 20, y + 21, check === "on" ? "✓" : "🔒", check === "on" ? 22 : 14, { align: "center" }).setOrigin(0.5));
     }
-    c.add(this.add.image(x + w / 2, y + h * 0.42, seen ? fishTexture(this, f) : fishSilhouetteTexture(this, f)).setDisplaySize(w * 0.9, w * 0.56));
+    c.add(this.add.image(x + w / 2, y + h * 0.42, seen ? fishTextureFor(this, f, formId) : fishSilhouetteTexture(this, f)).setDisplaySize(w * 0.9, w * 0.56));
     c.add(txt(this, x + w / 2, y + h - 14, label, 13, { align: "center", weight: "700", color: seen ? FISH_RARITY_COLOR[f.rarity] : COLORS.textDim }).setOrigin(0.5));
     const z = this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true });
     z.on("pointerup", () => {
@@ -154,7 +155,7 @@ export class InventoryScene extends Phaser.Scene {
         this.cell(c, x, y, 128, 150, f, true, o.uid === this.selectedUid, label, () => {
           this.selectedUid = o.uid;
           this.render();
-        });
+        }, undefined, o.form);
       }
     });
     if (pages > 1) {
@@ -308,11 +309,11 @@ export class InventoryScene extends Phaser.Scene {
     d.add(txt(this, 876, y, lines.join("\n"), 17, { weight: "700", wrap: 366, color: COLORS.text }).setLineSpacing(4));
   }
 
-  private header(d: Phaser.GameObjects.Container, f: FishDef, seen: boolean) {
+  private header(d: Phaser.GameObjects.Container, f: FishDef, seen: boolean, formId?: string) {
     const col = FISH_RARITY_COLOR[f.rarity];
     const glow = this.add.image(1058, 210, "p_spark").setTint(hexToInt(col)).setScale(9).setAlpha(seen ? 0.25 : 0);
     d.add(glow);
-    d.add(this.add.image(1058, 210, seen ? fishTexture(this, f) : fishSilhouetteTexture(this, f)).setDisplaySize(330, 206));
+    d.add(this.add.image(1058, 210, seen ? fishTextureFor(this, f, formId) : fishSilhouetteTexture(this, f)).setDisplaySize(330, 206));
     d.add(txt(this, 1058, 330, seen ? f.name : "???", 30, { color: col, align: "center" }).setOrigin(0.5));
     d.add(txt(this, 1058, 364, FISH_RARITY_LABEL[f.rarity], 20, { color: col, align: "center" }).setOrigin(0.5));
   }
@@ -321,14 +322,13 @@ export class InventoryScene extends Phaser.Scene {
     const d = this.detailPanel();
     if (!o) return;
     const f = FISH_BY_ID.get(o.fishId)!;
-    this.header(d, f, true);
+    this.header(d, f, true, o.form);
     const form = o.form ? FORM_BY_ID.get(o.form) ?? null : null;
-    const st = fishStats(f, o.level, o.stars, form);
+    const st = fishStats(f, o.level, o.stars, form, o.formRoll);
     if (form) {
-      d.add(this.add.image(1058, 210, "p_spark").setTint(hexToInt(form.glow)).setScale(11).setAlpha(0.45).setBlendMode(Phaser.BlendModes.ADD));
       d.add(txt(this, 1058, 120, `🧬 ${form.name}`, 22, { color: form.glow, align: "center" }).setOrigin(0.5));
     }
-    if (f.rarity === "boss") d.add(
+    if (canEvolveForm(f)) d.add(
       new Button(this, 1200, 130, 104, 46, "🧬 Thể", {
         color: COLORS.purple,
         fontSize: 18,
@@ -406,51 +406,81 @@ export class InventoryScene extends Phaser.Scene {
     d.add(dec);
   }
 
-  /** Chọn thể tiến hóa đột biến cho cá (tốn vật phẩm cực hiếm). */
+  /** Đột biến cá Boss: chọn vật phẩm → luôn thành công, ra ngẫu nhiên 1 dạng cùng hệ + chỉ số tăng ngẫu nhiên. */
   private formDialog(o: OwnedFish) {
     const f = FISH_BY_ID.get(o.fishId)!;
-    const m = modal(this, 1000, 600, `🧬 Thể đột biến – ${f.name}`, () => this.render());
-    m.root.add(txt(this, m.x + m.w / 2, m.y + 74, "Chỉ cá Boss mới đột biến được. Mỗi thể có tỉ lệ thành công ẨN khác nhau – thất bại vẫn mất vật phẩm!", 16, { align: "center", weight: "700", color: COLORS.textDim, wrap: 900 }).setOrigin(0.5));
-    FISH_FORMS.forEach((fm, i) => {
-      const x = m.x + 24 + i * 192;
+    const m = modal(this, 1040, 600, `🧬 Đột biến – ${f.name}`, () => this.render());
+    m.root.add(txt(this, m.x + m.w / 2, m.y + 74, "Cá Huyền Thoại / Thần Thoại / Boss · Dùng 1 vật phẩm: đột biến CHẮC CHẮN thành công, ra ngẫu nhiên 1 dạng của vật phẩm đó. Chỉ số tăng ngẫu nhiên – có thể VƯỢT BẬC!", 16, { align: "center", weight: "700", color: COLORS.textDim, wrap: 960 }).setOrigin(0.5));
+    EVO_ITEMS.forEach((it, i) => {
+      const x = m.x + 20 + i * 202;
       const y = m.y + 104;
-      const have = GameState.save.evoItems[fm.itemId] ?? 0;
-      const cur = o.form === fm.id;
+      const have = GameState.save.evoItems[it.id] ?? 0;
+      const variants = FORMS_BY_ITEM.get(it.id) ?? [];
       const g = this.add.graphics();
-      g.fillGradientStyle(0x1a1040, 0x1a1040, 0x0a0a1e, 0x0a0a1e, 1).fillRoundedRect(x, y, 182, 420, 16);
-      g.lineStyle(cur ? 5 : 3, hexToInt(fm.glow), cur ? 1 : 0.8).strokeRoundedRect(x, y, 182, 420, 16);
+      g.fillGradientStyle(0x1a1040, 0x1a1040, 0x0a0a1e, 0x0a0a1e, 1).fillRoundedRect(x, y, 192, 420, 16);
+      g.lineStyle(3, hexToInt(it.glow), 0.9).strokeRoundedRect(x, y, 192, 420, 16);
       m.root.add(g);
-      m.root.add(this.add.image(x + 91, y + 70, "p_spark").setTint(hexToInt(fm.glow)).setScale(6).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD));
-      m.root.add(this.add.text(x + 91, y + 70, fm.itemIcon, { fontSize: "64px", padding: { top: 12 } }).setOrigin(0.5));
-      m.root.add(txt(this, x + 91, y + 142, fm.name, 24, { color: fm.glow, align: "center" }).setOrigin(0.5));
-      m.root.add(txt(this, x + 91, y + 174, fm.itemName, 15, { align: "center", weight: "700" }).setOrigin(0.5));
-      m.root.add(txt(this, x + 91, y + 196, fm.description, 13, { align: "center", weight: "700", wrap: 166, color: COLORS.textDim }).setOrigin(0.5, 0));
-      const pw = ownedFishPower(f, o, fm);
-      m.root.add(txt(this, x + 91, y + 316, `⚔ ${formatNum(pw)}`, 20, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
-      m.root.add(txt(this, x + 91, y + 290, "Tỉ lệ: ???", 14, { align: "center", weight: "700", color: "#ce93d8" }).setOrigin(0.5));
-      m.root.add(txt(this, x + 91, y + 344, `Có: ${have}`, 17, { align: "center", color: have ? "#b9f6ca" : "#ff8a80" }).setOrigin(0.5));
-      const b = new Button(this, x + 91, y + 386, 160, 48, cur ? "Đang dùng" : "Tiến hóa", {
+      m.root.add(this.add.image(x + 96, y + 62, "p_spark").setTint(hexToInt(it.glow)).setScale(6).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD));
+      m.root.add(this.add.text(x + 96, y + 62, it.icon, { fontSize: "60px", padding: { top: 12 } }).setOrigin(0.5));
+      m.root.add(txt(this, x + 96, y + 128, it.name, 19, { color: it.glow, align: "center", wrap: 180 }).setOrigin(0.5));
+      m.root.add(txt(this, x + 96, y + 156, "Có thể hóa thành:", 13, { align: "center", weight: "700", color: COLORS.textDim }).setOrigin(0.5));
+      variants.forEach((v, k) => {
+        m.root.add(this.add.image(x + 40, y + 196 + k * 50, formFishTexture(this, f, v)).setDisplaySize(64, 40));
+        m.root.add(txt(this, x + 76, y + 196 + k * 50, v.name, 15, { color: v.glow }).setOrigin(0, 0.5));
+      });
+      const cur = variants.find((v) => v.id === o.form);
+      if (cur) m.root.add(txt(this, x + 96, y + 342, `Đang là ${cur.name}`, 13, { align: "center", weight: "700", color: "#b9f6ca" }).setOrigin(0.5));
+      m.root.add(txt(this, x + 96, y + 360, `Có: ${have}`, 17, { align: "center", color: have ? "#b9f6ca" : "#ff8a80" }).setOrigin(0.5));
+      const b = new Button(this, x + 96, y + 396, 170, 44, "Đột biến 100%", {
         color: COLORS.purple,
-        fontSize: 18,
-        disabled: cur || have < 1,
+        fontSize: 17,
+        disabled: have < 1,
         onClick: () => {
-          const r = GameState.applyForm(o.uid, fm);
+          const r = GameState.applyForm(o.uid, it);
           if (!r.ok) return toast(this, r.error, COLORS.red);
-          if (!r.success) {
-            Sfx.fail();
-            this.cameras.main.shake(300, 0.012);
-            toast(this, `💨 Đột biến thất bại! ${fm.itemName} đã tan biến… Thử lại khi có vật phẩm mới.`, COLORS.red);
-            return m.close();
-          }
-          Sfx.catchFanfare(true);
-          this.cameras.main.flash(600, 255, 255, 255);
-          toast(this, `🧬 THÀNH CÔNG! ${f.name} đột biến thành ${fm.name}! Lực chiến tăng vọt!`, COLORS.green);
           m.close();
+          this.time.delayedCall(180, () => this.revealForm(o.uid, r.form!, r.roll!, r.surge ?? null));
         },
       });
-      b.on("disabled-click", () => toast(this, cur ? "Cá đang ở thể này" : `Cần 1 ${fm.itemName} – câu cá để có cơ hội nhận`));
+      b.on("disabled-click", () => toast(this, `Cần 1 ${it.name} – rơi cực hiếm khi câu cá (Boss ×3)`));
       m.root.add(b);
     });
+  }
+
+  /** Màn khoe dạng đột biến mới + hệ số tăng từng chỉ số. */
+  private revealForm(uid: string, form: FishFormDef, roll: FormRoll, surge: keyof FormRoll | null) {
+    const o = GameState.save.fishes.find((x) => x.uid === uid);
+    if (!o) return;
+    const f = FISH_BY_ID.get(o.fishId)!;
+    Sfx.catchFanfare(true);
+    const col = hexToInt(form.glow);
+    this.cameras.main.flash(700, (col >> 16) & 255, (col >> 8) & 255, col & 255);
+    const m = modal(this, 820, 600, `🧬 ĐỘT BIẾN THÀNH CÔNG!`, () => this.render());
+    const cx = m.x + m.w / 2;
+    const rays = this.add.container(cx, m.y + 220);
+    for (let i = 0; i < 12; i++) rays.add(this.add.image(0, 0, "p_ray").setOrigin(0.5, 0).setAngle(i * 30).setTint(col).setAlpha(0.45).setBlendMode(Phaser.BlendModes.ADD).setScale(0.6));
+    this.tweens.add({ targets: rays, angle: 360, duration: 9000, repeat: -1 });
+    const img = this.add.image(cx, m.y + 220, formFishTexture(this, f, form)).setDisplaySize(420, 262).setScale(0.1);
+    this.tweens.add({ targets: img, scaleX: 420 / 320, scaleY: 262 / 200, duration: 600, ease: "Back.easeOut" });
+    m.root.add([rays, img]);
+    m.root.add(this.add.particles(cx, m.y + 220, "p_spark", { speed: { min: 150, max: 450 }, lifespan: 1100, scale: { start: 1.4, end: 0 }, tint: [col, 0xffffff], quantity: 50, stopAfter: 50, blendMode: Phaser.BlendModes.ADD }));
+    m.root.add(txt(this, cx, m.y + 372, `${f.name} → ${form.name}`, 30, { color: form.glow, align: "center" }).setOrigin(0.5));
+    const pct = (k: keyof FormRoll) => Math.round((form.mult[k] - 1) * roll[k] * 100);
+    const lines: [keyof FormRoll, string][] = [["hp", "❤ HP"], ["atk", "⚔ Công"], ["def", "🛡 Thủ"]];
+    lines.forEach(([k, label], i) => {
+      const big = surge === k;
+      const t = txt(this, cx - 200 + i * 200, m.y + 430, `${label}\n+${pct(k)}%`, big ? 26 : 22, { align: "center", color: big ? "#ff4081" : roll[k] >= 1.25 ? "#69f0ae" : roll[k] <= 0.95 ? "#ffcc80" : "#ffffff" }).setOrigin(0.5);
+      m.root.add(t);
+      if (big) this.tweens.add({ targets: t, scale: 1.18, duration: 380, yoyo: true, repeat: -1 });
+    });
+    m.root.add(txt(this, cx, m.y + 486, `Tốc +${form.spdBonus} · Lực chiến ${formatNum(ownedFishPower(f, o, form))}`, 18, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
+    if (surge) {
+      const sb = txt(this, cx, m.y + 90, "⚡ ĐỘT BIẾN VƯỢT BẬC! ⚡", 34, { color: "#ff4081", align: "center" }).setOrigin(0.5);
+      m.root.add(sb);
+      this.tweens.add({ targets: sb, scale: 1.12, duration: 300, yoyo: true, repeat: -1 });
+      this.cameras.main.shake(400, 0.015);
+    }
+    m.root.add(new Button(this, cx, m.y + m.h - 46, 240, 56, "Tuyệt vời!", { color: COLORS.orange, fontSize: 22, onClick: () => m.close() }));
   }
 
   private renderSpecies(f: FishDef, seen: boolean) {
