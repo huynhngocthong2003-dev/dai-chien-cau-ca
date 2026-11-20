@@ -130,6 +130,10 @@ export class RaceScene extends Phaser.Scene {
   private swipeY: number | null = null;
   private jumpBtn!: Button;
   private falseStartFlag = false;
+  /** Đã về đích nhưng chưa chắc thứ hạng (đua nhiều người). */
+  private pendingPlace = false;
+  /** Người chơi khác đã được thông báo về đích. */
+  private announced = new Set<string>();
   /** Bục vinh danh (top 3 nhanh nhất toàn server) – lưu tạm theo giải. */
   private records = new Map<RaceLeague, Social.RaceRecord[]>();
   // đua nhiều người
@@ -846,6 +850,8 @@ export class RaceScene extends Phaser.Scene {
     this.equips = new Map([["me", GameState.equipOf(s.selectedCharacterId)]]);
     this.remote = new Map();
     this.waitEndAt = 0;
+    this.pendingPlace = false;
+    this.announced = new Set();
     if (room) {
       const myId = GameState.online?.id;
       const humans = [...room.members].sort((a, b) => a.slot - b.slot).map((mb) => {
@@ -1165,6 +1171,19 @@ export class RaceScene extends Phaser.Scene {
           const v = prev && now > prev.t ? Math.max(0, (row.x - prev.x) / ((now - prev.t) / 1000)) : 0;
           this.remote.set(row.user_id, { x: row.x, t: now, v });
           s.setRemote(row.user_id, { x: s.racers.find((r) => r.id === row.user_id)?.x ?? row.x, lane: row.lane, boosting: row.boosting, finishTime: row.finish_ms });
+          // người chơi khác về đích → báo cho mọi người đúng thứ hạng của họ
+          const rr = s.racers.find((r) => r.id === row.user_id);
+          if (rr && rr.finishTime !== null && !this.announced.has(rr.id)) {
+            this.announced.add(rr.id);
+            const f = s.finishRank(rr);
+            const word = ["", "NHẤT", "NHÌ", "BA"][f.place] ?? `hạng ${f.place}`;
+            toast(this, `🏁 ${rr.name} về ${word}${f.provisional ? " (tạm)" : ""}`, COLORS.blue);
+          }
+        }
+        // mình đã về đích, chờ đủ thông tin → báo đúng thứ hạng
+        if (this.pendingPlace && me.finishTime !== null) {
+          const f = s.finishRank(me);
+          if (!f.provisional) this.announcePlace(f.place);
         }
       } catch {
         /* mất mạng tạm – thử lại lần sau */
@@ -1564,9 +1583,13 @@ export class RaceScene extends Phaser.Scene {
         break;
       case "finish":
         if (mine) {
-          Sfx.catchFanfare(e.place === 1);
-          this.bigText(e.place === 1 ? "🥇 VỀ NHẤT!" : `VỀ ĐÍCH HẠNG ${e.place}`, e.place === 1 ? "#ffd740" : "#ffffff");
           this.cameras.main.flash(300, 255, 255, 255);
+          if (e.provisional) {
+            // người chơi khác có thể đã về trước mà chưa báo → chờ xếp hạng chắc chắn
+            Sfx.catchFanfare(false);
+            this.bigText("🏁 VỀ ĐÍCH!", "#ffffff");
+            this.pendingPlace = true;
+          } else this.announcePlace(e.place);
         }
         break;
     }
@@ -1587,6 +1610,14 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
+  /** Thông báo đúng thứ hạng của mình: NHẤT / NHÌ / BA / hạng N. */
+  private announcePlace(place: number) {
+    this.pendingPlace = false;
+    Sfx.catchFanfare(place === 1);
+    const label = ["", "🥇 VỀ NHẤT!", "🥈 VỀ NHÌ!", "🥉 VỀ BA!"][place] ?? `VỀ ĐÍCH HẠNG ${place}`;
+    this.bigText(label, place === 1 ? "#ffd740" : place === 2 ? "#e0e0e0" : place === 3 ? "#ffab40" : "#ffffff");
+  }
+
   private floatText(v: RacerView, s: string, color: string) {
     const t = txt(this, v.root.x, v.root.y - 150, s, 22, { color, align: "center" }).setOrigin(0.5).setDepth(1200);
     this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 1100, onComplete: () => t.destroy() });
@@ -1603,6 +1634,9 @@ export class RaceScene extends Phaser.Scene {
     if (this.mode !== "race" || !this.session || !this.entryTx) return;
     this.mode = "result";
     const s = this.session;
+    // đua nhiều người: gửi ngay thời gian về đích (đua kết thúc nhanh có thể chưa kịp gửi ở nhịp mạng)
+    if (this.room && GameState.online && s.player.finishTime !== null)
+      void Social.raceUpdate(this.room.room_id, GameState.online.id, { x: Math.min(1999, s.player.x), lane: s.player.lane, boosting: false, finish_ms: s.player.finishTime }).catch(() => null);
     const place = s.placeOf("me");
     const res = GameState.raceResult(this.entryTx, this.league, place);
     const reward = res.ok ? res.reward! : raceReward(this.league, place);

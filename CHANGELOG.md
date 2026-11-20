@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.2] – 2026-11-20 – Đua Cá: báo đúng thứ hạng về đích
+### Sửa
+- **Lỗi ai về đích cũng được báo "VỀ NHẤT"** khi đua với người chơi: trước đây mỗi máy chỉ đếm những tay đua nó tự tính (mình + máy), bỏ qua người chơi thật đã về trước. Giờ thứ hạng tính cả người chơi khác đã về đích → báo đúng **🥇 VỀ NHẤT / 🥈 VỀ NHÌ / 🥉 VỀ BA / VỀ ĐÍCH HẠNG N**.
+- Còn người chơi khác bám sát mà chưa kịp báo về đích → hiện "🏁 VỀ ĐÍCH!" rồi báo hạng chính xác ngay khi có đủ thông tin (không đoán sai).
+- Người chơi khác về đích → mọi người trong phòng thấy "🏁 X về NHẤT/NHÌ/…".
+- Luôn gửi thời gian về đích ngay khi kết thúc (trước đây đua xong quá nhanh có thể chưa kịp gửi → người khác phải chờ và xếp sai).
+
 ## [0.26.1] – 2026-11-20 – Sửa lag điện thoại sau khi Đua Cá
 ### Sửa
 - **Ảnh nền bản đồ đua không được giải phóng**: mỗi chặng tạo 1 ảnh lớn và giữ mãi trong bộ nhớ đồ họa (đo được 7MB → 56MB sau 3 cuộc đua) → điện thoại lag cả sau khi rời màn đua. Giờ ảnh trời vẽ ở nửa độ phân giải (nhẹ hơn 4 lần, nhìn không khác) và **được giải phóng khi rời màn Đua Cá** (về sảnh còn ~11MB, không tăng nữa).

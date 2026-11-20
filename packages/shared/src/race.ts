@@ -309,7 +309,8 @@ export type RaceEvent =
   | { type: "section"; racer: string; index: 1 | 2 }
   | { type: "perfect_start"; racer: string }
   | { type: "false_start"; racer: string }
-  | { type: "finish"; racer: string; place: number }
+  /** provisional = còn người chơi từ xa có thể đã về trước mà chưa báo → chưa chắc thứ hạng. */
+  | { type: "finish"; racer: string; place: number; provisional: boolean }
   | { type: "energy_full"; racer: string };
 
 export const RACE = {
@@ -623,6 +624,17 @@ export class RaceSession {
     });
   }
 
+  /**
+   * Thứ hạng về đích của một tay đua, tính cả người chơi từ xa đã báo về đích.
+   * Chưa chắc chắn khi còn người chơi từ xa chưa báo về đích mà đang sát/vượt (có thể đã về trước).
+   */
+  finishRank(r: Racer): { place: number; provisional: boolean } {
+    const t = r.finishTime ?? Infinity;
+    const before = this.racers.filter((o) => o !== r && o.finishTime !== null && o.finishTime < t).length;
+    const unsure = this.racers.some((o) => o !== r && o.remote && o.finishTime === null && o.x >= r.x - 30);
+    return { place: before + 1, provisional: unsure };
+  }
+
   placeOf(id: string): number {
     return this.standings().findIndex((r) => r.id === id) + 1;
   }
@@ -756,7 +768,8 @@ export class RaceSession {
       if (r.x >= RACE.length) {
         r.finishTime = this.time;
         this.finishedOrder.push(r.id);
-        this.events.push({ type: "finish", racer: r.id, place: this.finishedOrder.length });
+        const fin = this.finishRank(r);
+        this.events.push({ type: "finish", racer: r.id, place: fin.place, provisional: fin.provisional });
         if (r.id === this.player.id && this.endAt === null) this.endAt = this.time + 3000;
       }
     }

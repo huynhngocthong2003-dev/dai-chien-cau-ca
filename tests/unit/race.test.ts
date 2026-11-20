@@ -468,3 +468,51 @@ describe("Đua Cá – hộp may mắn", () => {
     expect(ev2 && "targets" in ev2 ? ev2.targets.length : 0).toBe(3);
   });
 });
+
+describe("Đua Cá nhiều người – báo đúng thứ hạng về đích", () => {
+  const def = FISH_BY_ID.get("f_ca_chep")!;
+  const human = (id: string, remote: boolean) => ({ ...newRacer(id, id, def.id, null, "c_be_tom", raceStats(mk(id, def.id), def), null), remote });
+  const race = () => {
+    const me = human("me", false);
+    const other = human("B", true);
+    const s = new RaceSession(me, [], 7, [me, other]);
+    (s.track as unknown as unknown[]).length = 0;
+    return s;
+  };
+  const finishEv = (s: RaceSession) => {
+    for (let i = 0; i < 4000 && s.player.finishTime === null; i++) s.update(50);
+    return s.drainEvents().find((e) => e.type === "finish" && e.racer === "me") as { place: number; provisional: boolean };
+  };
+
+  it("người kia đã về trước → mình về NHÌ (không còn ai cũng 'về nhất')", () => {
+    const s = race();
+    s.setRemote("B", { x: 1205, lane: 1, boosting: false, finishTime: 1000 });
+    const e = finishEv(s);
+    expect(e.place).toBe(2);
+    expect(e.provisional).toBe(false);
+  });
+
+  it("người kia còn ở xa phía sau → chắc chắn mình NHẤT", () => {
+    const s = race();
+    s.setRemote("B", { x: 100, lane: 1, boosting: false, finishTime: null });
+    for (let i = 0; i < 4000 && s.player.x < 1100; i++) s.update(50);
+    const e = finishEv(s);
+    expect(e.place).toBe(1);
+    expect(e.provisional).toBe(false);
+  });
+
+  it("người kia đang sát nút mà chưa báo về đích → chưa chắc (chờ xếp hạng)", () => {
+    const s = race();
+    // người kia bám sát (vị trí cập nhật liên tục qua mạng) tới tận vạch đích
+    for (let i = 0; i < 4000 && s.player.x < 1196; i++) {
+      s.setRemote("B", { x: s.player.x - 5, lane: 1, boosting: false, finishTime: null });
+      s.update(50);
+    }
+    const e = finishEv(s);
+    expect(e.provisional).toBe(true);
+    // người kia báo về đích sau mình → mình NHẤT
+    s.setRemote("B", { x: 1210, lane: 1, boosting: false, finishTime: s.player.finishTime! + 300 });
+    expect(s.finishRank(s.player)).toEqual({ place: 1, provisional: false });
+    expect(s.finishRank(s.racers.find((r) => r.id === "B")!).place).toBe(2);
+  });
+});

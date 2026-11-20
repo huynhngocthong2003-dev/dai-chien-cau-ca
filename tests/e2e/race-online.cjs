@@ -97,8 +97,24 @@ const otherRacer = { name: 'Pine Vô Địch', fishId: 'f_ca_kiem', formId: null
   else console.log('• Thấy người kia di chuyển (vị trí + làn nhận qua mạng)');
   if (!db.myUpdates.length) errs.push('Không gửi vị trí của mình');
   else console.log(`• Gửi vị trí của mình (${db.myUpdates.length} lần)`);
+  // Pine về đích TRƯỚC mình → mình phải được báo VỀ NHÌ (không phải "về nhất")
+  db.otherX = 1205;
+  db.otherFinish = 20000;
+  await p.waitForFunction(() => window.__game.scene.getScene('Race').session.racers.find((r) => r.remote).finishTime !== null, null, { timeout: 20000 }).catch(() => errs.push('Không nhận được Pine về đích'));
+  await p.waitForTimeout(400);
+  const texts = () => p.evaluate(() => window.__game.scene.getScene('Race').children.list.filter((o) => o.type === 'Text' || o.type === 'Container').flatMap((o) => (o.type === 'Text' ? [o.text] : o.list.filter((x) => x.type === 'Text').map((x) => x.text))));
+  const t1 = await texts();
+  if (!t1.some((t) => t.includes('Pine Vô Địch về NHẤT'))) errs.push('Không báo cho mọi người: Pine về NHẤT');
+  else console.log('• Mọi người được báo: "🏁 Pine Vô Địch về NHẤT"');
   // tua nhanh mình về đích
-  await p.evaluate(() => { const s = window.__game.scene.getScene('Race').session; while (s.player.finishTime === null) s.update(50); });
+  await p.evaluate(() => { const sc = window.__game.scene.getScene('Race'); const s = sc.session; while (s.player.finishTime === null) { s.update(50); for (const e of s.drainEvents()) sc.onEvent(e); } });
+  await p.waitForTimeout(300);
+  const t2 = await texts();
+  const myPlace = await p.evaluate(() => { const s = window.__game.scene.getScene('Race').session; return s.finishRank(s.player).place; });
+  const want = ['', 'VỀ NHẤT', 'VỀ NHÌ', 'VỀ BA'][myPlace] ?? `VỀ ĐÍCH HẠNG ${myPlace}`;
+  if (myPlace < 2 || t2.some((t) => t.includes('VỀ NHẤT'))) errs.push('Lỗi cũ: Pine về trước mà mình vẫn bị báo VỀ NHẤT');
+  else if (!t2.some((t) => t.includes(want))) errs.push(`Không báo đúng hạng ${myPlace}: ` + t2.filter((t) => t.includes('VỀ')).join(' | '));
+  else console.log(`• Mình về sau Pine → báo đúng "${want}" (không còn "về nhất")`);
   await p.waitForFunction(() => window.__game.scene.getScene('Race').mode === 'result', null, { timeout: 120000 });
   await p.waitForTimeout(1200);
   await p.screenshot({ path: `${out}/race-online-result.png` });
