@@ -253,8 +253,131 @@ const AURA: Record<FormAura, { back?: (c: CanvasRenderingContext2D, f: F) => voi
   angel: { back: (c, f) => wings(c, pal(f, ["#ffffff", "#ffe082", "#fff176"])[0], pal(f, ["#ffffff", "#ffe082", "#fff176"])[1], true), front: (c, f) => halo(c, pal(f, ["#ffffff", "#ffe082", "#fff176"])[2]) },
 };
 
+// ------------------------------------------------------------------ trang trí theo cấp cá
+function sparkle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col: string) {
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(x, y - r * 2);
+  ctx.lineTo(x + r * 0.5, y - r * 0.5);
+  ctx.lineTo(x + r * 2, y);
+  ctx.lineTo(x + r * 0.5, y + r * 0.5);
+  ctx.lineTo(x, y + r * 2);
+  ctx.lineTo(x - r * 0.5, y + r * 0.5);
+  ctx.lineTo(x - r * 2, y);
+  ctx.lineTo(x - r * 0.5, y - r * 0.5);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** Vương miện trên đầu cá (Huyền Thoại vàng, Thần Thoại cầu vồng ngọc). */
+function crown(ctx: CanvasRenderingContext2D, mythic: boolean, gem: string) {
+  const h = P(262, 58);
+  ctx.save();
+  ctx.translate(h.x, h.y);
+  ctx.rotate(-0.12);
+  const w = mythic ? 46 : 38;
+  const g = ctx.createLinearGradient(0, -24, 0, 6);
+  g.addColorStop(0, "#fff59d");
+  g.addColorStop(1, "#ff8f00");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(-w / 2, 6);
+  ctx.lineTo(-w / 2, -10);
+  const peaks = mythic ? 5 : 3;
+  for (let i = 0; i <= peaks * 2; i++) {
+    const x = -w / 2 + (i * w) / (peaks * 2);
+    ctx.lineTo(x, i % 2 ? -8 : -24 - (i === peaks ? 8 : 0));
+  }
+  ctx.lineTo(w / 2, 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  // ngọc
+  const gems = mythic ? ["#ff1744", "#2979ff", "#00e676", "#d500f9", "#ffea00"] : [gem];
+  gems.forEach((c, i) => {
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.arc(gems.length === 1 ? 0 : -w / 2 + 6 + (i * (w - 12)) / (gems.length - 1), -2, mythic ? 3.6 : 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+/** Vòng ấn chú cổ xưa xoay sau lưng cá Thần Thoại. */
+function runeRing(ctx: CanvasRenderingContext2D, col: string) {
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.scale(1, 0.62);
+  for (const [r, w, a] of [[118, 8, 0.35], [118, 3, 1], [100, 2, 0.75]] as const) {
+    ctx.strokeStyle = rgba(col, a);
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  const runes = ["ᚠ", "ᚱ", "ᛟ", "ᛉ", "ᚦ", "ᛞ", "ᛗ", "ᚨ", "ᛒ", "ᛃ", "ᛚ", "ᛜ"];
+  ctx.fillStyle = rgba("#ffffff", 0.9);
+  ctx.font = "bold 13px serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  runes.forEach((ch, i) => {
+    const a = (i / runes.length) * Math.PI * 2;
+    ctx.fillText(ch, Math.cos(a) * 109, Math.sin(a) * 109);
+  });
+  ctx.restore();
+}
+
+/** Quầng cầu vồng (Thần Thoại). */
+function rainbowGlow(ctx: CanvasRenderingContext2D) {
+  const cols = ["#ff1744", "#ff9100", "#ffea00", "#00e676", "#2979ff", "#d500f9"];
+  cols.forEach((c, i) => {
+    const g = ctx.createRadialGradient(CX, CY, 20, CX, CY, 150 - i * 6);
+    g.addColorStop(0, rgba(c, 0));
+    g.addColorStop(0.75, rgba(c, 0.1));
+    g.addColorStop(1, rgba(c, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, FISH_W, FISH_H);
+  });
+}
+
+function tierBack(ctx: CanvasRenderingContext2D, rarity: FishDef["rarity"], form: FishFormDef) {
+  if (rarity === "mythic") {
+    rainbowGlow(ctx);
+    runeRing(ctx, form.glow);
+  } else if (rarity === "legendary") {
+    backGlow(ctx, "#ffd54f", 0.35);
+  }
+}
+
+function tierFront(ctx: CanvasRenderingContext2D, rarity: FishDef["rarity"], form: FishFormDef) {
+  if (rarity !== "legendary" && rarity !== "mythic") return;
+  const mythic = rarity === "mythic";
+  crown(ctx, mythic, form.glow);
+  const pts: [number, number, number][] = [[30, 30, 4], [300, 28, 5], [14, 110, 3], [306, 150, 4], [80, 186, 3], [240, 184, 4], [160, 14, 3]];
+  pts.slice(0, mythic ? 7 : 5).forEach(([x, y, r], i) => sparkle(ctx, x, y, r, i % 2 ? "#ffffff" : mythic ? ["#ff80ab", "#80d8ff", "#b9f6ca", "#ffe57f"][i % 4]! : "#ffe57f"));
+  if (mythic) {
+    // quả cầu năng lượng bay quanh
+    for (const [x, y, c] of [[40, 70, "#80d8ff"], [286, 92, "#ff80ab"], [150, 176, "#b9f6ca"]] as const) {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 10);
+      g.addColorStop(0, "#ffffff");
+      g.addColorStop(0.4, c);
+      g.addColorStop(1, rgba(c, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, 10, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
 export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form: FishFormDef) {
   const look = form.look;
+  tierBack(ctx, fish.rarity, form);
   backGlow(ctx, form.glow);
   AURA[look.aura].back?.(ctx, form);
   ctx.save();
@@ -280,4 +403,5 @@ export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form:
   });
   ctx.restore();
   AURA[look.aura].front?.(ctx, form);
+  tierFront(ctx, fish.rarity, form);
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.14.1] – 2026-11-20
+### Thêm
+- Cá **Huyền Thoại** đột biến: thêm vương miện vàng, quầng ánh kim, sao lấp lánh.
+- Cá **Thần Thoại** đột biến: vương miện ngọc 5 sắc, **vòng ấn chú cổ xưa** quanh thân, quầng cầu vồng, cầu năng lượng bay quanh.
+
 ## [0.14.0] – 2026-11-20 – Đột biến mới: 24 dạng, 100% thành công, chỉ số ngẫu nhiên; Boss siêu hiếm
 ### Thay đổi
 - **Đột biến luôn thành công** (khó ở khâu kiếm vật phẩm, rơi cực hiếm). Mỗi vật phẩm biến cá thành **ngẫu nhiên 1 trong 4–5 dạng cùng hệ**; đột biến lại sẽ ra dạng khác:
