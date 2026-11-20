@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { extraX, screenRect } from "../ui/wide.ts";
-import { FISHING, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
+import { ECONOMY, FISHING, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
 import { CHARACTER_BY_ID, ECO_MESSAGE, FISH_BY_ID, EVO_ITEMS, JUNK, ROD_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import {
   FishingSession,
@@ -16,8 +16,8 @@ import {
   type CastEventKind,
   Rng,
   chooseFish,
+  chooseHuntFish,
   huntBoss,
-  pickZoneBoss,
   junkAsFish,
   randomSeed,
   rollJunk,
@@ -423,7 +423,37 @@ export class FishingScene extends Phaser.Scene {
     );
   }
 
+  /** Săn Boss: phần lớn gặp Boss (mạnh hơn), đôi khi gặp cá Huyền Thoại / Thần Thoại / Boss siêu hiếm. */
+  private pickHunt(rng: Rng): FishDef {
+    const h = chooseHuntFish(this.zone, FISH_BY_ID, rng);
+    if (h.kind === "mythic") this.time.delayedCall(1200, () => toast(this, "✨ Không phải Boss – mà là cá THẦN THOẠI cắn câu!", COLORS.purple));
+    else if (h.kind === "legendary") this.time.delayedCall(1200, () => toast(this, "🌟 Cá Huyền Thoại cắn câu!", COLORS.gold));
+    return h.kind === "boss" ? huntBoss(h.fish) : h.fish;
+  }
+
+  /** Kho cá đầy → không cho câu, mời đi bán cá. */
+  private inventoryFullDialog() {
+    const m = modal(this, 620, 330, "🐟 Kho cá đã đầy!");
+    m.root.add(
+      txt(this, 640, m.y + 112, `Kho đang có ${GameState.save.fishes.length}/${ECONOMY.inventoryLimit} con cá.\nHãy bán bớt cá (hoặc cho nhân vật ăn, phân giải) rồi câu tiếp nhé!`, 19, { align: "center", wrap: 560 }).setOrigin(0.5),
+    );
+    m.root.add(new Button(this, 640, m.y + 236, 300, 64, "🐟 Đến Kho Cá để bán", { color: COLORS.orange, fontSize: 22, onClick: () => goTo(this, "Inventory") }));
+  }
+
   private cast() {
+    // kho cá đầy → không câu nữa, báo đi bán cá
+    if (GameState.save.fishes.length >= ECONOMY.inventoryLimit) {
+      this.mode = "idle";
+      this.powerBar.setVisible(false);
+      if (this.auto) {
+        this.auto = false;
+        this.reelHeld = false;
+        this.refreshAutoBtn();
+      }
+      this.hint.setText("Kho cá đầy – hãy bán bớt cá 🐟");
+      this.inventoryFullDialog();
+      return;
+    }
     // mỗi lần quăng tốn 1 lượt câu của cần; hết lượt phải sửa
     const wear = GameState.wearRod(1);
     if (!wear.ok) {
@@ -503,7 +533,7 @@ export class FishingScene extends Phaser.Scene {
     const fish = this.junk
       ? junkAsFish(this.junk)
       : this.bossHunt
-        ? huntBoss(pickZoneBoss(this.zone, FISH_BY_ID, rng) ?? FISH_BY_ID.get(this.zone.bossId)!)
+        ? this.pickHunt(rng)
         : chooseFish(this.zone, FISH_BY_ID, applyCastEvent(this.loadout, this.castEvent), power, rng);
     this.fishDef = fish;
     this.weightKg = rollWeight(fish, rng);

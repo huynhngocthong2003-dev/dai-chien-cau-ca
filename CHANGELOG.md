@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.28.0] – 2026-11-20 – 3 thần ngư mới, tỉ lệ theo độ hiếm, Săn Boss đa dạng, kho đầy
+### Thêm
+- **3 Thần Ngư cực hiếm** (chỉ ở Đại Dương Thần Thoại, mỗi con ≈ 1/11.000 lần cá cắn), **hình vẽ riêng chi tiết**:
+  - 🐉 **Huyền Minh Long Ngư** (Nước): rồng nước ngọc lam thân chữ S, vảy & gai lưng vàng, dải ngân hà lấp lánh trên thân, sừng vàng phân nhánh, bờm, râu rồng, đuôi lụa bay. Kỹ năng *Sóng Thần Thiên Đàn*.
+  - 🔥 **Diễm Ma Thâm Hải** (Lửa): ác ma thân đen tím, vết nứt dung nham phát sáng, hàm há răng lởm chởm, mắt đỏ rực, sừng, gai lưng lửa, đuôi lửa, sét tím. Kỹ năng *Hỏa Ngục Phệ Hồn*.
+  - 🌸 **Tiên Ngư Hồng Ngọc** (Ánh Sáng): cá hồng dễ thương, vương miện cầu vồng, sừng hồng, sọc gợn sóng phát sáng, mắt to có mi, má hồng, răng khểnh, lửa hồng & đốm sáng. Kỹ năng *Mộng Ảo Hồng Quang*.
+- **Săn Boss bằng vé** giờ đa dạng: 91% Boss (mạnh hơn), 6% cá **Huyền Thoại**, 2% cá **Thần Thoại**, 1% **Boss siêu hiếm** (khu chưa có thì ra Boss).
+- **Kho cá đầy (200/200) → không cho câu nữa** (không tốn lượt câu), hiện hộp báo + nút "🐟 Đến Kho Cá để bán".
+### Thay đổi – tỉ lệ
+- **Cá càng hiếm càng khó ra, Thần Thoại khó nhất** (ở mọi khu, mọi mức may mắn – có test kiểm tra): Huyền Thoại giảm ½, Thần Thoại giảm còn 1/10 (khu cuối ~0,13% thay vì 1,2%) – hiếm hơn cả Boss.
+- **Boss bất ngờ khi câu thường giảm**: ~0,2% mỗi lần quăng (trước 0,5%), tối đa 0,4% dù may mắn cao. Boss siêu hiếm ~0,06%.
+
 ## [0.27.0] – 2026-11-20 – Khu cao cấp câu khó hơn + độ bền cần câu
 ### Thay đổi
 - **Khu câu cao cấp khó hơn hẳn** (theo độ khó khu 1→6): cá dai hơn (máu tới ~×1,9 ở khu cuối), quẫy mạnh & kéo dây xa hơn, cửa sổ giật cần ngắn hơn (tới −25%), báo hiệu quẫy và lúc "cá mệt" ngắn hơn. Cùng con cá, cùng trang bị: khu khó kéo lâu hơn ≥1,4 lần và dễ xổng hơn.

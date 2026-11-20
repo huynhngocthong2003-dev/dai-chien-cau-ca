@@ -126,6 +126,10 @@ export const ZONES: ZoneDef[] = [
       { fishId: "f_hoa_long_ngu", weight: 1 },
       { fishId: "f_thai_co_than_ngu", weight: 0.4 },
       { fishId: "f_phuong_hoang_bien", weight: 0.4 },
+      // thần ngư CỰC HIẾM (≈ 1/5 tỉ lệ thần thoại thường)
+      { fishId: "f_huyen_minh_long_ngu", weight: 0.08 },
+      { fishId: "f_diem_ma_tham_hai", weight: 0.08 },
+      { fishId: "f_tien_ngu_hong_ngoc", weight: 0.08 },
     ],
     theme: { skyTop: "#4a148c", skyBottom: "#ffab91", waterTop: "#7c4dff", waterBottom: "#1a0638", accent: "#ffd740", ground: "#b39ddb", weather: "sparkles" },
   },

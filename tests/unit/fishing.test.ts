@@ -109,9 +109,9 @@ describe("chooseFish", () => {
     const rng = new Rng(3);
     let boss = 0;
     for (let i = 0; i < 5000; i++) if (chooseFish(zone, FISH_BY_ID, starter(), 0.5, rng).rarity === "boss") boss++;
-    // ~0,6% mỗi lần quăng: hiếm nhưng vẫn gặp
-    expect(boss).toBeGreaterThan(15);
-    expect(boss).toBeLessThan(80);
+    // ~0,2% mỗi lần quăng: hiếm nhưng vẫn gặp
+    expect(boss).toBeGreaterThan(3);
+    expect(boss).toBeLessThan(30);
   });
 });
 
@@ -225,5 +225,46 @@ describe("Cân bằng độ khó", () => {
     const hp = s.fishHp;
     s.useSkill();
     expect(hp - s.fishHp).toBeGreaterThanOrEqual(hp * 0.1);
+  });
+});
+
+describe("Tỉ lệ theo độ hiếm (càng hiếm càng khó – Thần Thoại khó nhất)", () => {
+  it("ở mọi khu, mọi mức may mắn: Thường ≥ Hiếm ≥ Quý ≥ Sử Thi ≥ Huyền Thoại ≥ Thần Thoại, và Thần Thoại hiếm hơn Boss", async () => {
+    const { ZONES } = await import("@dccc/game-data");
+    const { spawnWeights, bossChance } = await import("@dccc/shared");
+    const order = ["common", "rare", "precious", "epic", "legendary", "mythic"] as const;
+    for (const lf of [0, 0.6, 1.5])
+      for (const z of ZONES) {
+        const w = spawnWeights(z, FISH_BY_ID, lf);
+        const tot = w.reduce((a, x) => a + x.weight, 0);
+        const p = (r: string) => w.filter((x) => x.fish.rarity === r).reduce((a, x) => a + x.weight, 0) / tot;
+        const present = order.filter((r) => p(r) > 0);
+        for (let i = 1; i < present.length; i++) expect(p(present[i]!), `${z.id} lf${lf} ${present[i]}`).toBeLessThanOrEqual(p(present[i - 1]!));
+        const myth = p("mythic") * (1 - bossChance(lf));
+        if (myth > 0) expect(myth, `${z.id} thần thoại < boss`).toBeLessThan(bossChance(lf));
+      }
+  });
+
+  it("Boss khi câu thường ~0,2% (tối đa 0,4%)", async () => {
+    const { bossChance } = await import("@dccc/shared");
+    expect(bossChance(0)).toBeCloseTo(0.002);
+    expect(bossChance(10)).toBeLessThanOrEqual(0.004);
+  });
+
+  it("Săn Boss: phần lớn là Boss, đôi khi có cá Huyền Thoại / Thần Thoại / Boss siêu hiếm", async () => {
+    const { ZONE_BY_ID } = await import("@dccc/game-data");
+    const { chooseHuntFish } = await import("@dccc/shared");
+    const z = ZONE_BY_ID.get("z_dai_duong_than_thoai")!;
+    const rng = new Rng(9);
+    const n = { boss: 0, secret: 0, mythic: 0, legendary: 0 };
+    for (let i = 0; i < 20000; i++) n[chooseHuntFish(z, FISH_BY_ID, rng).kind]++;
+    expect(n.boss / 20000).toBeGreaterThan(0.88);
+    expect(n.legendary).toBeGreaterThan(n.mythic);
+    expect(n.mythic).toBeGreaterThan(n.secret);
+    expect(n.secret).toBeGreaterThan(0);
+    // khu không có cá Huyền Thoại/Thần Thoại → luôn ra Boss
+    const z1 = ZONE_BY_ID.get("z_ben_tan_thu")!;
+    const r1 = new Rng(3);
+    for (let i = 0; i < 3000; i++) expect(["boss", "secret"]).toContain(chooseHuntFish(z1, FISH_BY_ID, r1).kind);
   });
 });

@@ -54,8 +54,9 @@ describe("Dữ liệu game", () => {
     let hit = 0;
     const N = 200000;
     for (let i = 0; i < N; i++) if (chooseFish(z, FISH_BY_ID, lo, 0.5, rng).id === z.secretBossId) hit++;
-    expect(hit / N).toBeGreaterThan(0.0008);
-    expect(hit / N).toBeLessThan(0.004);
+    // ~0,06% mỗi lần quăng (hiếm hơn Boss thường 0,2%)
+    expect(hit / N).toBeGreaterThan(0.0003);
+    expect(hit / N).toBeLessThan(0.0015);
     expect(canEvolveForm(FISHES.find((f) => f.rarity === "legendary"))).toBe(true);
     expect(canEvolveForm(FISHES.find((f) => f.rarity === "common"))).toBe(false);
   });
@@ -79,5 +80,20 @@ describe("Dữ liệu game", () => {
   it("có nhân vật và cần câu khởi đầu", () => {
     expect(CHARACTERS.some((c) => c.unlock.kind === "starter")).toBe(true);
     expect(RODS.some((r) => r.unlock.kind === "starter")).toBe(true);
+  });
+});
+
+describe("Thần ngư cực hiếm mới", () => {
+  it("Huyền Minh Long Ngư & Diễm Ma Thâm Hải: bậc Thần Thoại, chỉ ở Đại Dương Thần Thoại, cực khó gặp", async () => {
+    const { FISH_BY_ID, ZONE_BY_ID } = await import("@dccc/game-data");
+    const z = ZONE_BY_ID.get("z_dai_duong_than_thoai")!;
+    const total = z.spawn.reduce((a, x) => a + x.weight, 0);
+    for (const id of ["f_huyen_minh_long_ngu", "f_diem_ma_tham_hai", "f_tien_ngu_hong_ngoc"]) {
+      const f = FISH_BY_ID.get(id)!;
+      expect(f.rarity).toBe("mythic");
+      const w = z.spawn.find((x) => x.fishId === id)!.weight;
+      expect(w / total).toBeLessThan(0.001); // < 0,1% mỗi lần cá cắn (chưa tính may mắn)
+      expect(w).toBeLessThan(z.spawn.find((x) => x.fishId === "f_thai_co_than_ngu")!.weight / 4);
+    }
   });
 });

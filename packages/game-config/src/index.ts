@@ -73,11 +73,11 @@ export const FISHING = {
   /** Hệ số cast: lực thả mạnh -> cá ở xa hơn nhưng tăng chút tỷ lệ hiếm. */
   castRareBonusMax: 0.25,
   /** Boss bất ngờ khi câu thường: ~0,5% mỗi lần quăng (Săn Boss bằng vé vẫn chắc chắn gặp). */
-  bossBaseChance: 0.005,
+  bossBaseChance: 0.002,
   /** Xác suất vớt phải rác (trước khi xét cá). */
   junkChance: 0.12,
   /** Boss phụ siêu hiếm mỗi khu – 0,15% mỗi lần quăng (may mắn tăng nhẹ). */
-  secretBossChance: 0.0015,
+  secretBossChance: 0.0006,
   /** Tỉ lệ rơi vật phẩm tiến hóa khi bắt cá (Boss ×3). */
   evoDropChance: 0.006,
   divineDropChance: 0.0008,

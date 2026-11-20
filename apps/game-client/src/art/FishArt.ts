@@ -1,3 +1,4 @@
+import { CUSTOM_FISH_ART } from "./MythicArt.ts";
 import type { FishAppearance, FishDef } from "@dccc/shared";
 import { Rng } from "@dccc/shared";
 import { OUTLINE, hashString, rgba, shade } from "./color.ts";
@@ -465,6 +466,14 @@ function fillBody(ctx: CanvasRenderingContext2D, g: BodyGeo, a: FishAppearance, 
 
 /** Vẽ một con cá vào context 2D đã được scale về hệ tọa độ FISH_W x FISH_H. */
 export function drawFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">) {
+  // thần ngư có hình vẽ riêng
+  const custom = CUSTOM_FISH_ART[fish.id];
+  if (custom) {
+    ctx.save();
+    custom(ctx);
+    ctx.restore();
+    return;
+  }
   const a = fish.appearance;
   const rng = new Rng(hashString(fish.id));
   ctx.lineCap = "round";
