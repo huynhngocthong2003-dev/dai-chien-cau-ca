@@ -77,8 +77,11 @@ const db = { joins: 0, updates: [], leaves: 0, world: [] };
   await p.waitForTimeout(400);
   await p.screenshot({ path: `${out}/fishing-chat.png` });
   console.log('• Người cùng khu nói → bong bóng trên đầu họ; khung chat hiện tin mới');
-  await p.mouse.click(740, 38); // thu gọn
-  await p.waitForTimeout(300);
+  await p.mouse.click(16 + 430 - 20, 428 + 16); // nút ▾ thu gọn trên khung
+  await p.waitForTimeout(400);
+  const closed = await p.evaluate(() => !document.getElementById('fish-chat-input'));
+  if (!closed) errs.push('Nút ▾ không thu gọn được khung chat');
+  else console.log('• Khung chat thu gọn bằng nút ▾ (mở lại bằng 💬 Chat)');
   // mình quăng cần → trạng thái "waiting"
   await p.mouse.move(700, 450);
   await p.mouse.down();

@@ -64,10 +64,12 @@ export class FishingChat {
     // vùng chặn: bấm vào khung chat không bị tính là quăng/kéo cần
     const block = sc.add.zone(X + W / 2, Y + H / 2, W, H).setInteractive();
     const head = txt(sc, X + 14, Y + 14, "💬 Chat Thế Giới", 15, { color: COLORS.textGold }).setOrigin(0, 0.5);
-    const all = txt(sc, X + W - 12, Y + 14, "Xem tất cả ›", 13, { weight: "700", color: "#80d8ff" }).setOrigin(1, 0.5);
+    const all = txt(sc, X + W - 52, Y + 14, "Xem tất cả ›", 13, { weight: "700", color: "#80d8ff" }).setOrigin(1, 0.5);
+    // nút thu gọn ngay trên khung
+    const mini = new Button(sc, X + W - 20, Y + 16, 30, 26, "▾", { color: COLORS.panelLight, fontSize: 16, onClick: () => this.toggle() });
     all.setInteractive({ useHandCursor: true }).on("pointerup", () => openWorldChat(sc));
     this.log = sc.add.container(0, 0);
-    c.add([block, g, head, all, this.log]);
+    c.add([block, g, head, all, mini, this.log]);
     const box = htmlOverlay(
       sc,
       c,

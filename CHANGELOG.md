@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.28.2] – 2026-11-20 – Thu gọn khung chat câu cá
+### Thêm
+- Khung chat lúc câu cá có thêm nút **▾** ngay góc khung để thu gọn (mở lại bằng nút "💬 Chat" ở thanh trên – nút hiện số tin mới khi đang thu gọn).
+
 ## [0.28.1] – 2026-11-20 – Khung chat lúc câu cá
 ### Thêm
 - **💬 Khung chat ngay trong màn câu cá** (nút "💬 Chat" ở thanh trên, bấm để mở/thu gọn): xem 5 tin gần nhất của Chat Thế Giới (làm mới mỗi 4 giây), gõ + Enter để gửi, "Xem tất cả ›" mở Chat Thế Giới đầy đủ. Khi thu gọn, nút hiện số tin mới.
