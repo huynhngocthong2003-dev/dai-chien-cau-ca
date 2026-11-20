@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.25.0] – 2026-11-20 – Đua Cá: phòng riêng mời bạn bè
+### Thêm
+- Nút **🏠 Phòng bạn bè** ở màn Đua Cá: **tạo phòng** (mã 6 ký tự, nút 📋 Chép) hoặc **nhập mã** để vào phòng bạn tạo.
+- **📨 Mời bạn**: danh sách bạn bè (🟢 online lên đầu) → gửi lời mời qua tin nhắn; trong khung chat lời mời có nút **🏁 Vào phòng** – bấm là vào thẳng phòng.
+- Trong phòng: tối đa 5 người, thấy cá + hạng đua của từng người, trạng thái ✅ Sẵn sàng; **chủ phòng 👑 đổi giải và bản đồ** (◀ ▶), đổi thì mọi người sẵn sàng lại.
+- Đủ ≥ 2 người và ai cũng sẵn sàng → chủ phòng bấm **🏁 BẮT ĐẦU**: cả phòng xuất phát cùng lúc trên bản đồ đã chọn, máy lấp chỗ trống; đua xong tự quay lại phòng để **đua tiếp**. 🐟 Đổi cá rồi bấm "🏠 Về phòng"; chủ phòng rời → phòng đóng.
+- Database: `race_lobbies`, `race_lobby_members` + RPC (chỉ mời được bạn bè đã kết bạn, chỉ chủ phòng đổi/bắt đầu, người ngoài không xem được phòng, tên lấy từ hồ sơ); phòng đua lưu thêm bản đồ.
+### Sửa
+- E2E Đua Cá ổn định hơn (bấm tăng tốc thử lại nếu vừa bị sứa/cá mập rút năng lượng).
+
 ## [0.24.0] – 2026-11-20 – 5 bản đồ đua, 3 chặng đổi cảnh, hộp may mắn
 ### Thêm – 🗺 Bản đồ đua (chọn ở màn Đua Cá, hoặc 🎲 Ngẫu nhiên)
 Mỗi bản đồ có **3 chặng – khung cảnh đổi ở mốc 400m và 800m** (chuyển cảnh mờ dần, banner tên vùng, +15 năng lượng), **chặng sau dày và hiểm hơn chặng trước**; thời tiết riêng (lá bay, bong bóng, tuyết, tro, mưa, tàn lửa, bụi nước).

@@ -54,9 +54,14 @@ const errs = [];
   // chờ đầy năng lượng rồi tăng tốc bằng nút
   // tua nhanh mô phỏng tới khi đầy năng lượng (logic giữ nguyên, chỉ bỏ thời gian chờ)
   await p.evaluate(() => { const s = window.__game.scene.getScene('Race').session; while (!s.canBoost(s.player) && !s.over) s.update(50); });
-  await p.mouse.click(1150, 610);
-  await p.waitForTimeout(350);
-  const boosted = await p.evaluate(() => { const s = window.__game.scene.getScene('Race').session; return s.time < s.player.boostUntil; });
+  let boosted = false;
+  // thử tối đa 2 lần: giữa lúc tua và lúc bấm có thể bị sứa/cá mập rút năng lượng
+  for (let i = 0; i < 2 && !boosted; i++) {
+    await p.evaluate(() => { const s = window.__game.scene.getScene('Race').session; while (!s.canBoost(s.player) && !s.over) s.update(50); });
+    await p.mouse.click(1150, 610);
+    await p.waitForTimeout(350);
+    boosted = await p.evaluate(() => { const s = window.__game.scene.getScene('Race').session; return s.time < s.player.boostUntil; });
+  }
   await p.screenshot({ path: `${out}/race-boost.png` });
   if (!boosted) errs.push('Nút TĂNG TỐC không hoạt động');
   else console.log('• TĂNG TỐC (có hiệu ứng)');

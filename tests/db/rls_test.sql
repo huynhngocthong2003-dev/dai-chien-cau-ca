@@ -544,3 +544,68 @@ do $$ declare t record; begin
 end $$;
 reset role;
 select 'DB RACE RECORDS TEST OK' as result;
+
+-- ================= Đua Cá – phòng riêng mời bạn bè =================
+delete from public.friendships where least(requester, addressee) = '11111111-1111-1111-1111-111111111111' and greatest(requester, addressee) = '22222222-2222-2222-2222-222222222222';
+insert into public.friendships (requester, addressee, status) values ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'accepted');
+create temp table _lobby (id bigint, code text);
+grant all on _lobby to authenticated;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ declare j jsonb; begin
+  j := public.race_lobby_create('tap_su', 'nui_lua', '{"fishId":"f_ca_ro"}');
+  if j ->> 'code' !~ '^[A-Z0-9]{6}$' then raise exception 'Mã phòng sai: %', j; end if;
+  if (j ->> 'map') <> 'nui_lua' or jsonb_array_length(j -> 'members') <> 1 then raise exception 'Phòng mới sai: %', j; end if;
+  insert into _lobby values ((j ->> 'lobby_id')::bigint, j ->> 'code');
+  begin perform public.race_lobby_start((select id from _lobby)); raise exception 'LỖI: bắt đầu khi chỉ có 1 người';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+  perform public.race_lobby_invite((select id from _lobby), '22222222-2222-2222-2222-222222222222');
+  begin perform public.race_lobby_invite((select id from _lobby), '33333333-3333-3333-3333-333333333333'); raise exception 'LỖI: mời người không phải bạn';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ declare j jsonb; begin
+  if not exists (select 1 from public.messages where recipient = '22222222-2222-2222-2222-222222222222' and body like '%DCCC-RACE:' || (select code from _lobby) || '%') then raise exception 'Không nhận được lời mời'; end if;
+  j := public.race_lobby_join(lower((select code from _lobby)), '{"fishId":"f_ca_kiem"}');
+  if jsonb_array_length(j -> 'members') <> 2 then raise exception 'Vào phòng bằng mã thất bại'; end if;
+  begin perform public.race_lobby_set((select id from _lobby), 'huyen_thoai', 'random'); raise exception 'LỖI: khách đổi được giải';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  begin perform public.race_lobby_start((select id from _lobby)); raise exception 'LỖI: bắt đầu khi khách chưa sẵn sàng';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+select public.race_lobby_ready((select id from _lobby), true, '{"fishId":"f_ca_kiem","stats":{"speed":60}}') \g /dev/null
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ declare r jsonb; begin
+  r := public.race_lobby_start((select id from _lobby));
+  if jsonb_array_length(r -> 'members') <> 2 or (r ->> 'map') <> 'nui_lua' then raise exception 'Cuộc đua sai: %', r; end if;
+  if (r -> 'members' -> 0 ->> 'user_id') <> '11111111-1111-1111-1111-111111111111' then raise exception 'Chủ phòng phải ở ô 0'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ declare s jsonb; r jsonb; begin
+  s := public.race_lobby_state((select id from _lobby));
+  if s ->> 'status' <> 'started' or s ->> 'room_id' is null then raise exception 'Khách không thấy cuộc đua bắt đầu: %', s; end if;
+  r := public.race_room_get((s ->> 'room_id')::bigint);
+  if r is null or (r -> 'members' -> 1 -> 'racer' ->> 'fishId') <> 'f_ca_kiem' then raise exception 'Khách không lấy được phòng đua: %', r; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  if public.race_lobby_state((select id from _lobby)) is not null then raise exception 'LỖI: người ngoài xem được phòng'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+select public.race_lobby_leave((select id from _lobby)) \g /dev/null
+reset role;
+do $$ begin
+  if (select status from public.race_lobbies where id = (select id from _lobby)) <> 'closed' then raise exception 'Chủ phòng rời mà phòng chưa đóng'; end if;
+end $$;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  begin perform public.race_lobby_join((select code from _lobby), '{}'); raise exception 'LỖI: vào được phòng đã đóng';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+reset role;
+select 'DB RACE LOBBY TEST OK' as result;

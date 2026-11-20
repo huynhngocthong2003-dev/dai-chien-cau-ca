@@ -486,6 +486,8 @@ export interface RaceRoom {
   league: RaceLeague;
   seed: number;
   start_in_ms: number;
+  /** Bản đồ do chủ phòng chọn (phòng riêng); null = suy ra từ seed. */
+  map?: string | null;
   members: { user_id: string; slot: number; racer: RaceNetRacer }[];
 }
 export interface RaceMemberState {
@@ -595,3 +597,34 @@ export interface RaceRecord {
 export const raceSubmitTime = async (league: RaceLeague, ms: number, fishId: string, charId: string, equip: Partial<Record<string, string>>) =>
   ((await rpc("race_submit_time", { p_league: league, p_ms: Math.round(ms), p_fish: fishId, p_char: charId, p_equip: equip })) as number | null) ?? null;
 export const raceTop = async (league: RaceLeague, limit = 3) => ((await rpc("race_top", { p_league: league, p_limit: limit })) as RaceRecord[]) ?? [];
+
+// ------------------------------------------------------------ Đua Cá – phòng riêng mời bạn bè
+export interface RaceLobbyMember {
+  user_id: string;
+  name: string;
+  level: number;
+  racer: Partial<RaceNetRacer>;
+  ready: boolean;
+  is_host: boolean;
+}
+export interface RaceLobby {
+  lobby_id: number;
+  code: string;
+  host: string;
+  league: RaceLeague;
+  map: string;
+  status: "open" | "started" | "closed";
+  room_id: number | null;
+  members: RaceLobbyMember[];
+}
+export const raceLobbyCreate = async (league: RaceLeague, map: string, racer: RaceNetRacer) =>
+  (await rpc("race_lobby_create", { p_league: league, p_map: map, p_racer: racer })) as RaceLobby;
+export const raceLobbyJoin = async (code: string, racer: RaceNetRacer) => (await rpc("race_lobby_join", { p_code: code, p_racer: racer })) as RaceLobby;
+export const raceLobbyState = async (id: number) => ((await rpc("race_lobby_state", { p_lobby: id })) as RaceLobby | null) ?? null;
+export const raceLobbyLeave = (id: number) => rpc("race_lobby_leave", { p_lobby: id });
+export const raceLobbySet = async (id: number, league: RaceLeague, map: string) => (await rpc("race_lobby_set", { p_lobby: id, p_league: league, p_map: map })) as RaceLobby;
+export const raceLobbyReady = async (id: number, ready: boolean, racer: RaceNetRacer | null) =>
+  (await rpc("race_lobby_ready", { p_lobby: id, p_ready: ready, p_racer: racer })) as RaceLobby;
+export const raceLobbyStart = async (id: number) => (await rpc("race_lobby_start", { p_lobby: id })) as RaceRoom;
+export const raceRoomGet = async (id: number) => ((await rpc("race_room_get", { p_room: id })) as RaceRoom | null) ?? null;
+export const raceLobbyInvite = (id: number, friend: string) => rpc("race_lobby_invite", { p_lobby: id, p_friend: friend });

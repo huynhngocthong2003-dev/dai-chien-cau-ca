@@ -51,6 +51,7 @@ import {
 } from "../art/RaceArt.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
+import { htmlOverlay } from "../ui/htmlOverlay.ts";
 import { COLORS } from "../ui/theme.ts";
 import { extraX } from "../ui/wide.ts";
 import { Sfx } from "../audio/Sfx.ts";
@@ -143,7 +144,15 @@ export class RaceScene extends Phaser.Scene {
     super("Race");
   }
 
-  init() {
+  /** Phòng riêng đang tham gia (giữ qua các lần mở lại màn Đua Cá). */
+  static lobbyId: number | null = null;
+  private lastRoomId: number | null = null;
+  private lobbyTimer: number | null = null;
+  private lobbyModal: ReturnType<typeof modal> | null = null;
+  private pendingJoin: string | null = null;
+
+  init(data?: { joinCode?: string }) {
+    this.pendingJoin = data?.joinCode ?? null;
     this.room = null;
     this.equips = new Map();
     this.remote = new Map();
@@ -184,7 +193,15 @@ export class RaceScene extends Phaser.Scene {
     this.buildHud();
     this.setupInput();
     this.showSelect();
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.stopMatchmaking(true));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.stopMatchmaking(true);
+      this.stopLobbyPoll();
+    });
+    if (this.pendingJoin) {
+      const code = this.pendingJoin;
+      this.pendingJoin = null;
+      this.time.delayedCall(300, () => void this.joinLobby(code));
+    }
   }
 
   // ------------------------------------------------------------------ chọn giải & cá
@@ -224,7 +241,14 @@ export class RaceScene extends Phaser.Scene {
     this.drawHallOfFame(c);
 
     c.add(panel(this, 440, 88, 820, 612, 0.9));
-    c.add(txt(this, 850, 112, "🐟 Chọn cá để cưỡi (mỗi con có chỉ số đua riêng)", 22, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+    c.add(txt(this, 790, 112, "🐟 Chọn cá để cưỡi (chỉ số đua riêng)", 22, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+    c.add(
+      new Button(this, 1172, 112, 156, 40, RaceScene.lobbyId ? "🏠 Về phòng" : "🏠 Phòng bạn bè", {
+        color: COLORS.purple,
+        fontSize: 16,
+        onClick: () => this.openLobbyMenu(),
+      }),
+    );
     const list = raceCandidates(s.fishes, FISH_BY_ID, FORM_BY_ID, 8);
     if (!list.length) {
       c.add(txt(this, 850, 380, "Kho cá trống – hãy đi câu vài con rồi quay lại đua nhé!", 20, { align: "center" }).setOrigin(0.5));
@@ -389,6 +413,316 @@ export class RaceScene extends Phaser.Scene {
       .catch(() => null);
   }
 
+  // ------------------------------------------------------------------ phòng riêng mời bạn bè
+  private openLobbyMenu() {
+    if (!GameState.online) return toast(this, "Đăng nhập tài khoản online để tạo phòng đua với bạn bè", COLORS.red);
+    if (RaceScene.lobbyId) return void this.showLobby();
+    const m = modal(this, 640, 400, "🏠 Phòng đua bạn bè");
+    m.root.setDepth(2000);
+    m.root.add(txt(this, 640, m.y + 84, "Tạo phòng rồi mời bạn bè, hoặc nhập mã phòng bạn gửi.", 17, { align: "center", weight: "700" }).setOrigin(0.5));
+    m.root.add(
+      new Button(this, 640, m.y + 150, 320, 62, "🏠 Tạo phòng mới", {
+        color: COLORS.green,
+        fontSize: 22,
+        onClick: () => {
+          m.close();
+          void this.createLobby();
+        },
+      }),
+    );
+    m.root.add(txt(this, 640, m.y + 218, "— hoặc —", 16, { color: COLORS.textDim, align: "center" }).setOrigin(0.5));
+    const box = htmlOverlay(
+      this,
+      m.root,
+      560,
+      m.y + 280,
+      260,
+      52,
+      `<input id="lobby-code" maxlength="6" placeholder="Mã phòng" style="width:100%;height:100%;box-sizing:border-box;font:800 24px 'Baloo 2',sans-serif;letter-spacing:4px;text-transform:uppercase;text-align:center;border-radius:12px;border:3px solid #1b1530;background:#fff8e1;color:#1b1530">`,
+    );
+    const input = box.querySelector("input") as HTMLInputElement;
+    const go = () => {
+      const code = input.value.trim().toUpperCase();
+      if (!/^[A-Z0-9]{6}$/.test(code)) return toast(this, "Mã phòng gồm 6 ký tự", COLORS.red);
+      m.close();
+      void this.joinLobby(code);
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") go();
+    });
+    m.root.add(new Button(this, 790, m.y + 280, 150, 52, "🔑 Vào", { color: COLORS.blue, fontSize: 20, onClick: go }));
+  }
+
+  private async createLobby() {
+    const racer = this.myNetRacer();
+    if (!racer) return toast(this, "Hãy chọn một con cá trước", COLORS.red);
+    try {
+      const l = await Social.raceLobbyCreate(this.league, this.mapChoice, racer);
+      RaceScene.lobbyId = l.lobby_id;
+      this.lastRoomId = l.room_id;
+      void this.showLobby(l);
+      toast(this, `🏠 Đã tạo phòng ${l.code} – bấm 📨 Mời để gọi bạn bè!`, COLORS.green);
+    } catch (e) {
+      toast(this, (e as Error).message, COLORS.red);
+    }
+  }
+
+  private async joinLobby(code: string) {
+    if (!GameState.online) return toast(this, "Đăng nhập tài khoản online để vào phòng", COLORS.red);
+    const racer = this.myNetRacer();
+    if (!racer) return toast(this, "Hãy câu ít nhất 1 con cá để đua nhé!", COLORS.red);
+    try {
+      const l = await Social.raceLobbyJoin(code, racer);
+      RaceScene.lobbyId = l.lobby_id;
+      this.lastRoomId = l.room_id;
+      this.league = l.league;
+      void this.showLobby(l);
+    } catch (e) {
+      toast(this, (e as Error).message, COLORS.red);
+    }
+  }
+
+  private stopLobbyPoll() {
+    if (this.lobbyTimer !== null) window.clearInterval(this.lobbyTimer);
+    this.lobbyTimer = null;
+  }
+
+  private async showLobby(initial?: Social.RaceLobby) {
+    const id = RaceScene.lobbyId;
+    if (!id || !GameState.online) return;
+    this.stopLobbyPoll();
+    this.lobbyModal?.close();
+    const m = modal(this, 960, 640, "🏠 Phòng đua bạn bè", () => {
+      this.stopLobbyPoll();
+      this.lobbyModal = null;
+      this.showSelect();
+    });
+    m.root.setDepth(2000);
+    this.lobbyModal = m;
+    const body = this.add.container(0, 0);
+    m.root.add(body);
+    const myId = GameState.online.id;
+    let busy = false;
+    let readyBusy = false;
+    const leave = async () => {
+      this.stopLobbyPoll();
+      RaceScene.lobbyId = null;
+      m.close();
+      await Social.raceLobbyLeave(id).catch(() => null);
+    };
+    const draw = (l: Social.RaceLobby) => {
+      if (!body.active) return;
+      body.removeAll(true);
+      const isHost = l.host === myId;
+      const L = RACE_LEAGUES[l.league];
+      const mp = l.map === "random" ? null : RACE_MAPS[l.map as RaceMapId];
+      body.add(txt(this, m.x + 40, m.y + 80, "Mã phòng", 16, { color: COLORS.textDim, weight: "700" }).setOrigin(0, 0.5));
+      body.add(txt(this, m.x + 40, m.y + 118, l.code, 44, { color: "#ffeb3b" }).setOrigin(0, 0.5));
+      body.add(
+        new Button(this, m.x + 300, m.y + 116, 110, 40, "📋 Chép", {
+          color: COLORS.panelLight,
+          fontSize: 16,
+          onClick: () => {
+            void navigator.clipboard?.writeText(l.code).catch(() => null);
+            toast(this, `Đã chép mã ${l.code}`);
+          },
+        }),
+      );
+      // giải & bản đồ (chủ phòng đổi được)
+      const leagues = Object.keys(RACE_LEAGUES) as RaceLeague[];
+      const maps = ["random", ...RACE_MAP_IDS.filter((x) => GameState.save.level >= RACE_MAPS[x].minLevel)];
+      const row = (y: number, label: string, value: string, cycle: (d: 1 | -1) => void) => {
+        body.add(txt(this, m.x + 470, y, label, 16, { color: COLORS.textDim, weight: "700" }).setOrigin(0, 0.5));
+        body.add(txt(this, m.x + 720, y, value, 19, { align: "center" }).setOrigin(0.5));
+        if (isHost) {
+          body.add(new Button(this, m.x + 590, y, 40, 36, "◀", { color: COLORS.blue, fontSize: 16, onClick: () => cycle(-1) }));
+          body.add(new Button(this, m.x + 850, y, 40, 36, "▶", { color: COLORS.blue, fontSize: 16, onClick: () => cycle(1) }));
+        }
+      };
+      const setRoom = async (league: RaceLeague, map: string) => {
+        try {
+          draw(await Social.raceLobbySet(id, league, map));
+        } catch (e) {
+          toast(this, (e as Error).message, COLORS.red);
+        }
+      };
+      row(m.y + 86, "Giải", `${L.name} · ${formatNum(L.fee)}🪙`, (d) => {
+        const next = leagues[(leagues.indexOf(l.league) + d + leagues.length) % leagues.length]!;
+        void setRoom(next, l.map);
+      });
+      row(m.y + 128, "Bản đồ", mp ? `${mp.icon} ${mp.name}` : "🎲 Ngẫu nhiên", (d) => {
+        const i = Math.max(0, maps.indexOf(l.map));
+        void setRoom(l.league, maps[(i + d + maps.length) % maps.length]!);
+      });
+      // thành viên
+      for (let i = 0; i < 5; i++) {
+        const mb = l.members[i];
+        const y = m.y + 190 + i * 66;
+        const g = this.add.graphics();
+        g.fillStyle(mb?.user_id === myId ? 0x1e4d7a : 0x0a1628, mb ? 0.95 : 0.4).fillRoundedRect(m.x + 30, y - 28, m.w - 60, 58, 12);
+        body.add(g);
+        if (!mb) {
+          body.add(txt(this, m.x + 60, y, "Chỗ trống – mời bạn bè hoặc máy sẽ đua thay", 15, { color: COLORS.textDim, weight: "700" }).setOrigin(0, 0.5));
+          continue;
+        }
+        const fdef = mb.racer.fishId ? FISH_BY_ID.get(mb.racer.fishId) : undefined;
+        body.add(txt(this, m.x + 50, y, `${mb.is_host ? "👑 " : ""}${mb.name}${mb.user_id === myId ? " (bạn)" : ""} · Lv.${mb.level}`, 18, { color: mb.user_id === myId ? "#ffeb3b" : "#ffffff" }).setOrigin(0, 0.5));
+        if (fdef) {
+          body.add(this.add.image(m.x + 520, y, fishTextureFor(this, fdef, mb.racer.formId ?? null)).setDisplaySize(70, 44));
+          body.add(txt(this, m.x + 566, y, `${fdef.name}${mb.racer.stats ? ` (${mb.racer.stats.grade})` : ""}`, 15, { weight: "700" }).setOrigin(0, 0.5));
+        }
+        body.add(txt(this, m.x + m.w - 50, y, mb.ready ? "✅ Sẵn sàng" : "⏳ Chưa", 16, { color: mb.ready ? "#69f0ae" : "#ffd740" }).setOrigin(1, 0.5));
+      }
+      // nút
+      const by = m.y + m.h - 46;
+      body.add(new Button(this, m.x + 110, by, 170, 54, "📨 Mời bạn", { color: COLORS.blue, fontSize: 19, onClick: () => void this.inviteFriends(id) }));
+      body.add(
+        new Button(this, m.x + 290, by, 170, 54, "🐟 Đổi cá", {
+          color: COLORS.panelLight,
+          fontSize: 19,
+          onClick: () => {
+            m.close();
+            toast(this, "Chọn cá khác rồi bấm 🏠 Về phòng", COLORS.blue);
+          },
+        }),
+      );
+      body.add(new Button(this, m.x + 470, by, 170, 54, "🚪 Rời phòng", { color: COLORS.red, fontSize: 19, onClick: () => void leave() }));
+      if (isHost) {
+        const others = l.members.filter((x) => !x.is_host);
+        const can = l.members.length >= 2 && others.every((x) => x.ready);
+        const b = new Button(this, m.x + m.w - 130, by, 220, 62, "🏁 BẮT ĐẦU", {
+          color: COLORS.green,
+          fontSize: 24,
+          disabled: !can,
+          onClick: () => void startNow(),
+        });
+        b.on("disabled-click", () => toast(this, l.members.length < 2 ? "Cần ít nhất 2 người – mời bạn bè vào phòng!" : "Chờ mọi người bấm Sẵn sàng"));
+        body.add(b);
+      } else {
+        const me = l.members.find((x) => x.user_id === myId);
+        body.add(
+          new Button(this, m.x + m.w - 130, by, 220, 62, me?.ready ? "❌ Huỷ sẵn sàng" : "✅ SẴN SÀNG", {
+            color: me?.ready ? COLORS.orange : COLORS.green,
+            fontSize: 22,
+            onClick: () => void toggleReady(!me?.ready, l),
+          }),
+        );
+      }
+    };
+    const toggleReady = async (ready: boolean, l: Social.RaceLobby) => {
+      if (readyBusy) return;
+      const L = RACE_LEAGUES[l.league];
+      if (ready && GameState.save.level < L.minLevel) return toast(this, `Cần cấp ${L.minLevel} để đua ${L.name}`, COLORS.red);
+      if (ready && GameState.save.gold < L.fee) return toast(this, `Cần ${formatNum(L.fee)} vàng phí vào cửa`, COLORS.red);
+      const racer = this.myNetRacer();
+      if (ready && !racer) return toast(this, "Hãy chọn một con cá", COLORS.red);
+      readyBusy = true;
+      try {
+        draw(await Social.raceLobbyReady(id, ready, racer));
+      } catch (e) {
+        toast(this, (e as Error).message, COLORS.red);
+      } finally {
+        readyBusy = false;
+      }
+    };
+    const startNow = async () => {
+      const l = await Social.raceLobbyState(id).catch(() => null);
+      if (!l) return;
+      const L = RACE_LEAGUES[l.league];
+      if (GameState.save.gold < L.fee) return toast(this, `Cần ${formatNum(L.fee)} vàng phí vào cửa`, COLORS.red);
+      // cập nhật cá đang chọn của chủ phòng trước khi xuất phát
+      await Social.raceLobbyReady(id, true, this.myNetRacer()).catch(() => null);
+      try {
+        const room = await Social.raceLobbyStart(id);
+        enterRace(l, room);
+      } catch (e) {
+        toast(this, (e as Error).message, COLORS.red);
+      }
+    };
+    const enterRace = (l: Social.RaceLobby, room: Social.RaceRoom) => {
+      if (this.lastRoomId === room.room_id) return;
+      this.lastRoomId = room.room_id;
+      this.stopLobbyPoll();
+      this.lobbyModal = null;
+      m.root.destroy();
+      document.querySelectorAll<HTMLElement>(".dccc-overlay").forEach((el) => (el.style.visibility = ""));
+      this.league = l.league;
+      this.start(room);
+    };
+    const poll = async () => {
+      if (busy || this.lobbyModal !== m) return;
+      busy = true;
+      try {
+        const l = await Social.raceLobbyState(id);
+        if (this.lobbyModal !== m) return;
+        if (!l || l.status === "closed") {
+          this.stopLobbyPoll();
+          RaceScene.lobbyId = null;
+          m.close();
+          toast(this, "Phòng đã đóng (chủ phòng đã rời)", COLORS.red);
+          return;
+        }
+        if (l.status === "started" && l.room_id && l.room_id !== this.lastRoomId) {
+          const room = await Social.raceRoomGet(l.room_id);
+          if (room && this.lobbyModal === m) return enterRace(l, room);
+        }
+        draw(l);
+      } catch {
+        /* thử lại */
+      } finally {
+        busy = false;
+      }
+    };
+    if (initial) draw(initial);
+    void poll();
+    this.lobbyTimer = window.setInterval(() => void poll(), 1500);
+  }
+
+  /** Danh sách bạn bè (online trước) để mời vào phòng. */
+  private async inviteFriends(lobbyId: number) {
+    const me = GameState.online?.id;
+    if (!me) return;
+    try {
+      const fr = (await Social.listFriendships()).filter((f) => f.status === "accepted");
+      const ids = fr.map((f) => (f.requester === me ? f.addressee : f.requester));
+      const cards = await Social.cardsByIds(ids);
+      const m = modal(this, 640, 560, "📨 Mời bạn bè");
+      m.root.setDepth(2100);
+      if (!cards.length) {
+        m.root.add(txt(this, 640, m.y + 240, "Chưa có bạn bè nào.\nKết bạn ở Hồ Sơ → Bạn bè, hoặc gửi mã phòng cho bạn nhé!", 18, { align: "center" }).setOrigin(0.5));
+        return;
+      }
+      cards
+        .map((c) => ({ c, st: Social.onlineStatus(c) }))
+        .sort((a, b) => Number(b.st.online) - Number(a.st.online))
+        .slice(0, 7)
+        .forEach(({ c, st }, i) => {
+          const y = m.y + 90 + i * 62;
+          m.root.add(txt(this, m.x + 40, y, `${st.online ? "🟢" : "⚪"} ${c.display_name} · Lv.${c.level}`, 18).setOrigin(0, 0.5));
+          m.root.add(txt(this, m.x + 40, y + 20, st.text, 12, { color: COLORS.textDim, weight: "700" }).setOrigin(0, 0.5));
+          const b = new Button(this, m.x + m.w - 100, y, 140, 46, "📨 Mời", {
+            color: COLORS.green,
+            fontSize: 18,
+            onClick: () => {
+              b.setDisabled(true);
+              void Social.raceLobbyInvite(lobbyId, c.user_id)
+                .then(() => {
+                  b.setText("Đã mời ✓");
+                  toast(this, `Đã gửi lời mời cho ${c.display_name}`, COLORS.green);
+                })
+                .catch((e: Error) => {
+                  b.setDisabled(false);
+                  toast(this, e.message, COLORS.red);
+                });
+            },
+          });
+          m.root.add(b);
+        });
+    } catch (e) {
+      toast(this, (e as Error).message, COLORS.red);
+    }
+  }
+
   /** Cá đang chọn → thông tin gửi cho người chơi khác. */
   private myNetRacer(): Social.RaceNetRacer | null {
     const s = GameState.save;
@@ -498,7 +832,7 @@ export class RaceScene extends Phaser.Scene {
         return { ...newRacer(mb.user_id, r.name ?? "Người chơi", r.fishId, r.formId ?? null, r.charId, r.stats, null), remote: true };
       });
       const ai = makeRaceOpponents(this.league, FISHES, chars, new Rng(room.seed), Math.max(0, 5 - humans.length));
-      this.mapId = mapFromSeed(room.seed);
+      this.mapId = room.map && room.map in RACE_MAPS ? (room.map as RaceMapId) : mapFromSeed(room.seed);
       this.session = new RaceSession(me, [], room.seed, [...humans, ...ai], this.league, this.mapId);
     } else {
       const seed = randomSeed();
@@ -1246,7 +1580,11 @@ export class RaceScene extends Phaser.Scene {
     this.time.delayedCall(600, () => {
       this.hud.setVisible(false);
       this.speedG.clear();
-      const m = modal(this, 900, 680, place === 1 ? "🏆 VÔ ĐỊCH!" : `🏁 Về đích hạng ${place}`, () => this.showSelect());
+      const m = modal(this, 900, 680, place === 1 ? "🏆 VÔ ĐỊCH!" : `🏁 Về đích hạng ${place}`, () => {
+        this.showSelect();
+        // đua trong phòng riêng → quay lại phòng để đua tiếp
+        if (RaceScene.lobbyId) this.time.delayedCall(250, () => void this.showLobby());
+      });
       m.root.setDepth(2000); // trên panel chọn (1000) và HUD
       const order = s.standings();
       const equipOf = (r: Racer) => (this.equips.get(r.id) ?? {}) as Partial<Record<string, string>>;

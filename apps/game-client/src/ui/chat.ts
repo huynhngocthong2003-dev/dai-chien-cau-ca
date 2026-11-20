@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
-import { Button, modal, toast, txt } from "./widgets.ts";
+import { Button, goTo, modal, toast, txt } from "./widgets.ts";
 import { COLORS } from "./theme.ts";
 import { htmlOverlay } from "./htmlOverlay.ts";
 
@@ -23,9 +23,12 @@ export function openChat(scene: Phaser.Scene, other: { user_id: string; display_
     for (let i = msgs.length - 1; i >= 0 && y > Y + 80; i--) {
       const msg = msgs[i]!;
       const mine = msg.sender === me;
-      const t = txt(scene, 0, 0, msg.body, 16, { weight: "700", wrap: 420, color: mine ? "#1b1530" : "#ffffff", stroke: 0, shadow: false });
+      // lời mời đua cá: ẩn thẻ máy, thêm nút "Vào phòng"
+      const invite = /\[DCCC-RACE:([A-Z0-9]{6})\]/.exec(msg.body);
+      const bodyText = invite ? msg.body.replace(invite[0], "").trim() : msg.body;
+      const t = txt(scene, 0, 0, bodyText, 16, { weight: "700", wrap: 420, color: mine ? "#1b1530" : "#ffffff", stroke: 0, shadow: false });
       const w = Math.min(450, t.width + 24);
-      const h = t.height + 30;
+      const h = t.height + 30 + (invite && !mine ? 50 : 0);
       y -= h + 8;
       if (y < Y + 70) {
         t.destroy();
@@ -38,6 +41,19 @@ export function openChat(scene: Phaser.Scene, other: { user_id: string; display_
       const time = new Date(msg.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
       const meta = txt(scene, mine ? bx + w - 10 : bx + 12, y + h - 12, `${time}${mine && msg.read_at ? " · đã xem" : ""}`, 11, { weight: "700", color: mine ? "#37474f" : "#b0bec5", stroke: 0, shadow: false }).setOrigin(mine ? 1 : 0, 0.5);
       list.add([g, t, meta]);
+      if (invite && !mine) {
+        list.add(
+          new Button(scene, bx + 110, y + h - 40, 190, 42, "🏁 Vào phòng", {
+            color: COLORS.green,
+            fontSize: 18,
+            onClick: () => {
+              m.close();
+              goTo(scene, "Race", { joinCode: invite[1] });
+            },
+          }),
+        );
+        meta.setY(y + h - 64);
+      }
     }
   };
   const refresh = async () => {
