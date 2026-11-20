@@ -489,3 +489,32 @@ do $$ begin
 end $$;
 reset role;
 select 'DB FISHING TOGETHER TEST OK' as result;
+
+-- ================= Quản trị: danh sách tài khoản =================
+update auth.users set email = 'an@test.vn', email_confirmed_at = now() where id = '11111111-1111-1111-1111-111111111111';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  begin perform * from public.admin_list_users(''); raise exception 'LỖI: người thường xem được danh sách tài khoản';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+  begin perform public.admin_user_detail('22222222-2222-2222-2222-222222222222'); raise exception 'LỖI: người thường xem được bản lưu người khác';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ declare r record; d jsonb; begin
+  if (select count(*) from public.admin_list_users('')) < 3 then raise exception 'Quản trị viên phải thấy mọi tài khoản'; end if;
+  select * into r from public.admin_list_users('an@test') limit 1;
+  if r.user_id <> '11111111-1111-1111-1111-111111111111' or not r.confirmed or r.display_name <> 'An' then raise exception 'Tìm theo email sai: %', r; end if;
+  if (select count(*) from public.admin_list_users('Bình')) <> 1 then raise exception 'Tìm theo tên sai'; end if;
+  if not (select bool_or(is_admin) from public.admin_list_users('')) then raise exception 'Thiếu cờ quản trị'; end if;
+  d := public.admin_user_detail('33333333-3333-3333-3333-333333333333');
+  if d -> 'save' is null or jsonb_typeof(d -> 'backups') <> 'array' then raise exception 'Chi tiết tài khoản thiếu dữ liệu: %', d; end if;
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  begin perform * from public.admin_list_users(''); raise exception 'LỖI: khách gọi được';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'DB ADMIN USERS TEST OK' as result;

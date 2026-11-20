@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.1] – 2026-11-20 – Bộ Sưu Tập cuộn được + Quản trị tài khoản
+### Thêm
+- **Bộ Sưu Tập có thanh cuộn**: lăn chuột, kéo thanh cuộn vàng bên phải, hoặc vuốt lên/xuống trên điện thoại; giữ vị trí cuộn khi chọn loài; kéo không bị tính nhầm là bấm.
+- **Trang quản trị (admin.html) → tab 👥 Tài khoản**: thống kê (tổng tài khoản, đang online, đăng ký hôm nay, chưa có tiến trình), bảng mọi tài khoản đăng ký (tên, email, xác nhận email, cấp, cá đã câu, vàng/KC, tổng nạp, ngày đăng ký, online/lần cuối hoạt động), tìm theo tên/email/mã kết bạn/UID/mã người chơi, bấm vào để xem chi tiết bản lưu + 30 bản sao lưu gần nhất + lịch sử nạp.
+- Database: RPC `admin_list_users`, `admin_user_detail` – **chỉ quản trị viên** gọi được (kiểm tra ở máy chủ); người chơi thường/khách bị từ chối.
+### Sửa
+- Thanh chuyển tab quản trị không còn hiện với tài khoản không có quyền.
+
 ## [0.22.0] – 2026-11-20 – Câu cá cùng nhau
 ### Thêm
 - **Mỗi khu câu, người chơi ngồi câu cùng nhau**: người khác cùng khu đứng trên **bến xa** bên kia mặt nước, **mỗi người một chỗ câu riêng do máy chủ chia** (6 chỗ cách đều 120px, giữa bục của mình và đồng hồ lực căng → không ai che ai, không che giao diện). Vào lại khu giữ chỗ cũ; khu đủ 6 người thì người tới sau chờ chỗ.

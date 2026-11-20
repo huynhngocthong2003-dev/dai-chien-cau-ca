@@ -25,6 +25,9 @@ const ELEMENT_LABEL: Record<string, string> = {
 export class InventoryScene extends Phaser.Scene {
   private tab: "bag" | "collection" = "bag";
   private page = 0;
+  /** Vị trí cuộn của Bộ Sưu Tập (giữ nguyên khi chọn loài khác). */
+  private colScroll = 0;
+  private colDrag: { y0: number; s0: number; moved: boolean; bar: boolean } | null = null;
   private gridC?: Phaser.GameObjects.Container;
   private detailC?: Phaser.GameObjects.Container;
   private selectedUid: string | null = null;
@@ -277,14 +280,79 @@ export class InventoryScene extends Phaser.Scene {
     c.add(txt(this, 440, 116, `Đã khám phá ${seenCount}/${FISHES.length} loài`, 22, { color: COLORS.textGold }).setOrigin(0, 0.5));
     const sel = this.selectedUid && FISH_BY_ID.has(this.selectedUid) ? this.selectedUid : FISHES[0]!.id;
     this.selectedUid = sel;
+    // vùng lưới cuộn được: lăn chuột, vuốt/kéo, hoặc kéo thanh cuộn bên phải
+    const TOP = 142;
+    const BOTTOM = 706;
+    const viewH = BOTTOM - TOP;
+    const grid = this.add.container(0, 0);
+    c.add(grid);
     FISHES.forEach((f, i) => {
       const x = 16 + (i % 8) * 103;
       const y = 148 + Math.floor(i / 8) * 80;
       const seen = (species[f.id] ?? 0) > 0;
-      this.cell(c, x, y, 97, 74, f, seen, f.id === sel, seen ? `×${species[f.id]}` : "???", () => {
+      this.cell(grid, x, y, 97, 74, f, seen, f.id === sel, seen ? `×${species[f.id]}` : "???", () => {
+        if (this.colDrag?.moved) return;
         this.selectedUid = f.id;
         this.render();
       });
+    });
+    const contentH = Math.ceil(FISHES.length / 8) * 80 + 12;
+    const maxScroll = Math.max(0, contentH - viewH);
+    const maskG = this.make.graphics({}, false);
+    maskG.fillStyle(0xffffff).fillRect(8, TOP, 840, viewH);
+    grid.setMask(maskG.createGeometryMask());
+    c.once(Phaser.GameObjects.Events.DESTROY, () => maskG.destroy());
+    const zones = grid.list.filter((o): o is Phaser.GameObjects.Zone => o instanceof Phaser.GameObjects.Zone);
+    // thanh cuộn
+    const TRACK_X = 836;
+    const track = this.add.graphics();
+    const thumbH = maxScroll ? Math.max(60, (viewH * viewH) / contentH) : viewH;
+    const thumb = this.add.graphics();
+    c.add([track, thumb]);
+    track.fillStyle(0x0a1628, 0.85).fillRoundedRect(TRACK_X - 7, TOP, 14, viewH, 7);
+    const apply = (v: number) => {
+      this.colScroll = Phaser.Math.Clamp(v, 0, maxScroll);
+      grid.y = -this.colScroll;
+      const ty = TOP + (maxScroll ? (this.colScroll / maxScroll) * (viewH - thumbH) : 0);
+      thumb.clear().fillStyle(0xffd740, 1).fillRoundedRect(TRACK_X - 7, ty, 14, thumbH, 7).lineStyle(2, 0x1b1530).strokeRoundedRect(TRACK_X - 7, ty, 14, thumbH, 7);
+      // ô bị che (ngoài khung) không bấm được
+      for (const z of zones) {
+        const zy = z.y - this.colScroll;
+        if (z.input) z.input.enabled = zy > TOP && zy < BOTTOM;
+      }
+    };
+    apply(this.colScroll);
+    track.setVisible(maxScroll > 0);
+    thumb.setVisible(maxScroll > 0);
+    if (!maxScroll) return this.renderSpecies(FISH_BY_ID.get(sel)!, (species[sel] ?? 0) > 0);
+    const inView = (p: Phaser.Input.Pointer) => p.worldX < 852 && p.worldY > TOP && p.worldY < BOTTOM;
+    const onWheel = (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
+      if (inView(p)) apply(this.colScroll + dy * 0.8);
+    };
+    const onDown = (p: Phaser.Input.Pointer) => {
+      if (!inView(p)) return;
+      const bar = Math.abs(p.worldX - TRACK_X) < 22;
+      this.colDrag = { y0: p.worldY, s0: this.colScroll, moved: false, bar };
+      if (bar) apply(((p.worldY - TOP - thumbH / 2) / (viewH - thumbH)) * maxScroll);
+    };
+    const onMove = (p: Phaser.Input.Pointer) => {
+      const d = this.colDrag;
+      if (!d || !p.isDown) return;
+      const dy = p.worldY - d.y0;
+      if (Math.abs(dy) > 8) d.moved = true;
+      if (d.bar) apply(((p.worldY - TOP - thumbH / 2) / (viewH - thumbH)) * maxScroll);
+      else if (d.moved) apply(d.s0 - dy);
+    };
+    const onUp = () => this.time.delayedCall(0, () => (this.colDrag = null));
+    this.input.on("wheel", onWheel);
+    this.input.on("pointerdown", onDown);
+    this.input.on("pointermove", onMove);
+    this.input.on("pointerup", onUp);
+    c.once(Phaser.GameObjects.Events.DESTROY, () => {
+      this.input.off("wheel", onWheel);
+      this.input.off("pointerdown", onDown);
+      this.input.off("pointermove", onMove);
+      this.input.off("pointerup", onUp);
     });
     const f = FISH_BY_ID.get(sel)!;
     this.renderSpecies(f, (species[f.id] ?? 0) > 0);

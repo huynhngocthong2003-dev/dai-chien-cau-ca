@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Duyệt nạp – Đại Chiến Câu Cá</title>
+<title>Quản trị – Đại Chiến Câu Cá</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/png" href="./favicon.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -11,7 +11,7 @@
   :root { --bg: #0b2a4a; --card: #123a63; --line: #2b5d8f; --text: #fff8e1; --dim: #a9c4e0; --ok: #43a047; --bad: #e53935; --gold: #ffc107; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 16px max(16px, env(safe-area-inset-left)) 40px; }
-  main { max-width: 900px; margin: 0 auto; }
+  main { max-width: 1100px; margin: 0 auto; }
   h1 { font-size: 22px; margin: 4px 0 14px; display: flex; gap: 10px; align-items: center; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
   input { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--line); background: #fff8e1; color: #1b1530; font-size: 16px; margin: 6px 0 10px; }
@@ -29,13 +29,29 @@
   .stat b { display: block; font-size: 22px; color: var(--gold); }
   .msg { padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; background: #1b4d2a; }
   .msg.err { background: #5a1a1a; }
-  .hidden { display: none; }
+  .hidden { display: none !important; }
+  .nav { display: flex; gap: 8px; margin-bottom: 12px; }
+  .nav button { background: transparent; border: 1px solid var(--line); }
+  .nav button.on { background: #1e88e5; border-color: #1e88e5; }
+  .search { display: flex; gap: 8px; align-items: center; }
+  .search input { margin: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--dim); font-weight: 600; position: sticky; top: 0; background: var(--card); }
+  tr.user { cursor: pointer; } tr.user:hover { background: #1a4a7a; }
+  .tablewrap { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-right: 4px; }
+  .tag.on { background: var(--ok); } .tag.off { background: #455a64; } .tag.warn { background: #b26a00; } .tag.adm { background: #6a1b9a; }
+  dialog { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 14px; max-width: 760px; width: calc(100% - 24px); padding: 16px; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0; }
+  .kv div { background: #0e2f52; border-radius: 10px; padding: 8px; } .kv b { display: block; color: var(--gold); }
   @media (max-width: 560px) { .row { grid-template-columns: 1fr; } .actions button { flex: 1; } }
 </style>
 </head>
 <body>
 <main>
-  <h1>🛠 Duyệt nạp · Đại Chiến Câu Cá</h1>
+  <h1>🛠 Quản trị · Đại Chiến Câu Cá</h1>
   <div id="msg" class="msg hidden"></div>
   <section id="login" class="card hidden">
     <p class="meta">Đăng nhập bằng tài khoản game có quyền quản trị.</p>
@@ -43,6 +59,14 @@
     <label>Mật khẩu<input id="pass" type="password" autocomplete="current-password"></label>
     <button id="btnLogin">Đăng nhập</button>
   </section>
+  <div class="nav hidden" id="nav"><button id="navTopup" class="on">💳 Duyệt nạp</button><button id="navUsers">👥 Tài khoản</button></div>
+  <section id="users" class="hidden">
+    <div class="card stats" id="ustats"></div>
+    <div class="card search"><input id="uq" placeholder="Tìm theo tên, email, mã kết bạn, UID…"><button id="uSearch">Tìm</button></div>
+    <div class="card tablewrap"><table><thead><tr><th>Người chơi</th><th>Email</th><th>Cấp</th><th>Cá đã câu</th><th>Vàng / KC</th><th>Nạp</th><th>Đăng ký</th><th>Hoạt động</th></tr></thead><tbody id="ulist"></tbody></table></div>
+    <p class="meta">Bấm vào một dòng để xem chi tiết bản lưu, các bản sao lưu và lịch sử nạp. Dữ liệu cá nhân – chỉ dùng để hỗ trợ người chơi.</p>
+  </section>
+  <dialog id="udlg"><div id="udetail"></div><p><button class="ghost" id="udClose">Đóng</button></p></dialog>
   <section id="app" class="hidden">
     <div class="card stats" id="stats"></div>
     <div class="tabs" id="tabs"></div>

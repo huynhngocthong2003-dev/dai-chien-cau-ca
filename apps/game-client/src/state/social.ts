@@ -553,3 +553,31 @@ export async function fishingList(zone: string): Promise<FishingPresence[]> {
   if (error) throw new Error(friendlyRpc(error.message));
   return (data as FishingPresence[]) ?? [];
 }
+
+// ------------------------------------------------------------ Quản trị: tài khoản
+export interface AdminUserRow {
+  user_id: string;
+  email: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  confirmed: boolean;
+  display_name: string | null;
+  friend_code: string | null;
+  level: number | null;
+  gold: number;
+  diamonds: number;
+  total_caught: number;
+  fishes: number;
+  save_updated_at: string | null;
+  last_seen: string | null;
+  topup_vnd: number;
+  backups: number;
+  is_admin: boolean;
+}
+export interface AdminUserDetail {
+  save: PlayerSave | null;
+  backups: { id: number; created_at: string; level: number; reason: string; name: string | null; caught: string | null; player_id: string | null }[];
+  topups: { code: string; package: string; amount_vnd: number; status: string; created_at: string }[];
+}
+export const adminListUsers = async (q = "") => ((await rpc("admin_list_users", { p_query: q, p_limit: 500 })) as AdminUserRow[]) ?? [];
+export const adminUserDetail = async (id: string) => (await rpc("admin_user_detail", { p_user: id })) as AdminUserDetail;
