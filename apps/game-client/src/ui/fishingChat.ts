@@ -9,9 +9,9 @@ import type { FishingTogether } from "./fishingTogether.ts";
 
 const POLL_MS = 4000;
 const X = 16;
-const Y = 428;
-const W = 430;
-const H = 186;
+const Y = 388;
+const W = 560;
+const H = 234;
 
 /**
  * Khung chat thu gọn trong màn câu cá: xem & gửi Chat Thế Giới mà không rời chỗ câu.
@@ -66,21 +66,21 @@ export class FishingChat {
     g.fillStyle(0x071a33, 0.82).fillRoundedRect(X, Y, W, H, 14).lineStyle(3, COLORS.outline).strokeRoundedRect(X, Y, W, H, 14);
     // vùng chặn: bấm vào khung chat không bị tính là quăng/kéo cần
     const block = sc.add.zone(X + W / 2, Y + H / 2, W, H).setInteractive();
-    const head = txt(sc, X + 14, Y + 14, "💬 Chat Thế Giới", 15, { color: COLORS.textGold }).setOrigin(0, 0.5);
-    const all = txt(sc, X + W - 52, Y + 14, "Xem tất cả ›", 13, { weight: "700", color: "#80d8ff" }).setOrigin(1, 0.5);
+    const head = txt(sc, X + 16, Y + 20, "💬 Chat Thế Giới", 19, { color: COLORS.textGold }).setOrigin(0, 0.5);
+    const all = txt(sc, X + W - 60, Y + 20, "Xem tất cả ›", 16, { weight: "700", color: "#80d8ff" }).setOrigin(1, 0.5);
     // nút thu gọn ngay trên khung
-    const mini = new Button(sc, X + W - 20, Y + 16, 30, 26, "▾", { color: COLORS.panelLight, fontSize: 16, onClick: () => this.toggle() });
+    const mini = new Button(sc, X + W - 26, Y + 20, 40, 32, "▾", { color: COLORS.panelLight, fontSize: 20, onClick: () => this.toggle() });
     all.setInteractive({ useHandCursor: true }).on("pointerup", () => openWorldChat(sc));
     this.log = sc.add.container(0, 0);
     c.add([block, g, head, all, mini, this.log]);
     const box = htmlOverlay(
       sc,
       c,
-      X + 158,
+      X + 210,
       Y + H - 24,
-      296,
-      38,
-      `<input id="fish-chat-input" maxlength="200" placeholder="Nói gì đó…" style="width:100%;height:100%;box-sizing:border-box;font:700 15px 'Baloo 2',sans-serif;padding:2px 10px;border-radius:10px;border:3px solid #1b1530;background:#fff8e1;color:#1b1530">`,
+      392,
+      46,
+      `<input id="fish-chat-input" maxlength="200" placeholder="Nói gì đó…" style="width:100%;height:100%;box-sizing:border-box;font:700 18px 'Baloo 2',sans-serif;padding:2px 10px;border-radius:10px;border:3px solid #1b1530;background:#fff8e1;color:#1b1530">`,
     );
     const input = box.querySelector("input") as HTMLInputElement;
     let sending = false;
@@ -101,7 +101,7 @@ export class FishingChat {
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") void send();
     });
-    c.add(new Button(sc, X + W - 52, Y + H - 24, 84, 38, "Gửi", { color: COLORS.green, fontSize: 16, onClick: () => void send() }));
+    c.add(new Button(sc, X + W - 66, Y + H - 28, 110, 46, "Gửi", { color: COLORS.green, fontSize: 20, onClick: () => void send() }));
     this.drawLog();
   }
 
@@ -112,10 +112,10 @@ export class FishingChat {
     log.removeAll(true);
     const me = GameState.online?.id;
     const msgs = this.last.slice(-5);
-    if (!msgs.length) log.add(txt(sc, X + 14, Y + 40, "Chưa có tin nhắn – chào mọi người đi! 👋", 13, { weight: "700", color: COLORS.textDim }));
+    if (!msgs.length) log.add(txt(sc, X + 16, Y + 50, "Chưa có tin nhắn – chào mọi người đi! 👋", 16, { weight: "700", color: COLORS.textDim }));
     msgs.forEach((m, i) => {
       const line = `${m.name}: ${m.body}`;
-      log.add(txt(sc, X + 14, Y + 34 + i * 23, line.length > 52 ? `${line.slice(0, 51)}…` : line, 13, { weight: "700", color: m.user_id === me ? "#80d8ff" : "#ffffff" }));
+      log.add(txt(sc, X + 16, Y + 42 + i * 28, line.length > 62 ? `${line.slice(0, 61)}…` : line, 16, { weight: "700", color: m.user_id === me ? "#80d8ff" : "#ffffff" }));
     });
   }
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.28.4] – 2026-11-20 – Khung chat câu cá to hơn
+### Thay đổi
+- Khung chat lúc câu cá to hơn, dễ đọc trên điện thoại: khung 560×234 (trước 430×186), chữ tin nhắn cỡ 16 (trước 13), tiêu đề 19, ô nhập chữ 18 và cao hơn, nút Gửi và nút ▾ thu gọn to hơn; mỗi dòng hiện tới ~62 ký tự.
+
 ## [0.28.3] – 2026-11-20 – Nút chat câu cá luôn hiện
 ### Sửa
 - Nút **💬 Chat** trong màn câu cá giờ **luôn hiện**. Trước đây nếu lúc vào game tài khoản chưa kết nối được máy chủ (mạng chập chờn) thì nút bị ẩn hoàn toàn → người chơi không thấy phần trò chuyện. Giờ bấm vào sẽ báo lý do và cách khắc phục.
