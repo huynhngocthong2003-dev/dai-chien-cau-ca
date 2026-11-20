@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.23.0] – 2026-11-20 – Đua Cá khó hơn, cần kỹ năng + Bục vinh danh
+### Thêm – chướng ngại chuyển động & kỹ năng
+- 🦈 **Cá mập tuần tra** bơi qua lại giữa 3 làn – KHÔNG nhảy qua được, phải canh lúc nó rời làn (có cảnh báo ⚠ khi tới gần). Bị đớp: khựng nặng, −40 năng lượng.
+- 🪵 **Khúc gỗ trôi** ngược về phía người đua · 🪼 **Sứa điện** lúc nổi lúc chìm (chỉ chích khi nổi, −25 năng lượng) · 🌀 **Xoáy nước** cuốn gần như đứng yên.
+- **NHẢY** (nút / Space, hồi 1,6 giây): bay qua đá, gỗ, rong, sứa, xoáy – nhảy sớm/muộn vẫn dính; đang bay không đổi làn được và lỡ dòng xiết.
+- **Xuất phát hoàn hảo**: bấm TĂNG TỐC đúng lúc "XUẤT PHÁT!" → vọt lên; bấm sớm → xuất phát lỗi, khựng lại.
+- **SIÊU TĂNG TỐC**: bật tăng tốc ngay trên 🌊 dòng xiết → mạnh hơn và lâu hơn 1,2 giây.
+- **Giải càng cao chướng ngại càng dày** và càng nhiều vật chuyển động (Huyền Thoại gấp ~1,4 lần Tập Sự). Đối thủ máy đoán trước vị trí cá mập/gỗ/sứa, biết né hoặc nhảy và xuất phát đẹp theo kỹ năng.
+- Phím: Space = NHẢY, Shift/E = TĂNG TỐC, ↑↓/W S = đổi làn.
+### Thêm – 🏆 Bục vinh danh
+- **Sau mỗi cuộc đua**: top 3 đứng trên bục 🥈🥇🥉 cùng con cá đã cưỡi, vương miện cho người nhất, pháo giấy.
+- **Màn chọn giải**: bục vinh danh toàn server – **3 người về đích nhanh nhất** ở từng giải (lưu trên máy chủ, giữ thành tích tốt nhất của mỗi người; tên lấy từ hồ sơ; thời gian phi lý bị từ chối). Lên top 3 có thông báo.
+
 ## [0.22.1] – 2026-11-20 – Bộ Sưu Tập cuộn được + Quản trị tài khoản
 ### Thêm
 - **Bộ Sưu Tập có thanh cuộn**: lăn chuột, kéo thanh cuộn vàng bên phải, hoặc vuốt lên/xuống trên điện thoại; giữ vị trí cuộn khi chọn loài; kéo không bị tính nhầm là bấm.

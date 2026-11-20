@@ -26,6 +26,11 @@ const otherRacer = { name: 'Pine Vô Địch', fishId: 'f_ca_kiem', formId: null
     if (path === '/auth/v1/user') return json(200, { id: UID, email: 'a@test' });
     if (path === '/rest/v1/player_saves') return req.method() === 'GET' ? json(200, []) : route.fulfill({ status: 201, body: '' });
     if (path === '/rest/v1/rpc/race_queue_join') { db.joined++; return json(200, null); }
+    if (path === '/rest/v1/rpc/race_top') return json(200, [
+      { rank: 1, user_id: OTHER, name: 'Pine Vô Địch', best_ms: 38120, fish_id: 'f_ca_kiem', char_id: 'c_kim_ke', equip: { skin: 's_samurai' } },
+      { rank: 2, user_id: UID, name: 'Cần Thủ', best_ms: 41500, fish_id: 'f_ca_ro', char_id: 'c_be_tom', equip: {} },
+      { rank: 3, user_id: 'u9', name: 'Wnynie', best_ms: 44990, fish_id: 'f_ca_chep', char_id: 'c_co_lai_do', equip: {} }]);
+    if (path === '/rest/v1/rpc/race_submit_time') { db.submitted = req.postDataJSON(); return json(200, 2); }
     if (path === '/rest/v1/rpc/race_queue_leave') { db.left++; return json(200, null); }
     if (path === '/rest/v1/rpc/race_queue_count') return json(200, 2);
     if (path === '/rest/v1/rpc/race_find') {
@@ -58,6 +63,10 @@ const otherRacer = { name: 'Pine Vô Địch', fishId: 'f_ca_kiem', formId: null
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
   await p.evaluate(() => window.__game.scene.getScene('Hub').scene.start('Race'));
   await p.waitForTimeout(1500);
+  await p.screenshot({ path: `${out}/race-hall-of-fame.png` });
+  const hof = await p.evaluate(() => window.__game.scene.getScene('Race').records.get('tap_su')?.length ?? 0);
+  if (hof !== 3) errs.push('Không hiện bục vinh danh toàn server');
+  else console.log('• Bục vinh danh toàn server: top 3 nhanh nhất');
   // 1) nút "Đua với máy ngay" khi đang chờ
   db.roomOn = false;
   await p.mouse.click(1130, 694);
@@ -93,6 +102,8 @@ const otherRacer = { name: 'Pine Vô Địch', fishId: 'f_ca_kiem', formId: null
   await p.waitForFunction(() => window.__game.scene.getScene('Race').mode === 'result', null, { timeout: 120000 });
   await p.waitForTimeout(1200);
   await p.screenshot({ path: `${out}/race-online-result.png` });
+  if (!db.submitted || db.submitted.p_league !== 'tap_su' || !(db.submitted.p_ms > 0)) errs.push('Không ghi thành tích lên bục vinh danh');
+  else console.log(`• Ghi thành tích ${(db.submitted.p_ms / 1000).toFixed(2)}s lên bục vinh danh`);
   const fin = db.myUpdates.find((u) => u.finish_ms);
   if (!fin) errs.push('Không gửi thời gian về đích');
   else console.log(`• Gửi thời gian về đích ${fin.finish_ms}ms`);

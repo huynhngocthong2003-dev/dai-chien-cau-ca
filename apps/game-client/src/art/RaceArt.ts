@@ -152,3 +152,138 @@ export function drawFinish(ctx: CanvasRenderingContext2D) {
   ctx.strokeText("ĐÍCH", 80, 74);
   ctx.fillText("ĐÍCH", 80, 74);
 }
+
+/** Cá mập tuần tra (150×90): vây lưng nhô lên mặt nước + thân mờ dưới nước. */
+export function drawShark(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = "rgba(55,71,79,0.45)";
+  ctx.beginPath();
+  ctx.ellipse(75, 64, 66, 16, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 3;
+  const g = ctx.createLinearGradient(0, 10, 0, 62);
+  g.addColorStop(0, "#90a4ae");
+  g.addColorStop(1, "#455a64");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(48, 60);
+  ctx.quadraticCurveTo(70, 30, 92, 6);
+  ctx.quadraticCurveTo(98, 34, 110, 60);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.beginPath();
+  ctx.ellipse(80, 62, 50, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // mắt + răng dưới nước
+  ctx.fillStyle = "#ff1744";
+  ctx.beginPath();
+  ctx.arc(128, 68, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(130 + i * 4, 74);
+    ctx.lineTo(132 + i * 4, 80);
+    ctx.lineTo(134 + i * 4, 74);
+    ctx.fill();
+  }
+}
+
+/** Khúc gỗ trôi (140×56). */
+export function drawLog(ctx: CanvasRenderingContext2D) {
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 3;
+  const g = ctx.createLinearGradient(0, 10, 0, 44);
+  g.addColorStop(0, "#a1887f");
+  g.addColorStop(1, "#5d4037");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.roundRect(14, 12, 112, 30, 15);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#d7ccc8";
+  ctx.beginPath();
+  ctx.ellipse(118, 27, 10, 15, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = "#8d6e63";
+  ctx.lineWidth = 2;
+  for (const r of [4, 8]) {
+    ctx.beginPath();
+    ctx.ellipse(118, 27, r * 0.6, r, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(0,0,0,0.3)";
+  for (const x of [34, 60, 86]) {
+    ctx.beginPath();
+    ctx.moveTo(x, 16);
+    ctx.lineTo(x + 8, 38);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "rgba(255,255,255,0.8)";
+  ctx.beginPath();
+  ctx.ellipse(70, 44, 66, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Sứa điện (80×96). */
+export function drawJelly(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = "rgba(234,128,252,0.25)";
+  ctx.beginPath();
+  ctx.arc(40, 34, 36, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#ce93d8";
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  for (const x of [22, 34, 46, 58]) {
+    ctx.beginPath();
+    ctx.moveTo(x, 40);
+    ctx.quadraticCurveTo(x - 8, 62, x + 2, 90);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 3;
+  const g = ctx.createRadialGradient(36, 22, 4, 40, 32, 30);
+  g.addColorStop(0, "#fce4ec");
+  g.addColorStop(1, "#ab47bc");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(40, 40, 28, Math.PI, 0);
+  ctx.quadraticCurveTo(40, 50, 12, 40);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#fff59d";
+  ctx.font = "800 20px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("⚡", 40, 34);
+}
+
+/** Xoáy nước (130×60) – xoay bằng tween. */
+export function drawWhirl(ctx: CanvasRenderingContext2D) {
+  ctx.translate(65, 30);
+  ctx.scale(1, 0.42);
+  const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 62);
+  g.addColorStop(0, "#0d47a1");
+  g.addColorStop(0.6, "#1976d2");
+  g.addColorStop(1, "rgba(129,212,250,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, 62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.85)";
+  ctx.lineWidth = 5;
+  for (let k = 0; k < 3; k++) {
+    ctx.beginPath();
+    for (let a = 0; a < Math.PI * 3; a += 0.15) {
+      const r = 6 + a * 5.5;
+      const ang = a + (k * Math.PI * 2) / 3;
+      const px = Math.cos(ang) * r;
+      const py = Math.sin(ang) * r;
+      if (a === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+}

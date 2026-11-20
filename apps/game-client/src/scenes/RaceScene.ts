@@ -4,8 +4,10 @@ import { FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
 import {
   RACE,
   RACE_LEAGUES,
+  OBSTACLE_INFO,
   RaceSession,
   Rng,
+  obstacleAt,
   makeRaceOpponents,
   newRacer,
   raceCandidates,
@@ -20,8 +22,8 @@ import {
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
 import { safeEquip } from "../ui/playerProfile.ts";
-import { canvasTexture, characterTexture, fishTextureFor } from "../art/textures.ts";
-import { drawCurrent, drawFinish, drawRaceFar, drawRaceSky, drawRock, drawSeaweed } from "../art/RaceArt.ts";
+import { canvasTexture, characterHeadTexture, characterTexture, fishTextureFor } from "../art/textures.ts";
+import { drawCurrent, drawFinish, drawJelly, drawLog, drawRaceFar, drawRaceSky, drawRock, drawSeaweed, drawShark, drawWhirl } from "../art/RaceArt.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -84,6 +86,10 @@ export class RaceScene extends Phaser.Scene {
   private standT!: Phaser.GameObjects.Text;
   private selectC?: Phaser.GameObjects.Container;
   private swipeY: number | null = null;
+  private jumpBtn!: Button;
+  private falseStartFlag = false;
+  /** Bục vinh danh (top 3 nhanh nhất toàn server) – lưu tạm theo giải. */
+  private records = new Map<RaceLeague, Social.RaceRecord[]>();
   // đua nhiều người
   private room: Social.RaceRoom | null = null;
   private equips = new Map<string, Partial<Record<string, string>>>();
@@ -122,6 +128,10 @@ export class RaceScene extends Phaser.Scene {
     canvasTexture(this, "race_weed", 100, 104, drawSeaweed);
     canvasTexture(this, "race_rock", 110, 90, drawRock);
     canvasTexture(this, "race_current", 140, 52, drawCurrent);
+    canvasTexture(this, "race_shark", 150, 90, drawShark);
+    canvasTexture(this, "race_log", 140, 56, drawLog);
+    canvasTexture(this, "race_jelly", 80, 96, drawJelly);
+    canvasTexture(this, "race_whirl", 130, 60, drawWhirl);
     this.drawLanes(0);
     new TopBar(this, { title: "Đua Cá", onBack: () => (this.mode === "race" || this.mode === "countdown" ? this.confirmQuit() : goTo(this, "Hub")) });
     this.buildHud();
@@ -143,9 +153,9 @@ export class RaceScene extends Phaser.Scene {
     (Object.keys(RACE_LEAGUES) as RaceLeague[]).forEach((id, i) => {
       const L = RACE_LEAGUES[id];
       const locked = s.level < L.minLevel;
-      const y = 200 + i * 150;
+      const y = 178 + i * 118;
       const sel = id === this.league;
-      const b = new Button(this, 220, y, 370, 136, "", {
+      const b = new Button(this, 220, y, 370, 108, "", {
         color: sel ? COLORS.orange : COLORS.panelLight,
         disabled: locked,
         onClick: () => {
@@ -155,14 +165,16 @@ export class RaceScene extends Phaser.Scene {
       });
       if (locked) b.on("disabled-click", () => toast(this, `Cần cấp ${L.minLevel} để vào ${L.name}`, COLORS.red));
       c.add(b);
-      c.add(txt(this, 220, y - 42, `${locked ? "🔒 " : ""}${L.name}`, 22, { align: "center" }).setOrigin(0.5));
+      c.add(txt(this, 220, y - 30, `${locked ? "🔒 " : ""}${L.name}`, 21, { align: "center" }).setOrigin(0.5));
       c.add(
-        txt(this, 220, y + 8, `Phí: ${formatNum(L.fee)} vàng · Cần cấp ${L.minLevel}\nGiải: 🥇${formatNum(L.prizes[0])}${L.firstDiamonds ? `+💎${L.firstDiamonds}` : ""}  🥈${formatNum(L.prizes[1])}  🥉${formatNum(L.prizes[2])}`, 15, {
+        txt(this, 220, y + 14, `Phí: ${formatNum(L.fee)} vàng · Cần cấp ${L.minLevel}\nGiải: 🥇${formatNum(L.prizes[0])}${L.firstDiamonds ? `+💎${L.firstDiamonds}` : ""}  🥈${formatNum(L.prizes[1])}  🥉${formatNum(L.prizes[2])}`, 15, {
           align: "center",
           weight: "700",
         }).setOrigin(0.5),
       );
     });
+
+    this.drawHallOfFame(c);
 
     c.add(panel(this, 440, 88, 820, 612, 0.9));
     c.add(txt(this, 850, 112, "🐟 Chọn cá để cưỡi (mỗi con có chỉ số đua riêng)", 22, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
@@ -212,6 +224,103 @@ export class RaceScene extends Phaser.Scene {
     c.add(txt(this, 1130, y0 + 50, `${L.name} · phí ${formatNum(L.fee)} vàng`, 14, { align: "center", weight: "700" }).setOrigin(0.5));
     c.add(new Button(this, 1130, y0 + 92, 230, 56, "🤖 ĐUA VỚI MÁY", { color: COLORS.green, fontSize: 21, onClick: () => this.start(null) }));
     c.add(new Button(this, 1130, y0 + 154, 230, 56, "👥 ĐUA VỚI NGƯỜI", { color: COLORS.orange, fontSize: 21, onClick: () => void this.findPlayers() }));
+  }
+
+  // ------------------------------------------------------------------ bục vinh danh
+  /**
+   * Vẽ bục 3 bậc (🥈 trái · 🥇 giữa · 🥉 phải) với nhân vật đứng trên, cá đã cưỡi bên cạnh.
+   * @param full true = nhân vật toàn thân (màn kết quả), false = chỉ đầu (màn chọn giải, nhỏ gọn)
+   */
+  private drawPodium(
+    parent: Phaser.GameObjects.Container,
+    cx: number,
+    baseY: number,
+    k: number,
+    entries: { name: string; charId: string; equip: Partial<Record<string, string>>; fishId: string; formId: string | null; label: string; mine?: boolean }[],
+    full: boolean,
+  ) {
+    const steps = [
+      { place: 2, dx: -1, h: 70, col: 0xb0bec5, medal: "🥈" },
+      { place: 1, dx: 0, h: 100, col: 0xffd740, medal: "🥇" },
+      { place: 3, dx: 1, h: 48, col: 0xd7a26b, medal: "🥉" },
+    ];
+    const w = 120 * k;
+    for (const st of steps) {
+      const e = entries[st.place - 1];
+      const x = cx + st.dx * (w + 6 * k);
+      const h = st.h * k;
+      const g = this.add.graphics();
+      g.fillStyle(st.col, 1).fillRoundedRect(x - w / 2, baseY - h, w, h, 8 * k);
+      g.lineStyle(3, 0x1b1530).strokeRoundedRect(x - w / 2, baseY - h, w, h, 8 * k);
+      parent.add(g);
+      parent.add(txt(this, x, baseY - h / 2, `${st.place}`, Math.round(34 * k), { color: "#1b1530", stroke: 0, shadow: false, align: "center" }).setOrigin(0.5));
+      if (!e) {
+        parent.add(txt(this, x, baseY - h - 18 * k, "—", Math.round(16 * k), { color: COLORS.textDim, align: "center" }).setOrigin(0.5));
+        continue;
+      }
+      const ch = CHARACTER_BY_ID.get(e.charId) ?? CHARACTER_BY_ID.get("c_be_tom")!;
+      const def = FISH_BY_ID.get(e.fishId);
+      const top = baseY - h;
+      if (full) {
+        const hero = this.add.image(x - 14 * k, top + 2, characterTexture(this, ch, safeEquip(e.equip))).setOrigin(0.5, 1).setScale(0.42 * k);
+        parent.add(hero);
+        if (def) parent.add(this.add.image(x + 34 * k, top - 34 * k, fishTextureFor(this, def, e.formId)).setDisplaySize(70 * k, 44 * k).setAngle(-20));
+        parent.add(txt(this, x, top - 112 * k, st.medal, Math.round(30 * k), { stroke: 0 }).setOrigin(0.5));
+        if (st.place === 1) {
+          const crown = txt(this, x - 14 * k, top - 140 * k, "👑", Math.round(28 * k), { stroke: 0 }).setOrigin(0.5);
+          parent.add(crown);
+          this.tweens.add({ targets: crown, y: crown.y - 6, duration: 600, yoyo: true, repeat: -1 });
+        }
+      } else {
+        parent.add(this.add.image(x, top - 26 * k, characterHeadTexture(this, ch, safeEquip(e.equip))).setDisplaySize(52 * k, 62 * k));
+        parent.add(txt(this, x + 26 * k, top - 48 * k, st.medal, Math.round(18 * k), { stroke: 0 }).setOrigin(0.5));
+      }
+      parent.add(
+        txt(this, x, baseY + 12 * k, `${e.mine ? "⭐ " : ""}${e.name}\n${e.label}`, Math.round(13 * k), {
+          align: "center",
+          weight: "700",
+          color: e.mine ? "#ffeb3b" : "#ffffff",
+          wrap: w + 20,
+        }).setOrigin(0.5, 0),
+      );
+    }
+  }
+
+  /** Bục vinh danh toàn server: 3 người về đích nhanh nhất ở giải đang chọn. */
+  private drawHallOfFame(c: Phaser.GameObjects.Container) {
+    const league = this.league;
+    const box = this.add.container(0, 0);
+    c.add(box);
+    box.add(txt(this, 220, 500, `🏆 Bục vinh danh · ${RACE_LEAGUES[league].name}`, 16, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+    const draw = (list: Social.RaceRecord[]) => {
+      if (!box.active) return;
+      box.list.slice(1).forEach((o) => o.destroy());
+      if (!list.length) {
+        box.add(txt(this, 220, 620, "Chưa có ai lên bục –\nhãy là người đầu tiên! 🏁", 15, { align: "center", weight: "700", color: COLORS.textDim }).setOrigin(0.5));
+        return;
+      }
+      const myId = GameState.online?.id;
+      this.drawPodium(
+        box,
+        220,
+        664,
+        0.75,
+        list.map((r) => ({ name: r.name, charId: r.char_id, equip: r.equip, fishId: r.fish_id, formId: null, label: `${(r.best_ms / 1000).toFixed(2)}s`, mine: r.user_id === myId })),
+        false,
+      );
+    };
+    if (!GameState.online) {
+      box.add(txt(this, 220, 620, "Đăng nhập để ghi danh\nlên bục vinh danh!", 15, { align: "center", weight: "700", color: COLORS.textDim }).setOrigin(0.5));
+      return;
+    }
+    const cached = this.records.get(league);
+    if (cached) draw(cached);
+    void Social.raceTop(league, 3)
+      .then((list) => {
+        this.records.set(league, list);
+        if (this.league === league) draw(list);
+      })
+      .catch(() => null);
   }
 
   /** Cá đang chọn → thông tin gửi cho người chơi khác. */
@@ -322,11 +431,11 @@ export class RaceScene extends Phaser.Scene {
         return { ...newRacer(mb.user_id, r.name ?? "Người chơi", r.fishId, r.formId ?? null, r.charId, r.stats, null), remote: true };
       });
       const ai = makeRaceOpponents(this.league, FISHES, chars, new Rng(room.seed), Math.max(0, 5 - humans.length));
-      this.session = new RaceSession(me, [], room.seed, [...humans, ...ai]);
+      this.session = new RaceSession(me, [], room.seed, [...humans, ...ai], this.league);
     } else {
       const seed = randomSeed();
       const rng = new Rng(seed);
-      this.session = new RaceSession(me, makeRaceOpponents(this.league, FISHES, chars, rng, 4), seed);
+      this.session = new RaceSession(me, makeRaceOpponents(this.league, FISHES, chars, rng, 4), seed, undefined, this.league);
     }
     this.selectC?.destroy();
     this.selectC = undefined;
@@ -401,9 +510,10 @@ export class RaceScene extends Phaser.Scene {
     c.add([this.placeT, this.speedT, this.standT]);
     const up = new Button(this, 80, 470, 110, 90, "▲", { color: COLORS.blue, fontSize: 40, onClick: () => this.lane(-1) });
     const down = new Button(this, 80, 600, 110, 90, "▼", { color: COLORS.blue, fontSize: 40, onClick: () => this.lane(1) });
-    this.boostBtn = new Button(this, 1150, 610, 210, 120, "TĂNG TỐC", { color: COLORS.purple, fontSize: 30, sub: "Space", onClick: () => this.doBoost() });
-    this.energyBar = new Bar(this, 1050, 532, 200, 18, COLORS.purple, "");
-    c.add([up, down, this.boostBtn, this.energyBar]);
+    this.boostBtn = new Button(this, 1150, 630, 210, 100, "TĂNG TỐC", { color: COLORS.purple, fontSize: 28, sub: "Shift / E", onClick: () => this.doBoost() });
+    this.jumpBtn = new Button(this, 1150, 470, 210, 90, "NHẢY", { color: COLORS.orange, fontSize: 30, sub: "Space", onClick: () => this.doJump() });
+    this.energyBar = new Bar(this, 1050, 560, 200, 16, COLORS.purple, "");
+    c.add([up, down, this.boostBtn, this.energyBar, this.jumpBtn]);
   }
 
   private setupInput() {
@@ -414,9 +524,10 @@ export class RaceScene extends Phaser.Scene {
     kb?.on("keydown-S", () => this.lane(1));
     kb?.on("keydown-SPACE", (e: KeyboardEvent) => {
       e.preventDefault();
-      this.doBoost();
+      this.doJump();
     });
     kb?.on("keydown-SHIFT", () => this.doBoost());
+    kb?.on("keydown-E", () => this.doBoost());
     // vuốt lên/xuống trên mặt nước để đổi làn
     this.input.on("pointerdown", (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       Sfx.unlock();
@@ -435,7 +546,18 @@ export class RaceScene extends Phaser.Scene {
     if (this.session.changeLane("me", dir)) Sfx.cast();
   }
 
+  private doJump() {
+    if (this.mode !== "race" || !this.session) return;
+    if (!this.session.jump("me") && this.session.isJumping(this.session.player) === false) toast(this, "Nhảy đang hồi chiêu!");
+  }
+
   private doBoost() {
+    if (this.mode === "countdown" && this.session && !this.falseStartFlag) {
+      // bấm sớm trước tiếng XUẤT PHÁT → xuất phát lỗi
+      this.falseStartFlag = true;
+      toast(this, "Bấm sớm quá! Sẽ bị khựng lúc xuất phát 😵", COLORS.red);
+      return;
+    }
     if (this.mode !== "race" || !this.session) return;
     if (!this.session.boost("me")) {
       if (this.session.player.energy < 100) toast(this, "Năng lượng chưa đầy!");
@@ -444,7 +566,16 @@ export class RaceScene extends Phaser.Scene {
 
   private countdown() {
     this.mode = "countdown";
+    this.falseStartFlag = false;
     this.layoutRace();
+    const tip = txt(this, 640, 400, "Mẹo: bấm TĂNG TỐC đúng lúc \"XUẤT PHÁT!\" để vọt lên · Space để NHẢY qua đá, gỗ, sứa, xoáy · 🦈 cá mập phải né!", 17, {
+      align: "center",
+      weight: "700",
+      wrap: 900,
+    })
+      .setOrigin(0.5)
+      .setDepth(1500);
+    this.time.delayedCall(3400, () => tip.destroy());
     const steps = ["3", "2", "1", "XUẤT PHÁT!"];
     steps.forEach((s, i) => {
       this.time.delayedCall(i * 800, () => {
@@ -456,6 +587,7 @@ export class RaceScene extends Phaser.Scene {
         else {
           Sfx.hook();
           this.mode = "race";
+          if (this.falseStartFlag) this.session?.falseStart("me");
         }
       });
     });
@@ -529,7 +661,8 @@ export class RaceScene extends Phaser.Scene {
     const sx = (x: number) => ME_X + (x - cam) * PX;
     // chướng ngại trong tầm nhìn
     for (const o of s.track) {
-      const x = sx(o.x);
+      const st = obstacleAt(o, s.time);
+      const x = sx(st.x);
       const visible = x > -ex - 150 && x < 1280 + ex + 150;
       let img = this.obstacleImgs.get(o.id);
       if (!visible) {
@@ -546,6 +679,24 @@ export class RaceScene extends Phaser.Scene {
       img.setX(x);
       if (o.kind === "seaweed") img.setAngle(Math.sin((this.time.now + o.id * 300) / 300) * 4);
       if (o.kind === "current") img.setAlpha(0.6 + Math.sin(this.time.now / 150 + o.id) * 0.3);
+      if (o.kind === "shark") {
+        // cá mập bơi giữa các làn (vị trí làn liên tục)
+        const lp = st.lanePos;
+        const lo = Math.floor(lp);
+        const fr = lp - lo;
+        const y = LANE_Y[lo]! + ((LANE_Y[Math.min(2, lo + 1)] ?? LANE_Y[lo]!) - LANE_Y[lo]!) * fr;
+        img.setY(y + 26).setDepth(y - 1).setScale(0.75 + lp * 0.1);
+        img.setFlipX(Math.cos(((s.time + (o.phase ?? 0)) / (o.period ?? 2400)) * Math.PI * 2) < 0);
+        const warn = img.getData("warn") as Phaser.GameObjects.Text | undefined;
+        const near = st.x - s.player.x;
+        if (warn) warn.setPosition(x, y - 40).setVisible(near > 0 && near < 70 && Math.floor(this.time.now / 200) % 2 === 0);
+      }
+      if (o.kind === "jelly") {
+        const y = LANE_Y[o.lane]!;
+        img.setY(y + (st.active ? 0 : 34)).setAlpha(st.active ? 1 : 0.3).setScale(LANE_SCALE[o.lane]! * (st.active ? 1 : 0.8));
+      }
+      if (o.kind === "log") img.setAngle(Math.sin((this.time.now + o.id * 200) / 260) * 3);
+      if (o.kind === "whirl") img.setScale(LANE_SCALE[o.lane]! * (1 + Math.sin(this.time.now / 200) * 0.05));
     }
     const fx = sx(RACE.length);
     this.finishImg.setVisible(fx < 1280 + ex + 200).setX(fx);
@@ -568,7 +719,11 @@ export class RaceScene extends Phaser.Scene {
       const slowed = s.time < r.slowUntil;
       const k = LANE_SCALE[r.lane]!;
       const bob = Math.sin((this.time.now + v.r.id.length * 200) / (boosting ? 60 : 140)) * (boosting ? 5 : 3);
-      v.root.setPosition(sx(r.x), v.y + bob).setScale(k).setDepth(v.y + (r.id === "me" ? 0.5 : 0));
+      const jumping = s.isJumping(r);
+      const jp = jumping ? 1 - (r.jumpUntil! - s.time) / RACE.jumpMs : 0;
+      const lift = jumping ? Math.sin(jp * Math.PI) * 80 : 0;
+      v.root.setPosition(sx(r.x), v.y + bob - lift).setScale(k).setDepth(v.y + (r.id === "me" ? 0.5 : 0) + (jumping ? 20 : 0));
+      v.wake.setVisible(!jumping);
       v.fish.setAngle(Math.sin(this.time.now / (boosting ? 50 : 120)) * (slowed ? 10 : 4));
       v.rider.setAngle(boosting ? -8 : slowed ? 10 : -2);
       v.wake.setScale(0.6 + Math.min(1.6, r.v / 18), 1).setAlpha(slowed ? 0.2 : 0.55);
@@ -601,6 +756,20 @@ export class RaceScene extends Phaser.Scene {
     const k = LANE_SCALE[o.lane]!;
     if (o.kind === "seaweed") return this.add.image(0, y + 24, "race_weed").setOrigin(0.5, 0.92).setScale(k).setDepth(y - 1);
     if (o.kind === "rock") return this.add.image(0, y + 26, "race_rock").setOrigin(0.5, 0.9).setScale(k).setDepth(y - 1);
+    if (o.kind === "shark") {
+      const img = this.add.image(0, y + 26, "race_shark").setOrigin(0.5, 0.75).setDepth(y - 1);
+      const warn = txt(this, 0, y - 40, "⚠ 🦈", 22, { color: "#ff5252", align: "center" }).setOrigin(0.5).setDepth(1100).setVisible(false);
+      img.setData("warn", warn);
+      img.once(Phaser.GameObjects.Events.DESTROY, () => warn.destroy());
+      return img;
+    }
+    if (o.kind === "log") return this.add.image(0, y + 22, "race_log").setOrigin(0.5, 0.8).setScale(k).setDepth(y - 1);
+    if (o.kind === "jelly") return this.add.image(0, y, "race_jelly").setOrigin(0.5, 0.7).setScale(k).setDepth(y - 1);
+    if (o.kind === "whirl") {
+      const img = this.add.image(0, y + 18, "race_whirl").setScale(k).setDepth(y - 30);
+      this.tweens.add({ targets: img, angle: 360, duration: 1400, repeat: -1 });
+      return img;
+    }
     return this.add.image(0, y + 18, "race_current").setScale(k).setDepth(y - 30);
   }
 
@@ -629,6 +798,7 @@ export class RaceScene extends Phaser.Scene {
     this.placeT.setText(`Hạng ${place}/${s.racers.length}`);
     this.speedT.setText(`${Math.round(me.v * 3.6)} km/h · ${Math.max(0, Math.round(RACE.length - me.x))}m`);
     this.energyBar.set(me.energy / 100, me.energy >= 100 ? COLORS.gold : COLORS.purple);
+    this.jumpBtn.setDisabled(!s.canJump(me));
     const ready = s.canBoost(me);
     this.boostBtn.setDisabled(!ready);
     if (ready && !this.boostBtn.getData("pulse")) {
@@ -656,26 +826,62 @@ export class RaceScene extends Phaser.Scene {
     switch (e.type) {
       case "boost": {
         this.splash(v, 22, v.color);
+        if (mine && e.super) {
+          this.bigText("⚡ SIÊU TĂNG TỐC!! ⚡", "#80d8ff");
+          this.cameras.main.flash(300, 128, 216, 255);
+        }
         if (mine) {
           Sfx.skill();
           const c = v.color;
           this.cameras.main.flash(220, (c >> 16) & 255, (c >> 8) & 255, c & 255);
           this.cameras.main.shake(260, 0.006);
           this.tweens.add({ targets: this.cameras.main, zoom: 1.06, duration: 180, yoyo: true, hold: 900, ease: "Sine.easeOut" });
-          this.bigText("TĂNG TỐC!!", "#ffeb3b");
+          if (!e.super) this.bigText("TĂNG TỐC!!", "#ffeb3b");
           // vòng sóng xung kích
           const ring = this.add.circle(v.root.x, v.root.y, 30, c, 0).setStrokeStyle(8, c, 0.9).setDepth(950);
           this.tweens.add({ targets: ring, scale: 6, alpha: 0, duration: 600, onComplete: () => ring.destroy() });
         } else this.floatText(v, "🔥 Tăng tốc!", "#ffab40");
         break;
       }
-      case "hit":
-        this.splash(v, 14, 0xffffff);
+      case "hit": {
+        this.splash(v, 14, e.kind === "jelly" ? 0xea80fc : 0xffffff);
         if (mine) {
           Sfx.fail();
-          this.cameras.main.shake(220, e.kind === "rock" ? 0.012 : 0.006);
-          this.floatText(v, e.kind === "rock" ? "💥 Đâm đá!" : "🌿 Vướng rong!", "#ff8a80");
+          const heavy = e.kind !== "seaweed" && e.kind !== "jelly";
+          this.cameras.main.shake(heavy ? 300 : 200, heavy ? 0.014 : 0.006);
+          const label: Record<string, string> = {
+            rock: "💥 Đâm đá!",
+            seaweed: "🌿 Vướng rong!",
+            shark: "🦈 Bị cá mập đớp! −40 năng lượng",
+            log: "🪵 Đâm khúc gỗ!",
+            jelly: "⚡ Sứa chích! −25 năng lượng",
+            whirl: "🌀 Kẹt xoáy nước!",
+          };
+          this.floatText(v, label[e.kind] ?? "Va chạm!", "#ff8a80");
+          if (e.kind === "jelly") this.cameras.main.flash(150, 234, 128, 252);
+          if (e.kind === "whirl") this.tweens.add({ targets: v.fish, angle: 720, duration: 900 });
         }
+        break;
+      }
+      case "jump":
+        this.splash(v, 12, 0xffffff);
+        if (mine) Sfx.cast();
+        break;
+      case "dodge_jump":
+        if (mine) {
+          Sfx.crit();
+          this.floatText(v, `✨ Nhảy qua ${OBSTACLE_INFO[e.kind].name.toLowerCase()}!`, "#b9f6ca");
+        }
+        break;
+      case "perfect_start":
+        if (mine) {
+          Sfx.skill();
+          this.bigText("🚀 XUẤT PHÁT HOÀN HẢO!", "#69f0ae");
+          this.splash(v, 26, v.color);
+        }
+        break;
+      case "false_start":
+        if (mine) this.floatText(v, "😵 Xuất phát lỗi!", "#ff8a80");
         break;
       case "smash":
         this.splash(v, 18, 0x66bb6a);
@@ -734,16 +940,53 @@ export class RaceScene extends Phaser.Scene {
     const place = s.placeOf("me");
     const res = GameState.raceResult(this.entryTx, this.league, place);
     const reward = res.ok ? res.reward! : raceReward(this.league, place);
+    // ghi thành tích lên bục vinh danh toàn server
+    const me = s.player;
+    if (GameState.online && me.finishTime !== null) {
+      const league = this.league;
+      void Social.raceSubmitTime(league, me.finishTime, me.fishId, me.charId, GameState.equipOf(me.charId))
+        .then((rank) => {
+          this.records.delete(league);
+          if (rank !== null && rank <= 3) toast(this, `🏆 Bạn đứng hạng ${rank} trên Bục vinh danh ${RACE_LEAGUES[league].name}!`, COLORS.gold);
+        })
+        .catch(() => null);
+    }
     this.time.delayedCall(600, () => {
-      const m = modal(this, 760, 560, place === 1 ? "🏆 VÔ ĐỊCH!" : `🏁 Về đích hạng ${place}`, () => this.showSelect());
-      s.standings().forEach((r, i) => {
-        const y = m.y + 100 + i * 52;
+      this.hud.setVisible(false);
+      this.speedG.clear();
+      const m = modal(this, 900, 680, place === 1 ? "🏆 VÔ ĐỊCH!" : `🏁 Về đích hạng ${place}`, () => this.showSelect());
+      const order = s.standings();
+      const equipOf = (r: Racer) => (this.equips.get(r.id) ?? {}) as Partial<Record<string, string>>;
+      this.drawPodium(
+        m.root,
+        640,
+        m.y + 300,
+        1,
+        order.slice(0, 3).map((r) => ({
+          name: r.id === "me" ? "BẠN" : r.name,
+          charId: r.charId,
+          equip: equipOf(r),
+          fishId: r.fishId,
+          formId: r.formId,
+          label: r.finishTime !== null ? `${(r.finishTime / 1000).toFixed(2)}s` : "—",
+          mine: r.id === "me",
+        })),
+        true,
+      );
+      // pháo giấy mừng top 3
+      for (let i = 0; i < 40; i++) {
+        const cf = this.add.rectangle(Phaser.Math.Between(m.x + 40, m.x + m.w - 40), m.y + 60, 8, 12, Phaser.Utils.Array.GetRandom([0xff5252, 0xffd740, 0x69f0ae, 0x40c4ff, 0xea80fc]));
+        m.root.add(cf);
+        this.tweens.add({ targets: cf, y: m.y + Phaser.Math.Between(200, 380), angle: Phaser.Math.Between(-360, 360), alpha: 0, duration: Phaser.Math.Between(1200, 2200), delay: Phaser.Math.Between(0, 500) });
+      }
+      order.forEach((r, i) => {
+        const y = m.y + 372 + i * 42;
         const mine = r.id === "me";
         const def = FISH_BY_ID.get(r.fishId)!;
         const g = this.add.graphics();
-        g.fillStyle(mine ? 0x1e4d7a : 0x0a1628, 0.95).fillRoundedRect(m.x + 30, y - 22, m.w - 60, 46, 10);
+        g.fillStyle(mine ? 0x1e4d7a : 0x0a1628, 0.95).fillRoundedRect(m.x + 30, y - 19, m.w - 60, 38, 10);
         m.root.add(g);
-        m.root.add(this.add.image(m.x + 110, y, fishTextureFor(this, def, r.formId)).setDisplaySize(64, 40));
+        m.root.add(this.add.image(m.x + 110, y, fishTextureFor(this, def, r.formId)).setDisplaySize(54, 34));
         m.root.add(txt(this, m.x + 50, y, ["🥇", "🥈", "🥉", "4", "5"][i] ?? String(i + 1), 22).setOrigin(0.5));
         m.root.add(txt(this, m.x + 160, y, `${mine ? "⭐ BẠN" : r.name} · ${def.name} (${r.stats.grade})`, 17, { color: mine ? "#ffeb3b" : "#ffffff" }).setOrigin(0, 0.5));
         m.root.add(
@@ -751,9 +994,9 @@ export class RaceScene extends Phaser.Scene {
         );
       });
       const line = `Thưởng: ${reward.gold ? `🪙${formatNum(reward.gold)} ` : ""}${reward.diamonds ? `💎${reward.diamonds} ` : ""}✨${reward.xp} KN`;
-      m.root.add(txt(this, 640, m.y + m.h - 112, res.ok ? line : `⚠ ${res.error}`, 22, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
-      m.root.add(new Button(this, 520, m.y + m.h - 50, 220, 60, "🔁 Đua tiếp", { color: COLORS.green, fontSize: 22, onClick: () => m.close() }));
-      m.root.add(new Button(this, 760, m.y + m.h - 50, 200, 60, "Về sảnh", { color: COLORS.blue, fontSize: 22, onClick: () => goTo(this, "Hub") }));
+      m.root.add(txt(this, 640, m.y + m.h - 96, res.ok ? line : `⚠ ${res.error}`, 22, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+      m.root.add(new Button(this, 520, m.y + m.h - 44, 220, 56, "🔁 Đua tiếp", { color: COLORS.green, fontSize: 22, onClick: () => m.close() }));
+      m.root.add(new Button(this, 760, m.y + m.h - 44, 200, 56, "Về sảnh", { color: COLORS.blue, fontSize: 22, onClick: () => goTo(this, "Hub") }));
     });
   }
 

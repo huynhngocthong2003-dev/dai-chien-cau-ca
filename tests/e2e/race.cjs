@@ -72,7 +72,7 @@ const errs = [];
   if (s.gold !== 950 + prize || (s.stats.races ?? 0) !== 1) errs.push(`Thưởng sai: hạng ${place}, vàng ${s.gold}, races ${s.stats.races}`);
   else console.log(`• Về đích hạng ${place} – nhận ${prize} vàng, ghi sổ cái`);
   // 🔁 Đua tiếp → về màn chọn
-  await p.mouse.click(520, 80 + 560 - 50);
+  await p.mouse.click(520, 20 + 680 - 44);
   await p.waitForTimeout(700);
   const mode = await p.evaluate(() => window.__game.scene.getScene('Race').mode);
   if (mode !== 'select') errs.push('Không quay lại màn chọn: ' + mode);

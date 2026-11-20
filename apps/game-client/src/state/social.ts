@@ -581,3 +581,17 @@ export interface AdminUserDetail {
 }
 export const adminListUsers = async (q = "") => ((await rpc("admin_list_users", { p_query: q, p_limit: 500 })) as AdminUserRow[]) ?? [];
 export const adminUserDetail = async (id: string) => (await rpc("admin_user_detail", { p_user: id })) as AdminUserDetail;
+
+// ------------------------------------------------------------ Bục vinh danh Đua Cá
+export interface RaceRecord {
+  rank: number;
+  user_id: string;
+  name: string;
+  best_ms: number;
+  fish_id: string;
+  char_id: string;
+  equip: Partial<Record<string, string>>;
+}
+export const raceSubmitTime = async (league: RaceLeague, ms: number, fishId: string, charId: string, equip: Partial<Record<string, string>>) =>
+  ((await rpc("race_submit_time", { p_league: league, p_ms: Math.round(ms), p_fish: fishId, p_char: charId, p_equip: equip })) as number | null) ?? null;
+export const raceTop = async (league: RaceLeague, limit = 3) => ((await rpc("race_top", { p_league: league, p_limit: limit })) as RaceRecord[]) ?? [];

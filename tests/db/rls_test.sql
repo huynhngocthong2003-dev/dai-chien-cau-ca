@@ -518,3 +518,29 @@ do $$ begin
 end $$;
 reset role;
 select 'DB ADMIN USERS TEST OK' as result;
+
+-- ================= Bục vinh danh Đua Cá =================
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+do $$ begin
+  if public.race_submit_time('tap_su', 45000, 'f_ca_ro', 'c_be_tom', '{}') <> 1 then raise exception 'Người đầu phải hạng 1'; end if;
+  perform public.race_submit_time('tap_su', 50000, 'f_ca_ro', 'c_be_tom', '{}'); -- chậm hơn → không ghi đè
+  begin perform public.race_submit_time('tap_su', 3000, 'f_ca_ro', 'c_be_tom', '{}'); raise exception 'LỖI: nhận thời gian phi lý';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ begin
+  if public.race_submit_time('tap_su', 40000, 'f_ca_kiem', 'c_ninja', '{"skin":"s_samurai"}') <> 1 then raise exception 'Nhanh hơn phải lên hạng 1'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ declare t record; begin
+  if (select count(*) from public.race_top('tap_su')) <> 2 then raise exception 'Sai số người trên bục'; end if;
+  select * into t from public.race_top('tap_su') where rank = 1;
+  if t.name <> 'Bình' or t.best_ms <> 40000 then raise exception 'Sai người hạng 1: %', t; end if;
+  select * into t from public.race_top('tap_su') where rank = 2;
+  if t.best_ms <> 45000 then raise exception 'Thành tích tốt nhất bị ghi đè bằng lần chậm hơn'; end if;
+  begin insert into public.race_best (user_id, league, best_ms, fish_id, char_id) values ('33333333-3333-3333-3333-333333333333', 'tap_su', 12000, 'x', 'y'); raise exception 'LỖI: tự ghi kỷ lục';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'DB RACE RECORDS TEST OK' as result;

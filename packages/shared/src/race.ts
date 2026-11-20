@@ -102,6 +102,9 @@ export interface Racer {
   slowUntil: number;
   padUntil: number;
   finishTime: number | null;
+  /** Đang nhảy tới lúc nào / được nhảy lại từ lúc nào (ms). */
+  jumpUntil?: number;
+  jumpReadyAt?: number;
   hits: number;
   boosts: number;
 }
@@ -124,19 +127,40 @@ export function newRacer(id: string, name: string, fishId: string, formId: strin
   return { id, name, fishId, formId, charId, stats, aiSkill, lane: 1, x: 0, v: 0, energy: 30, boostUntil: 0, slowUntil: 0, padUntil: 0, finishTime: null, hits: 0, boosts: 0 };
 }
 
-export type ObstacleKind = "seaweed" | "rock" | "current";
+export type ObstacleKind = "seaweed" | "rock" | "current" | "shark" | "log" | "jelly" | "whirl";
 export interface Obstacle {
   id: number;
   x: number;
   lane: number;
   kind: ObstacleKind;
+  /** Chướng ngại chuyển động: pha + chu kỳ (ms) / tốc độ trôi (m/s). */
+  phase?: number;
+  period?: number;
+  speed?: number;
 }
 
+/** Chướng ngại nhảy qua được (cá mập thì không – nó đớp cả khi bạn nhảy!). */
+export const JUMPABLE: ReadonlySet<ObstacleKind> = new Set<ObstacleKind>(["seaweed", "rock", "log", "jelly", "whirl"]);
+
+export const OBSTACLE_INFO: Record<ObstacleKind, { name: string; tip: string }> = {
+  seaweed: { name: "Rong biển", tip: "Làm chậm – tăng tốc để xé toạc, hoặc nhảy qua" },
+  rock: { name: "Đá ngầm", tip: "Khựng mạnh, mất tăng tốc – né hoặc nhảy" },
+  current: { name: "Dòng xiết", tip: "Tăng tốc – bật TĂNG TỐC ngay trên dòng xiết để được SIÊU TĂNG TỐC" },
+  shark: { name: "Cá mập tuần tra", tip: "Bơi qua lại giữa các làn – KHÔNG nhảy qua được, canh lúc nó rời làn" },
+  log: { name: "Khúc gỗ trôi", tip: "Trôi ngược về phía bạn – nhảy đúng lúc" },
+  jelly: { name: "Sứa điện", tip: "Lúc nổi lúc chìm – chỉ chích khi đang nổi" },
+  whirl: { name: "Xoáy nước", tip: "Cuốn mạnh, gần như đứng yên – né hoặc nhảy" },
+};
+
 export type RaceEvent =
-  | { type: "boost"; racer: string }
-  | { type: "hit"; racer: string; kind: "seaweed" | "rock" }
+  | { type: "boost"; racer: string; super?: boolean }
+  | { type: "hit"; racer: string; kind: Exclude<ObstacleKind, "current"> }
   | { type: "smash"; racer: string }
   | { type: "pad"; racer: string }
+  | { type: "jump"; racer: string }
+  | { type: "dodge_jump"; racer: string; kind: ObstacleKind }
+  | { type: "perfect_start"; racer: string }
+  | { type: "false_start"; racer: string }
   | { type: "finish"; racer: string; place: number }
   | { type: "energy_full"; racer: string };
 
@@ -151,57 +175,108 @@ export const RACE = {
   energyPerStamina: 0.09,
   /** Đổi tốc độ hiển thị (m/s) từ chỉ số. */
   speedToMs: 0.45,
+  /** Nhảy: thời gian bay + hồi chiêu (ms). */
+  jumpMs: 620,
+  jumpCooldownMs: 1600,
+  /** Cửa sổ "xuất phát hoàn hảo" sau tiếng XUẤT PHÁT (ms). */
+  perfectStartMs: 350,
 };
 
-/** Đường đua: rong biển (chậm), đá (chậm nặng), dòng xiết (tăng tốc). */
-export function makeTrack(rng: Rng): Obstacle[] {
+/** Mật độ & thành phần chướng ngại theo giải: giải càng cao càng nhiều vật chuyển động. */
+const TRACK_MIX: Record<RaceLeague, { gap: [number, number]; w: Record<ObstacleKind, number>; double: number }> = {
+  tap_su: { gap: [62, 100], double: 0.3, w: { seaweed: 4, rock: 3, current: 2, log: 2, jelly: 1.5, shark: 1.2, whirl: 0.6 } },
+  chuyen_nghiep: { gap: [52, 86], double: 0.38, w: { seaweed: 3, rock: 3, current: 2, log: 2.5, jelly: 2, shark: 2, whirl: 1.2 } },
+  huyen_thoai: { gap: [44, 74], double: 0.45, w: { seaweed: 2, rock: 3, current: 2, log: 3, jelly: 2.5, shark: 3, whirl: 2 } },
+};
+
+/** Trạng thái chướng ngại tại thời điểm t (ms): vị trí, làn (cá mập: số thực 0..2), đang hoạt động không. */
+export function obstacleAt(o: Obstacle, t: number): { x: number; lane: number; lanePos: number; active: boolean } {
+  switch (o.kind) {
+    case "shark": {
+      const lanePos = 1 + Math.sin(((t + (o.phase ?? 0)) / (o.period ?? 2400)) * Math.PI * 2);
+      return { x: o.x, lane: Math.round(lanePos), lanePos, active: true };
+    }
+    case "log":
+      return { x: Math.max(30, o.x - ((o.speed ?? 6) * t) / 1000), lane: o.lane, lanePos: o.lane, active: true };
+    case "jelly": {
+      const p = o.period ?? 1800;
+      return { x: o.x, lane: o.lane, lanePos: o.lane, active: (t + (o.phase ?? 0)) % p < p * 0.55 };
+    }
+    default:
+      return { x: o.x, lane: o.lane, lanePos: o.lane, active: true };
+  }
+}
+
+/** Đường đua theo giải: rong, đá, dòng xiết, cá mập tuần tra, gỗ trôi, sứa điện, xoáy nước. */
+export function makeTrack(rng: Rng, league: RaceLeague = "tap_su"): Obstacle[] {
+  const mix = TRACK_MIX[league];
+  const kinds = Object.keys(mix.w) as ObstacleKind[];
   const out: Obstacle[] = [];
   let x = 140;
   let id = 0;
   while (x < RACE.length - 80) {
     const lane = rng.int(0, RACE.lanes - 1);
-    const kind = rng.pickWeighted<ObstacleKind>(["seaweed", "rock", "current"], (k) => (k === "seaweed" ? 4 : k === "rock" ? 3 : 2));
-    out.push({ id: id++, x, lane, kind });
-    // đôi khi chặn 2 làn cùng lúc
-    if (kind !== "current" && rng.chance(0.3)) out.push({ id: id++, x: x + rng.range(-6, 6), lane: (lane + rng.int(1, 2)) % RACE.lanes, kind: rng.chance(0.5) ? "seaweed" : "rock" });
-    x += rng.range(70, 120);
+    const kind = rng.pickWeighted(kinds, (k) => mix.w[k]);
+    const o: Obstacle = { id: id++, x, lane, kind };
+    if (kind === "shark") {
+      o.lane = 1;
+      o.phase = rng.int(0, 4000);
+      o.period = rng.int(1800, 3200);
+    } else if (kind === "log") {
+      o.speed = rng.range(4, 9);
+      o.x = x + o.speed * (x / 25); // trôi ngược về – xuất phát xa hơn để tới đúng khoảng đường
+    } else if (kind === "jelly") {
+      o.phase = rng.int(0, 2000);
+      o.period = rng.int(1400, 2200);
+    }
+    out.push(o);
+    // đôi khi chặn thêm 1 làn (không bao giờ chặn cả 3 làn cùng lúc; cá mập luôn đứng một mình)
+    if (kind !== "current" && kind !== "shark" && rng.chance(mix.double))
+      out.push({ id: id++, x: x + rng.range(-5, 5), lane: (lane + rng.int(1, 2)) % RACE.lanes, kind: rng.chance(0.5) ? "seaweed" : "rock" });
+    x += rng.range(mix.gap[0], mix.gap[1]) + (kind === "shark" ? 25 : 0);
   }
   return out;
 }
 
 /**
  * Mô phỏng một cuộc đua theo tick 50ms (tất định khi biết seed + chuỗi input).
- * Người chơi: đổi làn + tăng tốc. Máy: né chướng ngại theo kỹ năng, tăng tốc khi đầy năng lượng.
+ * Người chơi: đổi làn, NHẢY, TĂNG TỐC (+ xuất phát hoàn hảo, siêu tăng tốc trên dòng xiết).
+ * Máy: đoán trước vị trí chướng ngại chuyển động, né / nhảy theo kỹ năng, tăng tốc khi đầy năng lượng.
  */
 export class RaceSession {
   readonly racers: Racer[];
   readonly track: Obstacle[];
+  readonly league: RaceLeague;
   time = 0;
   over = false;
   private rng: Rng;
   private acc = 0;
   private events: RaceEvent[] = [];
   private passed = new Map<string, Set<number>>();
-  private aiPlan = new Map<string, Set<number>>();
+  private aiPlan = new Map<string, Map<number, "jump" | "lane" | "ignore">>();
   private finishedOrder: string[] = [];
   private endAt: number | null = null;
+  private started = new Set<string>();
 
   private readonly meId: string;
 
   /**
    * @param order thứ tự xuất phát (đua nhiều người: theo ô do máy chủ chia, để mọi máy có cùng làn xuất phát).
    */
-  constructor(player: Racer, opponents: Racer[], seed: number, order?: Racer[]) {
+  constructor(player: Racer, opponents: Racer[], seed: number, order?: Racer[], league: RaceLeague = "tap_su") {
     this.rng = new Rng(seed);
-    this.track = makeTrack(this.rng);
+    this.league = league;
+    this.track = makeTrack(this.rng, league);
     this.meId = player.id;
     this.racers = order ?? [player, ...opponents];
     // xếp làn xuất phát xen kẽ
     this.racers.forEach((r, i) => {
       r.lane = i % RACE.lanes;
       r.x = -i * 4; // xuất phát so le để không chồng lên nhau
+      r.jumpUntil = 0;
+      r.jumpReadyAt = 0;
       this.passed.set(r.id, new Set());
-      this.aiPlan.set(r.id, new Set());
+      this.aiPlan.set(r.id, new Map());
     });
   }
 
@@ -230,13 +305,31 @@ export class RaceSession {
     return r.stats.speed * RACE.speedToMs;
   }
 
-  /** Đổi làn (−1 lên, +1 xuống). */
+  /** Đổi làn (−1 lên, +1 xuống). Đang bay thì không đổi được. */
   changeLane(id: string, dir: -1 | 1): boolean {
     const r = this.racers.find((x) => x.id === id);
-    if (!r || r.finishTime !== null || this.over) return false;
+    if (!r || r.finishTime !== null || this.over || this.isJumping(r)) return false;
     const lane = Math.min(RACE.lanes - 1, Math.max(0, r.lane + dir));
     if (lane === r.lane) return false;
     r.lane = lane;
+    return true;
+  }
+
+  isJumping(r: Racer): boolean {
+    return this.time < (r.jumpUntil ?? 0);
+  }
+
+  canJump(r: Racer): boolean {
+    return r.finishTime === null && this.time >= (r.jumpReadyAt ?? 0) && !this.isJumping(r);
+  }
+
+  /** NHẢY qua chướng ngại phía trước (có hồi chiêu). */
+  jump(id: string): boolean {
+    const r = this.racers.find((x) => x.id === id);
+    if (!r || this.over || !this.canJump(r)) return false;
+    r.jumpUntil = this.time + RACE.jumpMs;
+    r.jumpReadyAt = this.time + RACE.jumpCooldownMs;
+    this.events.push({ type: "jump", racer: r.id });
     return true;
   }
 
@@ -246,14 +339,32 @@ export class RaceSession {
 
   boost(id: string): boolean {
     const r = this.racers.find((x) => x.id === id);
-    if (!r || !this.canBoost(r) || this.over) return false;
+    if (!r || this.over) return false;
+    // xuất phát hoàn hảo: bấm đúng lúc vừa XUẤT PHÁT (chỉ 1 lần)
+    if (this.time <= RACE.perfectStartMs && !this.started.has(r.id)) {
+      this.started.add(r.id);
+      r.v = this.topSpeed(r) * 0.75;
+      this.events.push({ type: "perfect_start", racer: r.id });
+      return true;
+    }
+    if (!this.canBoost(r)) return false;
+    const onPad = this.time < r.padUntil;
     r.energy = 0;
-    r.boostUntil = this.time + RACE.boostMs + r.stats.stamina * 8;
-    r.v += this.topSpeed(r) * 0.2;
+    r.boostUntil = this.time + RACE.boostMs + r.stats.stamina * 8 + (onPad ? 1200 : 0);
+    r.v += this.topSpeed(r) * (onPad ? 0.35 : 0.2);
     r.slowUntil = 0;
     r.boosts++;
-    this.events.push({ type: "boost", racer: r.id });
+    this.events.push({ type: "boost", racer: r.id, super: onPad });
     return true;
+  }
+
+  /** Bấm tăng tốc khi chưa xuất phát → khựng lại lúc xuất phát. */
+  falseStart(id: string) {
+    const r = this.racers.find((x) => x.id === id);
+    if (!r || this.started.has(r.id)) return;
+    this.started.add(r.id);
+    r.slowUntil = 900;
+    this.events.push({ type: "false_start", racer: r.id });
   }
 
   update(dtMs: number) {
@@ -278,8 +389,30 @@ export class RaceSession {
     return this.standings().findIndex((r) => r.id === id) + 1;
   }
 
+  /**
+   * Chướng ngại nguy hiểm gần nhất phía trước ở 1 làn, ĐOÁN TRƯỚC theo thời điểm sẽ tới
+   * (cá mập đổi làn, gỗ trôi lại gần, sứa nổi/chìm). Dùng cho máy và gợi ý.
+   */
+  hazardAhead(r: Racer, lane: number, lookM: number): { o: Obstacle; dist: number } | null {
+    let best: { o: Obstacle; dist: number } | null = null;
+    const v = Math.max(4, r.v);
+    for (const o of this.track) {
+      if (o.kind === "current" || this.passed.get(r.id)!.has(o.id)) continue;
+      const now = obstacleAt(o, this.time);
+      if (now.x < r.x - 2) continue;
+      const closing = v + (o.kind === "log" ? (o.speed ?? 6) : 0);
+      const dist = now.x - r.x;
+      if (dist > lookM) continue;
+      const at = obstacleAt(o, this.time + (dist / closing) * 1000);
+      if (at.lane !== lane || !at.active) continue;
+      if (!best || dist < best.dist) best = { o, dist };
+    }
+    return best;
+  }
+
   private tick() {
     const dt = RACE.tickMs / 1000;
+    const tPrev = this.time;
     this.time += RACE.tickMs;
     for (const r of this.racers) {
       if (r.remote) continue;
@@ -306,27 +439,40 @@ export class RaceSession {
       r.v += (target - r.v) * k;
       const x0 = r.x;
       r.x += r.v * dt;
-      // va chạm chướng ngại khi đi qua
+      const airborne = this.isJumping(r);
+      // va chạm: đi qua vị trí chướng ngại trong tick này (tính cả vật chuyển động)
       for (const o of this.track) {
-        if (o.lane !== r.lane || o.x <= x0 || o.x > r.x) continue;
         const seen = this.passed.get(r.id)!;
         if (seen.has(o.id)) continue;
+        const a = obstacleAt(o, tPrev);
+        const b = obstacleAt(o, this.time);
+        if (!(a.x - x0 > 0 && b.x - r.x <= 0)) continue;
         seen.add(o.id);
+        if (b.lane !== r.lane || !b.active) continue;
         if (o.kind === "current") {
+          if (airborne) continue; // bay qua thì lỡ dòng xiết
           r.padUntil = this.time + 1300;
           this.events.push({ type: "pad", racer: r.id });
-        } else if (boosting && o.kind === "seaweed") {
+          continue;
+        }
+        if (airborne && JUMPABLE.has(o.kind)) {
+          this.events.push({ type: "dodge_jump", racer: r.id, kind: o.kind });
+          continue;
+        }
+        if (boosting && o.kind === "seaweed") {
           // đang tăng tốc thì xé toạc rong biển
           this.events.push({ type: "smash", racer: r.id });
-        } else {
-          r.hits++;
-          r.slowUntil = this.time + (o.kind === "rock" ? 1100 : 750);
-          if (o.kind === "rock") {
-            r.v *= 0.45;
-            r.boostUntil = Math.min(r.boostUntil, this.time);
-          }
-          this.events.push({ type: "hit", racer: r.id, kind: o.kind });
+          continue;
         }
+        r.hits++;
+        const heavy = o.kind === "rock" || o.kind === "shark" || o.kind === "whirl" || o.kind === "log";
+        r.slowUntil = this.time + (o.kind === "whirl" ? 1500 : o.kind === "shark" ? 1300 : heavy ? 1100 : 800);
+        if (heavy) {
+          r.v *= o.kind === "whirl" ? 0.2 : o.kind === "shark" ? 0.3 : 0.45;
+          r.boostUntil = Math.min(r.boostUntil, this.time);
+        }
+        if (o.kind === "shark" || o.kind === "jelly") r.energy = Math.max(0, r.energy - (o.kind === "shark" ? 40 : 25));
+        this.events.push({ type: "hit", racer: r.id, kind: o.kind });
       }
       if (r.x >= RACE.length) {
         r.finishTime = this.time;
@@ -341,26 +487,34 @@ export class RaceSession {
     if (this.time > 180_000) this.over = true;
   }
 
-  /** Máy: thấy chướng ngại phía trước trong làn → né (theo kỹ năng); thấy dòng xiết làn bên → có thể rẽ vào. */
+  /** Máy: đoán trước chướng ngại (kể cả vật chuyển động) → nhảy hoặc đổi làn theo kỹ năng; xuất phát đẹp; tăng tốc. */
   private aiThink(r: Racer) {
     const skill = r.aiSkill ?? 0;
-    const look = 25 + r.v * 1.1;
+    if (!this.started.has(r.id)) {
+      this.started.add(r.id);
+      if (this.rng.chance(skill * 0.5)) r.v = this.topSpeed(r) * 0.6;
+    }
     const plan = this.aiPlan.get(r.id)!;
-    const ahead = this.track.filter((o) => o.x > r.x && o.x < r.x + look);
-    const danger = ahead.find((o) => o.lane === r.lane && o.kind !== "current" && !plan.has(o.id));
-    if (danger) {
-      plan.add(danger.id);
-      if (this.rng.chance(skill)) {
-        const blocked = (lane: number) => ahead.some((o) => o.lane === lane && o.kind !== "current");
-        const options = [r.lane - 1, r.lane + 1].filter((l) => l >= 0 && l < RACE.lanes && !blocked(l));
-        if (options.length) r.lane = pick(this.rng, options);
+    const look = 20 + r.v * 1.0;
+    const h = this.hazardAhead(r, r.lane, look);
+    if (h) {
+      let choice = plan.get(h.o.id);
+      if (!choice) {
+        choice = !this.rng.chance(skill) ? "ignore" : JUMPABLE.has(h.o.kind) && this.rng.chance(0.55) ? "jump" : "lane";
+        plan.set(h.o.id, choice);
+        if (choice === "lane") {
+          const options = [r.lane - 1, r.lane + 1].filter((l) => l >= 0 && l < RACE.lanes && !this.hazardAhead(r, l, look));
+          if (options.length) r.lane = pick(this.rng, options);
+          else if (JUMPABLE.has(h.o.kind)) plan.set(h.o.id, "jump");
+        }
       }
+      // nhảy đúng lúc: khi còn ~0,3 giây tới chướng ngại
+      if (plan.get(h.o.id) === "jump" && h.dist < Math.max(4, r.v * 0.32) && this.canJump(r)) this.jump(r.id);
     } else {
-      const padAhead = ahead.find((o) => o.kind === "current" && Math.abs(o.lane - r.lane) === 1 && !plan.has(o.id));
+      const padAhead = this.track.find((o) => o.kind === "current" && o.x > r.x && o.x < r.x + look && Math.abs(o.lane - r.lane) === 1 && !plan.has(o.id));
       if (padAhead) {
-        plan.add(padAhead.id);
-        const safe = !ahead.some((o) => o.lane === padAhead.lane && o.kind !== "current" && o.x < padAhead.x);
-        if (safe && this.rng.chance(skill * 0.6)) r.lane = padAhead.lane;
+        plan.set(padAhead.id, "lane");
+        if (!this.hazardAhead(r, padAhead.lane, padAhead.x - r.x) && this.rng.chance(skill * 0.6)) r.lane = padAhead.lane;
       }
     }
     if (this.canBoost(r) && this.rng.chance(0.02 + skill * 0.03)) this.boost(r.id);
