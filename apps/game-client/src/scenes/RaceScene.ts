@@ -5,6 +5,13 @@ import {
   RACE,
   RACE_LEAGUES,
   OBSTACLE_INFO,
+  RACE_ITEM_INFO,
+  RACE_MAPS,
+  RACE_MAP_IDS,
+  mapFromSeed,
+  sectionIndex,
+  type RaceItem,
+  type RaceMapId,
   RaceSession,
   Rng,
   obstacleAt,
@@ -23,7 +30,25 @@ import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
 import { safeEquip } from "../ui/playerProfile.ts";
 import { canvasTexture, characterHeadTexture, characterTexture, fishTextureFor } from "../art/textures.ts";
-import { drawCurrent, drawFinish, drawJelly, drawLog, drawRaceFar, drawRaceSky, drawRock, drawSeaweed, drawShark, drawWhirl } from "../art/RaceArt.ts";
+import {
+  RACE_THEMES,
+  drawCurrent,
+  drawDriftArrow,
+  drawFinish,
+  drawGeyser,
+  drawJelly,
+  drawLavaColumn,
+  drawLightning,
+  drawLog,
+  drawRock,
+  drawSeaweed,
+  drawShark,
+  drawTentacle,
+  drawThemeFar,
+  drawThemeSky,
+  drawWhirl,
+  type RaceTheme,
+} from "../art/RaceArt.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -55,6 +80,7 @@ interface RacerView {
   rider: Phaser.GameObjects.Image;
   wake: Phaser.GameObjects.Ellipse;
   aura: Phaser.GameObjects.Ellipse;
+  shield: Phaser.GameObjects.Ellipse;
   tag: Phaser.GameObjects.Text;
   color: number;
   y: number;
@@ -72,8 +98,20 @@ export class RaceScene extends Phaser.Scene {
   private session: RaceSession | null = null;
   private entryTx: string | null = null;
   private views: RacerView[] = [];
-  private obstacleImgs = new Map<number, Phaser.GameObjects.Image>();
+  private obstacleImgs = new Map<number, Phaser.GameObjects.Image | Phaser.GameObjects.Container | Phaser.GameObjects.TileSprite>();
   private far!: Phaser.GameObjects.TileSprite;
+  private skyImg?: Phaser.GameObjects.Image;
+  private theme!: RaceTheme;
+  private themeKey = "";
+  private weatherFx?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private fogG!: Phaser.GameObjects.Graphics;
+  private inkG!: Phaser.GameObjects.Graphics;
+  /** Bản đồ chọn ở màn chọn ("random" = ngẫu nhiên) và bản đồ đang đua. */
+  private mapChoice: RaceMapId | "random" = "random";
+  private mapId: RaceMapId = "song_que";
+  private secIdx = 0;
+  private itemBtn!: Button;
+  private pickedBoxes = new Set<number>();
   private lanesG!: Phaser.GameObjects.Graphics;
   private speedG!: Phaser.GameObjects.Graphics;
   private finishImg!: Phaser.GameObjects.Image;
@@ -114,14 +152,18 @@ export class RaceScene extends Phaser.Scene {
     this.entryTx = null;
     this.views = [];
     this.obstacleImgs = new Map();
+    this.pickedBoxes = new Set();
+    this.secIdx = 0;
+    this.skyImg = undefined;
+    this.themeKey = "";
   }
 
   create() {
     this.input.enabled = true;
     fadeIn(this);
-    this.add.image(0, 0, canvasTexture(this, "race_sky", 1280, 720, drawRaceSky)).setOrigin(0).setDepth(-20);
-    const ex = extraX(this);
-    this.far = this.add.tileSprite(-ex, 220, 1280 + 2 * ex, 150, canvasTexture(this, "race_far", 1280, 150, drawRaceFar)).setOrigin(0).setDepth(-15);
+    this.fogG = this.add.graphics().setDepth(930);
+    this.inkG = this.add.graphics().setDepth(960);
+    this.applyTheme(this.mapChoice === "random" ? "song_que" : this.mapChoice, 0, true);
     this.lanesG = this.add.graphics().setDepth(-5);
     this.speedG = this.add.graphics().setDepth(900);
     this.finishImg = this.add.image(0, 300, canvasTexture(this, "race_finish", 160, 340, drawFinish)).setOrigin(0.5, 0).setDepth(380).setVisible(false);
@@ -132,6 +174,11 @@ export class RaceScene extends Phaser.Scene {
     canvasTexture(this, "race_log", 140, 56, drawLog);
     canvasTexture(this, "race_jelly", 80, 96, drawJelly);
     canvasTexture(this, "race_whirl", 130, 60, drawWhirl);
+    canvasTexture(this, "race_lava", 90, 230, drawLavaColumn);
+    canvasTexture(this, "race_bolt", 90, 270, drawLightning);
+    canvasTexture(this, "race_tentacle", 100, 180, drawTentacle);
+    canvasTexture(this, "race_geyser", 120, 60, drawGeyser);
+    canvasTexture(this, "race_drift", 80, 80, drawDriftArrow);
     this.drawLanes(0);
     new TopBar(this, { title: "Đua Cá", onBack: () => (this.mode === "race" || this.mode === "countdown" ? this.confirmQuit() : goTo(this, "Hub")) });
     this.buildHud();
@@ -221,6 +268,25 @@ export class RaceScene extends Phaser.Scene {
     });
     c.add(txt(this, 1130, y0 + 4, `Hạng ${pick.stats.grade}`, 28, { color: GRADE_COLOR[pick.stats.grade], align: "center" }).setOrigin(0.5, 0));
     const L = RACE_LEAGUES[this.league];
+    // chọn bản đồ
+    const maps: (RaceMapId | "random")[] = ["random", ...RACE_MAP_IDS];
+    maps.forEach((id, i) => {
+      const mp = id === "random" ? null : RACE_MAPS[id];
+      const locked = !!mp && s.level < mp.minLevel;
+      const b = new Button(this, 512 + i * 134, 486, 128, 46, mp ? `${mp.icon} ${mp.name}` : "🎲 Ngẫu nhiên", {
+        color: id === this.mapChoice ? COLORS.orange : COLORS.panelLight,
+        fontSize: 14,
+        disabled: locked,
+        onClick: () => {
+          this.mapChoice = id;
+          this.applyTheme(id === "random" ? "song_que" : id, 0, false);
+          this.showSelect();
+          if (mp) toast(this, `${mp.icon} ${mp.name}: ${mp.description}`);
+        },
+      });
+      if (locked && mp) b.on("disabled-click", () => toast(this, `Cần cấp ${mp.minLevel} để đua ở ${mp.name}`, COLORS.red));
+      c.add(b);
+    });
     c.add(txt(this, 1130, y0 + 50, `${L.name} · phí ${formatNum(L.fee)} vàng`, 14, { align: "center", weight: "700" }).setOrigin(0.5));
     c.add(new Button(this, 1130, y0 + 92, 230, 56, "🤖 ĐUA VỚI MÁY", { color: COLORS.green, fontSize: 21, onClick: () => this.start(null) }));
     c.add(new Button(this, 1130, y0 + 154, 230, 56, "👥 ĐUA VỚI NGƯỜI", { color: COLORS.orange, fontSize: 21, onClick: () => void this.findPlayers() }));
@@ -345,6 +411,7 @@ export class RaceScene extends Phaser.Scene {
       return toast(this, (e as Error).message, COLORS.red);
     }
     const m = modal(this, 620, 380, "👥 Tìm người chơi", () => this.stopMatchmaking(true));
+    m.root.setDepth(2000); // trên panel chọn (1000) và HUD
     this.matchModal = m;
     const status = txt(this, 640, m.y + 120, "Đang tìm đối thủ…", 22, { align: "center" }).setOrigin(0.5);
     const timer = txt(this, 640, m.y + 170, "", 18, { align: "center", weight: "700", color: COLORS.textDim }).setOrigin(0.5);
@@ -431,14 +498,20 @@ export class RaceScene extends Phaser.Scene {
         return { ...newRacer(mb.user_id, r.name ?? "Người chơi", r.fishId, r.formId ?? null, r.charId, r.stats, null), remote: true };
       });
       const ai = makeRaceOpponents(this.league, FISHES, chars, new Rng(room.seed), Math.max(0, 5 - humans.length));
-      this.session = new RaceSession(me, [], room.seed, [...humans, ...ai], this.league);
+      this.mapId = mapFromSeed(room.seed);
+      this.session = new RaceSession(me, [], room.seed, [...humans, ...ai], this.league, this.mapId);
     } else {
       const seed = randomSeed();
       const rng = new Rng(seed);
-      this.session = new RaceSession(me, makeRaceOpponents(this.league, FISHES, chars, rng, 4), seed, undefined, this.league);
+      const open = RACE_MAP_IDS.filter((id) => GameState.save.level >= RACE_MAPS[id].minLevel);
+      this.mapId = this.mapChoice === "random" ? open[rng.int(0, open.length - 1)]! : this.mapChoice;
+      this.session = new RaceSession(me, makeRaceOpponents(this.league, FISHES, chars, rng, 4), seed, undefined, this.league, this.mapId);
     }
     this.selectC?.destroy();
     this.selectC = undefined;
+    this.secIdx = 0;
+    this.pickedBoxes = new Set();
+    this.applyTheme(this.mapId, 0, true);
     this.buildRacers();
     this.hud.setVisible(true);
     if (room) {
@@ -461,6 +534,7 @@ export class RaceScene extends Phaser.Scene {
       const root = this.add.container(0, 0);
       const color = ELEMENT_COLOR[def.element] ?? 0x40c4ff;
       const aura = this.add.ellipse(0, 6, 210, 70, color, 0).setBlendMode(Phaser.BlendModes.ADD);
+      const shield = this.add.ellipse(0, -30, 200, 170, 0x80d8ff, 0.18).setStrokeStyle(4, 0xe1f5fe, 0.9).setVisible(false);
       const wake = this.add.ellipse(-70, 12, 120, 22, 0xffffff, 0.55);
       const fish = this.add.image(0, 0, fishTextureFor(this, def, r.formId)).setDisplaySize(170, 106);
       const ch = CHARACTER_BY_ID.get(r.charId) ?? CHARACTER_BY_ID.get("c_be_tom")!;
@@ -472,8 +546,8 @@ export class RaceScene extends Phaser.Scene {
         align: "center",
         color: r.id === "me" ? "#ffeb3b" : r.remote ? "#80d8ff" : "#ffffff",
       }).setOrigin(0.5);
-      root.add([aura, wake, fish, rider, tag]);
-      this.views.push({ r, root, fish, rider, wake, aura, tag, color, y: LANE_Y[r.lane]!, ghostT: 0 });
+      root.add([aura, wake, fish, rider, tag, shield]);
+      this.views.push({ r, root, fish, rider, wake, aura, tag, shield, color, y: LANE_Y[r.lane]!, ghostT: 0 });
     }
   }
 
@@ -484,7 +558,7 @@ export class RaceScene extends Phaser.Scene {
     // vệt sóng chạy ngược để tạo cảm giác tốc độ
     for (let l = 0; l < 4; l++) {
       const y = 395 + l * 90;
-      g.lineStyle(4, 0xffffff, 0.35);
+      g.lineStyle(4, this.theme?.foam ?? 0xffffff, 0.35);
       for (let x = -ex - ((scroll * PX) % 80); x < 1280 + ex; x += 80) g.lineBetween(x, y, x + 44, y);
     }
     g.fillStyle(0xffffff, 0.12);
@@ -492,6 +566,69 @@ export class RaceScene extends Phaser.Scene {
       const x = ((i * 157 - scroll * PX * 1.3) % (1280 + 2 * ex)) + (1280 + 2 * ex);
       g.fillEllipse((x % (1280 + 2 * ex)) - ex, 360 + ((i * 53) % 340), 40, 6);
     }
+  }
+
+  /** Đổi khung cảnh theo bản đồ/chặng (chuyển cảnh mờ dần), thời tiết đi kèm. */
+  private applyTheme(map: RaceMapId, idx: number, instant: boolean) {
+    const key = `${map}_${idx}`;
+    if (key === this.themeKey) return;
+    this.themeKey = key;
+    const t = RACE_THEMES[map]![idx]!;
+    this.theme = t;
+    const ex = extraX(this);
+    const sky = this.add
+      .image(-ex, 0, canvasTexture(this, `race_sky_${key}`, 1280, 720, (ctx) => drawThemeSky(ctx, t)))
+      .setOrigin(0)
+      .setDisplaySize(1280 + 2 * ex, 720)
+      .setDepth(-20);
+    const far = this.add
+      .tileSprite(-ex, 220, 1280 + 2 * ex, 150, canvasTexture(this, `race_far_${key}`, 1280, 150, (ctx) => drawThemeFar(ctx, t)))
+      .setOrigin(0)
+      .setDepth(-15);
+    const oldSky = this.skyImg;
+    const oldFar = this.far as Phaser.GameObjects.TileSprite | undefined;
+    if (oldFar) far.tilePositionX = oldFar.tilePositionX;
+    this.skyImg = sky;
+    this.far = far;
+    if (instant || !oldSky) {
+      oldSky?.destroy();
+      oldFar?.destroy();
+    } else {
+      sky.setAlpha(0).setDepth(-19);
+      far.setAlpha(0).setDepth(-14);
+      this.tweens.add({
+        targets: [sky, far],
+        alpha: 1,
+        duration: 1100,
+        onComplete: () => {
+          oldSky.destroy();
+          oldFar?.destroy();
+          sky.setDepth(-20);
+          far.setDepth(-15);
+        },
+      });
+    }
+    this.setWeather(t);
+  }
+
+  private setWeather(t: RaceTheme) {
+    this.weatherFx?.destroy();
+    this.weatherFx = undefined;
+    const ex = extraX(this);
+    const X = { min: -ex, max: 1280 + ex };
+    const cfg: Record<string, [string, Phaser.Types.GameObjects.Particles.ParticleEmitterConfig] | null> = {
+      none: null,
+      leaves: ["p_spark", { x: X, y: -10, speedY: { min: 40, max: 90 }, speedX: { min: -220, max: -120 }, lifespan: 7000, frequency: 160, scale: { min: 0.4, max: 0.7 }, tint: [0x81c784, 0xaed581, 0xffd54f], rotate: { min: 0, max: 360 } }],
+      bubbles: ["p_bubble", { x: X, y: 730, speedY: { min: -120, max: -60 }, speedX: { min: -60, max: 20 }, lifespan: 6000, frequency: 120, scale: { min: 0.6, max: 1.3 }, alpha: { start: 0.8, end: 0.2 } }],
+      snow: ["p_spark", { x: X, y: -10, speedY: { min: 60, max: 140 }, speedX: { min: -220, max: -80 }, lifespan: 6000, frequency: 30, scale: { min: 0.25, max: 0.6 }, tint: 0xffffff }],
+      ash: ["p_spark", { x: X, y: -10, speedY: { min: 40, max: 90 }, speedX: { min: -160, max: -60 }, lifespan: 7000, frequency: 40, scale: { min: 0.3, max: 0.6 }, tint: [0x9e9e9e, 0x616161], alpha: { start: 0.8, end: 0.3 } }],
+      rain: ["p_drop", { x: X, y: -10, speedY: { min: 800, max: 1000 }, speedX: { min: -260, max: -200 }, lifespan: 900, frequency: 10, scale: { min: 0.5, max: 0.9 }, alpha: 0.6 }],
+      embers: ["p_ember", { x: X, y: 730, speedY: { min: -180, max: -80 }, speedX: { min: -120, max: 40 }, lifespan: 4000, frequency: 70, scale: { min: 1, max: 2 }, tint: [0xff6d00, 0xffab00, 0xff1744], blendMode: Phaser.BlendModes.ADD }],
+      spray: ["p_drop", { x: X, y: 730, speedY: { min: -360, max: -200 }, speedX: { min: -200, max: -80 }, gravityY: 500, lifespan: 1600, frequency: 60, scale: { min: 0.4, max: 0.8 }, alpha: 0.7 }],
+    };
+    const c = cfg[t.weather];
+    if (!c) return;
+    this.weatherFx = this.add.particles(0, 0, c[0], c[1]).setDepth(940);
   }
 
   // ------------------------------------------------------------------ HUD
@@ -513,7 +650,8 @@ export class RaceScene extends Phaser.Scene {
     this.boostBtn = new Button(this, 1150, 630, 210, 100, "TĂNG TỐC", { color: COLORS.purple, fontSize: 28, sub: "Shift / E", onClick: () => this.doBoost() });
     this.jumpBtn = new Button(this, 1150, 470, 210, 90, "NHẢY", { color: COLORS.orange, fontSize: 30, sub: "Space", onClick: () => this.doJump() });
     this.energyBar = new Bar(this, 1050, 560, 200, 16, COLORS.purple, "");
-    c.add([up, down, this.boostBtn, this.energyBar, this.jumpBtn]);
+    this.itemBtn = new Button(this, 80, 340, 110, 100, "—", { color: COLORS.panelLight, fontSize: 40, sub: "DÙNG (Q)", onClick: () => this.doItem() });
+    c.add([up, down, this.boostBtn, this.energyBar, this.jumpBtn, this.itemBtn]);
   }
 
   private setupInput() {
@@ -528,6 +666,8 @@ export class RaceScene extends Phaser.Scene {
     });
     kb?.on("keydown-SHIFT", () => this.doBoost());
     kb?.on("keydown-E", () => this.doBoost());
+    kb?.on("keydown-Q", () => this.doItem());
+    kb?.on("keydown-F", () => this.doItem());
     // vuốt lên/xuống trên mặt nước để đổi làn
     this.input.on("pointerdown", (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       Sfx.unlock();
@@ -544,6 +684,12 @@ export class RaceScene extends Phaser.Scene {
   private lane(dir: -1 | 1) {
     if (this.mode !== "race" || !this.session) return;
     if (this.session.changeLane("me", dir)) Sfx.cast();
+  }
+
+  private doItem() {
+    if (this.mode !== "race" || !this.session) return;
+    if (!this.session.player.item) return toast(this, "Chưa có đồ – đi qua 🎁 hộp may mắn để nhặt!");
+    this.session.useItem("me");
   }
 
   private doJump() {
@@ -568,7 +714,12 @@ export class RaceScene extends Phaser.Scene {
     this.mode = "countdown";
     this.falseStartFlag = false;
     this.layoutRace();
-    const tip = txt(this, 640, 400, "Mẹo: bấm TĂNG TỐC đúng lúc \"XUẤT PHÁT!\" để vọt lên · Space để NHẢY qua đá, gỗ, sứa, xoáy · 🦈 cá mập phải né!", 17, {
+    const mp = RACE_MAPS[this.mapId];
+    const banner = txt(this, 640, 200, `${mp.icon} ${mp.name}\n${mp.sections[0].name} → ${mp.sections[1].name} → ${mp.sections[2].name}`, 26, { align: "center", color: "#ffe082" })
+      .setOrigin(0.5)
+      .setDepth(1500);
+    this.time.delayedCall(3400, () => banner.destroy());
+    const tip = txt(this, 640, 400, "Mẹo: TĂNG TỐC đúng lúc \"XUẤT PHÁT!\" · Space NHẢY · Q dùng đồ 🎁 · 🦈🐙🔥 không nhảy qua được – phải né!", 17, {
       align: "center",
       weight: "700",
       wrap: 900,
@@ -663,7 +814,8 @@ export class RaceScene extends Phaser.Scene {
     for (const o of s.track) {
       const st = obstacleAt(o, s.time);
       const x = sx(st.x);
-      const visible = x > -ex - 150 && x < 1280 + ex + 150;
+      const w = o.kind === "drift" ? (o.len ?? 50) * PX : 0;
+      const visible = x + w > -ex - 150 && x < 1280 + ex + 150;
       let img = this.obstacleImgs.get(o.id);
       if (!visible) {
         if (img) {
@@ -686,7 +838,7 @@ export class RaceScene extends Phaser.Scene {
         const fr = lp - lo;
         const y = LANE_Y[lo]! + ((LANE_Y[Math.min(2, lo + 1)] ?? LANE_Y[lo]!) - LANE_Y[lo]!) * fr;
         img.setY(y + 26).setDepth(y - 1).setScale(0.75 + lp * 0.1);
-        img.setFlipX(Math.cos(((s.time + (o.phase ?? 0)) / (o.period ?? 2400)) * Math.PI * 2) < 0);
+        if (img instanceof Phaser.GameObjects.Image) img.setFlipX(Math.cos(((s.time + (o.phase ?? 0)) / (o.period ?? 2400)) * Math.PI * 2) < 0);
         const warn = img.getData("warn") as Phaser.GameObjects.Text | undefined;
         const near = st.x - s.player.x;
         if (warn) warn.setPosition(x, y - 40).setVisible(near > 0 && near < 70 && Math.floor(this.time.now / 200) % 2 === 0);
@@ -697,6 +849,33 @@ export class RaceScene extends Phaser.Scene {
       }
       if (o.kind === "log") img.setAngle(Math.sin((this.time.now + o.id * 200) / 260) * 3);
       if (o.kind === "whirl") img.setScale(LANE_SCALE[o.lane]! * (1 + Math.sin(this.time.now / 200) * 0.05));
+      if (o.kind === "drift" && img instanceof Phaser.GameObjects.TileSprite) img.tilePositionY -= (o.dir ?? 1) * 2.5;
+      if (o.kind === "box" && img instanceof Phaser.GameObjects.Container) {
+        img.setY(LANE_Y[o.lane]! - 6 + Math.sin((this.time.now + o.id * 170) / 220) * 5).setAlpha(this.pickedBoxes.has(o.id) ? 0.2 : 1);
+        (img.list[0] as Phaser.GameObjects.Graphics | undefined)?.setAngle(Math.sin(this.time.now / 300) * 8);
+      }
+      if ((o.kind === "eruption" || o.kind === "tentacle") && img instanceof Phaser.GameObjects.Container) {
+        const [glow, body] = img.list as [Phaser.GameObjects.Ellipse, Phaser.GameObjects.Image];
+        glow.setVisible(st.warn || st.active).setAlpha(st.warn ? 0.4 + (Math.floor(this.time.now / 120) % 2) * 0.4 : 0.7);
+        if (o.kind === "eruption") body.setVisible(st.active).setScale(LANE_SCALE[o.lane]! * (0.9 + Math.random() * 0.15), LANE_SCALE[o.lane]!);
+        else body.setVisible(true).setAlpha(st.active ? 1 : 0.18).setY(st.active ? 24 : 80);
+      }
+    }
+    // sương mù / bão: chỉ thấy rõ một khoảng phía trước
+    this.fogG.clear();
+    const fogM = s.sectionOf(me).fog;
+    if (fogM && this.mode !== "result") {
+      const col = this.theme.weather === "snow" ? 0xeceff1 : this.theme.weather === "ash" ? 0x6d4c41 : 0x37474f;
+      const x0 = ME_X + fogM * PX;
+      for (let i = 0; i < 14; i++) this.fogG.fillStyle(col, Math.min(0.94, 0.08 + i * 0.07)).fillRect(x0 + i * 40, 330, 40, 390);
+      this.fogG.fillStyle(col, 0.94).fillRect(x0 + 14 * 40, 330, 1280 + ex * 2, 390);
+    }
+    // bị mực che mắt
+    this.inkG.clear();
+    if (s.time < (me.inkUntil ?? 0)) {
+      const a = Math.min(1, ((me.inkUntil ?? 0) - s.time) / 600);
+      this.inkG.fillStyle(0x111111, 0.72 * a);
+      for (const [x, y, r] of [[300, 260, 160], [720, 420, 210], [1050, 220, 140], [520, 600, 130], [900, 620, 120]] as const) this.inkG.fillCircle(x, y, r);
     }
     const fx = sx(RACE.length);
     this.finishImg.setVisible(fx < 1280 + ex + 200).setX(fx);
@@ -729,6 +908,7 @@ export class RaceScene extends Phaser.Scene {
       v.wake.setScale(0.6 + Math.min(1.6, r.v / 18), 1).setAlpha(slowed ? 0.2 : 0.55);
       v.aura.setAlpha(boosting ? 0.45 + Math.sin(this.time.now / 60) * 0.15 : 0);
       v.fish.setTint(slowed ? 0x9e9e9e : 0xffffff);
+      v.shield.setVisible(s.time < (r.shieldUntil ?? 0)).setScale(1 + Math.sin(this.time.now / 150) * 0.04);
       // vệt bóng mờ khi tăng tốc
       if (boosting && dt) {
         v.ghostT += dt;
@@ -751,11 +931,42 @@ export class RaceScene extends Phaser.Scene {
     this.drawHud();
   }
 
-  private makeObstacle(o: Obstacle) {
+  private makeObstacle(o: Obstacle): Phaser.GameObjects.Image | Phaser.GameObjects.Container | Phaser.GameObjects.TileSprite {
     const y = LANE_Y[o.lane]!;
     const k = LANE_SCALE[o.lane]!;
+    const th = RACE_THEMES[this.mapId]![sectionIndex(o.x)];
+    if (o.kind === "rock") {
+      const img = this.add.image(0, y + 26, "race_rock").setOrigin(0.5, 0.9).setScale(k).setDepth(y - 1);
+      if (th.rockTint) img.setTint(th.rockTint);
+      return img;
+    }
+    if (o.kind === "log") {
+      const img = this.add.image(0, y + 22, "race_log").setOrigin(0.5, 0.8).setScale(k).setDepth(y - 1);
+      if (th.logTint) img.setTint(th.logTint);
+      return img;
+    }
+    if (o.kind === "geyser") return this.add.image(0, y + 18, "race_geyser").setScale(k).setDepth(y - 30);
+    if (o.kind === "drift")
+      return this.add
+        .tileSprite(0, y + 12, (o.len ?? 50) * PX, 70, "race_drift")
+        .setOrigin(0, 0.5)
+        .setFlipY((o.dir ?? 1) < 0)
+        .setDepth(y - 40);
+    if (o.kind === "box") {
+      const g = this.add.graphics();
+      g.fillStyle(0xffd740, 1).fillRoundedRect(-24, -24, 48, 48, 10).lineStyle(4, 0x1b1530).strokeRoundedRect(-24, -24, 48, 48, 10);
+      g.fillStyle(0xff5252, 1).fillRect(-5, -24, 10, 48).fillRect(-24, -5, 48, 10);
+      const q = txt(this, 0, 0, "?", 26, { align: "center", color: "#ffffff" }).setOrigin(0.5);
+      return this.add.container(0, y - 6, [g, q]).setScale(k).setDepth(y + 1);
+    }
+    if (o.kind === "eruption" || o.kind === "tentacle") {
+      const glow = this.add.ellipse(0, 22, 110, 26, o.kind === "eruption" ? (th.strike === "lightning" ? 0x82b1ff : 0xff3d00) : 0xce93d8, 0.6);
+      const key = o.kind === "tentacle" ? "race_tentacle" : th.strike === "lightning" ? "race_bolt" : "race_lava";
+      const body = this.add.image(0, o.kind === "tentacle" ? 24 : 26, key).setOrigin(0.5, 1).setScale(k);
+      if (o.kind === "eruption" && th.strike === "lightning") body.setY(30);
+      return this.add.container(0, y, [glow, body]).setDepth(y + 2);
+    }
     if (o.kind === "seaweed") return this.add.image(0, y + 24, "race_weed").setOrigin(0.5, 0.92).setScale(k).setDepth(y - 1);
-    if (o.kind === "rock") return this.add.image(0, y + 26, "race_rock").setOrigin(0.5, 0.9).setScale(k).setDepth(y - 1);
     if (o.kind === "shark") {
       const img = this.add.image(0, y + 26, "race_shark").setOrigin(0.5, 0.75).setDepth(y - 1);
       const warn = txt(this, 0, y - 40, "⚠ 🦈", 22, { color: "#ff5252", align: "center" }).setOrigin(0.5).setDepth(1100).setVisible(false);
@@ -763,7 +974,6 @@ export class RaceScene extends Phaser.Scene {
       img.once(Phaser.GameObjects.Events.DESTROY, () => warn.destroy());
       return img;
     }
-    if (o.kind === "log") return this.add.image(0, y + 22, "race_log").setOrigin(0.5, 0.8).setScale(k).setDepth(y - 1);
     if (o.kind === "jelly") return this.add.image(0, y, "race_jelly").setOrigin(0.5, 0.7).setScale(k).setDepth(y - 1);
     if (o.kind === "whirl") {
       const img = this.add.image(0, y + 18, "race_whirl").setScale(k).setDepth(y - 30);
@@ -794,6 +1004,13 @@ export class RaceScene extends Phaser.Scene {
       g.lineStyle(2, 0x1b1530).strokeCircle(x, 115, mine ? 11 : 7);
     }
     g.fillStyle(0xffffff, 1).fillRect(958, 100, 4, 30);
+    for (const mk of [400, 800]) g.fillStyle(0xffe082, 1).fillRect(320 + (mk / RACE.length) * 640 - 2, 102, 4, 26);
+    const it = me.item;
+    if (this.itemBtn.getData("item") !== (it ?? null)) {
+      this.itemBtn.setData("item", it ?? null);
+      this.itemBtn.setText(it ? RACE_ITEM_INFO[it].icon : "—");
+      this.itemBtn.setColor(it ? COLORS.gold : COLORS.panelLight);
+    }
     const place = s.placeOf("me");
     this.placeT.setText(`Hạng ${place}/${s.racers.length}`);
     this.speedT.setText(`${Math.round(me.v * 3.6)} km/h · ${Math.max(0, Math.round(RACE.length - me.x))}m`);
@@ -850,6 +1067,8 @@ export class RaceScene extends Phaser.Scene {
           const heavy = e.kind !== "seaweed" && e.kind !== "jelly";
           this.cameras.main.shake(heavy ? 300 : 200, heavy ? 0.014 : 0.006);
           const label: Record<string, string> = {
+            eruption: this.theme.strike === "lightning" ? "⚡ Bị sét đánh!" : "🔥 Dính cột dung nham!",
+            tentacle: "🐙 Xúc tu quật trúng!",
             rock: "💥 Đâm đá!",
             seaweed: "🌿 Vướng rong!",
             shark: "🦈 Bị cá mập đớp! −40 năng lượng",
@@ -892,6 +1111,79 @@ export class RaceScene extends Phaser.Scene {
           Sfx.crit();
           this.floatText(v, "🌊 Dòng xiết!", "#80d8ff");
         }
+        break;
+      case "section":
+        if (mine) {
+          this.secIdx = e.index;
+          this.applyTheme(this.mapId, e.index, false);
+          const sec = RACE_MAPS[this.mapId].sections[e.index];
+          this.bigText(`${RACE_MAPS[this.mapId].icon} ${sec.name}`, "#ffe082");
+          this.floatText(v, `+${15} năng lượng`, "#b388ff");
+          this.cameras.main.flash(400, 255, 255, 255);
+          if (sec.fog) this.time.delayedCall(900, () => toast(this, "🌫 Tầm nhìn bị che – nhìn kỹ phía trước!", COLORS.blue));
+          if (sec.ice) this.time.delayedCall(900, () => toast(this, "🧊 Mặt băng trơn – đổi làn chậm lại!", COLORS.blue));
+        }
+        break;
+      case "geyser":
+        this.splash(v, 26, 0xe0f7fa);
+        if (mine) this.floatText(v, "💨 Mạch phun hất bay!", "#80deea");
+        break;
+      case "drift":
+        if (mine) this.floatText(v, e.dir > 0 ? "🌊 Bị đẩy xuống!" : "🌊 Bị đẩy lên!", "#80deea");
+        break;
+      case "item_get":
+        if (mine) {
+          this.pickedBoxes.add(e.box);
+          Sfx.crit();
+          // vòng quay đồ ngắn trên ô đồ
+          const icons = Object.values(RACE_ITEM_INFO).map((x) => x.icon);
+          let n = 0;
+          const tm = this.time.addEvent({
+            delay: 70,
+            repeat: 7,
+            callback: () => {
+              n++;
+              this.itemBtn.setText(n >= 8 ? RACE_ITEM_INFO[e.item].icon : icons[n % icons.length]!);
+            },
+          });
+          void tm;
+          this.time.delayedCall(620, () => toast(this, `🎁 ${RACE_ITEM_INFO[e.item].icon} ${RACE_ITEM_INFO[e.item].name}: ${RACE_ITEM_INFO[e.item].desc}`, COLORS.gold));
+        }
+        break;
+      case "item_use": {
+        const item: RaceItem = e.item;
+        if (item === "turbo") {
+          this.splash(v, 20, 0xff9100);
+          if (mine) this.bigText("🚀 TÊN LỬA NƯỚC!", "#ffab40");
+        } else if (item === "shield") {
+          if (mine) this.floatText(v, "🛡 Khiên bong bóng!", "#80d8ff");
+        } else {
+          for (const tid of e.targets) {
+            const tv = this.views.find((x) => x.r.id === tid);
+            if (!tv) continue;
+            if (item === "ink") {
+              const blob = this.add.circle(v.root.x, v.root.y - 40, 12, 0x111111).setDepth(1200);
+              this.tweens.add({ targets: blob, x: tv.root.x, y: tv.root.y - 40, duration: 350, onComplete: () => (blob.destroy(), this.splash(tv, 18, 0x111111)) });
+            } else {
+              const bolt = this.add.image(tv.root.x, tv.root.y - 30, "race_bolt").setOrigin(0.5, 1).setScale(0.6).setDepth(1200);
+              this.tweens.add({ targets: bolt, alpha: 0, duration: 500, delay: 150, onComplete: () => bolt.destroy() });
+              this.splash(tv, 14, 0xfff59d);
+            }
+            if (tid === "me") {
+              this.cameras.main.shake(250, 0.01);
+              this.floatText(tv, item === "ink" ? "🦑 Bị bom mực!" : "⚡ Bị sét giật!", "#ff8a80");
+            }
+          }
+          if (mine) {
+            this.bigText(item === "ink" ? "🦑 BOM MỰC!" : "⚡ SẤM SÉT!", item === "ink" ? "#b0bec5" : "#fff59d");
+            if (item === "thunder") this.cameras.main.flash(250, 255, 253, 200);
+          }
+        }
+        break;
+      }
+      case "shield_block":
+        this.splash(v, 16, 0x80d8ff);
+        this.floatText(v, "🛡 Chặn!", "#80d8ff");
         break;
       case "energy_full":
         if (mine) toast(this, "⚡ Năng lượng đầy – bấm TĂNG TỐC!", COLORS.purple);
@@ -955,6 +1247,7 @@ export class RaceScene extends Phaser.Scene {
       this.hud.setVisible(false);
       this.speedG.clear();
       const m = modal(this, 900, 680, place === 1 ? "🏆 VÔ ĐỊCH!" : `🏁 Về đích hạng ${place}`, () => this.showSelect());
+      m.root.setDepth(2000); // trên panel chọn (1000) và HUD
       const order = s.standings();
       const equipOf = (r: Racer) => (this.equips.get(r.id) ?? {}) as Partial<Record<string, string>>;
       this.drawPodium(
@@ -1002,6 +1295,7 @@ export class RaceScene extends Phaser.Scene {
 
   private confirmQuit() {
     const m = modal(this, 560, 280, "Bỏ cuộc?");
+    m.root.setDepth(2000); // trên panel chọn (1000) và HUD
     m.root.add(txt(this, 640, m.y + 120, "Bỏ dở cuộc đua sẽ mất phí vào cửa.", 20, { align: "center" }).setOrigin(0.5));
     m.root.add(new Button(this, 540, m.y + 210, 180, 56, "Bỏ cuộc", { color: COLORS.red, fontSize: 20, onClick: () => goTo(this, "Hub") }));
     m.root.add(new Button(this, 740, m.y + 210, 180, 56, "Đua tiếp", { color: COLORS.green, fontSize: 20, onClick: () => m.close() }));

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.24.0] – 2026-11-20 – 5 bản đồ đua, 3 chặng đổi cảnh, hộp may mắn
+### Thêm – 🗺 Bản đồ đua (chọn ở màn Đua Cá, hoặc 🎲 Ngẫu nhiên)
+Mỗi bản đồ có **3 chặng – khung cảnh đổi ở mốc 400m và 800m** (chuyển cảnh mờ dần, banner tên vùng, +15 năng lượng), **chặng sau dày và hiểm hơn chặng trước**; thời tiết riêng (lá bay, bong bóng, tuyết, tro, mưa, tàn lửa, bụi nước).
+- 🏞 **Sông Quê**: Sông yên bình → Rừng đước → **Thác ghềnh** – *dòng nước ngang* đẩy lệch làn theo nhịp (đang tăng tốc / đang bay thì không bị đẩy).
+- 🪸 **Rạn San Hô**: Rạn san hô → Đầm phá hoàng hôn → **Rãnh vực sâu** – *mạch phun* hất bay qua chướng ngại + tăng tốc; *xúc tu thủy quái* trồi/lặn (không nhảy qua được).
+- 🧊 **Băng Hà** (cấp 5): Biển băng → **Bão tuyết** (mù, chỉ thấy ~30m phía trước) → Cực quang – *mặt băng trơn*: đổi làn liên tiếp bị trễ.
+- 🌋 **Núi Lửa** (cấp 10): Bờ bazan → **Bão tro** (mù) → Dòng dung nham – *cột dung nham* phun theo nhịp, có vệt đỏ báo hiệu trước.
+- 🌙 **Biển Thần Thoại** (cấp 18): Biển đêm trăng → **Giông bão sấm sét** (mù, sét đánh xuống làn theo nhịp) → **Hang ổ Kraken**.
+- Đua với người chơi: bản đồ suy ra từ phòng (mọi máy cùng bản đồ).
+### Thêm – 🎁 Hộp may mắn
+- Hàng hộp mỗi ~180m: đi qua để nhặt (cầm 1 món), bấm **DÙNG / Q**: 🚀 Tên lửa nước (tự tăng tốc, không tốn năng lượng) · 🛡 Khiên bong bóng (chặn 1 va chạm/đòn) · 🦑 Bom mực (làm chậm + mực che mắt đối thủ ngay phía trước) · ⚡ Sấm sét (làm chậm mọi người dẫn trước).
+- Ai càng ở sau càng dễ ra đồ mạnh (bám đuổi); người dẫn đầu không bao giờ ra Sấm sét. Đối thủ máy cũng nhặt và dùng đồ.
+### Sửa
+- Hộp thoại "Tìm người chơi"/kết quả/bỏ cuộc trong Đua Cá không còn bị panel che.
+
 ## [0.23.0] – 2026-11-20 – Đua Cá khó hơn, cần kỹ năng + Bục vinh danh
 ### Thêm – chướng ngại chuyển động & kỹ năng
 - 🦈 **Cá mập tuần tra** bơi qua lại giữa 3 làn – KHÔNG nhảy qua được, phải canh lúc nó rời làn (có cảnh báo ⚠ khi tới gần). Bị đớp: khựng nặng, −40 năng lượng.

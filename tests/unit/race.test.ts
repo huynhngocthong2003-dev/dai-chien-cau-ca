@@ -33,6 +33,11 @@ function smartPlayer(s: RaceSession) {
     else if (JUMPABLE.has(h.o.kind) && h.dist < Math.max(4, me.v * 0.32)) s.jump(me.id);
   }
   if (s.time > 1000 && s.canBoost(me)) s.boost(me.id);
+  // dùng đồ hộp may mắn: khiên ngay, tên lửa khi đường trống, bom mực/sấm sét khi có người dẫn trước
+  if (me.item && !s.racers.some((r) => r.remote)) {
+    const ahead = s.racers.some((r) => r !== me && r.finishTime === null && r.x > me.x);
+    if (me.item === "shield" || (me.item === "turbo" ? !h : ahead)) s.useItem(me.id);
+  }
 }
 
 function run(player: Racer, opp: Racer[], seed: number, ai?: (s: RaceSession) => void) {
@@ -293,5 +298,173 @@ describe("Đua Cá – thử thách kỹ năng", () => {
       lazyHits += b.player.hits;
     }
     expect(lazyHits).toBeGreaterThan(smartHits * 2.5);
+  });
+});
+
+describe("Đua Cá – bản đồ & chặng", () => {
+  const def = FISH_BY_ID.get("f_ca_chep")!;
+  const me = (seed = 1) => newRacer("me", "Tôi", def.id, null, "c_be_tom", raceStats(mk(`m${seed}`, def.id, 8), def), null);
+
+  it("5 bản đồ, mỗi bản đồ 3 chặng, chặng sau dày đặc hơn", async () => {
+    const { RACE_MAPS, RACE_MAP_IDS, makeTrack, sectionIndex } = await import("@dccc/shared");
+    expect(RACE_MAP_IDS.length).toBe(5);
+    for (const id of RACE_MAP_IDS) {
+      const m = RACE_MAPS[id];
+      expect(m.sections.length).toBe(3);
+      expect(m.sections[2].density).toBeGreaterThan(m.sections[0].density);
+      const per = [0, 0, 0];
+      for (let i = 1; i <= 20; i++) for (const o of makeTrack(new Rng(i), "tap_su", id)) if (o.kind !== "box") per[sectionIndex(o.x)]!++;
+      expect(per[2]).toBeGreaterThan(per[0]!);
+    }
+  });
+
+  it("mỗi bản đồ có cơ chế riêng", async () => {
+    const { makeTrack } = await import("@dccc/shared");
+    const kinds = (id: "song_que" | "ran_san_ho" | "nui_lua" | "than_thoai") => new Set(Array.from({ length: 10 }, (_, i) => makeTrack(new Rng(i + 1), "huyen_thoai", id)).flat().map((o) => o.kind));
+    expect(kinds("song_que").has("drift")).toBe(true);
+    expect(kinds("ran_san_ho").has("geyser")).toBe(true);
+    expect(kinds("ran_san_ho").has("tentacle")).toBe(true);
+    expect(kinds("nui_lua").has("eruption")).toBe(true);
+    expect(kinds("than_thoai").has("tentacle")).toBe(true);
+  });
+
+  it("cột phun: có báo hiệu trước khi phun", async () => {
+    const { obstacleAt, RACE: R } = await import("@dccc/shared");
+    const o = { id: 1, x: 300, lane: 1, kind: "eruption" as const, phase: 0, period: 3000 };
+    expect(obstacleAt(o, 3000 - R.eruptActiveMs - 100).warn).toBe(true);
+    expect(obstacleAt(o, 3000 - 100).active).toBe(true);
+    expect(obstacleAt(o, 500).active || obstacleAt(o, 500).warn).toBe(false);
+  });
+
+  it("mạch phun hất bay qua chướng ngại phía sau", () => {
+    const s = new RaceSession(me(), [], 1);
+    (s.track as unknown as unknown[]).length = 0;
+    s.player.lane = 1;
+    s.track.push({ id: 1, x: 60, lane: 1, kind: "geyser" }, { id: 2, x: 66, lane: 1, kind: "rock" });
+    const ev: string[] = [];
+    while (s.player.x < 120) {
+      s.update(50);
+      ev.push(...s.drainEvents().map((e) => e.type));
+    }
+    expect(ev).toContain("geyser");
+    expect(ev).toContain("dodge_jump");
+    expect(s.player.hits).toBe(0);
+  });
+
+  it("dòng nước ngang đẩy lệch làn; đang tăng tốc thì không bị đẩy", () => {
+    const run = (boost: boolean) => {
+      const s = new RaceSession(me(), [], 1);
+      (s.track as unknown as unknown[]).length = 0;
+      s.player.lane = 0;
+      s.track.push({ id: 1, x: 40, lane: 0, kind: "drift", len: 200, dir: 1 });
+      while (s.player.x < 140) {
+        if (boost) {
+          s.player.energy = 100;
+          if (s.canBoost(s.player)) s.boost("me");
+        }
+        s.update(50);
+      }
+      return s.player.lane;
+    };
+    expect(run(false)).toBeGreaterThan(0);
+    expect(run(true)).toBe(0);
+  });
+
+  it("mặt băng trơn: đổi làn liên tiếp bị trễ", () => {
+    const s = new RaceSession(me(), [], 1, undefined, "tap_su", "bang_ha");
+    for (let i = 0; i < 10; i++) s.update(50);
+    s.player.lane = 0;
+    expect(s.changeLane("me", 1)).toBe(true);
+    expect(s.changeLane("me", 1)).toBe(false);
+    for (let i = 0; i < 9; i++) s.update(50);
+    expect(s.changeLane("me", 1)).toBe(true);
+  });
+
+  it("qua mốc chặng được thưởng năng lượng và báo đổi khung cảnh", () => {
+    const s = new RaceSession(me(), [], 1);
+    (s.track as unknown as unknown[]).length = 0;
+    const secs: number[] = [];
+    while (s.player.finishTime === null) {
+      s.update(50);
+      for (const e of s.drainEvents()) if (e.type === "section") secs.push(e.index);
+    }
+    expect(secs).toEqual([1, 2]);
+  });
+
+  it("mọi bản đồ: người chơi khéo va chạm ít hơn hẳn người đứng yên", () => {
+    for (const id of ["song_que", "ran_san_ho", "bang_ha", "nui_lua", "than_thoai"] as const) {
+      let smart = 0;
+      let lazy = 0;
+      for (let seed = 1; seed <= 8; seed++) {
+        const a = new RaceSession(me(seed), [], seed, undefined, "chuyen_nghiep", id);
+        while (!a.over) {
+          smartPlayer(a);
+          a.update(50);
+        }
+        const b = new RaceSession(me(seed), [], seed, undefined, "chuyen_nghiep", id);
+        while (!b.over) b.update(50);
+        smart += a.player.hits;
+        lazy += b.player.hits;
+      }
+      expect(lazy, id).toBeGreaterThan(smart * 1.8);
+    }
+  });
+
+  it("bản đồ phòng nhiều người suy ra từ seed (mọi máy giống nhau)", async () => {
+    const { mapFromSeed, RACE_MAP_IDS } = await import("@dccc/shared");
+    expect(new Set(Array.from({ length: 50 }, (_, i) => mapFromSeed(i * 7919))).size).toBe(RACE_MAP_IDS.length);
+    expect(mapFromSeed(123)).toBe(mapFromSeed(123));
+  });
+});
+
+describe("Đua Cá – hộp may mắn", () => {
+  const def = FISH_BY_ID.get("f_ca_chep")!;
+  const me = () => newRacer("me", "Tôi", def.id, null, "c_be_tom", raceStats(mk("it", def.id, 8), def), null);
+
+  it("đường đua có hàng hộp may mắn ở nhiều làn", async () => {
+    const { makeTrack } = await import("@dccc/shared");
+    const boxes = makeTrack(new Rng(3)).filter((o) => o.kind === "box");
+    expect(boxes.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(boxes.map((b) => b.lane)).size).toBe(3);
+  });
+
+  it("đi sau dễ ra đồ mạnh hơn (sấm sét), dẫn đầu không bao giờ ra sấm sét", async () => {
+    const { rollItem } = await import("@dccc/shared");
+    const count = (place: number) => Array.from({ length: 2000 }, (_, i) => rollItem(`k${i}`, place, 5)).filter((x) => x === "thunder").length;
+    expect(count(1)).toBe(0);
+    expect(count(5)).toBeGreaterThan(count(3));
+  });
+
+  it("nhặt hộp → có đồ; tên lửa tăng tốc, khiên chặn va chạm", () => {
+    const s = new RaceSession(me(), [], 1);
+    (s.track as unknown as unknown[]).length = 0;
+    s.player.lane = 1;
+    s.track.push({ id: 1, x: 40, lane: 1, kind: "box" }, { id: 2, x: 120, lane: 1, kind: "rock" });
+    while (s.player.x < 60) s.update(50);
+    expect(s.player.item).toBeTruthy();
+    s.player.item = "shield";
+    expect(s.useItem("me")).toBe(true);
+    while (s.player.x < 140) s.update(50);
+    expect(s.player.hits).toBe(0);
+    expect(s.drainEvents().some((e) => e.type === "shield_block")).toBe(true);
+    s.player.item = "turbo";
+    const v0 = s.player.v;
+    s.useItem("me");
+    expect(s.player.v).toBeGreaterThan(v0);
+  });
+
+  it("bom mực làm chậm đối thủ ngay phía trước; sấm sét làm chậm mọi người phía trước", () => {
+    const opp = makeRaceOpponents("tap_su", FISHES, chars, new Rng(2), 3);
+    const s = new RaceSession(me(), opp, 1);
+    for (let i = 0; i < 40; i++) s.update(50);
+    s.player.x = -50;
+    s.player.item = "ink";
+    s.useItem("me");
+    const ev = s.drainEvents().find((e) => e.type === "item_use");
+    expect(ev && "targets" in ev ? ev.targets.length : 0).toBe(1);
+    s.player.item = "thunder";
+    s.useItem("me");
+    const ev2 = s.drainEvents().find((e) => e.type === "item_use");
+    expect(ev2 && "targets" in ev2 ? ev2.targets.length : 0).toBe(3);
   });
 });
