@@ -298,3 +298,59 @@ do $$ begin
 end $$;
 reset role;
 select 'DB TEAM POWER RANK TEST OK' as result;
+
+-- ================= Nhắn tin =================
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false) \g /dev/null
+insert into public.messages (sender, recipient, body) values ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '  Chào bạn, đấu không?  ');
+do $$ begin
+  begin insert into public.messages (sender, recipient, body) values ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'giả mạo'); raise exception 'LỖI: gửi tin giả danh người khác';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.messages (sender, recipient, body) values ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', repeat('a', 301)); raise exception 'LỖI: tin quá dài';
+  exception when check_violation then null; end;
+  if (select body from public.messages limit 1) <> 'Chào bạn, đấu không?' then raise exception 'Chưa cắt khoảng trắng'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  if (select count(*) from public.messages) <> 0 then raise exception 'Người ngoài đọc được tin nhắn'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ begin
+  if (select n from public.unread_counts()) <> 1 then raise exception 'Đếm tin chưa đọc sai'; end if;
+end $$;
+select public.mark_messages_read('11111111-1111-1111-1111-111111111111') \g /dev/null
+do $$ begin
+  if (select count(*) from public.unread_counts()) <> 0 then raise exception 'Chưa đánh dấu đã đọc'; end if;
+  begin update public.messages set body = 'sửa'; raise exception 'LỖI: sửa được tin';
+  exception when insufficient_privilege then null; end;
+end $$;
+-- chống spam: tin thứ 16 trong 1 phút bị chặn
+do $$ begin
+  for i in 1..15 loop insert into public.messages (sender, recipient, body) values ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'spam ' || i); end loop;
+  begin insert into public.messages (sender, recipient, body) values ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'spam 16'); raise exception 'LỖI: không chặn spam';
+  exception when raise_exception then if sqlerrm like 'LỖI%' then raise; end if; end;
+end $$;
+reset role;
+select 'DB MESSAGES TEST OK' as result;
+
+-- ================= Chat thế giới =================
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+insert into public.world_messages (user_id, name, body) values ('22222222-2222-2222-2222-222222222222', 'ADMIN GIẢ', 'Xin chào cả server!');
+do $$ begin
+  if (select name from public.world_messages) <> 'Bình' then raise exception 'Tên phải lấy từ hồ sơ, không giả danh được'; end if;
+  begin insert into public.world_messages (user_id, body) values ('11111111-1111-1111-1111-111111111111', 'giả'); raise exception 'LỖI: chat giả danh';
+  exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ begin
+  if (select count(*) from public.world_messages) <> 1 then raise exception 'Người khác không đọc được chat thế giới'; end if;
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  begin perform 1 from public.world_messages; raise exception 'LỖI: khách đọc được';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'DB WORLD CHAT TEST OK' as result;

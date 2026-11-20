@@ -31,7 +31,7 @@ const toAccount = async (p) => {
   await p.mouse.click(120, 38); // bấm avatar → Hồ Sơ
   await p.waitForFunction(() => window.__game.scene.isActive('Profile'));
   await p.waitForTimeout(500);
-  await p.mouse.click(560, 140); // nút Tài khoản
+  await p.mouse.click(530, 160); // nút Tài khoản
   await p.waitForFunction(() => window.__game.scene.isActive('Account'));
   await p.waitForTimeout(500);
 };

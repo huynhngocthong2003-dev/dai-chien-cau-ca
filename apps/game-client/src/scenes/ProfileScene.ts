@@ -1,10 +1,14 @@
 import Phaser from "phaser";
 import { FISH_RARITY_COLOR } from "@dccc/game-config";
-import { CHARACTER_BY_ID, FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
-import { ownedFishPower, winRate, type OwnedFish } from "@dccc/shared";
+import { CHARACTER_BY_ID, FISH_BY_ID, FORM_BY_ID, ROD_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
+import { CHAR_RARITY_COLOR } from "@dccc/game-config";
+import { addFashionFx } from "../art/fashionFx.ts";
+import { showPlayerProfile } from "../ui/playerProfile.ts";
+import { openChat } from "../ui/chat.ts";
+import { ownedFishPower, teamPower, winRate, type OwnedFish } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
-import { characterHeadTexture, fishTexture, fishTextureFor } from "../art/textures.ts";
+import { auraTexture, characterHeadTexture, characterTexture, fishTexture, fishTextureFor, rodIconTexture } from "../art/textures.ts";
 import { Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -21,63 +25,145 @@ export class ProfileScene extends Phaser.Scene {
   private friendships: Social.Friendship[] = [];
   private cards = new Map<string, Social.PlayerCard>();
   private found: Social.PlayerCard[] = [];
+  private unread = new Map<string, number>();
+
+  private mode: "profile" | "friends" = "profile";
 
   constructor() {
     super("Profile");
+  }
+
+  init(data: { mode?: "profile" | "friends" }) {
+    this.mode = data.mode ?? this.mode;
   }
 
   create() {
     this.input.enabled = true;
     fadeIn(this);
     menuBackdrop(this);
-    new TopBar(this, { title: "Hồ Sơ & Bạn Bè", onBack: () => goTo(this, "Hub") });
-    this.renderMe();
-    this.renderFriends();
-    if (GameState.online) void this.loadSocial();
+    new TopBar(this, { title: this.mode === "profile" ? "Hồ Sơ" : "Bạn Bè", onBack: () => goTo(this, "Hub") });
+    const sw = () => this.scene.restart({ mode: this.mode === "profile" ? "friends" : "profile" });
+    if (this.mode === "profile") {
+      this.renderMe();
+      new Button(this, 680, 160, 140, 44, "👥 Bạn bè", { color: COLORS.purple, fontSize: 17, onClick: sw }).setDepth(10);
+      this.renderModel();
+    } else {
+      this.renderMyCode();
+      new Button(this, 560, 130, 150, 44, "🪪 Hồ sơ", { color: COLORS.purple, fontSize: 18, onClick: sw }).setDepth(10);
+      this.renderFriends();
+      if (GameState.online) void this.loadSocial();
+    }
+  }
+
+  // ------------------------------------------------------------- mô hình nhân vật cầm cần (bên phải)
+  private renderModel() {
+    const s = GameState.save;
+    const ch = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
+    const rod = ROD_BY_ID.get(s.selectedRodId)!;
+    const prog = s.characters[ch.id];
+    const equip = prog?.equip ?? {};
+    panel(this, 776, 92, 488, 614, 0.92);
+    txt(this, 1020, 122, "Nhân vật đang dùng", 22, { color: COLORS.textGold, align: "center" }).setOrigin(0.5);
+    const col = hexToInt(CHAR_RARITY_COLOR[ch.rarity]);
+    // bục đứng phát sáng + tia sáng
+    const rays = this.add.container(1020, 380);
+    for (let i = 0; i < 12; i++) rays.add(this.add.image(0, 0, "p_ray").setOrigin(0.5, 0).setAngle(i * 30).setTint(col).setAlpha(0.18).setScale(0.7).setBlendMode(Phaser.BlendModes.ADD));
+    this.tweens.add({ targets: rays, angle: 360, duration: 20000, repeat: -1 });
+    const ped = this.add.graphics();
+    ped.fillStyle(0x000000, 0.35).fillEllipse(1020, 586, 260, 44);
+    ped.fillStyle(col, 0.85).fillEllipse(1020, 576, 240, 40);
+    ped.fillStyle(0xffffff, 0.25).fillEllipse(1020, 570, 200, 24);
+    ped.lineStyle(3, COLORS.outline).strokeEllipse(1020, 576, 240, 40);
+    if (prog?.awakened) this.add.image(1020, 580, auraTexture(this, ch)).setOrigin(0.5, 1).setScale(1.55).setAlpha(0.8);
+    const k = 1.55;
+    const hero = this.add.image(1020, 580, characterTexture(this, ch, equip)).setOrigin(0.5, 1).setScale(k);
+    addFashionFx(this, hero, 1020, 580 - 120 * k, k, equip, 1);
+    // cần câu cầm trên tay (tay trước ở (112,170) trong khung 200×240)
+    const hx = 1020 + (112 - 100) * k;
+    const hy = 580 - (240 - 170) * k;
+    const rodImg = this.add.image(hx, hy, rodIconTexture(this, rod)).setOrigin(0.1, 0.88).setScale(0.72);
+    this.tweens.add({ targets: [hero], y: 574, duration: 1400, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    this.tweens.add({ targets: [rodImg], y: hy - 6, angle: -3, duration: 1400, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    txt(this, 1020, 616, `${ch.rarity} · ${ch.name}`, 22, { color: CHAR_RARITY_COLOR[ch.rarity], align: "center" }).setOrigin(0.5);
+    txt(this, 1020, 644, `🎣 ${rod.name} (${rod.rarity})`, 17, { color: CHAR_RARITY_COLOR[rod.rarity], align: "center" }).setOrigin(0.5);
+    new Button(this, 920, 680, 180, 40, "🧑 Đổi nhân vật", { color: COLORS.blue, fontSize: 16, onClick: () => goTo(this, "Characters") });
+    new Button(this, 1120, 680, 180, 40, "🎣 Đổi cần câu", { color: COLORS.blue, fontSize: 16, onClick: () => goTo(this, "Rods") });
+  }
+
+  // ------------------------------------------------------------- thẻ mã kết bạn (chế độ Bạn bè)
+  private renderMyCode() {
+    panel(this, 16, 92, 640, 614, 0.92);
+    txt(this, 336, 130, "🤝 Kết bạn", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5);
+    if (!GameState.online) {
+      txt(this, 336, 300, "Đăng nhập tài khoản online để có mã kết bạn,\ntìm người chơi và thấy ai đang online.", 19, { align: "center", weight: "700" }).setOrigin(0.5);
+      return;
+    }
+    const codeT = txt(this, 336, 230, "…", 64, { color: "#80d8ff", align: "center" }).setOrigin(0.5);
+    txt(this, 336, 180, "Mã kết bạn của bạn", 18, { weight: "700", color: COLORS.textDim, align: "center" }).setOrigin(0.5);
+    void Social.myCard(GameState.online.id).then((c) => {
+      if (c && codeT.active) {
+        this.code = c.friend_code;
+        codeT.setText(c.friend_code);
+      }
+    }).catch(() => codeT.active && codeT.setText("—"));
+    new Button(this, 336, 312, 260, 50, "📋 Sao chép mã", {
+      color: COLORS.blue,
+      fontSize: 20,
+      onClick: () => void navigator.clipboard?.writeText(this.code).then(() => toast(this, "Đã sao chép mã kết bạn", COLORS.green), () => toast(this, `Mã: ${this.code}`)),
+    });
+    txt(this, 336, 440, "Cách kết bạn:\n1. Gửi mã này cho bạn bè (Zalo, Messenger…)\n2. Bạn bè nhập mã hoặc tên bạn vào ô tìm kiếm\n3. Bấm ➕ Kết bạn – bạn bấm ✔ Nhận là xong!\n\n🟢 Chấm xanh = đang online · ⚔ Đấu để thách đấu sinh tử", 18, { weight: "700", align: "center", wrap: 580 }).setOrigin(0.5);
   }
 
   // ------------------------------------------------------------- hồ sơ của tôi
   private renderMe() {
     const s = GameState.save;
-    panel(this, 16, 92, 640, 614, 0.92);
+    panel(this, 16, 92, 744, 614, 0.92);
     const ch = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
     const ring = this.add.graphics();
     ring.fillStyle(0xffc107).fillCircle(96, 172, 62);
     ring.lineStyle(4, COLORS.outline).strokeCircle(96, 172, 62);
     this.add.image(96, 176, characterHeadTexture(this, ch, s.characters[ch.id]?.equip)).setDisplaySize(120, 144);
-    txt(this, 176, 120, s.name, 32, { color: COLORS.textGold });
-    txt(this, 176, 162, `Cấp ${s.level} · ${ch.name}`, 20, { weight: "700" });
-    const codeT = txt(this, 176, 194, GameState.online ? "Mã kết bạn: …" : "Đăng nhập để có mã kết bạn", 18, { weight: "700", color: "#80d8ff" });
+    txt(this, 176, 108, s.name, 30, { color: COLORS.textGold });
+    const tt = s.titles.equipped ? TITLE_BY_ID.get(s.titles.equipped) : null;
+    txt(this, 176, 146, tt ? `${tt.icon} ${tt.name}` : "🏅 Chưa đeo danh hiệu", 18, { color: tt?.color ?? COLORS.textDim });
+    txt(this, 176, 174, `Cấp ${s.level} · ${ch.name}`, 17, { weight: "700" });
+    const uid = txt(this, 176, 200, `UID: ${s.playerId}`, 15, { weight: "700", color: COLORS.textDim });
+    uid.setInteractive({ useHandCursor: true }).on("pointerup", () => void navigator.clipboard?.writeText(s.playerId).then(() => toast(this, "Đã sao chép UID", COLORS.green), () => undefined));
+    const codeT = txt(this, 176, 222, GameState.online ? "Mã kết bạn: …" : "", 15, { weight: "700", color: "#80d8ff" });
     if (GameState.online) {
       void Social.myCard(GameState.online.id).then((c) => {
         if (c && codeT.active) {
           this.code = c.friend_code;
           codeT.setText(`Mã kết bạn: ${c.friend_code}`);
         }
-      }).catch(() => codeT.active && codeT.setText("Mã kết bạn: (chưa tải được)"));
+      }).catch(() => codeT.active && codeT.setText(""));
     }
-    new Button(this, 560, 140, 150, 50, "👤 Tài khoản", { color: COLORS.blue, fontSize: 18, onClick: () => goTo(this, "Account") });
+    const dot = this.add.graphics();
+    dot.fillStyle(GameState.online ? 0x00e676 : 0x9e9e9e, 1).fillCircle(146, 214, 9).lineStyle(3, COLORS.outline).strokeCircle(146, 214, 9);
+    txt(this, 605, 108, GameState.online ? "🟢 Đang online" : "⚪ Chơi ngoại tuyến", 15, { weight: "700", color: GameState.online ? "#69f0ae" : COLORS.textDim, align: "center" }).setOrigin(0.5, 0);
+    new Button(this, 530, 160, 140, 44, "👤 Tài khoản", { color: COLORS.blue, fontSize: 17, onClick: () => goTo(this, "Account") });
     const dw = s.stats.dmWins ?? 0;
     const dl = s.stats.dmLosses ?? 0;
     const stats: [string, string][] = [
-      ["🐟 Cá đã câu", formatNum(s.stats.totalCaught)],
+      ["🐟 Đã câu", formatNum(s.stats.totalCaught)],
       ["👑 Boss", formatNum(s.stats.bossesCaught)],
       ["📖 Loài", String(Object.keys(s.stats.species).length)],
-      ["⚔ Sinh tử", `${dw}T – ${dl}B`],
+      ["⚔ Sinh tử", `${dw}T–${dl}B`],
+      ["💪 Chiến lực", formatNum(teamPower(s, FISH_BY_ID, FORM_BY_ID))],
     ];
     stats.forEach(([k, v], i) => {
-      const x = 36 + i * 154;
+      const x = 36 + i * 146;
       const g = this.add.graphics();
-      g.fillStyle(0x0a1628, 0.9).fillRoundedRect(x, 250, 146, 70, 12);
-      txt(this, x + 73, 272, k, 15, { weight: "700", color: COLORS.textDim, align: "center" }).setOrigin(0.5);
-      txt(this, x + 73, 300, v, 22, { align: "center" }).setOrigin(0.5);
+      g.fillStyle(0x0a1628, 0.9).fillRoundedRect(x, 250, 138, 70, 12);
+      txt(this, x + 69, 272, k, 14, { weight: "700", color: COLORS.textDim, align: "center" }).setOrigin(0.5);
+      txt(this, x + 69, 300, v, 20, { align: "center" }).setOrigin(0.5);
     });
     txt(this, 36, 336, "🏅 Cá trưng bày (người khác xem được tỉ lệ thắng)", 19, { color: COLORS.textGold });
     const show = s.showcase.map((u) => s.fishes.find((f) => f.uid === u)).filter((o): o is OwnedFish => !!o);
     for (let i = 0; i < 3; i++) {
       const o = show[i];
-      const x = 36 + i * 206;
-      if (o) this.showFish(x, 370, 196, 236, {
+      const x = 40 + i * 240;
+      if (o) this.showFish(x, 370, 226, 236, {
         fishId: o.fishId,
         level: o.level,
         stars: o.stars,
@@ -88,7 +174,7 @@ export class ProfileScene extends Phaser.Scene {
       });
       if (o) {
         // nút gỡ trực tiếp trên ô trưng bày
-        new Button(this, x + 172, 394, 64, 36, "✖ Gỡ", {
+        new Button(this, x + 192, 394, 64, 36, "✖ Gỡ", {
           color: COLORS.red,
           fontSize: 14,
           onClick: () => {
@@ -100,13 +186,13 @@ export class ProfileScene extends Phaser.Scene {
         });
       } else {
         const g = this.add.graphics();
-        g.fillStyle(0x0a1628, 0.6).fillRoundedRect(x, 370, 196, 236, 14);
-        g.lineStyle(3, 0x5fb3ff, 0.5).strokeRoundedRect(x, 370, 196, 236, 14);
-        txt(this, x + 98, 470, "Trống", 20, { color: COLORS.textDim }).setOrigin(0.5);
-        new Button(this, x + 98, 520, 140, 44, "➕ Thêm cá", { color: COLORS.green, fontSize: 17, onClick: () => this.pickShowcase() });
+        g.fillStyle(0x0a1628, 0.6).fillRoundedRect(x, 370, 226, 236, 14);
+        g.lineStyle(3, 0x5fb3ff, 0.5).strokeRoundedRect(x, 370, 226, 236, 14);
+        txt(this, x + 113, 470, "Trống", 20, { color: COLORS.textDim }).setOrigin(0.5);
+        new Button(this, x + 113, 520, 140, 44, "➕ Thêm cá", { color: COLORS.green, fontSize: 17, onClick: () => this.pickShowcase() });
       }
     }
-    new Button(this, 336, 660, 300, 58, "✏ Chọn cá trưng bày", { color: COLORS.orange, fontSize: 22, onClick: () => this.pickShowcase() });
+    new Button(this, 388, 660, 300, 58, "✏ Chọn cá trưng bày", { color: COLORS.orange, fontSize: 22, onClick: () => this.pickShowcase() });
   }
 
   private showFish(x: number, y: number, w: number, h: number, f: Social.ShowcaseFish, into?: Phaser.GameObjects.Container) {
@@ -190,6 +276,7 @@ export class ProfileScene extends Phaser.Scene {
   private async loadSocial() {
     try {
       this.friendships = await Social.listFriendships();
+      this.unread = new Map((await Social.unreadCounts().catch(() => [])).map((u) => [u.sender, Number(u.n)]));
       const me = GameState.online!.id;
       const ids = this.friendships.map((f) => (f.requester === me ? f.addressee : f.requester));
       (await Social.cardsByIds(ids)).forEach((c) => this.cards.set(c.user_id, c));
@@ -257,11 +344,22 @@ export class ProfileScene extends Phaser.Scene {
       g.fillStyle(r.kind === "incoming" ? 0x4a3a10 : 0x0a1628, 0.95).fillRoundedRect(690, y, 556, 60, 12);
       c.add(g);
       const tag = { found: "🔍", incoming: "📩", outgoing: "⏳", friend: "👥" }[r.kind];
-      c.add(txt(this, 704, y + 18, `${tag} ${r.card.display_name}`, 19).setOrigin(0, 0.5));
-      c.add(txt(this, 704, y + 44, `Lv.${r.card.level} · ⚔ ${r.card.stats.dmWins ?? 0}T/${r.card.stats.dmLosses ?? 0}B`, 14, { weight: "700", color: COLORS.textDim }).setOrigin(0, 0.5));
+      const st = Social.onlineStatus(r.card);
+      const od = this.add.graphics();
+      od.fillStyle(st.online ? 0x00e676 : 0x78909c, 1).fillCircle(700, y + 18, 6);
+      c.add(od);
+      c.add(txt(this, 712, y + 18, `${tag} ${r.card.display_name}`, 19).setOrigin(0, 0.5));
+      c.add(txt(this, 900, y + 44, st.text, 13, { weight: "700", color: st.online ? "#69f0ae" : COLORS.textDim }).setOrigin(0, 0.5));
+      c.add(txt(this, 712, y + 44, `Lv.${r.card.level} · ⚔ ${r.card.stats.dmWins ?? 0}T/${r.card.stats.dmLosses ?? 0}B`, 14, { weight: "700", color: COLORS.textDim }).setOrigin(0, 0.5));
       const btn = (bx: number, w: number, label: string, color: number, fn: () => Promise<void> | void) =>
         c.add(new Button(this, bx, y + 30, w, 44, label, { color, fontSize: 16, onClick: () => void Promise.resolve(fn()).catch((e: Error) => toast(this, e.message, COLORS.red)) }));
-      btn(1010, 76, "👁 Xem", COLORS.blue, () => this.viewCard(r.card));
+      if (r.kind !== "friend") btn(1010, 76, "👁 Xem", COLORS.blue, () => this.viewCard(r.card));
+      else {
+        // bấm tên bạn để xem trang cá nhân
+        const zn = this.add.zone(800, y + 30, 200, 56).setInteractive({ useHandCursor: true });
+        zn.on("pointerup", () => this.viewCard(r.card));
+        c.add(zn);
+      }
       if (r.kind === "found")
         btn(1150, 170, "➕ Kết bạn", COLORS.green, async () => {
           await Social.sendFriendRequest(me, r.card.user_id);
@@ -281,6 +379,8 @@ export class ProfileScene extends Phaser.Scene {
       }
       if (r.kind === "outgoing") c.add(txt(this, 1150, y + 30, "Đang chờ…", 16, { color: COLORS.textDim, weight: "700" }).setOrigin(0.5));
       if (r.kind === "friend") {
+        const un = this.unread.get(r.card.user_id) ?? 0;
+        btn(1010, 76, un ? `💬${un}` : "💬", un ? COLORS.orange : COLORS.blue, () => void openChat(this, r.card));
         btn(1110, 100, "⚔ Đấu", COLORS.red, () => goTo(this, "DeathMatch", { mode: "pvp", opponent: r.card }));
         btn(1205, 70, "🗑", COLORS.grey, async () => {
           await Social.removeFriend(r.fs!.id);
@@ -292,10 +392,7 @@ export class ProfileScene extends Phaser.Scene {
   }
 
   private viewCard(p: Social.PlayerCard) {
-    const m = modal(this, 760, 520, `Hồ sơ ${p.display_name}`);
-    m.root.add(txt(this, m.x + m.w / 2, m.y + 84, `Cấp ${p.level} · Cá đã câu ${formatNum(p.stats.caught ?? 0)} · Sinh tử ${p.stats.dmWins ?? 0}T/${p.stats.dmLosses ?? 0}B`, 19, { align: "center", weight: "700" }).setOrigin(0.5));
-    if (!p.showcase.length) m.root.add(txt(this, m.x + m.w / 2, m.y + 260, "Người chơi chưa trưng bày cá nào", 20, { color: COLORS.textDim }).setOrigin(0.5));
-    p.showcase.slice(0, 3).forEach((f, i) => this.showFish(m.x + 40 + i * 232, m.y + 120, 216, 260, f, m.root));
-    m.root.add(new Button(this, m.x + m.w / 2, m.y + m.h - 48, 260, 58, "⚔ Thách đấu sinh tử", { color: COLORS.red, fontSize: 22, onClick: () => goTo(this, "DeathMatch", { mode: "pvp", opponent: p }) }));
+    showPlayerProfile(this, p);
   }
+
 }

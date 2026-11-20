@@ -8,6 +8,7 @@ import { Button, fadeIn, formatNum, goTo, panel, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
+import { openPlayerProfile } from "../ui/playerProfile.ts";
 
 type Tab = RankCategory | "guild";
 const TABS: [Tab, string, string][] = [
@@ -109,7 +110,12 @@ export class RankingScene extends Phaser.Scene {
         if (r.rank === 1) this.tweens.add({ targets: tt, scale: 1.08, duration: 600, yoyo: true, repeat: -1 });
       }
       c.add(txt(this, 1210, y + 30, `${formatNum(r.score)} ${unit}`, 22, { color: COLORS.textGold }).setOrigin(1, 0.5));
+      // bấm vào dòng để xem trang cá nhân
+      const z = this.add.zone(640, y + 30, 1200, 60).setInteractive({ useHandCursor: true });
+      z.on("pointerup", () => void openPlayerProfile(this, r.user_id, `Hạng #${r.rank} ${TABS.find((t) => t[0] === cat)![1]}`));
+      c.add(z);
     });
+    c.add(txt(this, 640, 160, "👆 Bấm vào người chơi để xem trang cá nhân", 13, { weight: "700", color: COLORS.textDim, align: "center" }).setOrigin(0.5));
     const myT = mine ? rankTitle(cat, mine) : null;
     const myTeam = cat === "teamPower" ? ` · Đội hình của bạn ⚔ ${formatNum(teamPower(GameState.save, FISH_BY_ID, FORM_BY_ID))}` : "";
     c.add(

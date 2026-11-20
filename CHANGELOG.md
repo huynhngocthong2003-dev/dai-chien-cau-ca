@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.18.0] – 2026-11-20 – Hồ sơ chi tiết, trang cá nhân người chơi, nhắn tin, chat Thế Giới, trạng thái online
+### Thêm
+- **Hồ Sơ mới**: trái – avatar (chấm online), tên, **danh hiệu**, cấp, **UID** (bấm để sao chép), mã kết bạn, 5 ô thống kê (thêm Chiến lực), cá trưng bày; phải – **mô hình nhân vật đứng trên bục, cầm cần câu đang dùng**, mặc đồ/skin đang mặc, nút đổi nhân vật/cần câu.
+- Tab **Bạn bè** riêng: thẻ mã kết bạn lớn + hướng dẫn, danh sách bạn có **🟢 trạng thái online** ("Đang online" / "Online x phút trước"), nút 💬 có số tin chưa đọc.
+- **Trang cá nhân người chơi khác** (bấm vào người trong **Bảng Xếp Hạng**, bạn bè hoặc tên trong chat): đầy đủ thông tin + mô hình nhân vật cầm cần, nút **➕ Kết bạn**, **💬 Nhắn tin**, **⚔ Đấu**.
+- **Nhắn tin 1–1** (làm mới mỗi 4 giây, "đã xem", chống spam 15 tin/phút) và **🌍 Chat Thế Giới** (nút ở sảnh; tên & danh hiệu do máy chủ gắn – không giả danh được; 5 tin/30 giây). Sảnh báo khi có tin nhắn mới.
+- Trạng thái online: game gửi nhịp hồ sơ mỗi 2 phút khi đang mở.
+- Database: bảng `messages`, `world_messages` có RLS + giới hạn tốc độ (đã chạy thử trên PostgreSQL và áp dụng lên máy chủ).
+
 ## [0.17.1] – 2026-11-20
 ### Thêm / Sửa
 - Vòng Quay: các ô **xếp xen kẽ màu** – không còn 2 ô cùng cấp màu nằm cạnh nhau.

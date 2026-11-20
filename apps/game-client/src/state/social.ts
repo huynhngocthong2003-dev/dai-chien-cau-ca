@@ -22,8 +22,34 @@ export interface PlayerCard {
   friend_code: string;
   level: number;
   avatar: string;
-  stats: { caught?: number; bosses?: number; dmWins?: number; dmLosses?: number; species?: number; junk?: number; teamPower?: number; title?: string | null };
+  stats: {
+    caught?: number;
+    bosses?: number;
+    dmWins?: number;
+    dmLosses?: number;
+    species?: number;
+    junk?: number;
+    teamPower?: number;
+    title?: string | null;
+    equip?: Partial<Record<string, string>>;
+    rod?: string;
+    awakened?: boolean;
+    pid?: string;
+  };
   showcase: ShowcaseFish[];
+  /** Lần cuối hồ sơ được cập nhật (game gửi nhịp mỗi 2 phút khi đang mở). */
+  updated_at?: string;
+}
+
+/** Trạng thái online theo nhịp hồ sơ: ≤ 4 phút = đang online. */
+export function onlineStatus(c: Pick<PlayerCard, "updated_at">, now = Date.now()): { online: boolean; text: string } {
+  if (!c.updated_at) return { online: false, text: "Ngoại tuyến" };
+  const mins = Math.max(0, Math.floor((now - Date.parse(c.updated_at)) / 60000));
+  if (mins <= 4) return { online: true, text: "Đang online" };
+  if (mins < 60) return { online: false, text: `Online ${mins} phút trước` };
+  const h = Math.floor(mins / 60);
+  if (h < 24) return { online: false, text: `Online ${h} giờ trước` };
+  return { online: false, text: `Online ${Math.floor(h / 24)} ngày trước` };
 }
 
 export interface Friendship {
@@ -59,6 +85,11 @@ export function cardFromSave(save: PlayerSave): Omit<PlayerCard, "user_id" | "fr
       junk: save.stats.junkCaught ?? 0,
       teamPower: teamPower(save, FISH_BY_ID, FORM_BY_ID),
       title: save.titles.equipped,
+      // ngoại hình để người khác xem: đồ đang mặc, cần câu, thức tỉnh
+      equip: save.characters[save.selectedCharacterId]?.equip ?? {},
+      rod: save.selectedRodId,
+      awakened: !!save.characters[save.selectedCharacterId]?.awakened,
+      pid: save.playerId,
     },
     showcase,
   };
@@ -68,7 +99,7 @@ export function showcaseRate(f: ShowcaseFish): number | null {
   return winRate(f);
 }
 
-const CARD_COLS = "user_id, display_name, friend_code, level, avatar, stats, showcase";
+const CARD_COLS = "user_id, display_name, friend_code, level, avatar, stats, showcase, updated_at";
 
 export async function publishCard(userId: string, save: PlayerSave): Promise<void> {
   const sb = await getClient();
@@ -340,4 +371,59 @@ export async function incomingMatch(me: string, sinceIso: string): Promise<{ rec
   const r = (data as { id: string; result: MatchResult; for_defender: Omit<PvpMatchRecord, "id" | "opponentName">; challenger_name: string; applied_defender: boolean }[])?.[0];
   if (!r) return null;
   return { record: { id: r.id, ...r.for_defender, opponentName: r.challenger_name }, result: r.result };
+}
+
+// ------------------------------------------------------------------ Nhắn tin
+export interface ChatMessage {
+  id: number;
+  sender: string;
+  recipient: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+}
+
+export async function fetchChat(me: string, other: string, limit = 40): Promise<ChatMessage[]> {
+  const sb = await getClient();
+  const { data, error } = await sb
+    .from("messages")
+    .select("id, sender, recipient, body, created_at, read_at")
+    .or(`and(sender.eq.${me},recipient.eq.${other}),and(sender.eq.${other},recipient.eq.${me})`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(friendlyRpc(error.message));
+  return ((data as ChatMessage[]) ?? []).reverse();
+}
+
+export async function sendMessage(me: string, to: string, body: string): Promise<void> {
+  const sb = await getClient();
+  const { error } = await sb.from("messages").insert({ sender: me, recipient: to, body: body.trim().slice(0, 300) });
+  if (error) throw new Error(friendlyRpc(error.message));
+}
+
+export const markRead = (from: string) => rpc("mark_messages_read", { p_from: from });
+export const unreadCounts = async () => ((await rpc("unread_counts")) as { sender: string; n: number }[]) ?? [];
+
+// ------------------------------------------------------------------ Chat thế giới
+export interface WorldMessage {
+  id: number;
+  user_id: string;
+  name: string;
+  title: string | null;
+  level: number;
+  body: string;
+  created_at: string;
+}
+
+export async function fetchWorld(limit = 40): Promise<WorldMessage[]> {
+  const sb = await getClient();
+  const { data, error } = await sb.from("world_messages").select("id, user_id, name, title, level, body, created_at").order("created_at", { ascending: false }).limit(limit);
+  if (error) throw new Error(friendlyRpc(error.message));
+  return ((data as WorldMessage[]) ?? []).reverse();
+}
+
+export async function sendWorld(me: string, body: string): Promise<void> {
+  const sb = await getClient();
+  const { error } = await sb.from("world_messages").insert({ user_id: me, body: body.trim().slice(0, 200) });
+  if (error) throw new Error(friendlyRpc(error.message));
 }

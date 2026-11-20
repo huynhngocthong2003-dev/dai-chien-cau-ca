@@ -115,7 +115,7 @@ const errs = [];
   // --- Hồ sơ: chọn cá trưng bày
   await start('Profile');
   await p.waitForTimeout(800);
-  await p.mouse.click(336, 660); // Chọn cá trưng bày
+  await p.mouse.click(388, 660); // Chọn cá trưng bày
   await p.waitForTimeout(500);
   await p.mouse.click(110 + 26 + 79, 60 + 74 + 75); // con đầu tiên (modal 1060×600 tại 110,60)
   await p.waitForTimeout(200);

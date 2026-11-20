@@ -263,6 +263,16 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     return applied;
   }
 
+  private heartbeat: ReturnType<typeof setInterval> | null = null;
+
+  /** Gửi nhịp "đang online" mỗi 2 phút khi đã đăng nhập. */
+  startHeartbeat() {
+    if (this.heartbeat || typeof window === "undefined") return;
+    this.heartbeat = setInterval(() => {
+      if (this.online && document.visibilityState === "visible") void this.publishProfile();
+    }, 120_000);
+  }
+
   async publishProfile() {
     if (!this.online) return;
     try {
@@ -455,6 +465,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     this.emit("changed", this._save);
     this.emit("account", user);
     void this.publishProfile();
+    this.startHeartbeat();
     return d.reason;
   }
 

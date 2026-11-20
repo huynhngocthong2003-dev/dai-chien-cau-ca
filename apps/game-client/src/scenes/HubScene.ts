@@ -4,6 +4,7 @@ import { CHARACTER_BY_ID, CHECKIN_REWARDS, COSMETICS, EVENTS, FISH_BY_ID, QUESTS
 import { checkinState, dayKey, questProgress, refreshDaily, titleProgress } from "@dccc/shared";
 import { playerNameSchema } from "@dccc/validation";
 import { GameState } from "../state/GameState.ts";
+import * as Social from "../state/social.ts";
 import { auraTexture, characterHeadTexture, characterTexture, cosmeticTexture, dockTexture, fishSilhouetteTexture, fishTexture, rodIconTexture, zoneTexture } from "../art/textures.ts";
 import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
@@ -13,6 +14,7 @@ import { Music } from "../audio/Music.ts";
 import { addAmbience } from "../art/ambience.ts";
 import { addFashionFx } from "../art/fashionFx.ts";
 import { openGiftCode } from "../ui/giftCode.ts";
+import { openWorldChat } from "../ui/worldChat.ts";
 import { htmlOverlay } from "../ui/htmlOverlay.ts";
 
 /** Tính năng chưa mở (hiện chưa có – mọi mục ở sảnh đã hoạt động). */
@@ -146,10 +148,19 @@ export class HubScene extends Phaser.Scene {
       GameState.loadWarning = null;
     }
     this.input.keyboard?.on("keydown-ENTER", () => goTo(this, "Zone"));
+    // kênh chat thế giới
+    const wc = new Button(this, 92 - extraX(this) + safeX(this), 130, 150, 50, "🌍 Chat", { color: COLORS.blue, fontSize: 20, onClick: () => openWorldChat(this) });
+    wc.setDepth(20);
     if (GameState.online && !HubScene.socialSynced) {
       HubScene.socialSynced = true;
       void GameState.claimTopups()
         .then((got) => got.length && this.scene.isActive() && toast(this, `💎 Đã nhận gói nạp: ${got.map((p) => p.name).join(", ")}. Cảm ơn bạn!`, COLORS.green))
+        .catch(() => null);
+      void Social.unreadCounts()
+        .then((u) => {
+          const n = u.reduce((a, x) => a + Number(x.n), 0);
+          if (n && this.scene.isActive()) this.time.delayedCall(1500, () => toast(this, `💬 Bạn có ${n} tin nhắn mới – xem ở Hồ Sơ → Bạn bè`, COLORS.blue));
+        })
         .catch(() => null);
       void GameState.syncSocial().then((list) => {
         if (!this.scene.isActive()) return;
@@ -303,6 +314,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.17.1 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.18.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }
