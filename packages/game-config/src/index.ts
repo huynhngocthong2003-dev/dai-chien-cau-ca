@@ -50,7 +50,7 @@ export const FISHING = {
   biteDelayMin: 1800,
   biteDelayMax: 5200,
   /** Cửa sổ giật cần sau khi cá cắn (ms). */
-  biteWindow: 900,
+  biteWindow: 800,
   /** Khoảng cách ban đầu của cá (0 = đã kéo lên). */
   startDistance: 100,
   /** Cá thoát nếu vượt quá khoảng cách này. */
@@ -64,7 +64,7 @@ export const FISHING = {
   /** Cá vùng vẫy cộng thêm căng dây khi người chơi đang kéo. */
   struggleTensionPerSec: 60,
   baseReelPerSec: 20,
-  struggleDistancePerSec: 11,
+  struggleDistancePerSec: 13,
   idleDriftPerSec: 3,
   durabilityLossPerSec: 30,
   /** Thời lượng các pha vùng vẫy. */
@@ -72,7 +72,8 @@ export const FISHING = {
   strugglePhaseMs: [900, 2200] as [number, number],
   /** Hệ số cast: lực thả mạnh -> cá ở xa hơn nhưng tăng chút tỷ lệ hiếm. */
   castRareBonusMax: 0.25,
-  bossBaseChance: 0.015,
+  /** Boss bất ngờ khi câu thường: ~0,5% mỗi lần quăng (Săn Boss bằng vé vẫn chắc chắn gặp). */
+  bossBaseChance: 0.005,
   /** Xác suất vớt phải rác (trước khi xét cá). */
   junkChance: 0.12,
   /** Boss phụ siêu hiếm mỗi khu – 0,15% mỗi lần quăng (may mắn tăng nhẹ). */

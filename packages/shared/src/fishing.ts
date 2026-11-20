@@ -28,12 +28,12 @@ export type FishingEvent =
 
 const STRUGGLE_BY_RARITY: Record<FishRarity, number> = {
   common: 0.7,
-  rare: 0.85,
-  precious: 1.0,
-  epic: 1.15,
-  legendary: 1.3,
-  mythic: 1.45,
-  boss: 1.6,
+  rare: 0.9,
+  precious: 1.1,
+  epic: 1.3,
+  legendary: 1.5,
+  mythic: 1.7,
+  boss: 1.85,
 };
 
 export const TICK_MS = 50;
@@ -292,7 +292,7 @@ export class FishingSession {
     for (const eff of skill.effects) {
       switch (eff.kind) {
         case "damage_pct":
-          this.dealDamage(this.fishMaxHp * eff.value, false);
+          this.dealDamage(this.pctDamage(eff.value), false);
           break;
         case "tension_reduce":
           this.tension = Math.max(0, this.tension - eff.value);
@@ -365,6 +365,15 @@ export class FishingSession {
     return s * (1 - calm);
   }
 
+  /**
+   * Sát thương theo % máu cá bị giới hạn theo lực kéo của trang bị:
+   * cá nhỏ vẫn mất trọn %, cá to/Boss không bị "xóa sổ" bằng nhân vật yếu.
+   */
+  private pctDamage(pct: number): number {
+    const cap = this.loadout.pull * this.pullMul * (4 + pct * 30);
+    return Math.min(this.fishMaxHp * pct, cap);
+  }
+
   private dealDamage(amount: number, canCrit: boolean) {
     let dmg = amount;
     if (this.isActive("double")) dmg *= 2;
@@ -435,7 +444,7 @@ export class FishingSession {
         if (!this.jumpFailed) {
           this.combo++;
           this.maxCombo = Math.max(this.maxCombo, this.combo);
-          const amount = this.fishMaxHp * 0.03 * (1 + Math.min(10, this.combo) * 0.1);
+          const amount = this.pctDamage(0.02) * (1 + Math.min(6, this.combo) * 0.1);
           this.fishHp = Math.max(0, this.fishHp - amount);
           this.events.push({ type: "dodge", combo: this.combo, amount });
         }
@@ -448,7 +457,7 @@ export class FishingSession {
 
     // Sát thương cháy
     for (const b of this.buffs.burn) {
-      if (b.until > this.time) this.fishHp = Math.max(0, this.fishHp - this.fishMaxHp * b.value * dt);
+      if (b.until > this.time) this.fishHp = Math.max(0, this.fishHp - Math.min(this.fishMaxHp * b.value, this.loadout.pull * this.pullMul * (1 + b.value * 20)) * dt);
     }
 
     if (this.reeling) {
@@ -461,7 +470,7 @@ export class FishingSession {
         this.maxCombo = Math.max(this.maxCombo, this.combo);
         this.events.push({ type: "perfect", combo: this.combo });
       }
-      const tiredMul = tired ? 1.6 + 0.15 * Math.min(10, this.combo) : 1;
+      const tiredMul = tired ? 1.35 + 0.07 * Math.min(6, this.combo) : 1;
       const dmgPerSec = this.loadout.pull * this.pullMul * tiredMul * (this.struggling && !stunned ? 0.45 : 1);
       this.critTimer += TICK_MS;
       if (this.critTimer >= 250) {

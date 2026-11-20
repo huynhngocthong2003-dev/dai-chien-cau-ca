@@ -18,7 +18,7 @@ export function spawnWeights(zone: ZoneDef, fishById: Map<string, FishDef>, lf: 
 }
 
 export function bossChance(lf: number): number {
-  return Math.min(0.08, FISHING.bossBaseChance * (1 + lf * 0.6));
+  return Math.min(0.012, FISHING.bossBaseChance * (1 + lf * 0.4));
 }
 
 /** Tất cả Boss của khu (Boss chính trước). */

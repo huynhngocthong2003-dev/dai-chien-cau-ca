@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.1] – 2026-11-20 – Cân bằng: câu khó hơn, Boss hiếm hơn
+### Thay đổi
+- **Boss bất ngờ khi câu thường hiếm hơn ~3 lần**: ~0,6% mỗi lần quăng (trước 1,7–2%), tối đa 1,2% dù may mắn cao. Săn Boss bằng vé vẫn chắc chắn gặp.
+- **Kỹ năng gây sát thương theo % máu** (và thiêu đốt) giờ bị giới hạn theo lực kéo của trang bị: cá nhỏ vẫn mất trọn %, nhưng cá to/Boss không còn bị nhân vật yếu "xóa sổ" (trước đây nhân vật khởi đầu hạ được cá Thần Thoại 9.200 HP).
+- **Cá hiếm vùng vẫy mạnh hơn** (Quý → Boss) và kéo dây ra xa hơn khi quẫy → nhả tay quá lâu là cá thoát.
+- Cửa sổ giật cần khi cá cắn ngắn hơn (0,9 → 0,8 giây).
+- Thưởng "cá mệt" và "né nhảy" giảm bớt (vẫn đáng chơi khéo, nhưng không còn quá dễ).
+
 ## [0.19.0] – 2026-11-20 – Câu cá có kỹ năng + Quảng Trường
 ### Thêm – câu cá đỡ chán
 - **Mỗi loài cá vùng vẫy một kiểu**: Bền bỉ, Giật lắt nhắt, Lặn sâu, Hay nhảy, Chúa tể (Boss). Tên kiểu hiện cạnh tên cá, kèm mẹo đối phó khi cá cắn câu.

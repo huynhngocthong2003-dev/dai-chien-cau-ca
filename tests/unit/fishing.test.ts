@@ -109,8 +109,9 @@ describe("chooseFish", () => {
     const rng = new Rng(3);
     let boss = 0;
     for (let i = 0; i < 5000; i++) if (chooseFish(zone, FISH_BY_ID, starter(), 0.5, rng).rarity === "boss") boss++;
-    expect(boss).toBeGreaterThan(50);
-    expect(boss).toBeLessThan(400);
+    // ~0,6% mỗi lần quăng: hiếm nhưng vẫn gặp
+    expect(boss).toBeGreaterThan(15);
+    expect(boss).toBeLessThan(80);
   });
 });
 
@@ -205,5 +206,24 @@ describe("Câu cá có kỹ năng: kiểu vùng vẫy, báo hiệu, né nhảy, 
     expect(applyCastEvent(starter(), "school").luck).toBe(starter().luck + 60);
     expect(castEventWeightMul("giant")).toBe(1.35);
     expect(castEventWeightMul(null)).toBe(1);
+  });
+});
+
+describe("Cân bằng độ khó", () => {
+  it("kỹ năng % máu không hạ được cá to bằng nhân vật yếu", () => {
+    const s = new FishingSession({ fish: FISH_BY_ID.get("f_boss_hai_than_cu_thu")!, loadout: starter(), seed: 3 });
+    while (s.phase !== "bite") s.update(50);
+    s.hook();
+    const hp = s.fishHp;
+    s.useSkill();
+    expect(hp - s.fishHp).toBeLessThan(hp * 0.05);
+  });
+  it("cá nhỏ vẫn mất trọn % máu từ kỹ năng", () => {
+    const s = new FishingSession({ fish: FISH_BY_ID.get("f_ca_ro")!, loadout: starter(), seed: 3 });
+    while (s.phase !== "bite") s.update(50);
+    s.hook();
+    const hp = s.fishHp;
+    s.useSkill();
+    expect(hp - s.fishHp).toBeGreaterThanOrEqual(hp * 0.1);
   });
 });
