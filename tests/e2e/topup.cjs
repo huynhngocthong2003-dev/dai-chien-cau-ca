@@ -43,6 +43,8 @@ const db = { orders: [], save: null, admin: true };
     if (path === '/rest/v1/rpc/admin_decide_topup') { const b2 = req.postDataJSON(); const o = db.orders.find((x) => x.id === b2.p_id); o.status = b2.p_approve ? 'approved' : 'rejected'; return route.fulfill({ status: 204, body: '' }); }
     if (path === '/rest/v1/rpc/claim_topups') { const got = db.orders.filter((o) => o.status === 'approved'); got.forEach((o) => (o.status = 'claimed')); return json(200, got.map((o) => ({ id: o.id, package: o.package }))); }
     if (path.startsWith('/rest/v1/rpc/')) return json(200, null);
+    // các bảng khác (câu cùng nhau, quảng trường…) không liên quan tới nạp: trả rỗng
+    if (path.startsWith('/rest/v1/')) return req.method() === 'GET' ? json(200, []) : route.fulfill({ status: 204, body: '' });
     return json(404, { message: 'mock: ' + path });
   });
   // phiên đăng nhập có sẵn
