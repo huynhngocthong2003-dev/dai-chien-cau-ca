@@ -131,11 +131,18 @@ class MusicEngine {
     o.stop(t + dur + 0.05);
   }
 
+  /** Bộ đệm tiếng ồn dùng chung cho mọi tiếng hi-hat (trước đây tạo mới mỗi tiếng → giật máy yếu). */
+  private hatBufs = new Map<number, AudioBuffer>();
+
   private hat(t: number, vol: number, len = 0.05) {
     const c = this.ctx!;
-    const buf = c.createBuffer(1, Math.floor(c.sampleRate * len), c.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    let buf = this.hatBufs.get(len);
+    if (!buf) {
+      buf = c.createBuffer(1, Math.floor(c.sampleRate * len), c.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+      this.hatBufs.set(len, buf);
+    }
     const src = c.createBufferSource();
     src.buffer = buf;
     const f = c.createBiquadFilter();

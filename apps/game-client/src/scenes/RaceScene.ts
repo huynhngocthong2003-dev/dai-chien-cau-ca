@@ -105,6 +105,9 @@ export class RaceScene extends Phaser.Scene {
   private theme!: RaceTheme;
   private themeKey = "";
   private weatherFx?: Phaser.GameObjects.Particles.ParticleEmitter;
+  /** Chế độ nhẹ cho máy yếu: tự bật khi khung hình thấp (ít vệt bóng, ít hạt thời tiết). */
+  private lowFx = false;
+  private fpsLowT = 0;
   private fogG!: Phaser.GameObjects.Graphics;
   private inkG!: Phaser.GameObjects.Graphics;
   /** Bản đồ chọn ở màn chọn ("random" = ngẫu nhiên) và bản đồ đang đua. */
@@ -196,6 +199,14 @@ export class RaceScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.stopMatchmaking(true);
       this.stopLobbyPoll();
+      this.session = null;
+      // giải phóng ảnh nền các bản đồ (mỗi chặng 1 ảnh lớn) – tránh đầy bộ nhớ đồ họa sau khi đua
+      const keys = this.textures.getTextureKeys().filter((k) => /^race_(sky|far)_/.test(k));
+      window.setTimeout(() => {
+        // màn đua được mở lại ngay (khởi động lại) → giữ ảnh đang dùng
+        const inUse = this.sys.isActive() ? [`race_sky_${this.themeKey}`, `race_far_${this.themeKey}`] : [];
+        for (const k of keys) if (!inUse.includes(k) && this.textures.exists(k)) this.textures.remove(k);
+      }, 0);
     });
     if (this.pendingJoin) {
       const code = this.pendingJoin;
@@ -923,7 +934,8 @@ export class RaceScene extends Phaser.Scene {
     this.theme = t;
     const ex = extraX(this);
     const sky = this.add
-      .image(-ex, 0, canvasTexture(this, `race_sky_${key}`, 1280, 720, (ctx) => drawThemeSky(ctx, t)))
+      // trời chỉ là dải màu → vẽ nửa độ phân giải (ít bộ nhớ hơn 4 lần, nhìn không khác)
+      .image(-ex, 0, canvasTexture(this, `race_sky_${key}`, 1280, 720, (ctx) => drawThemeSky(ctx, t), 0.5))
       .setOrigin(0)
       .setDisplaySize(1280 + 2 * ex, 720)
       .setDepth(-20);
@@ -974,7 +986,9 @@ export class RaceScene extends Phaser.Scene {
     };
     const c = cfg[t.weather];
     if (!c) return;
-    this.weatherFx = this.add.particles(0, 0, c[0], c[1]).setDepth(940);
+    // máy yếu: thưa hạt hơn
+    const conf = { ...c[1], frequency: ((c[1].frequency as number) ?? 60) * (this.lowFx ? 3 : 1.6) };
+    this.weatherFx = this.add.particles(0, 0, c[0], conf).setDepth(940);
   }
 
   // ------------------------------------------------------------------ HUD
@@ -1114,8 +1128,20 @@ export class RaceScene extends Phaser.Scene {
           }
         }
       }
+      this.watchFps(dt);
     }
-    this.layoutRace(dt);
+    // chỉ dựng lại đường đua khi đang đếm ngược / đua (màn chọn & kết quả không cần → đỡ tốn pin)
+    if (this.mode === "race" || this.mode === "countdown") this.layoutRace(dt);
+  }
+
+  /** Khung hình thấp kéo dài 2 giây → bật chế độ nhẹ. */
+  private watchFps(dt: number) {
+    if (this.lowFx) return;
+    this.fpsLowT = this.game.loop.actualFps < 40 ? this.fpsLowT + dt : 0;
+    if (this.fpsLowT > 2000) {
+      this.lowFx = true;
+      if (this.theme) this.setWeather(this.theme);
+    }
   }
 
   /** Gửi vị trí của mình + nhận vị trí người khác (~2,5 lần/giây). */
@@ -1165,6 +1191,7 @@ export class RaceScene extends Phaser.Scene {
       let img = this.obstacleImgs.get(o.id);
       if (!visible) {
         if (img) {
+          this.tweens.killTweensOf(img);
           img.destroy();
           this.obstacleImgs.delete(o.id);
         }
@@ -1256,9 +1283,10 @@ export class RaceScene extends Phaser.Scene {
       v.fish.setTint(slowed ? 0x9e9e9e : 0xffffff);
       v.shield.setVisible(s.time < (r.shieldUntil ?? 0)).setScale(1 + Math.sin(this.time.now / 150) * 0.04);
       // vệt bóng mờ khi tăng tốc
-      if (boosting && dt) {
+      // (chế độ nhẹ: chỉ vệt của mình; bình thường: của người khác thưa hơn)
+      if (boosting && dt && (r.id === "me" || !this.lowFx)) {
         v.ghostT += dt;
-        if (v.ghostT > 55) {
+        if (v.ghostT > (r.id === "me" ? (this.lowFx ? 110 : 70) : 140)) {
           v.ghostT = 0;
           this.ghost(v);
         }

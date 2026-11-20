@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.26.1] – 2026-11-20 – Sửa lag điện thoại sau khi Đua Cá
+### Sửa
+- **Ảnh nền bản đồ đua không được giải phóng**: mỗi chặng tạo 1 ảnh lớn và giữ mãi trong bộ nhớ đồ họa (đo được 7MB → 56MB sau 3 cuộc đua) → điện thoại lag cả sau khi rời màn đua. Giờ ảnh trời vẽ ở nửa độ phân giải (nhẹ hơn 4 lần, nhìn không khác) và **được giải phóng khi rời màn Đua Cá** (về sảnh còn ~11MB, không tăng nữa).
+- **Nhạc trận đấu/đua tạo bộ đệm âm thanh mới cho mỗi tiếng trống** (~10 lần/giây) → máy yếu phải dọn rác liên tục. Giờ dùng lại 1 bộ đệm.
+- Màn chọn giải & màn kết quả không còn vẽ lại đường đua mỗi khung hình.
+- Hiệu ứng nhẹ hơn: hạt thời tiết thưa hơn, vệt bóng mờ của đối thủ thưa hơn; **máy yếu (dưới 40 khung/giây) tự bật chế độ nhẹ** (chỉ giữ vệt của mình, thời tiết thưa gấp 3).
+- Chuyển động lặp của chướng ngại được tắt khi ra khỏi màn hình.
+
 ## [0.26.0] – 2026-11-20 – Bắt buộc tài khoản, lời mời đua hiện bảng xác nhận, Cửa Hàng cuộn được
 ### Thay đổi
 - **Vào game bắt buộc tạo tài khoản / đăng nhập** (bản có máy chủ): màn "Đăng Nhập Để Chơi" với lời chào và lợi ích; không vào được sảnh khi chưa đăng nhập. Máy đã có tiến trình chơi khách từ trước → **tạo tài khoản giữ nguyên tiến trình** và đưa lên máy chủ. Đăng nhập/tạo xong vào thẳng sảnh; đăng xuất → quay về màn đăng nhập. Mất mạng tạm thời khi đã có phiên đăng nhập vẫn chơi được trên máy.

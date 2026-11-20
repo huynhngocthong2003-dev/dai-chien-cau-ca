@@ -324,6 +324,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.26.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.26.1 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }
