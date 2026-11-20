@@ -39,7 +39,7 @@ export const playerSaveSchema = z.object({
       breakthrough: z.number().int().min(0).max(5),
       awakened: z.boolean(),
       xp: nonNegInt.optional(),
-      equip: z.object({ hat: id.optional(), outfit: id.optional(), accessory: id.optional(), wings: id.optional(), horns: id.optional() }),
+      equip: z.object({ hat: id.optional(), outfit: id.optional(), accessory: id.optional(), wings: id.optional(), horns: id.optional(), skin: id.optional() }),
     }),
   ),
   rods: z.record(id, z.object({ level: z.number().int().min(1).max(50), stars: z.number().int().min(1).max(5) })),

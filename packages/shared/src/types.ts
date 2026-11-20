@@ -89,7 +89,11 @@ export interface CharacterAppearance {
   aura: string; // màu hào quang khi dùng kỹ năng
 }
 
-export type CosmeticSlot = "hat" | "outfit" | "accessory" | "wings" | "horns";
+export type CosmeticSlot = "hat" | "outfit" | "accessory" | "wings" | "horns" | "skin";
+/** Skin trọn bộ (thay mũ + áo + phụ kiện, kèm đạo cụ theo chủ đề). */
+export type SkinKind =
+  | "forest" | "fire" | "samurai" | "cowboy" | "pharaoh" | "viking" | "cyborg" | "donut" | "bubbletea" | "jester" | "fairy" | "beach"
+  | "princess" | "witch" | "blossom" | "bride" | "bunny" | "sakura" | "summer" | "mermaid" | "winter" | "painter" | "school" | "ballerina";
 export type WingKind = "fluffy" | "butterfly" | "angel" | "demon" | "phoenix" | "dragon";
 export type HornKind = "devil" | "unicorn" | "dragon" | "halo" | "thunder";
 /** Bậc thời trang: càng cao càng nhiều chỉ số phụ và hiệu ứng. */
@@ -102,7 +106,7 @@ export interface CosmeticDef {
   tier: CosmeticTier;
   price: { currency: "gold" | "diamonds" | "eco"; amount: number };
   /** Hình dạng hiển thị theo ô trang bị. */
-  visual: { kind: HatKind | OutfitKind | AccessoryKind | WingKind | HornKind; color: string; accent: string };
+  visual: { kind: HatKind | OutfitKind | AccessoryKind | WingKind | HornKind | SkinKind; color: string; accent: string };
   /** Chỉ số phụ – tăng theo bậc, vẫn giữ mức không pay-to-win. */
   bonus: PassiveEffect[];
   description: string;

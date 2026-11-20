@@ -4,7 +4,7 @@ import { CHAR_RARITY_COLOR } from "@dccc/game-config";
 import { characterTexture, rodIconTexture } from "../art/textures.ts";
 
 const nameOf = (id: string) => EVO_ITEM_BY_ID.get(id)?.name ?? CHARACTER_BY_ID.get(id)?.name ?? ROD_BY_ID.get(id)?.name ?? id;
-import { DUPLICATE_CHAR_SOUL, DUPLICATE_ROD_STONES, WHEEL_COST_10, WHEEL_COST_DIAMONDS, rewardText, type RewardDef } from "@dccc/shared";
+import { DUPLICATE_CHAR_SOUL, DUPLICATE_ROD_STONES, WHEEL_COST_10, WHEEL_COST_DIAMONDS, WHEEL_X10_GOOD_BOOST, rewardText, type RewardDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
@@ -12,6 +12,24 @@ import { COLORS } from "../ui/theme.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { hexToInt } from "../art/color.ts";
 import { Sfx } from "../audio/Sfx.ts";
+
+/** Cấp bậc theo tỉ lệ ra (quay lẻ): màu càng hiếm càng nổi. */
+const TIERS = [
+  { name: "Thần Thoại", min: 0, color: "#ff1744" },
+  { name: "Huyền Thoại", min: 0.004, color: "#ffb300" },
+  { name: "Cực Phẩm", min: 0.01, color: "#ab47bc" },
+  { name: "Hiếm", min: 0.03, color: "#29b6f6" },
+  { name: "Thường", min: 0.08, color: "#90a4ae" },
+];
+const TOTAL_W = WHEEL_PRIZES.reduce((a, p) => a + p.weight, 0);
+const rate1 = (p: (typeof WHEEL_PRIZES)[number]) => p.weight / TOTAL_W;
+const TOTAL_W10 = WHEEL_PRIZES.reduce((a, p) => a + (p.weight <= WHEEL_GOOD_WEIGHT ? p.weight * WHEEL_X10_GOOD_BOOST : p.weight), 0);
+const rate10 = (p: (typeof WHEEL_PRIZES)[number]) => (p.weight <= WHEEL_GOOD_WEIGHT ? p.weight * WHEEL_X10_GOOD_BOOST : p.weight) / TOTAL_W10;
+function tierOf(p: (typeof WHEEL_PRIZES)[number]) {
+  const r = rate1(p);
+  return [...TIERS].reverse().find((t) => r >= t.min) ?? TIERS[0]!;
+}
+const pct = (x: number) => (x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toFixed(2)}%`);
 
 const CX = 460;
 const CY = 410;
@@ -42,7 +60,8 @@ export class WheelScene extends Phaser.Scene {
     g.fillStyle(0x1b1530, 1).fillCircle(0, 0, R + 14);
     WHEEL_PRIZES.forEach((p, i) => {
       const a0 = -Math.PI / 2 + i * seg - seg / 2;
-      g.fillStyle(hexToInt(p.color), 1).slice(0, 0, R, a0, a0 + seg).fillPath();
+      // màu ô theo cấp bậc tỉ lệ
+      g.fillStyle(hexToInt(tierOf(p).color), 1).slice(0, 0, R, a0, a0 + seg).fillPath();
       g.fillStyle(0xffffff, 0.12).slice(0, 0, R * 0.55, a0, a0 + seg).fillPath();
       g.lineStyle(3, 0x1b1530, 1).beginPath().moveTo(0, 0).lineTo(Math.cos(a0) * R, Math.sin(a0) * R).strokePath();
     });
@@ -71,7 +90,8 @@ export class WheelScene extends Phaser.Scene {
     panel(this, 820, 120, 440, 586, 0.92);
     txt(this, 1040, 160, "🎡 Thử vận may!", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5);
     txt(this, 1040, 250, `Mỗi ngày 1 lượt MIỄN PHÍ · thêm lượt ${WHEEL_COST_DIAMONDS} 💎\nQuay x10: ${WHEEL_COST_10} 💎 – tỉ lệ ra đồ ngon CAO HƠN!\n\nGiải lớn: 👑 500 KC · 🪶 Lông Phượng Thần\n🐉🌋❄️⚡ vật phẩm đột biến`, 17, { align: "center", weight: "700", wrap: 410 }).setOrigin(0.5);
-    this.info = txt(this, 1040, 400, "", 20, { align: "center", color: "#b9f6ca", wrap: 400 }).setOrigin(0.5);
+    this.info = txt(this, 1040, 372, "", 18, { align: "center", color: "#b9f6ca", wrap: 400 }).setOrigin(0.5);
+    new Button(this, 1040, 430, 230, 46, "📊 Tỉ lệ rơi", { color: COLORS.blue, fontSize: 19, onClick: () => this.showRates() });
     this.btn = new Button(this, 1040, 500, 340, 70, "", { color: COLORS.orange, fontSize: 26, onClick: () => this.spin() });
     const x10 = new Button(this, 1040, 588, 340, 70, `QUAY x10 · ${WHEEL_COST_10} 💎`, { color: COLORS.purple, fontSize: 24, sub: "Tỉ lệ đồ ngon ×1,6", onClick: () => this.spin10() });
     this.tweens.add({ targets: x10, angle: { from: -1.5, to: 1.5 }, duration: 400, yoyo: true, repeat: -1 });
@@ -122,6 +142,38 @@ export class WheelScene extends Phaser.Scene {
       },
       onComplete: done,
     });
+  }
+
+  /** Bảng tỉ lệ rơi từng món, phân màu theo cấp bậc. */
+  private showRates() {
+    if (this.spinning) return;
+    const m = modal(this, 1000, 660, "📊 Tỉ lệ rơi Vòng Quay", () => undefined);
+    // chú thích cấp bậc
+    TIERS.forEach((t, i) => {
+      const x = m.x + 60 + i * 190;
+      const g = this.add.graphics();
+      g.fillStyle(hexToInt(t.color), 1).fillRoundedRect(x, m.y + 66, 26, 20, 5);
+      m.root.add(g);
+      m.root.add(txt(this, x + 34, m.y + 76, t.name, 16, { color: t.color }).setOrigin(0, 0.5));
+    });
+    m.root.add(txt(this, m.x + 590, m.y + 106, "Quay lẻ", 16, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+    m.root.add(txt(this, m.x + 720, m.y + 106, "Quay x10 (mỗi lượt)", 16, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+    const list = [...WHEEL_PRIZES].sort((a, b) => b.weight - a.weight);
+    // một cột đầy đủ dễ đọc: tên · cấp · % lẻ · % x10
+    list.forEach((p, i) => {
+      const y = m.y + 130 + i * 25;
+      const t = tierOf(p);
+      const g = this.add.graphics();
+      g.fillStyle(hexToInt(t.color), i % 2 ? 0.18 : 0.28).fillRoundedRect(m.x + 30, y - 11, m.w - 60, 23, 6);
+      m.root.add(g);
+      m.root.add(this.add.text(m.x + 50, y, p.icon, { fontSize: "16px", padding: { top: 4 } }).setOrigin(0.5));
+      m.root.add(txt(this, m.x + 70, y, p.label, 15, { weight: "700" }).setOrigin(0, 0.5));
+      m.root.add(txt(this, m.x + 330, y, t.name, 14, { color: t.color }).setOrigin(0, 0.5));
+      m.root.add(txt(this, m.x + 590, y, pct(rate1(p)), 15, { align: "center" }).setOrigin(0.5));
+      const up = p.weight <= WHEEL_GOOD_WEIGHT;
+      m.root.add(txt(this, m.x + 720, y, `${pct(rate10(p))}${up ? " ▲" : ""}`, 15, { align: "center", color: up ? "#69f0ae" : "#ffffff" }).setOrigin(0.5));
+    });
+    m.root.add(txt(this, m.x + m.w / 2, m.y + m.h - 34, "▲ = món ngon được tăng tỉ lệ ×1,6 khi quay x10 (không đảm bảo). Nhân vật / cần câu hiếm bốc ngẫu nhiên trong nhóm; đã có thì đổi nguyên liệu.", 13, { align: "center", weight: "700", color: COLORS.textDim, wrap: 920 }).setOrigin(0.5));
   }
 
   /** Màn khoe trúng nhân vật / cần câu hiếm. */

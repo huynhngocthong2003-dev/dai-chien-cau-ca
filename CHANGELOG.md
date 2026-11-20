@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0] – 2026-11-20 – 24 Skin nhân vật, tỉ lệ Vòng Quay theo cấp màu
+### Thêm
+- **Ô trang bị mới "Skin"** – bộ trang phục trọn bộ (thay mũ + áo + trang sức, có đạo cụ riêng). Tab 🧸 Skin ở Cửa Hàng (mở đầu tiên), hàng Skin trong Tủ Đồ. **24 skin**:
+  - Bộ 1: Thần Rừng Xanh, Du Khách Đi Biển, Cao Bồi Miền Tây, Bánh Donut Dâu, Ly Trà Sữa Trân Châu, Chú Hề Cầu Vồng, Samurai Huyết Giáp (kiếm katana), Chiến Binh Viking (rìu + khiên), Pharaoh Hoàng Kim (gậy vàng), Chiến Binh Cyborg (mắt laser), Hỏa Thần Bất Diệt (đuốc + quầng lửa), Tiên Bướm Cầu Vồng.
+  - Bộ 2: Công Chúa Hồng, Phù Thủy Nhỏ (đũa trái tim), Tiên Hoa Mùa Xuân, Cô Dâu Hoa Hồng (voan + bó hoa), Thỏ Hồng Cà Rốt, Kimono Hoa Anh Đào (quạt), Cô Nàng Mùa Hè (phao kỳ lân), Nàng Tiên Cá (đuôi cá), Mùa Đông Ấm Áp, Họa Sĩ Nhí (cọ + bảng màu), Nữ Sinh Thủy Thủ (cặp sách), Vũ Công Ballet (váy tutu).
+  - Bậc Hiếm → Thần Phẩm, chỉ số phụ theo trần bậc; bậc cao phát sáng như thời trang.
+- Vòng Quay: nút **📊 Tỉ lệ rơi** (bảng % quay lẻ và quay x10 từng món); **5 cấp màu theo tỉ lệ** – Thường (xám), Hiếm (xanh), Cực Phẩm (tím), Huyền Thoại (vàng cam), Thần Thoại (đỏ); ô trên vòng quay tô đúng màu cấp.
+
 ## [0.16.0] – 2026-11-20 – Nhân vật & cần câu từ Vòng Quay, xếp hạng Chiến Lực
 ### Thêm
 - Vòng Quay thêm ô **🌟 Nhân Vật Hiếm** (~0,2%/lượt: Ngao Thiên, Viêm Hỏa – SSR; Thủy Tổ, Lôi Vũ – UR hiếm hơn) và **🎣 Cần Câu Hiếm** (~0,3%/lượt: Long Cốt, Phượng Hoàng – SSR; Hải Thần – UR). Đây là các nhân vật/cần trước đây chưa có cách nhận. Trúng món đã có → đổi thành 30 Linh Hồn (nhân vật) / 60 Đá (cần câu). Màn khoe riêng khi trúng.

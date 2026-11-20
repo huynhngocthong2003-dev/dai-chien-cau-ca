@@ -25,6 +25,8 @@ const { chromium } = pw;
   await p.mouse.click(914, 300);
   await p.waitForFunction(() => window.__game.scene.isActive('Shop'));
   await p.waitForTimeout(500);
+  await p.mouse.click(68 + 1 * 106, 116); // tab Mũ (tab đầu giờ là Skin)
+  await p.waitForTimeout(300);
   // chọn vương miện (thẻ 7: cột 2 hàng 2)
   await p.mouse.click(16 + 1*165 + 79, 152 + 278 + 130); // Vương Miện Vàng (thẻ 7)
   await p.waitForTimeout(300);
@@ -34,7 +36,7 @@ const { chromium } = pw;
   await p.waitForTimeout(500);
   await p.screenshot({ path: out + '/s2-shop-hat.png' });
   // quần áo tab, chọn kimono (thẻ 6: cột 1 hàng 2)
-  await p.mouse.click(74 + 118, 116); // tab Áo
+  await p.mouse.click(68 + 2 * 106, 116); // tab Áo
   await p.waitForTimeout(300);
   await p.mouse.click(16 + 0*165 + 79, 152 + 278 + 130); // Kimono (thẻ 6)
   await p.waitForTimeout(300);
@@ -43,7 +45,7 @@ const { chromium } = pw;
   await p.mouse.click(966, 608);
   await p.waitForTimeout(300);
   // trang sức: kính râm (thẻ 3)
-  await p.mouse.click(74 + 2*118, 116); // tab Trang Sức
+  await p.mouse.click(68 + 3 * 106, 116); // tab Trang Sức
   await p.waitForTimeout(300);
   await p.mouse.click(16 + 2*165 + 79, 152 + 130); // Kính Râm (thẻ 3)
   await p.waitForTimeout(300);
@@ -52,10 +54,10 @@ const { chromium } = pw;
   await p.mouse.click(966, 608);
   await p.waitForTimeout(500);
   await p.screenshot({ path: out + '/s3-shop-acc.png' });
-  await p.mouse.click(74 + 5*118, 116); // tab Vật Phẩm
+  await p.mouse.click(68 + 6 * 106, 116); // tab Vật Phẩm
   await p.waitForTimeout(400);
   await p.screenshot({ path: out + '/s4-items.png' });
-  await p.mouse.click(74 + 7*118, 116); // tab Chợ
+  await p.mouse.click(68 + 8 * 106, 116); // tab Chợ
   await p.waitForTimeout(400);
   await p.screenshot({ path: out + '/s5-market.png' });
   const save = await p.evaluate(() => JSON.parse(localStorage.getItem('dccc_save_v1')));

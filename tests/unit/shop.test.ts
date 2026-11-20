@@ -30,8 +30,9 @@ describe("Dữ liệu thú cưng & trang phục", () => {
     expect(CHARACTERS.every((c) => !!c.appearance.species)).toBe(true);
     expect(new Set(CHARACTERS.map((c) => c.appearance.species)).size).toBeGreaterThanOrEqual(8);
   });
-  it("có đủ 5 ô trang bị, ID duy nhất, chỉ số phụ không vượt trần theo bậc", () => {
-    expect(new Set(COSMETICS.map((c) => c.slot))).toEqual(new Set(["hat", "outfit", "accessory", "wings", "horns"]));
+  it("có đủ 6 ô trang bị (cả Skin), ID duy nhất, chỉ số phụ không vượt trần theo bậc", () => {
+    expect(new Set(COSMETICS.map((c) => c.slot))).toEqual(new Set(["hat", "outfit", "accessory", "wings", "horns", "skin"]));
+    expect(COSMETICS.filter((c) => c.slot === "skin")).toHaveLength(24);
     expect(new Set(COSMETICS.map((c) => c.id)).size).toBe(COSMETICS.length);
     for (const c of COSMETICS)
       for (const b of c.bonus) if ("value" in b && b.kind !== "luck_bonus" && b.kind !== "snap_threshold") expect(b.value, c.id).toBeLessThanOrEqual(TIER_BONUS_CAP[c.tier]);

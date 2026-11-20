@@ -1,4 +1,6 @@
-import type { AccessoryKind, CharacterAppearance, HatKind, HornKind, OutfitKind, WingKind } from "@dccc/shared";
+import type { AccessoryKind, CharacterAppearance, HatKind, HornKind, OutfitKind, SkinKind, WingKind } from "@dccc/shared";
+import { drawSkinBack, drawSkinBody, drawSkinFace, drawSkinHat, drawSkinOverBody, drawSkinProp, skinSleeve } from "./SkinArt.ts";
+import { drawSkin2Back, drawSkin2Body, drawSkin2Face, drawSkin2Hat, drawSkin2Over, drawSkin2Prop } from "./SkinArt2.ts";
 import { OUTLINE, rgba, shade } from "./color.ts";
 import { drawHorns, drawSparkles, drawWings, type Part } from "./FashionArt.ts";
 
@@ -12,6 +14,8 @@ export interface Look {
   accessory: { kind: AccessoryKind; color: string; accent: string };
   wings: Part<WingKind> | null;
   horns: Part<HornKind> | null;
+  /** Skin trọn bộ (thay mũ + áo + phụ kiện). */
+  skin: SkinKind | null;
   /** Màu phát sáng theo bậc thời trang cao nhất đang mặc (null = không). */
   glow: string | null;
   /** Số lấp lánh tĩnh (bậc càng cao càng nhiều). */
@@ -25,6 +29,7 @@ export function defaultLook(a: CharacterAppearance): Look {
     accessory: { kind: "none", color: "#ffffff", accent: "#ffffff" },
     wings: null,
     horns: null,
+    skin: null,
     glow: null,
     sparkle: 0,
   };
@@ -913,8 +918,15 @@ export function drawCharacter(
     drawEarsBack(ctx, a);
     drawHead(ctx, a);
     drawFace(ctx, a);
-    drawFaceAccessory(ctx, a, look.accessory);
-    drawHat(ctx, look.hat);
+    if (look.skin) {
+      drawSkinFace(ctx, look.skin);
+      drawSkin2Face(ctx, look.skin);
+      drawSkinHat(ctx, look.skin);
+      drawSkin2Hat(ctx, look.skin);
+    } else {
+      drawFaceAccessory(ctx, a, look.accessory);
+      drawHat(ctx, look.hat);
+    }
     if (look.horns) drawHorns(ctx, look.horns, CX, HEAD_Y, HEAD_R, look.glow);
     ctx.restore();
     if (look.sparkle) drawSparkles(ctx, look.glow ?? "#ffffff", Math.ceil(look.sparkle / 2), CHAR_W, CHAR_H);
@@ -931,6 +943,10 @@ export function drawCharacter(
   // bóng đổ
   ctx.fillStyle = "rgba(0,0,0,0.22)";
   ctx.fill(ellipse(CX, 230, 52, 8));
+  if (look.skin) {
+    drawSkinBack(ctx, look.skin);
+    drawSkin2Back(ctx, look.skin);
+  }
   if (look.wings) drawWings(ctx, look.wings, CX, BODY_Y - 26, look.glow);
   drawTail(ctx, a);
   // chân
@@ -950,22 +966,39 @@ export function drawCharacter(
   ctx.fillStyle = a.light;
   ctx.fill(ellipse(CX, BODY_Y + 10, a.species === "penguin" ? 34 : 26, 30));
   ctx.restore();
-  drawOutfit(ctx, body, look.outfit);
+  if (look.skin) {
+    drawSkinBody(ctx, body, look.skin);
+    drawSkin2Body(ctx, body, look.skin);
+  } else drawOutfit(ctx, body, look.outfit);
   shadeRight(ctx, body, CX + 22, 0.15);
   ctx.lineWidth = 3.5;
   ctx.strokeStyle = OUTLINE;
   ctx.stroke(body);
+  if (look.skin) {
+    drawSkinOverBody(ctx, look.skin);
+    drawSkin2Over(ctx, look.skin);
+  }
   // tay
-  const sleeve = sleeveColor(look.outfit);
+  const sleeve = look.skin ? skinSleeve(look.skin) : sleeveColor(look.outfit);
   drawArm(ctx, a, CX - 34, BODY_Y - 24, CX + 12, BODY_Y, sleeve);
   drawArm(ctx, a, CX + 36, BODY_Y - 24, CX + 40, BODY_Y - 4, sleeve);
-  drawAccessoryBody(ctx, look.accessory);
+  if (look.skin) {
+    drawSkinProp(ctx, look.skin);
+    drawSkin2Prop(ctx, look.skin);
+  } else drawAccessoryBody(ctx, look.accessory);
   // đầu
   drawEarsBack(ctx, a);
   drawHead(ctx, a);
   drawFace(ctx, a);
-  drawFaceAccessory(ctx, a, look.accessory);
-  drawHat(ctx, look.hat);
+  if (look.skin) {
+    drawSkinFace(ctx, look.skin);
+    drawSkin2Face(ctx, look.skin);
+    drawSkinHat(ctx, look.skin);
+    drawSkin2Hat(ctx, look.skin);
+  } else {
+    drawFaceAccessory(ctx, a, look.accessory);
+    drawHat(ctx, look.hat);
+  }
   if (look.horns) drawHorns(ctx, look.horns, CX, HEAD_Y, HEAD_R, look.glow);
   if (look.sparkle) drawSparkles(ctx, look.glow ?? "#ffffff", look.sparkle, CHAR_W, CHAR_H);
 }

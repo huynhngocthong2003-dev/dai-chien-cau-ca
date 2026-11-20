@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { AccessoryKind, CharacterDef, FishFormDef, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, JunkDef, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
+import type { AccessoryKind, CharacterDef, FishFormDef, SkinKind, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, JunkDef, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
 import { TIER_COLOR, TIER_ORDER } from "@dccc/game-config";
 import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
 import { COSMETIC_BY_ID, FORM_BY_ID } from "@dccc/game-data";
@@ -73,11 +73,13 @@ export function resolveLook(c: CharacterDef, equip: Equip = {}): Look {
   const acc = get("accessory");
   const wings = get("wings");
   const horns = get("horns");
+  const skin = get("skin");
   if (hat) look.hat = { kind: hat.visual.kind as HatKind, color: hat.visual.color, accent: hat.visual.accent };
   if (outfit) look.outfit = { kind: outfit.visual.kind as OutfitKind, color: outfit.visual.color, accent: outfit.visual.accent };
   if (acc) look.accessory = { kind: acc.visual.kind as AccessoryKind, color: acc.visual.color, accent: acc.visual.accent };
   if (wings) look.wings = { kind: wings.visual.kind as WingKind, color: wings.visual.color, accent: wings.visual.accent };
   if (horns) look.horns = { kind: horns.visual.kind as HornKind, color: horns.visual.color, accent: horns.visual.accent };
+  if (skin) look.skin = skin.visual.kind as SkinKind;
   const tier = topTier(equip);
   if (tier === "superior" || tier === "legendary" || tier === "divine") look.glow = TIER_COLOR[tier];
   look.sparkle = tier === "divine" ? 10 : tier === "legendary" ? 5 : 0;
@@ -85,7 +87,7 @@ export function resolveLook(c: CharacterDef, equip: Equip = {}): Look {
 }
 
 function equipKey(equip: Equip = {}) {
-  return `${equip.hat ?? "-"}_${equip.outfit ?? "-"}_${equip.accessory ?? "-"}_${equip.wings ?? "-"}_${equip.horns ?? "-"}`;
+  return `${equip.hat ?? "-"}_${equip.outfit ?? "-"}_${equip.accessory ?? "-"}_${equip.wings ?? "-"}_${equip.horns ?? "-"}_${equip.skin ?? "-"}`;
 }
 
 export function characterTexture(scene: Phaser.Scene, c: CharacterDef, equip?: Equip): string {
@@ -105,7 +107,7 @@ export function cosmeticTexture(scene: Phaser.Scene, model: CharacterDef, itemId
   const look = resolveLook(model, equip);
   if (item.slot !== "hat") look.hat = { kind: "none", color: "#000", accent: "#000" };
   if (item.slot !== "outfit") look.outfit = { kind: "tee", color: "#eceff1", accent: "#eceff1" };
-  const full = item.slot === "outfit" || item.slot === "wings";
+  const full = item.slot === "outfit" || item.slot === "wings" || item.slot === "skin";
   return canvasTexture(scene, `cos_${itemId}`, CHAR_W, CHAR_H, (ctx) => drawCharacter(ctx, model.appearance, { look, headOnly: !full }), 0.6);
 }
 

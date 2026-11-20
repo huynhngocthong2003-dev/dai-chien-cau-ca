@@ -15,6 +15,7 @@ import { Sfx } from "../audio/Sfx.ts";
 type Tab = CosmeticSlot | "items" | "eco" | "market";
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "skin", label: "🧸 Skin" },
   { id: "hat", label: "🎩 Mũ" },
   { id: "outfit", label: "👕 Áo" },
   { id: "accessory", label: "💍 Trang Sức" },
@@ -45,7 +46,7 @@ export class ShopScene extends Phaser.Scene {
   }
 
   init(data: { tab?: Tab }) {
-    this.tab = data.tab ?? "hat";
+    this.tab = data.tab ?? "skin";
     this.selected = null;
   }
 
@@ -56,9 +57,9 @@ export class ShopScene extends Phaser.Scene {
     new TopBar(this, { title: "Cửa Hàng", onBack: () => goTo(this, "Hub") });
     this.tabBtns = TABS.map(
       (t, i) =>
-        new Button(this, 74 + i * 118, 116, 112, 50, t.label, {
+        new Button(this, 68 + i * 106, 116, 100, 50, t.label, {
           color: COLORS.blue,
-          fontSize: 17,
+          fontSize: 15,
           onClick: () => {
             this.tab = t.id;
             this.selected = null;

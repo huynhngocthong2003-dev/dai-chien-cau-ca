@@ -37,7 +37,7 @@ const step = (m) => console.log('• ' + m);
   await p.mouse.click(914, 300);
   await p.waitForFunction(() => window.__game.scene.isActive('Shop'));
   await p.waitForTimeout(400);
-  await p.mouse.click(74 + 3 * 118, 116); // tab Cánh
+  await p.mouse.click(68 + 4 * 106, 116); // tab Cánh
   await p.waitForTimeout(400);
   await p.mouse.click(16 + 4 * 165 + 79, 152 + 130); // thẻ thứ 5
   await p.waitForTimeout(400);
@@ -50,7 +50,7 @@ const step = (m) => console.log('• ' + m);
   if (s.characters.c_be_tom.equip.wings !== 'w_canh_phuong_hoang_than') errs.push('Chưa mặc được cánh Thần Phẩm');
   else step(`Mặc Cánh Phượng Hoàng Thần (−${5000 - s.diamonds} 💎)`);
   // Sừng
-  await p.mouse.click(74 + 4 * 118, 116);
+  await p.mouse.click(68 + 5 * 106, 116);
   await p.waitForTimeout(400);
   await p.mouse.click(16 + 3 * 165 + 79, 152 + 130); // Hào Quang Thánh
   await p.waitForTimeout(300);
