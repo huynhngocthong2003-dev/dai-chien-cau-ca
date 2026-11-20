@@ -17,7 +17,7 @@ const others = [
   { user_id: 'u3', zone_id: 'z_ben_tan_thu', spot: 2, name: 'Wnynie', title: null, level: 9, look: { c: 'c_co_lai_do' }, state: 'waiting', catch: null, catch_at: null },
   { user_id: 'u4', zone_id: 'z_ben_tan_thu', spot: 4, name: 'Chư Ngọc', title: null, level: 14, look: { c: 'c_ong_lao' }, state: 'caught', catch: { fishId: 'f_boss_lao_ngu', formId: null, kg: 88.5 }, catch_at: now() },
 ];
-const db = { joins: 0, updates: [], leaves: 0 };
+const db = { joins: 0, updates: [], leaves: 0, world: [] };
 (async () => {
   const b = await pw.chromium.launch();
   const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
@@ -34,6 +34,10 @@ const db = { joins: 0, updates: [], leaves: 0 };
     if (path === '/rest/v1/fishing_presence') {
       if (req.method() === 'PATCH') { db.updates.push(req.postDataJSON()); return route.fulfill({ status: 204, body: '' }); }
       return json(200, [{ ...others[0] }, { ...others[1] }, { ...others[2] }, { user_id: UID, zone_id: 'z_ben_tan_thu', spot: 0, name: 'Cần Thủ', title: null, level: 1, look: { c: 'c_be_tom' }, state: 'idle', catch: null, catch_at: null }]);
+    }
+    if (path === '/rest/v1/world_messages') {
+      if (req.method() === 'POST') { const r = req.postDataJSON(); db.world.push({ id: 100 + db.world.length, ...r, name: 'Cần Thủ', title: null, level: 1, created_at: now() }); return route.fulfill({ status: 201, body: '' }); }
+      return json(200, [...db.world].reverse());
     }
     if (path.startsWith('/rest/v1/rpc/')) return json(200, path.endsWith('unread_counts') || path.endsWith('claim_topups') ? [] : null);
     if (path.startsWith('/rest/v1/')) return json(200, []);
@@ -58,6 +62,23 @@ const db = { joins: 0, updates: [], leaves: 0 };
   else console.log('• Thấy 3 người ở 3 chỗ riêng: ' + st.others.map((o) => `${o.name}@${o.x}`).join(', '));
   if (!st.others.find((o) => o.name === 'Chư Ngọc')?.pop) errs.push('Không hiện cá người khác vừa câu được');
   else console.log('• "Chư Ngọc" giơ cá Boss vừa câu được');
+  // 💬 khung chat lúc câu cá
+  await p.mouse.click(740, 38);
+  await p.waitForTimeout(600);
+  await p.fill('#fish-chat-input', 'Có ai câu được boss chưa?');
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(800);
+  if (!db.world.some((m) => m.body === 'Có ai câu được boss chưa?')) errs.push('Khung chat lúc câu không gửi được');
+  else console.log('• Khung chat lúc câu cá: gửi tin lên Chat Thế Giới');
+  const noCast = await p.evaluate(() => window.__game.scene.getScene('Fishing').mode);
+  if (noCast !== 'idle') errs.push('Gõ/bấm trong khung chat lại quăng cần: ' + noCast);
+  db.world.push({ id: 7, user_id: 'u2', name: 'Pine Vô Địch', title: null, level: 25, body: 'Vừa dính con boss 88kg nè!', created_at: now() });
+  await p.waitForFunction(() => window.__game.scene.getScene('Fishing').together.others.get('u2')?.root.getData('bubble')?.active, null, { timeout: 15000 }).catch(() => errs.push('Không hiện bong bóng chat trên đầu người cùng khu'));
+  await p.waitForTimeout(400);
+  await p.screenshot({ path: `${out}/fishing-chat.png` });
+  console.log('• Người cùng khu nói → bong bóng trên đầu họ; khung chat hiện tin mới');
+  await p.mouse.click(740, 38); // thu gọn
+  await p.waitForTimeout(300);
   // mình quăng cần → trạng thái "waiting"
   await p.mouse.move(700, 450);
   await p.mouse.down();

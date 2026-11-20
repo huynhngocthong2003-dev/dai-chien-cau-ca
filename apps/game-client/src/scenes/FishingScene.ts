@@ -45,6 +45,7 @@ import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
 import { FishingTogether } from "../ui/fishingTogether.ts";
+import { FishingChat } from "../ui/fishingChat.ts";
 
 type Mode = "idle" | "charging" | "flying" | "fishing" | "landing" | "result";
 
@@ -208,6 +209,8 @@ export class FishingScene extends Phaser.Scene {
     this.setupInput();
     this.together = new FishingTogether(this, this.zone.id);
     this.together.start();
+    // khung chat thu gọn: trò chuyện mà không rời chỗ câu
+    new FishingChat(this, this.together).start();
     this.toIdle();
     this.auto = false;
     this.autoBtn = new Button(this, 540, 38, 200, 46, "", { color: COLORS.purple, fontSize: 18, onClick: () => this.toggleAuto() }).setDepth(45);

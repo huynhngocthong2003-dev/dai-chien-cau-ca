@@ -190,6 +190,27 @@ export class FishingTogether {
     g.fillCircle(water.x, water.y, reeling ? 5 + Math.sin(t / 60) * 2 : 3);
   }
 
+  /** Người cùng khu nói chuyện → bong bóng chat trên đầu (vài giây). */
+  say(userId: string, text: string): boolean {
+    const o = this.others.get(userId);
+    if (!o) return false;
+    const sc = this.scene;
+    const old = o.root.getData("bubble") as Phaser.GameObjects.Container | undefined;
+    old?.destroy();
+    const t = txt(sc, 0, 0, text.length > 40 ? `${text.slice(0, 39)}…` : text, 12, { weight: "700", color: "#1b1530", stroke: 0, shadow: false, wrap: 150, align: "center" }).setOrigin(0.5, 1);
+    const w = Math.max(40, t.width + 14);
+    const h = t.height + 8;
+    const g = sc.add.graphics();
+    g.fillStyle(0xfff8e1, 0.97).fillRoundedRect(-w / 2, -h - 2, w, h, 8).lineStyle(2, 0x1b1530).strokeRoundedRect(-w / 2, -h - 2, w, h, 8);
+    g.fillStyle(0xfff8e1, 1).fillTriangle(-5, -3, 5, -3, 0, 6);
+    t.setY(-6);
+    const b = sc.add.container(0, -240 * SCALE - (o.pop ? 110 : 26), [g, t]);
+    o.root.add(b);
+    o.root.setData("bubble", b);
+    sc.time.delayedCall(6000, () => b.active && b.destroy());
+    return true;
+  }
+
   /** Người khác vừa câu được cá → giơ cá lên trên đầu vài giây. */
   private showCatch(o: Other, c: Social.FishingCatch) {
     const fish = FISH_BY_ID.get(c.fishId);

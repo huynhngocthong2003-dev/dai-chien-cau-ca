@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.28.1] – 2026-11-20 – Khung chat lúc câu cá
+### Thêm
+- **💬 Khung chat ngay trong màn câu cá** (nút "💬 Chat" ở thanh trên, bấm để mở/thu gọn): xem 5 tin gần nhất của Chat Thế Giới (làm mới mỗi 4 giây), gõ + Enter để gửi, "Xem tất cả ›" mở Chat Thế Giới đầy đủ. Khi thu gọn, nút hiện số tin mới.
+- Người **câu cùng khu** nói chuyện → **bong bóng chat trên đầu họ** ở bến xa.
+- Bấm/gõ trong khung chat không bị tính là quăng/kéo cần (Space, Q… không lọt xuống game).
+
 ## [0.28.0] – 2026-11-20 – 3 thần ngư mới, tỉ lệ theo độ hiếm, Săn Boss đa dạng, kho đầy
 ### Thêm
 - **3 Thần Ngư cực hiếm** (chỉ ở Đại Dương Thần Thoại, mỗi con ≈ 1/11.000 lần cá cắn), **hình vẽ riêng chi tiết**:
