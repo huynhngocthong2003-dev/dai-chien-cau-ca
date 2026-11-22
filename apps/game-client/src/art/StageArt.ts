@@ -133,6 +133,39 @@ function sparkles(ctx: CanvasRenderingContext2D, n: number, seed: number) {
   }
 }
 
+/** Thánh Giai: đàn cá nhỏ phát sáng bơi quanh thần ngư. */
+function companions(ctx: CanvasRenderingContext2D, col: string) {
+  const spots: [number, number, number, number][] = [[34, 40, 1, -0.3], [286, 52, -1, 0.2], [40, 160, 1, 0.25], [282, 150, -1, -0.2], [160, 18, 1, 0]];
+  for (const [x, y, dir, ang] of spots) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    ctx.scale(dir, 1);
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 8;
+    const g = ctx.createLinearGradient(-10, 0, 10, 0);
+    g.addColorStop(0, rgba(col, 0.6));
+    g.addColorStop(1, "rgba(255,255,255,0.95)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 9, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-7, 0);
+    ctx.lineTo(-15, -5);
+    ctx.lineTo(-13, 0);
+    ctx.lineTo(-15, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#14102a";
+    ctx.beginPath();
+    ctx.arc(4.5, -1, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 /**
  * Vẽ cá ở giai đoạn `stage` (1..4). `drawBody` vẽ thân cá (vector / hình riêng / thể đột biến) trong khung 320×200.
  */
@@ -158,6 +191,7 @@ export function drawStagedFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   drawBody(ctx);
   ctx.restore();
   // --- phía trước
+  if (stage >= 4) companions(ctx, col);
   if (stage >= 2) bubbles(ctx, 6 + stage * 4, col, seed);
   if (stage >= 2) sparkles(ctx, stage * 6, seed);
 }

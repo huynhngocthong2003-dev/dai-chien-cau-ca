@@ -37,6 +37,8 @@ export interface FishMorph {
   scales: boolean;
   /** Mắt to cỡ nào (so với chiều cao đầu). */
   eyeSize: number;
+  /** Cuộn chữ S theo chiều dài thân (rồng cuộn khi trưởng thành), 0 = không. */
+  coil?: number;
 }
 
 /** Số giả ngẫu nhiên tất định theo chuỗi. */

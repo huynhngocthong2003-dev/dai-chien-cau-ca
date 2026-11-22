@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.32.1] – 2026-11-22 – Cá trưởng thành BIẾN DÁNG thật
+### Thay đổi
+- Thân cá Huyền Thoại / Boss / Thần Thoại biến đổi rõ theo giai (như ảnh mẫu):
+  - **Nhóm dài** (rồng, lươn, cá dài): Trung Giai uốn chữ S, gai lưng vàng, sừng rồng, râu, đuôi bướm hoa văn → Cao Giai thành **rồng dựng đứng cuộn chữ S**, mõm rồng, bờm bay, vảy giáp vàng → Thánh Giai thân dài hơn, sừng dài phân nhánh, cánh tiên, thân ngân hà.
+  - **Nhóm tròn**: Trung Giai tròn mập, đầu & mắt to, đuôi bướm → Cao Giai tròn như quả cầu, **gai pha lê mọc quanh thân**, sừng, mây bông, vây sứa dài → Thánh Giai gai dài hơn, cánh tiên lớn.
+- **Ánh mắt ngầu dần**: Trung Giai mống mắt màu + gờ mày; Cao Giai mắt phát sáng, mí xếch, mày vàng; Thánh Giai đồng tử dọc như thần thú.
+- Thánh Giai có đàn cá nhỏ phát sáng bơi quanh; vòng phù văn, vầng hào quang.
+- 3 cá thần thoại có hình riêng: Sơ Giai giữ hình riêng, từ Trung Giai trở lên biến dáng như mọi loài.
+
 ## [0.32.0] – 2026-11-22 – Quà trong Hòm Thư có nút Nhận · Cá trưởng thành theo giai đoạn
 ### Thêm
 - **Quà đính kèm thư + nút "🎁 Nhận quà"** (vàng, kim cương, đá, Đá Tiến Hoá, cá). Bấm nhận → cộng vào tiến trình đang chơi (mã txId chống nhận trùng, ghi sổ), lưu ngay lên tài khoản, máy chủ đánh dấu đã nhận. Nút Hòm Thư ở sảnh đếm cả thư còn quà chưa nhận. Migration `20261206000002_mail_rewards`.

@@ -478,8 +478,9 @@ export function drawFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id"
 
 function drawFishBody(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">, stage: number) {
   // thần ngư có hình vẽ riêng
+  // (từ Trung Giai trở lên cá thần thoại cũng BIẾN DÁNG như mọi loài → dùng bộ vẽ vector)
   const custom = CUSTOM_FISH_ART[fish.id];
-  if (custom) {
+  if (custom && stage <= 1) {
     ctx.save();
     custom(ctx);
     ctx.restore();
