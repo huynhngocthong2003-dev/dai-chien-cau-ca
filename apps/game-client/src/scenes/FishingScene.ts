@@ -188,18 +188,28 @@ export class FishingScene extends Phaser.Scene {
 
     // UI cố định
     const top = this.add.graphics();
-    top.fillStyle(0x071a33, 0.7).fillRoundedRect(8, 8, 420, 60, 16);
-    new Button(this, 60, 38, 92, 46, "← Về", { color: COLORS.blue, fontSize: 20, onClick: () => this.leave() });
-    txt(this, 116, 38, this.zone.name, 24, { color: COLORS.textGold }).setOrigin(0, 0.5);
+    top.fillStyle(0x071a33, 0.7).fillRoundedRect(8, 8, 410, 76, 18);
+    // nút to cho dễ bấm trên điện thoại
+    new Button(this, 76, 46, 128, 66, "← Về", { color: COLORS.blue, fontSize: 26, onClick: () => this.leave() }).setDepth(45);
+    txt(this, 150, 46, this.zone.name, 22, { color: COLORS.textGold, wrap: 260 }).setOrigin(0, 0.5);
     const rod = ROD_BY_ID.get(s.selectedRodId)!;
-    txt(this, 16, 80, `${char.name} · ${rod.name}`, 16, { weight: "700", color: COLORS.textDim });
-    this.usesT = txt(this, 330, 80, "", 16, { weight: "700", color: "#b2ebf2" }).setDepth(50);
+    txt(this, 16, 98, `${char.name} · ${rod.name}`, 16, { weight: "700", color: COLORS.textDim });
+    this.usesT = txt(this, 330, 98, "", 16, { weight: "700", color: "#b2ebf2" }).setDepth(50);
     this.refreshUses();
-    this.huntLabel = txt(this, 16, 104, "", 18, { color: "#ff8a80" });
+    // Túi đồ: xem / bán cá ngay mà không rời khu câu (Về từ Kho Cá quay lại đây)
+    new Button(this, 1186, 46, 168, 66, "🎒 Túi đồ", {
+      color: COLORS.orange,
+      fontSize: 24,
+      onClick: () => {
+        if (this.session) return toast(this, "Đang câu – hãy câu xong rồi mở túi đồ");
+        goTo(this, "Inventory", { back: { scene: "Fishing", data: { zoneId: this.zone.id } } });
+      },
+    }).setDepth(45);
+    this.huntLabel = txt(this, 16, 122, "", 18, { color: "#ff8a80" });
     this.refreshHuntLabel();
 
     this.hint = txt(this, 640, 640, "", 30, { align: "center" }).setOrigin(0.5).setDepth(50);
-    this.eventLabel = txt(this, 16, 132, "", 18, { color: "#ffe082" }).setDepth(50);
+    this.eventLabel = txt(this, 16, 148, "", 18, { color: "#ffe082" }).setDepth(50);
     this.castEvent = null;
     this.castEventLeft = 0;
     this.alertT = txt(this, 640, 220, "", 56, { align: "center", stroke: 10 }).setOrigin(0.5).setDepth(60).setAlpha(0);
@@ -217,7 +227,7 @@ export class FishingScene extends Phaser.Scene {
     }).start();
     this.toIdle();
     this.auto = false;
-    this.autoBtn = new Button(this, 540, 38, 200, 46, "", { color: COLORS.purple, fontSize: 18, onClick: () => this.toggleAuto() }).setDepth(45);
+    this.autoBtn = new Button(this, 560, 46, 250, 66, "", { color: COLORS.purple, fontSize: 23, onClick: () => this.toggleAuto() }).setDepth(45);
     this.refreshAutoBtn();
 
     const onLevel = (lvl: number) => {

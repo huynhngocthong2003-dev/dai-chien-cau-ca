@@ -41,8 +41,12 @@ export class InventoryScene extends Phaser.Scene {
     super("Inventory");
   }
 
-  init(data: { tab?: "bag" | "collection" }) {
+  /** Mở từ màn câu cá → bấm Về quay lại đúng khu câu. */
+  private back: { scene: string; data?: object } = { scene: "Hub" };
+
+  init(data: { tab?: "bag" | "collection"; back?: { scene: string; data?: object } }) {
     this.tab = data.tab ?? "bag";
+    this.back = data.back ?? { scene: "Hub" };
     this.selectMode = false;
     this.picked = new Set();
     this.confirmArmed = null;
@@ -54,7 +58,7 @@ export class InventoryScene extends Phaser.Scene {
     this.input.enabled = true;
     fadeIn(this);
     menuBackdrop(this);
-    new TopBar(this, { title: "Kho Cá", onBack: () => goTo(this, "Hub") });
+    new TopBar(this, { title: "Kho Cá", onBack: () => goTo(this, this.back.scene, this.back.data) });
     this.tabBtns = [
       new Button(this, 110, 116, 190, 50, "🐟 Kho Cá", { color: COLORS.blue, fontSize: 22, onClick: () => this.switchTab("bag") }),
       new Button(this, 310, 116, 190, 50, "📖 Bộ Sưu Tập", { color: COLORS.blue, fontSize: 22, onClick: () => this.switchTab("collection") }),
@@ -229,6 +233,18 @@ export class InventoryScene extends Phaser.Scene {
       all.filter((o) => !o.locked && FISH_BY_ID.get(o.fishId)!.rarity === "common").forEach((o) => this.picked.add(o.uid)),
     );
     quick(1154, 402, "Bỏ chọn hết", () => this.picked.clear());
+    // chọn tất cả TRỪ cá Boss & Thần Thoại (giữ lại cá quý nhất)
+    d.add(
+      new Button(this, 1058, 458, 378, 46, "Chọn tất cả trừ Boss trở lên", {
+        color: COLORS.orange,
+        fontSize: 17,
+        onClick: () => {
+          this.confirmArmed = null;
+          all.filter((o) => !o.locked && !["boss", "mythic"].includes(FISH_BY_ID.get(o.fishId)!.rarity)).forEach((o) => this.picked.add(o.uid));
+          this.render();
+        },
+      }),
+    );
     const act = (kind: "sell" | "decompose") => {
       const uids = [...this.picked];
       if (!uids.length) return toast(this, "Hãy chọn ít nhất 1 con cá");

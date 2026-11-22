@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.33.1] – 2026-11-22 – Nút câu cá to hơn, Túi đồ, chọn tất cả trừ Boss
+### Thay đổi
+- Màn câu cá: nút **← Về / Câu tự động / Chat** to hơn (cao 66px, chữ 23–26) cho dễ bấm trên điện thoại; thêm nút **🎒 Túi đồ** (mở Kho Cá, bấm Về quay lại đúng khu đang câu; đang kéo cá thì báo câu xong trước).
+- Kho Cá → Chọn nhiều: thêm **"Chọn tất cả trừ Boss trở lên"** (chọn mọi cá không khoá trừ Boss & Thần Thoại). E2E `tests/e2e/inventory-select.cjs`.
+- Huyền Minh Long Ngư vẽ lại thanh thoát hợp tên: vảy chỉ ánh nhẹ để lộ dải ngân hà, sừng mảnh, mõm giữ dáng tròn, bờm lụa mềm, vây má trong suốt, mày vàng mảnh, mắt ngọc lam → tím ngân hà theo giai.
+
 ## [0.33.0] – 2026-11-22 – Tiến hoá giai đoạn: giữ dáng gốc, mỗi loài một bộ chi tiết riêng
 ### Thay đổi
 - Bỏ kiểu biến mọi loài thành cùng một khuôn (rồng cuộn / cầu gai). Nay **mỗi loài giữ dáng gốc của chính nó** rồi lớn dần qua 4 giai, kèm **bộ chi tiết tiến hoá riêng** chọn theo loài (`evoFeatures`): đồ đầu (sừng nai phân nhánh / sừng nhọn / vương miện pha lê / mào lửa), thân (vảy giáp / gai quanh thân / sọc phát sáng), thêm (bờm bay / mây bông / vây cánh). Vây, đuôi, gai lưng, sừng dài dần; Cao Giai vây lưng màu điểm nhấn; Thánh Giai cánh tiên + thân ngân hà. Test bảo đảm không 2 loài trưởng thành nào trùng dáng.

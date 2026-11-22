@@ -37,7 +37,7 @@ export class FishingChat {
 
   start() {
     // nút luôn hiện; chưa kết nối tài khoản thì bấm vào sẽ báo lý do
-    this.btn = new Button(this.scene, 740, 38, 150, 46, "💬 Chat", { color: COLORS.blue, fontSize: 18, onClick: () => this.toggle() }).setDepth(45);
+    this.btn = new Button(this.scene, 828, 46, 200, 66, "💬 Chat", { color: COLORS.blue, fontSize: 24, onClick: () => this.toggle() }).setDepth(45);
     if (!GameState.online) return;
     void this.poll();
     this.timer = window.setInterval(() => void this.poll(), POLL_MS);

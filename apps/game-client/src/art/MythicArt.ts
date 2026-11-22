@@ -38,7 +38,7 @@ function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, co
 function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
   // gk = 0..3 theo giai: thân to hơn, vảy rõ, bờm dài, sừng lớn, mắt dữ, đuôi lụa dài, gai lưng cao
   const gk = Math.max(0, Math.min(3, stage - 1));
-  const fit = [1, 0.88, 0.78, 0.7][gk]!;
+  const fit = [1, 0.92, 0.85, 0.8][gk]!;
   ctx.save();
   ctx.translate(176, 112);
   ctx.scale(fit, fit);
@@ -68,7 +68,7 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
     const dy = q.y - r.y;
     const len = Math.hypot(dx, dy) || 1;
     // thân thon ở đuôi, dày dần về cổ
-    const w = (3 + 20 * Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.5) - (t > 0.92 ? (t - 0.92) * 40 : 0)) * (1 + 0.14 * gk);
+    const w = (3 + 20 * Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.5) - (t > 0.92 ? (t - 0.92) * 40 : 0)) * (1 + 0.07 * gk);
     // pháp tuyến hướng LÊN (phía lưng)
     pts.push({ p, n: { x: dy / len, y: -dx / len }, w });
   }
@@ -79,7 +79,7 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
   for (let i = 4; i < N - 2; i += 3) {
     const { p, n, w } = pts[i]!;
     const back = pts[Math.max(0, i - 2)]!.p;
-    const sp = 14 * (1 + 0.4 * gk) * (gk >= 2 ? 1 + 0.25 * Math.sin((i / N) * Math.PI) : 1);
+    const sp = 14 * (1 + 0.18 * gk);
     const tip = { x: p.x + n.x * (w + sp) + (back.x - p.x) * 1.2, y: p.y + n.y * (w + sp) + (back.y - p.y) * 1.2 };
     const g = ctx.createLinearGradient(p.x, p.y, tip.x, tip.y);
     g.addColorStop(0, "#ffb300");
@@ -166,13 +166,14 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
   if (gk >= 1) {
     ctx.save();
     ctx.clip(body);
-    ctx.strokeStyle = gk >= 2 ? "rgba(255,224,130,0.9)" : "rgba(255,255,255,0.55)";
-    ctx.lineWidth = gk >= 2 ? 1.8 : 1.4;
-    for (let i = 3; i < N - 3; i += gk >= 2 ? 1 : 2) {
+    // vảy ánh nhẹ (chỉ nửa lưng) – để lộ dải ngân hà trên thân
+    ctx.strokeStyle = gk >= 2 ? "rgba(255,248,200,0.45)" : "rgba(224,247,250,0.35)";
+    ctx.lineWidth = 1.1;
+    for (let i = 4; i < N - 4; i += 2) {
       const { p, n, w } = pts[i]!;
       const ang = Math.atan2(-n.x, n.y);
-      for (let j = -2; j <= 2; j++) {
-        const off = (j + (i % 2 ? 0.5 : 0)) * w * 0.38;
+      for (let j = 0; j <= 2; j++) {
+        const off = (j + (i % 4 ? 0.5 : 0)) * w * 0.3;
         ctx.beginPath();
         ctx.arc(p.x + n.x * off, p.y + n.y * off, w * 0.26, ang - Math.PI / 2 + Math.PI, ang + Math.PI / 2 + Math.PI);
         ctx.stroke();
@@ -187,8 +188,8 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
   const t0 = pts[0]!.p;
   const t3 = pts[4]!.p;
   const tail = { x: (t0.x + t3.x) / 2 + 4, y: (t0.y + t3.y) / 2 };
-  const strands = 7 + gk * 2;
-  const tl = 1 + 0.35 * gk;
+  const strands = 7 + gk;
+  const tl = 1 + 0.22 * gk;
   for (let k = 0; k < strands; k++) {
     const g = ctx.createLinearGradient(tail.x, tail.y, tail.x - 90 * tl, tail.y);
     g.addColorStop(0, "rgba(224,247,250,0.95)");
@@ -233,29 +234,30 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
   // --- đầu rồng
   const H = { x: 262, y: 88 };
   // bờm vàng (lửa) sau đầu – dài & dày dần theo giai
-  const mk = 1 + 0.45 * gk;
-  if (gk >= 2) {
+  const mk = 1 + 0.15 * gk;
+  if (gk >= 1) {
     // Cao Giai+: bờm tóc lụa trắng-xanh bay dài sau gáy
-    for (let k = 0; k < 6 + gk * 2; k++) {
-      const a2 = -2.4 + k * 0.22;
-      const g = ctx.createLinearGradient(H.x, H.y, H.x - 70 * mk, H.y);
-      g.addColorStop(0, "rgba(255,255,255,0.95)");
-      g.addColorStop(1, "rgba(128,222,234,0)");
+    // bờm lụa mềm bay về sau (dài dần theo giai)
+    const ml = 40 + 18 * gk;
+    for (let k = 0; k < 3 + gk; k++) {
+      const g = ctx.createLinearGradient(H.x, H.y, H.x - ml, H.y);
+      g.addColorStop(0, "rgba(255,255,255,0.8)");
+      g.addColorStop(1, "rgba(178,235,242,0)");
       ctx.strokeStyle = g;
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(H.x - 8, H.y - 6);
-      ctx.quadraticCurveTo(H.x - 30 * mk, H.y + Math.sin(a2) * 40, H.x - 60 * mk + Math.cos(a2) * 10, H.y + Math.sin(a2) * 30 * mk + 20);
+      ctx.moveTo(H.x - 8, H.y - 8 + k * 4);
+      ctx.bezierCurveTo(H.x - ml * 0.4, H.y - 24 + k * 6, H.x - ml * 0.7, H.y + 4 + k * 5, H.x - ml, H.y - 10 + k * 9);
       ctx.stroke();
     }
   }
-  for (let k = 0; k < 6 + gk * 2; k++) {
+  for (let k = 0; k < 6; k++) {
     const g = ctx.createLinearGradient(H.x, H.y, H.x - 40 * mk, H.y - 30 * mk);
     g.addColorStop(0, "#ffca28");
     g.addColorStop(1, "rgba(255,241,118,0.2)");
     ctx.fillStyle = g;
     ctx.beginPath();
-    const a = -2.2 + k * (1.9 / (6 + gk * 2));
+    const a = -2.2 + k * 0.32;
     ctx.moveTo(H.x - 6, H.y - 4);
     ctx.quadraticCurveTo(H.x - 24 * mk + Math.cos(a) * 8, H.y - 6 + Math.sin(a) * 26 * mk, H.x - 30 * mk + Math.cos(a) * 28 * mk, H.y + Math.sin(a) * 34 * mk);
     ctx.quadraticCurveTo(H.x - 16, H.y + 4, H.x - 4, H.y + 8);
@@ -263,60 +265,55 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
     ctx.fill();
   }
   // sừng vàng phân nhánh
-  const hornK = [1, 1.3, 1.65, 2][gk]!;
+  const hornK = [1, 1.15, 1.3, 1.45][gk]!;
   for (const [dx, sc0] of [[-4, 1], [8, 0.8]] as const) {
     const sc = sc0 * hornK;
     const g = ctx.createLinearGradient(H.x, H.y - 10, H.x - 30, H.y - 60);
     g.addColorStop(0, "#ff8f00");
     g.addColorStop(1, "#fff59d");
     ctx.strokeStyle = g;
-    ctx.lineWidth = 6 * sc;
+    ctx.lineWidth = 6 * sc0;
     ctx.beginPath();
     ctx.moveTo(H.x + dx, H.y - 12);
     ctx.quadraticCurveTo(H.x + dx - 10, H.y - 38 * sc, H.x + dx - 34 * sc, H.y - 56 * sc);
     ctx.stroke();
-    ctx.lineWidth = 3.5 * sc;
+    ctx.lineWidth = 3.5 * sc0;
     ctx.beginPath();
     ctx.moveTo(H.x + dx - 12 * sc, H.y - 34 * sc);
     ctx.lineTo(H.x + dx - 2, H.y - 52 * sc);
     ctx.moveTo(H.x + dx - 24 * sc, H.y - 47 * sc);
     ctx.lineTo(H.x + dx - 20 * sc, H.y - 64 * sc);
     if (gk >= 2) {
-      // nhánh sừng thêm
+      // thêm 1 nhánh sừng thanh mảnh
       ctx.moveTo(H.x + dx - 30 * sc, H.y - 53 * sc);
-      ctx.lineTo(H.x + dx - 44 * sc, H.y - 52 * sc);
-      ctx.moveTo(H.x + dx - 6 * sc, H.y - 24 * sc);
-      ctx.lineTo(H.x + dx + 6 * sc, H.y - 34 * sc);
+      ctx.lineTo(H.x + dx - 40 * sc, H.y - 50 * sc);
     }
     ctx.stroke();
   }
   // vây má nhọn sau hàm (Trung Giai+) – đầu trông sắc hơn
   if (gk >= 1) {
-    const cl = 1 + 0.35 * gk;
-    for (const [dy, sz] of [[4, 1], [14, 0.8]] as const) {
-      const g = ctx.createLinearGradient(H.x - 10, H.y + dy, H.x - 40 * cl, H.y + dy + 14);
-      g.addColorStop(0, "#ffd54f");
-      g.addColorStop(1, "rgba(255,241,118,0.3)");
-      ctx.fillStyle = g;
-      ctx.strokeStyle = "#8d5a00";
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(H.x - 6, H.y + dy - 4);
-      ctx.lineTo(H.x - 34 * cl * sz, H.y + dy + 2);
-      ctx.lineTo(H.x - 20 * cl * sz, H.y + dy + 6);
-      ctx.lineTo(H.x - 40 * cl * sz, H.y + dy + 14);
-      ctx.lineTo(H.x - 4, H.y + dy + 8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
+    // vây má trong suốt mềm mại
+    const cl = 1 + 0.15 * gk;
+    const g = ctx.createLinearGradient(H.x - 6, H.y + 8, H.x - 36 * cl, H.y + 22);
+    g.addColorStop(0, "rgba(224,247,250,0.9)");
+    g.addColorStop(1, "rgba(128,222,234,0.15)");
+    ctx.fillStyle = g;
+    ctx.strokeStyle = "rgba(13,43,69,0.5)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(H.x - 4, H.y + 6);
+    ctx.bezierCurveTo(H.x - 16 * cl, H.y + 4, H.x - 30 * cl, H.y + 12, H.x - 36 * cl, H.y + 24);
+    ctx.bezierCurveTo(H.x - 22 * cl, H.y + 22, H.x - 12, H.y + 18, H.x - 2, H.y + 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
   }
   // đầu + mõm: mõm dài & nhọn dần theo giai, trán góc cạnh
-  const sn = 1 + 0.16 * gk;
+  const sn = 1 + 0.04 * gk;
   const head = new Path2D();
   head.moveTo(H.x - 18, H.y - 14);
-  head.quadraticCurveTo(H.x + 4, H.y - 26 - gk * 2, H.x + 26, H.y - 14 - gk);
-  head.quadraticCurveTo(H.x + 44 * sn, H.y - 10, H.x + 54 * sn + gk * 4, H.y - 3 + gk);
+  head.quadraticCurveTo(H.x + 4, H.y - 26, H.x + 26, H.y - 14);
+  head.quadraticCurveTo(H.x + 44 * sn, H.y - 10, H.x + 52 * sn, H.y - 2);
   head.quadraticCurveTo(H.x + 54 * sn, H.y + 4, H.x + 46 * sn, H.y + 6);
   head.lineTo(H.x + 22, H.y + 6);
   head.quadraticCurveTo(H.x + 40 * sn, H.y + 12, H.x + 46 * sn, H.y + 18);
@@ -341,11 +338,11 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
   ctx.fill();
   ctx.fillStyle = "#ffffff";
   // nanh dài dần, thêm nanh theo giai
-  const fangs = gk >= 2 ? [H.x + 24, H.x + 32, H.x + 40] : [H.x + 30, H.x + 38];
+  const fangs = [H.x + 30, H.x + 38];
   for (const x of fangs) {
     ctx.beginPath();
     ctx.moveTo(x, H.y + 6);
-    ctx.lineTo(x + 3, H.y + 13 + gk * 2);
+    ctx.lineTo(x + 3, H.y + 13);
     ctx.lineTo(x + 6, H.y + 6);
     ctx.fill();
   }
@@ -358,29 +355,29 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
   ctx.closePath();
   ctx.fill();
   // mắt phát sáng – Trung Giai mống vàng, Cao Giai đồng tử dọc + mày xếch, Thánh Giai rực sáng
-  ctx.shadowColor = gk >= 2 ? "#ffd54f" : "#e0f7fa";
-  ctx.shadowBlur = 12 + gk * 6;
-  ctx.fillStyle = gk >= 1 ? "#fff59d" : "#ffffff";
+  ctx.shadowColor = gk >= 3 ? "#ea80fc" : "#e0f7fa";
+  ctx.shadowBlur = 12 + gk * 3;
+  ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.ellipse(H.x + 14, H.y - 6, 7, gk >= 2 ? 4 : 5, -0.2, 0, Math.PI * 2);
+  ctx.ellipse(H.x + 14, H.y - 6, 7, 5, -0.2, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
-  ctx.fillStyle = gk >= 1 ? "#e65100" : "#00838f";
+  // mống mắt: ngọc lam → lam ánh tím (Cao Giai) → tím ngân hà (Thánh Giai)
+  ctx.fillStyle = ["#00838f", "#00838f", "#3949ab", "#7c4dff"][gk]!;
   ctx.beginPath();
-  ctx.ellipse(H.x + 16, H.y - 6, gk >= 2 ? 1.4 : 3, 4, 0, 0, Math.PI * 2);
+  ctx.ellipse(H.x + 16, H.y - 6, 3, 4, 0, 0, Math.PI * 2);
   ctx.fill();
-  if (gk >= 1) {
-    // gờ mày xếch có gai (Trung Giai: gờ; Cao Giai+: gai mày nhọn vểnh ra sau)
-    ctx.fillStyle = "#ffb300";
-    ctx.strokeStyle = "#8d5a00";
-    ctx.lineWidth = 1.2;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(H.x + 17, H.y - 8, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+  if (gk >= 2) {
+    // nét mày vàng mảnh, thanh tú
+    ctx.strokeStyle = "#ffd54f";
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(H.x + 26, H.y - 9);
-    ctx.lineTo(H.x + 4, H.y - 16);
-    ctx.lineTo(H.x - 6 - gk * 6, H.y - 22 - gk * 4);
-    ctx.lineTo(H.x + 6, H.y - 12);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(H.x + 4, H.y - 14);
+    ctx.quadraticCurveTo(H.x + 14, H.y - 16, H.x + 24, H.y - 11);
     ctx.stroke();
   }
   ctx.strokeStyle = "#ffb300";
@@ -407,7 +404,7 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D, stage = 1) {
   for (const [x, y, r] of [[60, 40, 4], [300, 150, 5], [210, 30, 3], [40, 170, 3], [290, 30, 3], [150, 180, 4], [110, 20, 2.5]] as const) star(ctx, x, y, r, "#e0f7fa");
   if (gk >= 3) {
     // Thánh Giai: ngọc thần trên trán
-    const jg = ctx.createRadialGradient(H.x + 8, H.y - 18, 1, H.x + 8, H.y - 18, 8);
+    const jg = ctx.createRadialGradient(H.x + 8, H.y - 18, 1, H.x + 8, H.y - 18, 6);
     jg.addColorStop(0, "#ffffff");
     jg.addColorStop(0.5, "#ea80fc");
     jg.addColorStop(1, "#7c4dff");
