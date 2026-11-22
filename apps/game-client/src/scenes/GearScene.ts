@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { rainbowFrame, rainbowText } from "../ui/rainbow.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
-import { ELEMENT_EVO_ITEM, canAfford, canUnlock, type CharRarity, type Cost, type UnlockCondition } from "@dccc/shared";
+import { canAfford, canUnlock, type CharRarity, type Cost, type UnlockCondition } from "@dccc/shared";
 import { EVO_ITEM_BY_ID } from "@dccc/game-data";
 import { GameState } from "../state/GameState.ts";
 import { Button, fadeIn, goTo, panel, toast, txt } from "../ui/widgets.ts";
@@ -26,7 +26,7 @@ export function costText(c: Cost): string {
   if (c.stones) parts.push(`🔷 ${c.stones}`);
   if (c.soul) parts.push(`🔮 ${c.soul}`);
   if (c.evo) {
-    const it = EVO_ITEM_BY_ID.get(ELEMENT_EVO_ITEM[c.evo.element]);
+    const it = EVO_ITEM_BY_ID.get(c.evo.item);
     parts.push(`${it?.icon ?? "💠"} ${c.evo.n} ${it?.name ?? "Đá Tiến Hoá"}`);
   }
   return parts.join("   ");

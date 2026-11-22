@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.34.0] – 2026-11-22 – Tiến hoá hệ (5 hệ) → 4 giai đoạn trưởng thành · Hình Đá Tiến Hoá
+### Thay đổi
+- Cá Huyền Thoại / Boss / Thần Thoại phát triển theo 2 bước:
+  1. **🧬 Tiến hoá hệ**: dùng vật phẩm của 1 trong **5 hệ** (Long – Ngọc Long Hồn, Hỏa – Lõi Dung Nham, Băng – Tinh Thể Băng Hà, Lôi – Sấm Thạch, Thần – Lông Phượng Thần) → chắc chắn thành 1 dạng của hệ đó. **Chỉ 1 lần**, không đổi hệ được nữa.
+  2. **🌱 4 giai đoạn trưởng thành** (Sơ → Trung → Cao → Thánh Giai): vàng + linh hồn + đá + **Đá Tiến Hoá của chính hệ đó** (1/2/3 viên). Chưa tiến hoá hệ thì chưa lên giai được.
+- 3 đá U Minh / Thánh Quang / Địa Mạch thành **đá vạn năng** (thay đá mọi hệ), ngừng rơi; Lông Phượng Thần cũng thay được đá mọi hệ.
+- **Vẽ lại hình 8 loại Đá Tiến Hoá** (trước là emoji): quả cầu rồng, lõi dung nham nứt lửa, cụm pha lê băng, đá sét, lông phượng, đá vạn năng mài mặt. Hiện ở bảng Tiến hoá hệ và thông báo rơi đồ.
+- Màn câu cá: **cột nút góc phải trên** (từ trên xuống) Câu tự động → Túi đồ → Chat, cùng cỡ; thước Lực căng dời xuống – không còn che thanh máu cá.
+
 ## [0.33.1] – 2026-11-22 – Nút câu cá to hơn, Túi đồ, chọn tất cả trừ Boss
 ### Thay đổi
 - Màn câu cá: nút **← Về / Câu tự động / Chat** to hơn (cao 66px, chữ 23–26) cho dễ bấm trên điện thoại; thêm nút **🎒 Túi đồ** (mở Kho Cá, bấm Về quay lại đúng khu đang câu; đang kéo cá thì báo câu xong trước).

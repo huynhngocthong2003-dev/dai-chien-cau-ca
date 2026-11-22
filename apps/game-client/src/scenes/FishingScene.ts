@@ -34,7 +34,7 @@ import {
   type ZoneDef,
 } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
-import { auraTexture, characterTexture, dockTexture, fishTexture, junkTexture, ornamentTexture, reelTexture, zoneTexture } from "../art/textures.ts";
+import { auraTexture, evoItemTexture, characterTexture, dockTexture, fishTexture, junkTexture, ornamentTexture, reelTexture, zoneTexture } from "../art/textures.ts";
 import { playSkillFx, speechBubble } from "../ui/skillFx.ts";
 import { CATCH_LINES, hookPool, pickLine } from "../ui/quotes.ts";
 import { HORIZON } from "../art/Backgrounds.ts";
@@ -49,6 +49,10 @@ import { FishingChat } from "../ui/fishingChat.ts";
 
 type Mode = "idle" | "charging" | "flying" | "fishing" | "landing" | "result";
 
+/** Cột nút góc phải trên (từ trên xuống): Câu tự động → Túi đồ → Chat – cùng cỡ. */
+export const STACK_X = 1188;
+export const STACK_W = 172;
+export const STACK_H = 54;
 const HAND = { x: 228, y: 318 };
 const ROD_LEN = 230;
 
@@ -187,29 +191,27 @@ export class FishingScene extends Phaser.Scene {
     this.bobber = this.add.image(0, 0, "bobber").setOrigin(0.5, 0.6).setVisible(false).setDepth(4);
 
     // UI cố định
-    const top = this.add.graphics();
-    top.fillStyle(0x071a33, 0.7).fillRoundedRect(8, 8, 410, 76, 18);
-    // nút to cho dễ bấm trên điện thoại
+    // nút to cho dễ bấm trên điện thoại – TRÁI: Về + Túi đồ · PHẢI: Tự động + Chat · GIỮA: thanh máu cá
     new Button(this, 76, 46, 128, 66, "← Về", { color: COLORS.blue, fontSize: 26, onClick: () => this.leave() }).setDepth(45);
-    txt(this, 150, 46, this.zone.name, 22, { color: COLORS.textGold, wrap: 260 }).setOrigin(0, 0.5);
+    txt(this, 16, 92, this.zone.name, 20, { color: COLORS.textGold });
     const rod = ROD_BY_ID.get(s.selectedRodId)!;
-    txt(this, 16, 98, `${char.name} · ${rod.name}`, 16, { weight: "700", color: COLORS.textDim });
-    this.usesT = txt(this, 330, 98, "", 16, { weight: "700", color: "#b2ebf2" }).setDepth(50);
+    txt(this, 16, 118, `${char.name} · ${rod.name}`, 16, { weight: "700", color: COLORS.textDim });
+    this.usesT = txt(this, 330, 118, "", 16, { weight: "700", color: "#b2ebf2" }).setDepth(50);
     this.refreshUses();
     // Túi đồ: xem / bán cá ngay mà không rời khu câu (Về từ Kho Cá quay lại đây)
-    new Button(this, 1186, 46, 168, 66, "🎒 Túi đồ", {
+    new Button(this, STACK_X, 102, STACK_W, STACK_H, "🎒 Túi đồ", {
       color: COLORS.orange,
-      fontSize: 24,
+      fontSize: 20,
       onClick: () => {
         if (this.session) return toast(this, "Đang câu – hãy câu xong rồi mở túi đồ");
         goTo(this, "Inventory", { back: { scene: "Fishing", data: { zoneId: this.zone.id } } });
       },
     }).setDepth(45);
-    this.huntLabel = txt(this, 16, 122, "", 18, { color: "#ff8a80" });
+    this.huntLabel = txt(this, 16, 142, "", 18, { color: "#ff8a80" });
     this.refreshHuntLabel();
 
     this.hint = txt(this, 640, 640, "", 30, { align: "center" }).setOrigin(0.5).setDepth(50);
-    this.eventLabel = txt(this, 16, 148, "", 18, { color: "#ffe082" }).setDepth(50);
+    this.eventLabel = txt(this, 16, 166, "", 18, { color: "#ffe082" }).setDepth(50);
     this.castEvent = null;
     this.castEventLeft = 0;
     this.alertT = txt(this, 640, 220, "", 56, { align: "center", stroke: 10 }).setOrigin(0.5).setDepth(60).setAlpha(0);
@@ -227,7 +229,7 @@ export class FishingScene extends Phaser.Scene {
     }).start();
     this.toIdle();
     this.auto = false;
-    this.autoBtn = new Button(this, 560, 46, 250, 66, "", { color: COLORS.purple, fontSize: 23, onClick: () => this.toggleAuto() }).setDepth(45);
+    this.autoBtn = new Button(this, STACK_X, 42, STACK_W, STACK_H, "", { color: COLORS.purple, fontSize: 18, onClick: () => this.toggleAuto() }).setDepth(45);
     this.refreshAutoBtn();
 
     const onLevel = (lvl: number) => {
@@ -259,14 +261,15 @@ export class FishingScene extends Phaser.Scene {
     // đồng hồ lực căng (dọc, bên phải)
     const gx = 1200;
     const tg = this.add.graphics();
-    tg.fillStyle(0x071a33, 0.8).fillRoundedRect(gx - 36, 140, 92, 330, 18);
-    tg.lineStyle(3, COLORS.outline).strokeRoundedRect(gx - 36, 140, 92, 330, 18);
+    // (dời xuống dưới cột nút Tự động / Túi đồ / Chat ở góc phải trên)
+    tg.fillStyle(0x071a33, 0.8).fillRoundedRect(gx - 36, 204, 92, 290, 18);
+    tg.lineStyle(3, COLORS.outline).strokeRoundedRect(gx - 36, 204, 92, 290, 18);
     c.add(tg);
-    c.add(txt(this, gx + 10, 160, "Lực căng", 17, { align: "center" }).setOrigin(0.5));
+    c.add(txt(this, gx + 10, 222, "Lực căng", 17, { align: "center" }).setOrigin(0.5));
     this.tensionG = this.add.graphics();
     c.add(this.tensionG);
-    c.add(txt(this, gx + 10, 482, "Độ bền dây", 15, { align: "center" }).setOrigin(0.5));
-    this.durBar = new Bar(this, gx - 34, 496, 88, 18, COLORS.green, "");
+    c.add(txt(this, gx + 10, 506, "Độ bền dây", 15, { align: "center" }).setOrigin(0.5));
+    this.durBar = new Bar(this, gx - 34, 520, 88, 18, COLORS.green, "");
     c.add(this.durBar);
 
     // nút kỹ năng + kéo
@@ -356,7 +359,7 @@ export class FishingScene extends Phaser.Scene {
   private refreshAutoBtn() {
     const ok = autoFishActive(GameState.save, Date.now());
     const h = Math.ceil((GameState.save.autoFishUntil - Date.now()) / 3600_000);
-    this.autoBtn?.setText(!ok ? "🔒 Câu tự động" : this.auto ? `🤖 ĐANG TỰ ĐỘNG` : `🤖 Tự động (${h}h)`);
+    this.autoBtn?.setText(!ok ? "🔒 Tự động" : this.auto ? `🤖 ĐANG TỰ ĐỘNG` : `🤖 Tự động ${h}h`);
     this.autoBtn?.setColor(this.auto ? COLORS.green : COLORS.purple);
   }
 
@@ -662,8 +665,8 @@ export class FishingScene extends Phaser.Scene {
   private drawTension(s: FishingSession) {
     const g = this.tensionG;
     const x = 1190;
-    const y0 = 180;
-    const h = 280;
+    const y0 = 240;
+    const h = 240;
     g.clear();
     g.fillStyle(0x0a1628, 1).fillRoundedRect(x - 6, y0, 32, h, 12);
     const danger = FISHING.dangerTension / s.maxTension;
@@ -912,14 +915,14 @@ export class FishingScene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x0a0a1e, 0.92).fillRoundedRect(-330, -120, 660, 240, 24);
     g.lineStyle(5, col).strokeRoundedRect(-330, -120, 660, 240, 24);
-    const icon = this.add.text(-230, 0, form.icon, { fontSize: "96px", padding: { top: 16 } }).setOrigin(0.5);
+    const icon = this.add.image(-230, 0, evoItemTexture(this, form.id)).setDisplaySize(150, 150);
     c.add([
       g,
       this.add.particles(-230, 0, "p_spark", { speed: { min: 60, max: 260 }, lifespan: 1100, frequency: 60, scale: { start: 1.2, end: 0 }, tint: [col, 0xffffff], blendMode: Phaser.BlendModes.ADD }),
       icon,
       txt(this, -130, -70, form.divine ? "✨ THẦN VẬT XUẤT THẾ! ✨" : "💠 VẬT PHẨM CỰC HIẾM!", 30, { color: form.glow }),
       txt(this, -130, -24, form.name, 34, { color: "#ffffff" }),
-      txt(this, -130, 22, `Dùng cho cá Huyền Thoại/Thần Thoại/Boss → 🧬 Thể\nđột biến CHẮC CHẮN thành công!`, 18, { weight: "700", color: COLORS.textDim }),
+      txt(this, -130, 22, `Cá Huyền Thoại/Thần Thoại/Boss: 🧬 Tiến hoá hệ\nhoặc lên giai trưởng thành`, 18, { weight: "700", color: COLORS.textDim }),
     ]);
     c.setScale(0.2);
     this.tweens.add({ targets: c, scale: 1, duration: 420, ease: "Back.easeOut" });

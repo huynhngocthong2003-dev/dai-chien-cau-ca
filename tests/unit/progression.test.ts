@@ -14,7 +14,9 @@ import {
   stageName,
   isGrowthFish,
   fishMaxLevel,
-  ELEMENT_EVO_ITEM,
+  nextFishAction,
+  applyForm,
+  Rng,
   DIVINE_EVO_ITEM,
   developRod,
   nextCharAction,
@@ -26,7 +28,7 @@ import {
   toggleFishLock,
   type PlayerSave,
 } from "@dccc/shared";
-import { CATALOG, CHARACTER_BY_ID, FISH_BY_ID, ROD_BY_ID } from "@dccc/game-data";
+import { CATALOG, CHARACTER_BY_ID, EVO_ITEM_BY_ID, FISH_BY_ID, FISH_FORMS, FORM_BY_ID, ROD_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 
 const rich = (): PlayerSave => {
@@ -154,37 +156,49 @@ describe("Cá", () => {
     }
   });
 
-  it("Huyền Thoại/Boss/Thần Thoại trưởng thành 4 giai bằng vàng + linh hồn + đá + Đá Tiến Hoá đúng hệ", () => {
-    const s = catchOne(rich(), "f_boss_bang_de"); // Boss hệ Băng
+  it("Huyền Thoại/Boss/Thần Thoại: TIẾN HOÁ HỆ trước, rồi trưởng thành 4 giai bằng Đá Tiến Hoá của hệ đó", () => {
+    let s = catchOne(rich(), "f_boss_bang_de");
     const f = FISH_BY_ID.get("f_boss_bang_de")!;
     expect(isGrowthFish(f)).toBe(true);
     expect(isGrowthFish(FISH_BY_ID.get("f_hoa_long_ngu"))).toBe(true); // Huyền Thoại
     expect(isGrowthFish(FISH_BY_ID.get("f_ca_ro"))).toBe(false);
     const o = s.fishes[0]!;
     o.level = fishMaxLevel(1, true);
-    expect(fishEvolveCost(f, 1).evo).toEqual({ element: "ice", n: 1 });
-    expect(developFish(s, o.uid, FISH_BY_ID, tx(), 1).ok).toBe(false); // thiếu Đá Tiến Hoá
-    s.evoItems[ELEMENT_EVO_ITEM.ice] = 1;
+    // chưa tiến hoá hệ → phải tiến hoá hệ trước
+    expect(nextFishAction(s, o, f, FORM_BY_ID).action).toBe("form");
+    expect(developFish(s, o.uid, FISH_BY_ID, tx(), 1, FORM_BY_ID).ok).toBe(false);
+    // tiến hoá hệ Lôi (Sấm Thạch) – chỉ 1 lần
+    s.evoItems = { e_sam_thach: 2 };
+    const fm = applyForm(s, o.uid, EVO_ITEM_BY_ID.get("e_sam_thach")!, FISH_FORMS, tx(), 1, FISH_BY_ID, new Rng(3));
+    if (!fm.ok) throw new Error(fm.error);
+    s = fm.save;
+    expect(FORM_BY_ID.get(s.fishes[0]!.form!)!.itemId).toBe("e_sam_thach");
+    expect(applyForm(s, o.uid, EVO_ITEM_BY_ID.get("e_sam_thach")!, FISH_FORMS, tx(), 1, FISH_BY_ID, new Rng(4)).ok).toBe(false); // không đổi hệ
+    // lên Trung Giai cần 1 Sấm Thạch (đá của hệ Lôi)
+    expect(fishEvolveCost(f, 1, "e_sam_thach").evo).toEqual({ item: "e_sam_thach", n: 1 });
+    s.evoItems = {};
+    expect(developFish(s, o.uid, FISH_BY_ID, tx(), 1, FORM_BY_ID).ok).toBe(false);
+    s.evoItems = { e_sam_thach: 1 };
     const soul = s.materials.soul;
-    const r = developFish(s, o.uid, FISH_BY_ID, tx(), 1);
+    const r = developFish(s, o.uid, FISH_BY_ID, tx(), 1, FORM_BY_ID);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.save.fishes).toHaveLength(1); // không cần cá cùng loài
     expect(r.save.fishes[0]!.stars).toBe(2);
     expect(stageName(2)).toBe("Trung Giai");
     expect(r.save.materials.soul).toBeLessThan(soul);
-    expect(r.save.evoItems[ELEMENT_EVO_ITEM.ice]).toBeUndefined();
-    // Lông Phượng Thần thay cho mọi hệ; Thánh Giai là tối đa
+    expect(r.save.evoItems.e_sam_thach).toBeUndefined();
+    // Lông Phượng Thần thay được đá mọi hệ; Thánh Giai là tối đa
     let t = { ...r.save, evoItems: { [DIVINE_EVO_ITEM]: 99 } };
     for (const st of [2, 3]) {
       t.fishes[0]!.level = fishMaxLevel(st, true);
-      const x = developFish(t, o.uid, FISH_BY_ID, tx(), 1);
+      const x = developFish(t, o.uid, FISH_BY_ID, tx(), 1, FORM_BY_ID);
       if (!x.ok) throw new Error(x.error);
       t = x.save;
     }
     expect(stageName(t.fishes[0]!.stars)).toBe("Thánh Giai");
     t.fishes[0]!.level = fishMaxLevel(4, true);
-    expect(developFish(t, o.uid, FISH_BY_ID, tx(), 1).ok).toBe(false);
+    expect(developFish(t, o.uid, FISH_BY_ID, tx(), 1, FORM_BY_ID).ok).toBe(false);
   });
 
   it("khóa cá chặn bán và phân giải", () => {

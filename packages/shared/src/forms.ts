@@ -67,10 +67,11 @@ export function applyForm(
   const o = save.fishes.find((f) => f.uid === uid);
   if (!o) return { ok: false, error: "Không tìm thấy cá" };
   if (!canEvolveForm(fishById.get(o.fishId))) return { ok: false, error: "Chỉ cá Huyền Thoại, Thần Thoại và Boss mới đột biến được" };
+  if (o.form) return { ok: false, error: "Cá đã tiến hoá hệ – không đổi sang dạng khác được nữa. Hãy cho cá trưởng thành theo giai" };
   if ((save.evoItems[item.id] ?? 0) < 1) return { ok: false, error: `Cần 1 ${item.name} – vật phẩm cực hiếm khi câu cá` };
   const own = variants.filter((v) => v.itemId === item.id);
   if (!own.length) return { ok: false, error: "Vật phẩm này chưa có dạng đột biến" };
-  const pool = own.length > 1 ? own.filter((v) => v.id !== o.form) : own;
+  const pool = own;
   const form = pool[rng.int(0, pool.length - 1)]!;
   const { roll, surge } = rollFormBoost(rng);
   const s = clone(save);

@@ -6,9 +6,9 @@ export const EVO_ITEMS: EvoItemDef[] = [
   { id: "e_loi_dung_nham", name: "Lõi Dung Nham", icon: "🌋", glow: "#ff3d00", dropWeight: 3, divine: false, element: "fire", description: "Đá Tiến Hoá hệ Hỏa – lõi lửa núi lửa đáy biển." },
   { id: "e_tinh_the_bang_ha", name: "Tinh Thể Băng Hà", icon: "❄️", glow: "#80d8ff", dropWeight: 3, divine: false, element: "ice", description: "Đá Tiến Hoá hệ Băng – băng vĩnh cửu cực bắc." },
   { id: "e_sam_thach", name: "Sấm Thạch", icon: "⚡", glow: "#ffee58", dropWeight: 3, divine: false, element: "thunder", description: "Đá Tiến Hoá hệ Lôi – đá sét giữa tâm bão." },
-  { id: "e_u_minh_thach", name: "U Minh Thạch", icon: "🌑", glow: "#b388ff", dropWeight: 3, divine: false, element: "dark", description: "Đá Tiến Hoá hệ Ám – đá đen từ vực thẳm." },
-  { id: "e_thanh_quang_thach", name: "Thánh Quang Thạch", icon: "🌟", glow: "#fff59d", dropWeight: 3, divine: false, element: "light", description: "Đá Tiến Hoá hệ Quang – kết tinh ánh sáng thánh." },
-  { id: "e_dia_mach_thach", name: "Địa Mạch Thạch", icon: "🪨", glow: "#bcaaa4", dropWeight: 3, divine: false, element: "earth", description: "Đá Tiến Hoá hệ Thổ – mạch đá cổ dưới đáy biển." },
+  { id: "e_u_minh_thach", name: "U Minh Thạch", icon: "🌑", glow: "#b388ff", dropWeight: 0, divine: false, element: "dark", description: "Đá vạn năng – dùng thay Đá Tiến Hoá của mọi hệ." },
+  { id: "e_thanh_quang_thach", name: "Thánh Quang Thạch", icon: "🌟", glow: "#fff59d", dropWeight: 0, divine: false, element: "light", description: "Đá vạn năng – dùng thay Đá Tiến Hoá của mọi hệ." },
+  { id: "e_dia_mach_thach", name: "Địa Mạch Thạch", icon: "🪨", glow: "#bcaaa4", dropWeight: 0, divine: false, element: "earth", description: "Đá vạn năng – dùng thay Đá Tiến Hoá của mọi hệ." },
   { id: "e_long_phuong_than", name: "Lông Phượng Thần", icon: "🪶", glow: "#ff4081", dropWeight: 0, divine: true, description: "Thần vật cực hiếm – dùng thay Đá Tiến Hoá của MỌI hệ." },
 ];
 

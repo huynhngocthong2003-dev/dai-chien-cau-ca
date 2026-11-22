@@ -37,7 +37,7 @@ export class FishingChat {
 
   start() {
     // nút luôn hiện; chưa kết nối tài khoản thì bấm vào sẽ báo lý do
-    this.btn = new Button(this.scene, 828, 46, 200, 66, "💬 Chat", { color: COLORS.blue, fontSize: 24, onClick: () => this.toggle() }).setDepth(45);
+    this.btn = new Button(this.scene, 1188, 162, 172, 54, "💬 Chat", { color: COLORS.blue, fontSize: 20, onClick: () => this.toggle() }).setDepth(45);
     if (!GameState.online) return;
     void this.poll();
     this.timer = window.setInterval(() => void this.poll(), POLL_MS);
@@ -139,7 +139,7 @@ export class FishingChat {
       this.ready = true;
       this.last = msgs;
       if (this.open) this.drawLog();
-      else this.btn.setText(this.unread ? `💬 Chat (${this.unread})` : "💬 Chat");
+      else this.btn.setText(this.unread ? `💬 Chat ${this.unread}` : "💬 Chat");
     } catch {
       /* thử lại sau */
     } finally {

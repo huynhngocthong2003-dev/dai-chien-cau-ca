@@ -440,7 +440,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   }
 
   developFish(fishUid: string) {
-    return this.run(developFish(this._save, fishUid, FISH_BY_ID, uid("df"), Date.now()));
+    return this.run(developFish(this._save, fishUid, FISH_BY_ID, uid("df"), Date.now(), FORM_BY_ID));
   }
 
   decompose(uids: string[]) {

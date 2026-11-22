@@ -191,7 +191,7 @@ describe("Thể tiến hóa đột biến", () => {
     expect(boss / N).toBeGreaterThan(((normal + divine) / N) * 2.4);
   });
 
-  it("chỉ cá Boss; dùng vật phẩm LUÔN thành công; ra 1 trong các dạng cùng hệ; đột biến lại ra dạng khác", () => {
+  it("chỉ cá Boss; dùng vật phẩm LUÔN thành công; ra 1 trong các dạng cùng hệ; chỉ tiến hoá hệ 1 lần", () => {
     const boss = FISHES.find((f) => f.rarity === "boss")!;
     const item = EVO_ITEM_BY_ID.get("e_loi_dung_nham")!;
     const variants = FORMS_BY_ITEM.get(item.id)!;
@@ -204,17 +204,19 @@ describe("Thể tiến hóa đột biến", () => {
       s = g.save;
     }
     expect(applyForm(s, "n", item, FISH_FORMS, "t1", 1, FISH_BY_ID, new Rng(1)).ok).toBe(false); // cá thường
+    // mỗi con cá chỉ tiến hoá hệ 1 lần (sau đó không đổi dạng) → thử trên nhiều con khác nhau
     const seen = new Set<string>();
-    let prev: string | undefined;
     for (let i = 0; i < 70; i++) {
-      const r = applyForm(s, "a", item, FISH_FORMS, `t${i + 2}`, 1, FISH_BY_ID, new Rng(100 + i));
+      const uidI = `b${i}`;
+      s = { ...s, fishes: [...s.fishes, owned(uidI, boss.id, 5)] };
+      const r = applyForm(s, uidI, item, FISH_FORMS, `t${i + 2}`, 1, FISH_BY_ID, new Rng(100 + i));
       if (!r.ok) throw new Error(r.error);
       expect(r.form!.itemId).toBe(item.id);
-      expect(r.form!.id).not.toBe(prev); // đột biến lại luôn ra dạng khác
-      prev = r.form!.id;
       seen.add(r.form!.id);
       expect(r.save.evoItems[item.id]).toBe((s.evoItems[item.id] ?? 0) - 1);
       s = r.save;
+      // tiến hoá lại cùng con → bị chặn
+      expect(applyForm(s, uidI, item, FISH_FORMS, `x${i}`, 1, FISH_BY_ID, new Rng(9)).ok).toBe(false);
     }
     expect(seen.size).toBe(variants.length);
     expect(FISH_FORMS.length).toBe(24);

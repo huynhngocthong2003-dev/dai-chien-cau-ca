@@ -4,6 +4,7 @@ import { TIER_COLOR, TIER_ORDER } from "@dccc/game-config";
 import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
 import { COSMETIC_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import { drawFormFish } from "./FormArt.ts";
+import { drawEvoItem } from "./EvoItemArt.ts";
 import { STAGE_K } from "./StageArt.ts";
 import { fishStage, isGrowthFish, stageScale } from "@dccc/shared";
 import { FISH_H, FISH_W, drawFish, drawFishSilhouette } from "./FishArt.ts";
@@ -349,4 +350,9 @@ export function roastedFishTexture(scene: Phaser.Scene, fish: FishDef): string {
       ctx.stroke();
     }
   });
+}
+
+/** Hình Đá Tiến Hoá / thần vật. */
+export function evoItemTexture(scene: Phaser.Scene, itemId: string): string {
+  return canvasTexture(scene, `evo_${itemId}`, 128, 128, (ctx) => drawEvoItem(ctx, itemId));
 }

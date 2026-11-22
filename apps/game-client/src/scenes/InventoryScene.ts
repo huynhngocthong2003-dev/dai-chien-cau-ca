@@ -6,7 +6,7 @@ import { EVO_ITEMS, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, ZONE_BY_ID } 
 import { canAfford, decomposeValue, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
 import { costText } from "./GearScene.ts";
 import { GameState } from "../state/GameState.ts";
-import { fishDisplayMult, fishSilhouetteTexture, fishTextureFor, formFishTexture } from "../art/textures.ts";
+import { evoItemTexture, fishDisplayMult, fishSilhouetteTexture, fishTextureFor, formFishTexture } from "../art/textures.ts";
 import { Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -379,11 +379,11 @@ export class InventoryScene extends Phaser.Scene {
     );
     // phát triển: cường hoá cấp → đủ cấp tối đa thì tiến hoá sao (cá thường, hợp cá cùng loài)
     // hoặc TRƯỞNG THÀNH lên giai mới (Huyền Thoại/Boss/Thần Thoại – to & đẹp hơn)
-    const next = nextFishAction(GameState.save, o, f);
+    const next = nextFishAction(GameState.save, o, f, FORM_BY_ID);
     const fodder = next.action === "evolve" && !growth ? evolveFodder(GameState.save, o.uid) : null;
     if (next.cost) {
       const err = canAfford(GameState.save, next.cost) ?? (next.action === "evolve" && !growth && !fodder ? `Cần thêm 1 con ${f.name} không khóa` : null);
-      const evoHave = next.cost.evo ? ` (có ${evoStonesFor(GameState.save, next.cost.evo.element)})` : "";
+      const evoHave = next.cost.evo ? ` (có ${evoStonesFor(GameState.save, next.cost.evo.item)})` : "";
       d.add(txt(this, 1058, 482, costText(next.cost) + evoHave + (next.action === "evolve" && !growth ? `  + 1 ${f.name}` : ""), 16, { align: "center", color: err ? "#ff8a80" : COLORS.textGold, wrap: 380 }).setOrigin(0.5));
       const evoLabel = growth ? `🌱 Trưởng thành → ${stageName(o.stars + 1)}` : "Tiến hóa ★ (hợp cá cùng loài)";
       const dev = new Button(this, 1058, 524, 330, 54, next.action === "evolve" ? evoLabel : "Cường hóa +1 cấp", {
@@ -402,6 +402,17 @@ export class InventoryScene extends Phaser.Scene {
       });
       dev.on("disabled-click", () => toast(this, err ?? ""));
       d.add(dev);
+    } else if (next.action === "form") {
+      // BƯỚC 1: tiến hoá hệ (chọn 1 trong 5 hệ) – xong mới tới 4 giai đoạn trưởng thành
+      d.add(txt(this, 1058, 482, "Bước 1: Tiến hoá thành 1 dạng của 5 hệ · sau đó mới trưởng thành 4 giai", 15, { align: "center", color: COLORS.textGold, wrap: 380 }).setOrigin(0.5));
+      d.add(
+        new Button(this, 1058, 524, 330, 54, "🧬 Tiến hoá hệ", {
+          color: COLORS.purple,
+          fontSize: 22,
+          badge: Object.values(GameState.save.evoItems).some((n) => n > 0) ? "!" : undefined,
+          onClick: () => this.formDialog(o),
+        }),
+      );
     } else d.add(txt(this, 1058, 524, growth ? "✨ THÁNH GIAI – ĐÃ TỐI ĐA ✨" : "★ ĐÃ TỐI ĐA ★", 22, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
     // khóa / bán / phân giải
     d.add(
@@ -444,9 +455,9 @@ export class InventoryScene extends Phaser.Scene {
   /** Đột biến cá Boss: chọn vật phẩm → luôn thành công, ra ngẫu nhiên 1 dạng cùng hệ + chỉ số tăng ngẫu nhiên. */
   private formDialog(o: OwnedFish) {
     const f = FISH_BY_ID.get(o.fishId)!;
-    const m = modal(this, 1040, 600, `🧬 Đột biến – ${f.name}`, () => this.render());
-    m.root.add(txt(this, m.x + m.w / 2, m.y + 74, "Cá Huyền Thoại / Thần Thoại / Boss · Dùng 1 vật phẩm: đột biến CHẮC CHẮN thành công, ra ngẫu nhiên 1 dạng của vật phẩm đó. Chỉ số tăng ngẫu nhiên – có thể VƯỢT BẬC!", 16, { align: "center", weight: "700", color: COLORS.textDim, wrap: 960 }).setOrigin(0.5));
-    EVO_ITEMS.forEach((it, i) => {
+    const m = modal(this, 1040, 600, `🧬 Tiến hoá hệ – ${f.name}`, () => this.render());
+    m.root.add(txt(this, m.x + m.w / 2, m.y + 74, "Chọn 1 trong 5 hệ: tiến hoá CHẮC CHẮN thành công, ra ngẫu nhiên 1 dạng của hệ đó (chỉ số tăng ngẫu nhiên – có thể VƯỢT BẬC). Tiến hoá xong KHÔNG đổi hệ được nữa – tiếp theo là 4 giai đoạn trưởng thành.", 16, { align: "center", weight: "700", color: COLORS.textDim, wrap: 960 }).setOrigin(0.5));
+    EVO_ITEMS.filter((it) => (FORMS_BY_ITEM.get(it.id) ?? []).length > 0).forEach((it, i) => {
       const x = m.x + 20 + i * 202;
       const y = m.y + 104;
       const have = GameState.save.evoItems[it.id] ?? 0;
@@ -456,17 +467,15 @@ export class InventoryScene extends Phaser.Scene {
       g.lineStyle(3, hexToInt(it.glow), 0.9).strokeRoundedRect(x, y, 192, 420, 16);
       m.root.add(g);
       m.root.add(this.add.image(x + 96, y + 62, "p_spark").setTint(hexToInt(it.glow)).setScale(6).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD));
-      m.root.add(this.add.text(x + 96, y + 62, it.icon, { fontSize: "60px", padding: { top: 12 } }).setOrigin(0.5));
+      m.root.add(this.add.image(x + 96, y + 62, evoItemTexture(this, it.id)).setDisplaySize(110, 110));
       m.root.add(txt(this, x + 96, y + 128, it.name, 19, { color: it.glow, align: "center", wrap: 180 }).setOrigin(0.5));
       m.root.add(txt(this, x + 96, y + 156, "Có thể hóa thành:", 13, { align: "center", weight: "700", color: COLORS.textDim }).setOrigin(0.5));
       variants.forEach((v, k) => {
-        m.root.add(this.add.image(x + 40, y + 196 + k * 50, formFishTexture(this, f, v)).setDisplaySize(64, 40));
-        m.root.add(txt(this, x + 76, y + 196 + k * 50, v.name, 15, { color: v.glow }).setOrigin(0, 0.5));
+        m.root.add(this.add.image(x + 40, y + 186 + k * 34, formFishTexture(this, f, v)).setDisplaySize(52, 32));
+        m.root.add(txt(this, x + 72, y + 186 + k * 34, v.name, 14, { color: v.glow }).setOrigin(0, 0.5));
       });
-      const cur = variants.find((v) => v.id === o.form);
-      if (cur) m.root.add(txt(this, x + 96, y + 342, `Đang là ${cur.name}`, 13, { align: "center", weight: "700", color: "#b9f6ca" }).setOrigin(0.5));
-      m.root.add(txt(this, x + 96, y + 360, `Có: ${have}`, 17, { align: "center", color: have ? "#b9f6ca" : "#ff8a80" }).setOrigin(0.5));
-      const b = new Button(this, x + 96, y + 396, 170, 44, "Đột biến 100%", {
+      m.root.add(txt(this, x + 96, y + 362, `Có: ${have}`, 17, { align: "center", color: have ? "#b9f6ca" : "#ff8a80" }).setOrigin(0.5));
+      const b = new Button(this, x + 96, y + 396, 170, 44, "Tiến hoá 100%", {
         color: COLORS.purple,
         fontSize: 17,
         disabled: have < 1,
