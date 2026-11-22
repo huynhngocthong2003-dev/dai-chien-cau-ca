@@ -284,7 +284,7 @@ export class RaceScene extends Phaser.Scene {
         },
       });
       c.add(b);
-      c.add(this.add.image(x, y - 26, fishTextureFor(this, def, o.form ?? null)).setDisplaySize(120, 75));
+      c.add(this.add.image(x, y - 26, fishTextureFor(this, def, o.form ?? null, o.stars)).setDisplaySize(120, 75));
       c.add(txt(this, x - 84, y - 66, stats.grade, 30, { color: GRADE_COLOR[stats.grade] }).setOrigin(0, 0.5));
       c.add(txt(this, x, y + 24, def.name, 15, { align: "center", color: FISH_RARITY_COLOR[def.rarity] }).setOrigin(0.5));
       c.add(txt(this, x, y + 48, `⚡${stats.speed}  🚀${stats.accel}  💪${stats.stamina}`, 13, { align: "center", weight: "700" }).setOrigin(0.5));

@@ -196,6 +196,17 @@ function finRays(ctx: CanvasRenderingContext2D, base: Pt, pts: Pt[], color: stri
   ctx.restore();
 }
 
+/**
+ * Vị trí đầu / mõm của con cá vừa vẽ (toạ độ thiết bị của canvas) – để lớp trang trí thể đột biến
+ * (vương miện, vầng hào quang, râu rồng) bám đúng đầu cá theo dáng riêng của từng loài.
+ */
+export let lastFishAnchors: { head: DOMPoint; nose: DOMPoint } | null = null;
+export function resetFishAnchors() {
+  lastFishAnchors = null;
+}
+
+/** Viền vàng cho vây khi cá đã trưởng thành (Trung Giai trở lên). */
+let goldTrim = false;
 function paintFin(ctx: CanvasRenderingContext2D, pts: Pt[], base: Pt, a: FishAppearance, outline: string) {
   const path = smooth(pts);
   let minX = Infinity;
@@ -213,6 +224,11 @@ function paintFin(ctx: CanvasRenderingContext2D, pts: Pt[], base: Pt, a: FishApp
   ctx.lineWidth = 3.2;
   ctx.strokeStyle = outline;
   ctx.stroke(path);
+  if (goldTrim) {
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = "rgba(255,224,130,0.95)";
+    ctx.stroke(path);
+  }
 }
 
 // ---------------------------------------------------------------- vẽ
@@ -236,9 +252,20 @@ function bounds(g: Geo, extra: Pt[][]): { x0: number; y0: number; x1: number; y1
   return { x0, y0, x1, y1 };
 }
 
-export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">) {
+export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">, stage = 1) {
   const a = fish.appearance;
-  const m = fishMorph(fish.id, a);
+  const base = fishMorph(fish.id, a);
+  // trưởng thành: vây / đuôi to & dài dần, Cao Giai có râu, mắt long lanh hơn
+  const k = Math.max(0, stage - 1);
+  const m: FishMorph = {
+    ...base,
+    tailSize: base.tailSize * (1 + 0.22 * k),
+    dorsalSize: base.dorsalSize * (1 + 0.2 * k),
+    pectoral: base.pectoral * (1 + 0.18 * k),
+    dorsal: stage >= 2 && base.dorsal === "none" ? "crest" : base.dorsal,
+    tail: stage >= 3 && (base.tail === "fork" || base.tail === "round") ? "fan" : base.tail,
+    whiskers: base.whiskers || (stage >= 3 && base.aspect > 2.5),
+  };
   const g = buildGeo(m, a);
   const outline = shade(a.body, -0.52);
   const tail = tailShape(g);
@@ -271,6 +298,18 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   if (m.whiskers) extras.push([{ x: g.nose.x, y: g.nose.y + g.bodyH * 0.9 }]);
   if (m.lure || a.horns) extras.push([{ x: headS.p.x + headS.n.x * g.bodyH * 1.05, y: headS.p.y + headS.n.y * g.bodyH * 1.05 }]);
 
+  if (stage >= 3) {
+    const s0 = g.spine[0]!;
+    const L = g.bodyH * (1.5 + 0.5 * (stage - 3));
+    for (const off of [-0.5, 0.3]) extras.push([{ x: s0.p.x - s0.t.x * L * 0.45 + s0.n.x * g.bodyH * off, y: s0.p.y - s0.t.y * L * 0.45 + s0.n.y * g.bodyH * off }]);
+    const hs = at(g, 0.8);
+    extras.push([{ x: topAt(g, 0.8).x + hs.n.x * g.bodyH * 0.6, y: topAt(g, 0.8).y + hs.n.y * g.bodyH * 0.6 }]);
+  }
+  if (stage >= 4) {
+    const ws = at(g, 0.55);
+    const wb = topAt(g, 0.55, 0.7);
+    extras.push([{ x: wb.x + ws.n.x * g.bodyH * 1.3 - ws.t.x * g.bodyH * 0.9, y: wb.y + ws.n.y * g.bodyH * 1.3 - ws.t.y * g.bodyH * 0.9 }]);
+  }
   const b = bounds(g, extras);
   const pad = 14;
   const sc = Math.min((W - pad * 2) / (b.x1 - b.x0), (H - pad * 2) / (b.y1 - b.y0));
@@ -285,6 +324,11 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   ctx.translate(-(mx * Math.cos(rot) - my * Math.sin(rot)), -(mx * Math.sin(rot) + my * Math.cos(rot)));
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
+  {
+    const tf = ctx.getTransform();
+    const hp = topAt(g, 0.82);
+    lastFishAnchors = { head: tf.transformPoint(new DOMPoint(hp.x, hp.y)), nose: tf.transformPoint(new DOMPoint(g.nose.x, g.nose.y)) };
+  }
 
   const body = smooth(g.outline);
   if (a.glow) {
@@ -295,6 +339,11 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
     ctx.fill(body);
     ctx.restore();
   }
+  goldTrim = stage >= 2;
+  // Thánh Giai: đôi cánh tiên trong suốt sau lưng
+  if (stage >= 4) drawSpiritWings(ctx, g, a);
+  // Cao Giai+: dải lụa bay từ đuôi
+  if (stage >= 3) drawRibbons(ctx, g, a, stage);
   // lớp sau: đuôi, vây lưng, vây bụng
   paintFin(ctx, tail, g.spine[0]!.p, a, outline);
   if (dorsal) paintFin(ctx, dorsal, at(g, 0.5).p, a, outline);
@@ -491,7 +540,121 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
     ctx.fill();
   }
   drawFace(ctx, g, outline, hammer);
+  // Thánh Giai: thân lấp lánh như dải ngân hà
+  if (stage >= 4) {
+    ctx.save();
+    ctx.clip(body);
+    for (let i = 0; i < 26; i++) {
+      const q = topAt(g, 0.12 + ((i * 0.37) % 0.7), -0.8 + ((i * 0.53) % 1.6));
+      ctx.fillStyle = i % 3 ? "rgba(255,255,255,0.85)" : "rgba(255,241,118,0.9)";
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, 1.2 + (i % 4) * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  // Cao Giai+: vương miện pha lê trên đầu
+  if (stage >= 3) drawCrystalCrown(ctx, g, a, stage);
+  goldTrim = false;
   ctx.restore();
+}
+
+function crystalColor(a: FishAppearance) {
+  return a.glow ?? a.fin;
+}
+
+function drawCrystalCrown(ctx: CanvasRenderingContext2D, g: Geo, a: FishAppearance, stage: number) {
+  const n = stage >= 4 ? 5 : 3;
+  const col = crystalColor(a);
+  for (let i = 0; i < n; i++) {
+    const t = 0.72 + (i / Math.max(1, n - 1)) * 0.16;
+    const s = at(g, t);
+    const b = topAt(g, t, 0.9);
+    const hgt = g.bodyH * (0.28 + 0.18 * Math.sin((i / Math.max(1, n - 1)) * Math.PI)) * (stage >= 4 ? 1.25 : 1);
+    const w = g.bodyH * 0.07;
+    const tip = { x: b.x + s.n.x * hgt, y: b.y + s.n.y * hgt };
+    const p = new Path2D();
+    p.moveTo(b.x - s.t.x * w, b.y - s.t.y * w);
+    p.lineTo(b.x - s.t.x * w * 0.6 + s.n.x * hgt * 0.7, b.y - s.t.y * w * 0.6 + s.n.y * hgt * 0.7);
+    p.lineTo(tip.x, tip.y);
+    p.lineTo(b.x + s.t.x * w * 0.6 + s.n.x * hgt * 0.7, b.y + s.t.y * w * 0.6 + s.n.y * hgt * 0.7);
+    p.lineTo(b.x + s.t.x * w, b.y + s.t.y * w);
+    p.closePath();
+    const gr = ctx.createLinearGradient(b.x, b.y, tip.x, tip.y);
+    gr.addColorStop(0, shade(col, -0.1));
+    gr.addColorStop(0.6, shade(col, 0.45));
+    gr.addColorStop(1, "#ffffff");
+    ctx.fillStyle = gr;
+    ctx.fill(p);
+    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = shade(col, -0.5);
+    ctx.stroke(p);
+    ctx.strokeStyle = "rgba(255,255,255,0.8)";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(tip.x, tip.y);
+    ctx.stroke();
+  }
+}
+
+function drawRibbons(ctx: CanvasRenderingContext2D, g: Geo, a: FishAppearance, stage: number) {
+  const s0 = g.spine[0]!;
+  const back = { x: -s0.t.x, y: -s0.t.y };
+  const L = g.bodyH * (1.1 + 0.4 * (stage - 3));
+  const col = crystalColor(a);
+  for (let i = 0; i < (stage >= 4 ? 4 : 3); i++) {
+    const off = (i - 1.5) * g.bodyH * 0.28;
+    const o = { x: s0.p.x + s0.n.x * off * 0.3, y: s0.p.y + s0.n.y * off * 0.3 };
+    const e = { x: o.x + back.x * L + s0.n.x * (off * 1.6 - g.bodyH * 0.5), y: o.y + back.y * L + s0.n.y * (off * 1.6 - g.bodyH * 0.5) };
+    const c1 = { x: o.x + back.x * L * 0.4 + s0.n.x * (off + g.bodyH * 0.5), y: o.y + back.y * L * 0.4 + s0.n.y * (off + g.bodyH * 0.5) };
+    const c2 = { x: o.x + back.x * L * 0.75 + s0.n.x * (off - g.bodyH * 0.6), y: o.y + back.y * L * 0.75 + s0.n.y * (off - g.bodyH * 0.6) };
+    const gr = ctx.createLinearGradient(o.x, o.y, e.x, e.y);
+    gr.addColorStop(0, rgba(shade(col, 0.3), 0.85));
+    gr.addColorStop(1, rgba(shade(col, 0.6), 0));
+    ctx.strokeStyle = gr;
+    ctx.lineWidth = g.bodyH * (0.16 - i * 0.025);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(o.x, o.y);
+    ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, e.x, e.y);
+    ctx.stroke();
+  }
+}
+
+function drawSpiritWings(ctx: CanvasRenderingContext2D, g: Geo, a: FishAppearance) {
+  const col = crystalColor(a);
+  const s = at(g, 0.55);
+  const b = topAt(g, 0.55, 0.7);
+  for (const [k, sz] of [[0, 1.25], [1, 0.95]] as const) {
+    const W = g.bodyH * 1.7 * sz;
+    const ang = -0.45 - k * 0.35;
+    const dir = { x: s.n.x * Math.cos(ang) - s.t.x * Math.sin(-ang) * 1.4, y: s.n.y * Math.cos(ang) - s.t.y * Math.sin(-ang) * 1.4 };
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    const d = { x: dir.x / len, y: dir.y / len };
+    const side = { x: -d.y, y: d.x };
+    const f = frame(b, d, side);
+    const pts = [f(0, -W * 0.12), f(W * 0.45, -W * 0.38), f(W * 0.95, -W * 0.3), f(W * 1.1, 0), f(W * 0.8, W * 0.12), f(W * 0.9, W * 0.3), f(W * 0.5, W * 0.28), f(W * 0.55, W * 0.42), f(W * 0.15, W * 0.25), f(0, W * 0.12)];
+    const path = smooth(pts);
+    const tip = f(W, 0);
+    const gr = ctx.createLinearGradient(b.x, b.y, tip.x, tip.y);
+    gr.addColorStop(0, rgba("#ffffff", 0.75));
+    gr.addColorStop(0.5, rgba(shade(col, 0.35), 0.55));
+    gr.addColorStop(1, rgba("#e1bee7", 0.35));
+    ctx.fillStyle = gr;
+    ctx.fill(path);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.stroke(path);
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.lineWidth = 1.2;
+    for (const e of [f(W * 0.95, -W * 0.3), f(W * 1.1, 0), f(W * 0.9, W * 0.3)]) {
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y);
+      ctx.lineTo(e.x, e.y);
+      ctx.stroke();
+    }
+  }
 }
 
 function drawFace(ctx: CanvasRenderingContext2D, g: Geo, outline: string, hammer: { c: Pt; n: Pt; t: Pt; half: number; w: number } | null) {

@@ -20,3 +20,4 @@ export * from "./topup.ts";
 export * from "./plaza.ts";
 export * from "./race.ts";
 export * from "./rodwear.ts";
+export * from "./mail.ts";

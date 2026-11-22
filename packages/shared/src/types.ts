@@ -123,6 +123,8 @@ export interface EvoItemDef {
   /** Trọng số rơi trong nhóm thường; 0 = chỉ rơi ở nhóm thần vật. */
   dropWeight: number;
   divine: boolean;
+  /** Hệ của Đá Tiến Hoá (dùng lên giai cá cùng hệ). */
+  element?: Element;
   description: string;
 }
 

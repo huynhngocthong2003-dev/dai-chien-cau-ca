@@ -1,5 +1,7 @@
 import type { FishDef, FishFormDef, FormAura } from "@dccc/shared";
 import { FISH_H, FISH_W, drawFish } from "./FishArt.ts";
+import { lastFishAnchors, resetFishAnchors } from "./VectorFish.ts";
+const setLastAnchorsNull = resetFishAnchors;
 import { OUTLINE, rgba, shade } from "./color.ts";
 
 /**
@@ -108,8 +110,12 @@ function bolts(ctx: CanvasRenderingContext2D, col: string, n: number, seed: numb
   }
 }
 
+/** Đầu / mõm của con cá vừa vẽ (theo dáng riêng của loài), trong hệ toạ độ của khung thể đột biến. */
+let headAt: { x: number; y: number } | null = null;
+let noseAt: { x: number; y: number } | null = null;
+
 function whiskers(ctx: CanvasRenderingContext2D, col: string, glow: string) {
-  const n = P(298, 104);
+  const n = noseAt ? { x: noseAt.x - 4, y: noseAt.y - 2 } : P(298, 104);
   ctx.lineCap = "round";
   for (const [k, len] of [[1, 1], [-1, 0.85]] as const) {
     for (const [w, c] of [[7, rgba(glow, 0.35)], [3.5, col]] as const) {
@@ -117,7 +123,7 @@ function whiskers(ctx: CanvasRenderingContext2D, col: string, glow: string) {
       ctx.strokeStyle = c;
       ctx.beginPath();
       ctx.moveTo(n.x - 6, n.y + 4);
-      ctx.bezierCurveTo(n.x + 18, n.y + 18 * k, n.x - 20, n.y + 50 * k * len, n.x + 4, n.y + 80 * k * len);
+      ctx.bezierCurveTo(n.x + 16, n.y + 12 * k, n.x - 14, n.y + 30 * k * len, n.x + 6, n.y + 46 * k * len);
       ctx.stroke();
     }
   }
@@ -171,7 +177,7 @@ function wings(ctx: CanvasRenderingContext2D, c1: string, c2: string, feather: b
 }
 
 function halo(ctx: CanvasRenderingContext2D, col = "#fff176") {
-  const h = P(268, 52);
+  const h = headAt ? { x: headAt.x, y: headAt.y - 30 } : P(268, 52);
   for (const [w, c] of [[9, rgba(col, 0.35)], [5, col], [1.5, "#ffffff"]] as const) {
     ctx.lineWidth = w;
     ctx.strokeStyle = c;
@@ -271,7 +277,7 @@ function sparkle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
 
 /** Vương miện trên đầu cá (Huyền Thoại vàng, Thần Thoại cầu vồng ngọc). */
 function crown(ctx: CanvasRenderingContext2D, mythic: boolean, gem: string) {
-  const h = P(262, 58);
+  const h = headAt ? { x: headAt.x, y: headAt.y - 8 } : P(262, 58);
   ctx.save();
   ctx.translate(h.x, h.y);
   ctx.rotate(-0.12);
@@ -375,11 +381,13 @@ function tierFront(ctx: CanvasRenderingContext2D, rarity: FishDef["rarity"], for
   }
 }
 
-export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form: FishFormDef) {
+export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form: FishFormDef, stage = 0) {
   const look = form.look;
   tierBack(ctx, fish.rarity, form);
   backGlow(ctx, form.glow);
   AURA[look.aura].back?.(ctx, form);
+  const base = ctx.getTransform();
+  setLastAnchorsNull();
   ctx.save();
   ctx.translate(CX - (FISH_W / 2) * K, CY - (FISH_H / 2) * K);
   ctx.scale(K, K);
@@ -400,8 +408,17 @@ export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form:
       teeth: fish.appearance.teeth || look.teeth,
       glow: form.glow,
     },
-  });
+  }, stage);
   ctx.restore();
+  // bám trang trí theo đầu cá thật (dáng vector mỗi loài một khác); hình vẽ riêng thì dùng vị trí mặc định
+  const a = lastFishAnchors;
+  if (a) {
+    const inv = base.inverse();
+    const hp = inv.transformPoint(a.head);
+    const np = inv.transformPoint(a.nose);
+    headAt = { x: hp.x, y: hp.y };
+    noseAt = { x: np.x, y: np.y };
+  } else headAt = noseAt = null;
   AURA[look.aura].front?.(ctx, form);
   tierFront(ctx, fish.rarity, form);
 }

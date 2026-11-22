@@ -10,6 +10,12 @@ import {
   decomposeFishes,
   developCharacter,
   developFish,
+  fishEvolveCost,
+  stageName,
+  isGrowthFish,
+  fishMaxLevel,
+  ELEMENT_EVO_ITEM,
+  DIVINE_EVO_ITEM,
   developRod,
   nextCharAction,
   nextRodAction,
@@ -128,7 +134,7 @@ describe("Cá", () => {
     expect(s.materials.soul).toBeGreaterThan(0);
   });
 
-  it("cường hóa cá, tiến hóa cần cá cùng loài và tiêu thụ nó", () => {
+  it("cường hóa cá thường, tiến hóa sao cần cá cùng loài và tiêu thụ nó", () => {
     let s = catchOne(rich(), "f_ca_ro");
     const uid = s.fishes[0]!.uid;
     for (let i = 0; i < 9; i++) {
@@ -148,17 +154,48 @@ describe("Cá", () => {
     }
   });
 
-  it("khóa cá chặn bán, phân giải và làm nguyên liệu tiến hóa", () => {
+  it("Huyền Thoại/Boss/Thần Thoại trưởng thành 4 giai bằng vàng + linh hồn + đá + Đá Tiến Hoá đúng hệ", () => {
+    const s = catchOne(rich(), "f_boss_bang_de"); // Boss hệ Băng
+    const f = FISH_BY_ID.get("f_boss_bang_de")!;
+    expect(isGrowthFish(f)).toBe(true);
+    expect(isGrowthFish(FISH_BY_ID.get("f_hoa_long_ngu"))).toBe(true); // Huyền Thoại
+    expect(isGrowthFish(FISH_BY_ID.get("f_ca_ro"))).toBe(false);
+    const o = s.fishes[0]!;
+    o.level = fishMaxLevel(1, true);
+    expect(fishEvolveCost(f, 1).evo).toEqual({ element: "ice", n: 1 });
+    expect(developFish(s, o.uid, FISH_BY_ID, tx(), 1).ok).toBe(false); // thiếu Đá Tiến Hoá
+    s.evoItems[ELEMENT_EVO_ITEM.ice] = 1;
+    const soul = s.materials.soul;
+    const r = developFish(s, o.uid, FISH_BY_ID, tx(), 1);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.save.fishes).toHaveLength(1); // không cần cá cùng loài
+    expect(r.save.fishes[0]!.stars).toBe(2);
+    expect(stageName(2)).toBe("Trung Giai");
+    expect(r.save.materials.soul).toBeLessThan(soul);
+    expect(r.save.evoItems[ELEMENT_EVO_ITEM.ice]).toBeUndefined();
+    // Lông Phượng Thần thay cho mọi hệ; Thánh Giai là tối đa
+    let t = { ...r.save, evoItems: { [DIVINE_EVO_ITEM]: 99 } };
+    for (const st of [2, 3]) {
+      t.fishes[0]!.level = fishMaxLevel(st, true);
+      const x = developFish(t, o.uid, FISH_BY_ID, tx(), 1);
+      if (!x.ok) throw new Error(x.error);
+      t = x.save;
+    }
+    expect(stageName(t.fishes[0]!.stars)).toBe("Thánh Giai");
+    t.fishes[0]!.level = fishMaxLevel(4, true);
+    expect(developFish(t, o.uid, FISH_BY_ID, tx(), 1).ok).toBe(false);
+  });
+
+  it("khóa cá chặn bán và phân giải", () => {
     let s = catchOne(rich(), "f_ca_ro");
     s = catchOne(s, "f_ca_ro");
-    const [a, b] = s.fishes.map((f) => f.uid) as [string, string];
+    const b = s.fishes[1]!.uid;
     const l = toggleFishLock(s, b, 1);
     if (!l.ok) throw new Error();
     s = l.save;
     expect(sellFishes(s, [b], FISH_BY_ID, tx(), 1).ok).toBe(false);
     expect(decomposeFishes(s, [b], FISH_BY_ID, tx(), 1).ok).toBe(false);
-    s.fishes.find((f) => f.uid === a)!.level = 10;
-    expect(developFish(s, a, FISH_BY_ID, tx(), 1).ok).toBe(false);
   });
 
   it("phân giải cá cho Đá Nâng Cấp", () => {

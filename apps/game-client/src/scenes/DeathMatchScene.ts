@@ -20,7 +20,7 @@ import {
 } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
-import { characterHeadTexture, fishTexture, fishTextureFor, roastedFishTexture } from "../art/textures.ts";
+import { characterHeadTexture, fishTexture, fishDisplayMult, fishTextureFor, roastedFishTexture } from "../art/textures.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -122,7 +122,7 @@ export class DeathMatchScene extends Phaser.Scene {
       const fm = FORM_BY_ID.get(o.form);
       if (fm) c.add(this.add.image(x + w / 2, y + h * 0.4, "p_spark").setTint(hexToInt(fm.glow)).setScale(4).setAlpha(0.35));
     }
-    c.add(this.add.image(x + w / 2, y + h * 0.4, fishTextureFor(this, f, o.form)).setDisplaySize(w * 0.86, w * 0.54));
+    c.add(this.add.image(x + w / 2, y + h * 0.4, fishTextureFor(this, f, o.form, o.stars)).setDisplaySize(w * 0.86 * Math.min(1.1, fishDisplayMult(f, o.stars)), w * 0.54 * Math.min(1.1, fishDisplayMult(f, o.stars))));
     const wr = winRate(o);
     c.add(
       txt(this, x + w / 2, y + h - 22, `${f.name}\nLv.${o.level} · ⚔${formatNum(power(o))}${wr !== null ? ` · ${Math.round(wr * 100)}%` : ""}`, 11, {

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.32.0] – 2026-11-22 – Quà trong Hòm Thư có nút Nhận · Cá trưởng thành theo giai đoạn
+### Thêm
+- **Quà đính kèm thư + nút "🎁 Nhận quà"** (vàng, kim cương, đá, Đá Tiến Hoá, cá). Bấm nhận → cộng vào tiến trình đang chơi (mã txId chống nhận trùng, ghi sổ), lưu ngay lên tài khoản, máy chủ đánh dấu đã nhận. Nút Hòm Thư ở sảnh đếm cả thư còn quà chưa nhận. Migration `20261206000002_mail_rewards`.
+- Thư đền bù lỗi lưu 21–22/11 của 4 người chơi đã gắn quà: Chư Ngọc Lão Tôn (quà cộng thẳng hôm trước bị máy có tiến trình cấp 30 ghi đè) nhận lại đủ 550.000 vàng, 1.000 kim cương, Băng Đế Hải Xà thể Thiên Thần Ngư; 3 người còn lại dùng đúng mã giao dịch cũ nên không nhận trùng.
+- **Trưởng thành theo giai đoạn** cho cá **Huyền Thoại (siêu hiếm), Boss, Thần Thoại**: Sơ Giai → Trung Giai → Cao Giai → Thánh Giai. Lên giai bằng vàng + Mảnh Linh Hồn + Đá Nâng Cấp + **Đá Tiến Hoá đúng hệ** (1/2/3 viên), không cần hợp cá cùng loài. Cấp tối đa theo giai 15/25/35/50.
+- 7 Đá Tiến Hoá theo hệ (thêm U Minh Thạch – Ám, Thánh Quang Thạch – Quang, Địa Mạch Thạch – Thổ); Lông Phượng Thần thay được mọi hệ.
+- Hình theo giai: Trung Giai vây to, viền vàng, bong bóng lấp lánh; Cao Giai vương miện pha lê, dải lụa, vòng phù văn; Thánh Giai vầng hào quang toả nắng, cánh tiên, thân ngân hà. Cá càng trưởng thành hiển thị càng lớn (Kho Cá, trận đấu, Đấu Sinh Tử, hồ sơ).
+### Thay đổi
+- **Bỏ đột biến bằng vật phẩm** (không biến sang dạng khác nữa); cá đã đột biến giữ nguyên dạng. Cá thường vẫn tiến hoá sao ★ như cũ.
+- Trang trí của thể đột biến (vương miện, vầng hào quang, râu rồng) bám đúng đầu cá theo dáng mới của từng loài.
+- `parseHex` đọc được màu `rgba()` (sửa màu bị đen ở vài hiệu ứng).
+
 ## [0.31.0] – 2026-11-22 – Cá phong cách chibi vector, mỗi loài một dáng
 ### Thay đổi
 - Vẽ lại toàn bộ cá theo phong cách **chibi vector hoạt hình** (thân bóng, viền cùng tông màu, vảy sáng, mắt to long lanh, ngóc đầu như đang nhảy) – vẽ bằng code, không tốn tài nguyên tải.

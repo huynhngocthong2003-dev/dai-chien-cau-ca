@@ -698,3 +698,27 @@ do $$ declare n int; mid bigint; begin
 end $$;
 reset role;
 select 'DB SYSTEM MAIL TEST OK' as result;
+
+-- ================= Quà trong thư =================
+insert into public.system_mail (user_id, title, body, rewards) values ('22222222-2222-2222-2222-222222222222', 'Quà', 'Có quà', '{"txId":"mail_t1","gold":100}');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ declare mid bigint; begin
+  select id into mid from public.system_mail where title = 'Quà';
+  if mid is not null then raise exception 'Người khác thấy thư có quà'; end if;
+end $$;
+reset role;
+do $$ declare mid bigint; begin
+  select id into mid from public.system_mail where title = 'Quà';
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', true);
+  perform public.mark_mail_claimed(mid);
+  reset role;
+  if (select claimed_at from public.system_mail where id = mid) is not null then raise exception 'Người khác đánh dấu nhận hộ được'; end if;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', true);
+  perform public.mark_mail_claimed(mid);
+  reset role;
+  if (select claimed_at from public.system_mail where id = mid) is null then raise exception 'Chủ thư không đánh dấu nhận được'; end if;
+end $$;
+select 'DB MAIL REWARD TEST OK' as result;

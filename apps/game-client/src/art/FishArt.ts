@@ -1,5 +1,6 @@
 import { CUSTOM_FISH_ART } from "./MythicArt.ts";
 import { drawVectorFish } from "./VectorFish.ts";
+import { drawStagedFish } from "./StageArt.ts";
 import type { FishAppearance, FishDef } from "@dccc/shared";
 import { Rng } from "@dccc/shared";
 import { OUTLINE, hashString, rgba, shade } from "./color.ts";
@@ -466,7 +467,16 @@ function fillBody(ctx: CanvasRenderingContext2D, g: BodyGeo, a: FishAppearance, 
 }
 
 /** Vẽ một con cá vào context 2D đã được scale về hệ tọa độ FISH_W x FISH_H. */
-export function drawFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">) {
+export function drawFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">, stage = 0) {
+  // stage ≥ 1: cá Huyền Thoại/Boss/Thần Thoại theo giai đoạn trưởng thành (có hiệu ứng, thu nhỏ trong khung)
+  if (stage >= 1) {
+    drawStagedFish(ctx, fish, stage, (c) => drawFishBody(c, fish, stage));
+    return;
+  }
+  drawFishBody(ctx, fish, 1);
+}
+
+function drawFishBody(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">, stage: number) {
   // thần ngư có hình vẽ riêng
   const custom = CUSTOM_FISH_ART[fish.id];
   if (custom) {
@@ -476,7 +486,7 @@ export function drawFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id"
     return;
   }
   // phong cách vector chibi (v0.31) – mỗi loài một dáng riêng
-  drawVectorFish(ctx, fish);
+  drawVectorFish(ctx, fish, stage);
 }
 
 /** Bộ vẽ cũ (trước v0.31) – giữ để so sánh / quay lại khi cần. */

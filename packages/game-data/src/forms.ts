@@ -2,11 +2,14 @@ import type { EvoItemDef, FishFormDef } from "@dccc/shared";
 
 /** Vật phẩm đột biến – rơi rất hiếm khi câu cá (Boss ×3). Dùng là đột biến chắc chắn thành công. */
 export const EVO_ITEMS: EvoItemDef[] = [
-  { id: "e_ngoc_long_hon", name: "Ngọc Long Hồn", icon: "🐉", glow: "#29b6f6", dropWeight: 3, divine: false, description: "Hồn rồng ngàn năm – hóa cá thành Long Ngư." },
-  { id: "e_loi_dung_nham", name: "Lõi Dung Nham", icon: "🌋", glow: "#ff3d00", dropWeight: 3, divine: false, description: "Lõi lửa từ núi lửa đáy biển – thân cá bốc cháy." },
-  { id: "e_tinh_the_bang_ha", name: "Tinh Thể Băng Hà", icon: "❄️", glow: "#80d8ff", dropWeight: 3, divine: false, description: "Băng vĩnh cửu từ cực bắc – giáp băng bất hoại." },
-  { id: "e_sam_thach", name: "Sấm Thạch", icon: "⚡", glow: "#ffee58", dropWeight: 3, divine: false, description: "Đá sét giữa tâm bão – nhanh như chớp." },
-  { id: "e_long_phuong_than", name: "Lông Phượng Thần", icon: "🪶", glow: "#ff4081", dropWeight: 0, divine: true, description: "Thần vật cực hiếm – hóa thần ngư." },
+  { id: "e_ngoc_long_hon", name: "Ngọc Long Hồn", icon: "🐉", glow: "#29b6f6", dropWeight: 3, divine: false, element: "water", description: "Đá Tiến Hoá hệ Thủy – hồn rồng ngàn năm." },
+  { id: "e_loi_dung_nham", name: "Lõi Dung Nham", icon: "🌋", glow: "#ff3d00", dropWeight: 3, divine: false, element: "fire", description: "Đá Tiến Hoá hệ Hỏa – lõi lửa núi lửa đáy biển." },
+  { id: "e_tinh_the_bang_ha", name: "Tinh Thể Băng Hà", icon: "❄️", glow: "#80d8ff", dropWeight: 3, divine: false, element: "ice", description: "Đá Tiến Hoá hệ Băng – băng vĩnh cửu cực bắc." },
+  { id: "e_sam_thach", name: "Sấm Thạch", icon: "⚡", glow: "#ffee58", dropWeight: 3, divine: false, element: "thunder", description: "Đá Tiến Hoá hệ Lôi – đá sét giữa tâm bão." },
+  { id: "e_u_minh_thach", name: "U Minh Thạch", icon: "🌑", glow: "#b388ff", dropWeight: 3, divine: false, element: "dark", description: "Đá Tiến Hoá hệ Ám – đá đen từ vực thẳm." },
+  { id: "e_thanh_quang_thach", name: "Thánh Quang Thạch", icon: "🌟", glow: "#fff59d", dropWeight: 3, divine: false, element: "light", description: "Đá Tiến Hoá hệ Quang – kết tinh ánh sáng thánh." },
+  { id: "e_dia_mach_thach", name: "Địa Mạch Thạch", icon: "🪨", glow: "#bcaaa4", dropWeight: 3, divine: false, element: "earth", description: "Đá Tiến Hoá hệ Thổ – mạch đá cổ dưới đáy biển." },
+  { id: "e_long_phuong_than", name: "Lông Phượng Thần", icon: "🪶", glow: "#ff4081", dropWeight: 0, divine: true, description: "Thần vật cực hiếm – dùng thay Đá Tiến Hoá của MỌI hệ." },
 ];
 
 const L = (body: string, belly: string, fin: string, eyeColor: string, aura: FishFormDef["look"]["aura"], o: Partial<FishFormDef["look"]> = {}): FishFormDef["look"] => ({

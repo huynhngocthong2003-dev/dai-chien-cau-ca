@@ -105,9 +105,9 @@ async function playOneFish(p) {
   await p2.mouse.click(640, 550);
   await p2.waitForTimeout(300);
   await p2.mouse.click(640, 550); // xác nhận
-  await p2.waitForTimeout(800);
+  await p2.waitForFunction((id) => JSON.parse(localStorage.getItem('dccc_save_v1')).playerId === id, s1.playerId, { timeout: 8000 }).catch(() => {});
   const s2 = await save(p2);
-  if (s2.playerId !== s1.playerId || s2.fishes.length !== s1.fishes.length || s2.gold !== s1.gold) errs.push('Khôi phục từ mã không ra đúng tiến trình');
+  if (s2.playerId !== s1.playerId || s2.fishes.length !== s1.fishes.length || s2.gold !== s1.gold) errs.push('Khôi phục từ mã không ra đúng tiến trình: ' + JSON.stringify([s1.playerId, s2.playerId, s1.fishes.length, s2.fishes.length, s1.gold, s2.gold]));
   else step('Máy 2: khôi phục đúng tiến trình của máy 1');
   const backups = await p2.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('dccc_save_v1_backup_')).length);
   if (backups < 1) errs.push('Không cất sao lưu tiến trình cũ của máy 2');
@@ -184,8 +184,9 @@ async function playOneFish(p) {
         }
         if (u.pathname === '/rest/v1/pvp_matches' || u.pathname === '/rest/v1/friendships' || u.pathname === '/rest/v1/topup_orders') return json(200, []);
         if (u.pathname === '/rest/v1/rpc/claim_topups') return json(200, []);
-        if (u.pathname === '/rest/v1/system_mail') return json(200, db.mail ? [{ id: 1, title: 'Quà đền bù lỗi lưu', body: 'Ban Quản Trị gửi bạn 1.000 kim cương và 50.000 vàng.', created_at: new Date().toISOString(), read_at: null }] : []);
+        if (u.pathname === '/rest/v1/system_mail') return json(200, db.mail ? [{ id: 1, title: 'Quà đền bù lỗi lưu', body: 'Ban Quản Trị gửi bạn 1.000 kim cương và 50.000 vàng.', created_at: new Date().toISOString(), read_at: null, rewards: { txId: 'mail_e2e_1', gold: 12345, diamonds: 7 }, claimed_at: db.mailClaimed ? new Date().toISOString() : null }] : []);
         if (u.pathname === '/rest/v1/rpc/mark_mail_read') { db.mailRead = true; return json(200, null); }
+        if (u.pathname === '/rest/v1/rpc/mark_mail_claimed') { db.mailClaimed = true; return json(200, null); }
         if (u.pathname.startsWith('/rest/v1/rpc/')) return json(200, null);
         return json(404, { message: 'mock: không hỗ trợ ' + req.method() + ' ' + u.pathname });
       });
@@ -276,6 +277,24 @@ async function playOneFish(p) {
     if (!mailShown) errs.push('Có thư chưa đọc mà Hòm Thư không tự mở');
     else if (!db.mailRead) errs.push('Mở thư nhưng không đánh dấu đã đọc');
     else step('Hòm Thư: thư đền bù tự hiện khi vào sảnh, mở thư → đã đọc');
+    // bấm "Nhận quà" → cộng vàng/kim cương đúng 1 lần, lưu lên tài khoản, báo máy chủ đã nhận
+    const g0 = (await save(p5)).gold;
+    const findBtn = (label) => p5.evaluate((label) => { let hit = null; const walk = (o) => { if (hit) return; if (o.text && o.text.includes(label)) { const m = o.getWorldTransformMatrix(); hit = { x: m.tx, y: m.ty }; } (o.list || []).forEach(walk); }; window.__game.scene.getScene('Hub').children.list.forEach(walk); return hit; }, label);
+    const nb = await findBtn('Nhận quà');
+    if (!nb) errs.push('Thư có quà nhưng không có nút Nhận quà');
+    else {
+      await p5.mouse.click(nb.x, nb.y);
+      await p5.waitForFunction((g) => JSON.parse(localStorage.getItem('dccc_save_v1')).gold === g + 12345, g0, { timeout: 10000 }).catch(() => errs.push('Bấm Nhận quà nhưng vàng không tăng đúng'));
+      await p5.waitForTimeout(1500);
+      const sv = await save(p5);
+      const srvSave = [...db.saves.values()][0];
+      await p5.screenshot({ path: `${out}/acc-6c-mail-claimed.png` });
+      if (!db.mailClaimed) errs.push('Nhận quà nhưng không báo máy chủ đã nhận');
+      else if (!srvSave || !srvSave.save.appliedTx.includes('mail_e2e_1')) errs.push('Quà chưa được lưu lên tài khoản');
+      else if (!(await findBtn('Đã nhận'))) errs.push('Nhận xong nút không chuyển "Đã nhận"');
+      else if (sv.ledger.filter((l) => l.txId === 'mail_e2e_1').length !== 2) errs.push('Sổ giao dịch quà sai');
+      else step('Hòm Thư: bấm Nhận quà → +12.345 vàng +7 kim cương (1 lần, có ghi sổ, đã lưu tài khoản)');
+    }
     db.mail = false;
     await p5.context().close();
 

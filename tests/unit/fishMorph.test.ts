@@ -19,3 +19,12 @@ describe("Hình dáng cá (vẽ vector chibi)", () => {
     expect(fishMorph(f.id, f.appearance)).toEqual(fishMorph(f.id, f.appearance));
   });
 });
+
+import { parseHex, shade } from "../../apps/game-client/src/art/color.ts";
+describe("Màu", () => {
+  it("đọc được cả màu rgba() do shade() trả về", () => {
+    expect(parseHex("#ff0000")).toEqual([255, 0, 0, 1]);
+    expect(parseHex(shade("#808080", 0))).toEqual([128, 128, 128, 1]);
+    expect(parseHex("rgba(10, 20, 30, 0.5)")).toEqual([10, 20, 30, 0.5]);
+  });
+});

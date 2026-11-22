@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { extraX, safeX } from "../ui/wide.ts";
 import { CHARACTER_BY_ID, CHECKIN_REWARDS, COSMETICS, EVENTS, FISH_BY_ID, QUESTS, ROD_BY_ID, TITLES, ZONES, ZONE_BY_ID } from "@dccc/game-data";
-import { checkinState, dayKey, questProgress, refreshDaily, titleProgress } from "@dccc/shared";
+import { checkinState, dayKey, mailRewardClaimed, mailRewardEmpty, questProgress, refreshDaily, titleProgress } from "@dccc/shared";
 import { playerNameSchema } from "@dccc/validation";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
@@ -161,13 +161,18 @@ export class HubScene extends Phaser.Scene {
     if (GameState.online) {
       const mb = new Button(this, 92 - extraX(this) + safeX(this), 310, 150, 50, "📬 Hòm Thư", { color: COLORS.purple, fontSize: 18, onClick: () => void openMail(false) });
       mb.setDepth(20);
+      const pending = (mails: Social.SystemMail[]) =>
+        mails.filter((x) => !x.read_at || (x.rewards && !mailRewardEmpty(x.rewards) && !x.claimed_at && !mailRewardClaimed(GameState.save, x.rewards))).length;
+      const label = (mails: Social.SystemMail[]) => {
+        const n = pending(mails);
+        mb.label.setText(n ? `📬 Hòm Thư (${n})` : "📬 Hòm Thư");
+      };
       const openMail = async (auto: boolean) => {
         try {
           const mails = await Social.fetchMail();
           if (!this.scene.isActive()) return;
-          const unread = mails.filter((x) => !x.read_at).length;
-          mb.label.setText(unread ? `📬 Hòm Thư (${unread})` : "📬 Hòm Thư");
-          if (!auto || unread) openMailbox(this, mails, () => mb.label.setText(mails.some((x) => !x.read_at) ? `📬 Hòm Thư (${mails.filter((x) => !x.read_at).length})` : "📬 Hòm Thư"));
+          label(mails);
+          if (!auto || pending(mails)) openMailbox(this, mails, () => label(mails));
         } catch (e) {
           if (!auto) toast(this, `Không mở được Hòm Thư: ${(e as Error).message}`, COLORS.red);
         }
@@ -342,6 +347,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.31.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.32.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

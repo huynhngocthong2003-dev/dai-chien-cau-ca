@@ -45,6 +45,8 @@ import {
   decomposeFishes,
   developCharacter,
   developFish,
+  applyMailReward,
+  type MailReward,
   developRod,
   refillBossTickets,
   toggleFishLock,
@@ -67,7 +69,8 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { FISH_FORMS, CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { EVO_ITEMS, FISH_FORMS, CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { ECONOMY } from "@dccc/game-config";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
 import * as Online from "./online.ts";
@@ -586,6 +589,24 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     this.storage = this.baseStorage;
     await this.persist();
     this.emit("account", null);
+  }
+
+  /**
+   * Nhận quà trong Hòm Thư: cộng vào tiến trình (txId chống nhận trùng), lưu NGAY lên tài khoản,
+   * rồi báo máy chủ thư đã nhận. Đã nhận từ trước (trên máy khác) → chỉ đánh dấu.
+   */
+  async claimMail(mailId: number, reward: MailReward): Promise<{ ok: true; already?: boolean } | { ok: false; error: string }> {
+    if (this._save.appliedTx.includes(reward.txId)) {
+      await Social.markMailClaimed(mailId).catch(() => null);
+      return { ok: true, already: true };
+    }
+    const r = applyMailReward(this._save, reward, FISH_BY_ID, new Set(EVO_ITEMS.map((i) => i.id)), () => uid("ml"), Date.now(), ECONOMY.inventoryLimit);
+    if (!r.ok) return r;
+    this.commit(r.save);
+    const err = await this.syncNow();
+    if (err) return { ok: false, error: `Đã cộng quà nhưng chưa lưu lên tài khoản: ${err}. Hãy thử lại sau.` };
+    await Social.markMailClaimed(mailId).catch(() => null);
+    return { ok: true };
   }
 
   async syncNow(): Promise<string | null> {

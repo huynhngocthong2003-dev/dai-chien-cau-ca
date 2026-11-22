@@ -3,10 +3,10 @@ import { makeScrollArea } from "../ui/scrollArea.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { ECONOMY, FISH_RARITY_COLOR, FISH_RARITY_LABEL, RARITY_ORDER } from "@dccc/game-config";
 import { EVO_ITEMS, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
-import { canAfford, canEvolveForm, decomposeValue, evolveFodder, fishMaxLevel, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
+import { canAfford, decomposeValue, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
 import { costText } from "./GearScene.ts";
 import { GameState } from "../state/GameState.ts";
-import { fishSilhouetteTexture, fishTextureFor, formFishTexture } from "../art/textures.ts";
+import { fishDisplayMult, fishSilhouetteTexture, fishTextureFor, formFishTexture } from "../art/textures.ts";
 import { Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -103,6 +103,7 @@ export class InventoryScene extends Phaser.Scene {
     onClick: () => void,
     check?: "on" | "off" | "locked",
     formId?: string,
+    stars?: number,
   ) {
     const g = this.add.graphics();
     const col = hexToInt(FISH_RARITY_COLOR[f.rarity]);
@@ -116,7 +117,8 @@ export class InventoryScene extends Phaser.Scene {
       c.add(b);
       if (check !== "off") c.add(txt(this, x + 20, y + 21, check === "on" ? "✓" : "🔒", check === "on" ? 22 : 14, { align: "center" }).setOrigin(0.5));
     }
-    c.add(this.add.image(x + w / 2, y + h * 0.42, seen ? fishTextureFor(this, f, formId) : fishSilhouetteTexture(this, f)).setDisplaySize(w * 0.9, w * 0.56));
+    const gm = Math.min(1.12, fishDisplayMult(f, stars));
+    c.add(this.add.image(x + w / 2, y + h * 0.42, seen ? fishTextureFor(this, f, formId, stars) : fishSilhouetteTexture(this, f)).setDisplaySize(w * 0.9 * gm, w * 0.56 * gm));
     c.add(txt(this, x + w / 2, y + h - 14, label, 13, { align: "center", weight: "700", color: seen ? FISH_RARITY_COLOR[f.rarity] : COLORS.textDim }).setOrigin(0.5));
     const z = this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true });
     z.on("pointerup", () => {
@@ -144,7 +146,7 @@ export class InventoryScene extends Phaser.Scene {
       const f = FISH_BY_ID.get(o.fishId)!;
       const x = 24 + (i % 6) * 136;
       const y = 152 + Math.floor(i / 6) * 160;
-      const label = `${o.locked ? "🔒" : ""}${f.name}\nLv.${o.level} ${"★".repeat(o.stars)}`;
+      const label = `${o.locked ? "🔒" : ""}${f.name}\nLv.${o.level} ${isGrowthFish(f) ? `· ${stageName(o.stars)}` : "★".repeat(o.stars)}`;
       if (this.selectMode) {
         const check = o.locked ? "locked" : this.picked.has(o.uid) ? "on" : "off";
         this.cell(c, x, y, 128, 150, f, true, false, label, () => {
@@ -158,7 +160,7 @@ export class InventoryScene extends Phaser.Scene {
         this.cell(c, x, y, 128, 150, f, true, o.uid === this.selectedUid, label, () => {
           this.selectedUid = o.uid;
           this.render();
-        }, undefined, o.form);
+        }, undefined, o.form, o.stars);
       }
     });
     if (pages > 1) {
@@ -327,11 +329,13 @@ export class InventoryScene extends Phaser.Scene {
     d.add(txt(this, 876, y, lines.join("\n"), 17, { weight: "700", wrap: 366, color: COLORS.text }).setLineSpacing(4));
   }
 
-  private header(d: Phaser.GameObjects.Container, f: FishDef, seen: boolean, formId?: string) {
+  private header(d: Phaser.GameObjects.Container, f: FishDef, seen: boolean, formId?: string, stars?: number) {
     const col = FISH_RARITY_COLOR[f.rarity];
     const glow = this.add.image(1058, 210, "p_spark").setTint(hexToInt(col)).setScale(9).setAlpha(seen ? 0.25 : 0);
     d.add(glow);
-    d.add(this.add.image(1058, 210, seen ? fishTextureFor(this, f, formId) : fishSilhouetteTexture(this, f)).setDisplaySize(330, 206));
+    // cá trưởng thành: Sơ Giai nhỏ → Thánh Giai lớn nhất (kèm hào quang)
+    const dm = fishDisplayMult(f, stars) * (stars && fishDisplayMult(f, stars) !== 1 ? 0.88 : 1);
+    d.add(this.add.image(1058, 210, seen ? fishTextureFor(this, f, formId, stars) : fishSilhouetteTexture(this, f)).setDisplaySize(330 * dm, 206 * dm));
     d.add(txt(this, 1058, 330, seen ? f.name : "???", 30, { color: col, align: "center" }).setOrigin(0.5));
     d.add(txt(this, 1058, 364, FISH_RARITY_LABEL[f.rarity], 20, { color: col, align: "center" }).setOrigin(0.5));
   }
@@ -340,52 +344,49 @@ export class InventoryScene extends Phaser.Scene {
     const d = this.detailPanel();
     if (!o) return;
     const f = FISH_BY_ID.get(o.fishId)!;
-    this.header(d, f, true, o.form);
+    this.header(d, f, true, o.form, o.stars);
     const form = o.form ? FORM_BY_ID.get(o.form) ?? null : null;
     const st = fishStats(f, o.level, o.stars, form, o.formRoll);
+    const growth = isGrowthFish(f);
     if (form) {
       d.add(txt(this, 1058, 120, `🧬 ${form.name}`, 22, { color: form.glow, align: "center" }).setOrigin(0.5));
     }
-    if (canEvolveForm(f)) d.add(
-      new Button(this, 1200, 130, 104, 46, "🧬 Thể", {
-        color: COLORS.purple,
-        fontSize: 18,
-        badge: Object.values(GameState.save.evoItems).some((n) => n > 0) ? "!" : undefined,
-        onClick: () => this.formDialog(o),
-      }),
-    );
     d.add(
       txt(
         this,
         876,
         388,
-        `Cấp ${o.level}/${fishMaxLevel(o.stars)}  ${"★".repeat(o.stars)}${"☆".repeat(5 - o.stars)}   Lực chiến ${formatNum(ownedFishPower(f, o, form))}\nHP ${formatNum(st.hp)} · Công ${st.atk} · Thủ ${st.def} · Tốc ${st.spd}\n${ELEMENT_LABEL[st.element]} · ${o.weightKg} kg · ${f.skill.name}`,
+        `Cấp ${o.level}/${fishMaxLevel(o.stars, growth)}  ${growth ? `🌱 ${stageName(o.stars)}` : `${"★".repeat(o.stars)}${"☆".repeat(5 - o.stars)}`}   Lực chiến ${formatNum(ownedFishPower(f, o, form))}\nHP ${formatNum(st.hp)} · Công ${st.atk} · Thủ ${st.def} · Tốc ${st.spd}\n${ELEMENT_LABEL[st.element]} · ${o.weightKg} kg · ${f.skill.name}`,
         16,
         { weight: "700", wrap: 372 },
       ).setLineSpacing(3),
     );
-    // phát triển
+    // phát triển: cường hoá cấp → đủ cấp tối đa thì tiến hoá sao (cá thường, hợp cá cùng loài)
+    // hoặc TRƯỞNG THÀNH lên giai mới (Huyền Thoại/Boss/Thần Thoại – to & đẹp hơn)
     const next = nextFishAction(GameState.save, o, f);
-    const fodder = next.action === "evolve" ? evolveFodder(GameState.save, o.uid) : null;
+    const fodder = next.action === "evolve" && !growth ? evolveFodder(GameState.save, o.uid) : null;
     if (next.cost) {
-      const err = canAfford(GameState.save, next.cost) ?? (next.action === "evolve" && !fodder ? `Cần thêm 1 con ${f.name} không khóa` : null);
-      const info = next.action === "evolve" ? `${costText(next.cost)}  + 1 ${f.name}` : costText(next.cost);
-      d.add(txt(this, 1058, 482, info, 16, { align: "center", color: err ? "#ff8a80" : COLORS.textGold, wrap: 380 }).setOrigin(0.5));
-      const dev = new Button(this, 1058, 524, 330, 54, next.action === "evolve" ? "Tiến hóa ★ (hợp cá cùng loài)" : "Cường hóa +1 cấp", {
-        color: COLORS.purple,
+      const err = canAfford(GameState.save, next.cost) ?? (next.action === "evolve" && !growth && !fodder ? `Cần thêm 1 con ${f.name} không khóa` : null);
+      const evoHave = next.cost.evo ? ` (có ${evoStonesFor(GameState.save, next.cost.evo.element)})` : "";
+      d.add(txt(this, 1058, 482, costText(next.cost) + evoHave + (next.action === "evolve" && !growth ? `  + 1 ${f.name}` : ""), 16, { align: "center", color: err ? "#ff8a80" : COLORS.textGold, wrap: 380 }).setOrigin(0.5));
+      const evoLabel = growth ? `🌱 Trưởng thành → ${stageName(o.stars + 1)}` : "Tiến hóa ★ (hợp cá cùng loài)";
+      const dev = new Button(this, 1058, 524, 330, 54, next.action === "evolve" ? evoLabel : "Cường hóa +1 cấp", {
+        color: next.action === "evolve" && growth ? COLORS.green : COLORS.purple,
         fontSize: 20,
         disabled: !!err,
         onClick: () => {
           const r = GameState.developFish(o.uid);
           if (!r.ok) return toast(this, r.error, COLORS.red);
           Sfx.levelUp();
-          toast(this, next.action === "evolve" ? `${f.name} tiến hóa lên ${o.stars + 1} sao!` : `${f.name} lên cấp ${o.level + 1}!`, COLORS.green);
+          if (next.action === "evolve" && growth) this.cameras.main.flash(400, 180, 255, 200);
+          const msg = next.action !== "evolve" ? `${f.name} lên cấp ${o.level + 1}!` : growth ? `${f.name} trưởng thành: ${stageName(o.stars + 1)}! To hơn, đẹp hơn, mạnh hơn` : `${f.name} tiến hóa lên ${o.stars + 1} sao!`;
+          toast(this, msg, COLORS.green);
           this.render();
         },
       });
       dev.on("disabled-click", () => toast(this, err ?? ""));
       d.add(dev);
-    } else d.add(txt(this, 1058, 524, "★ ĐÃ TỐI ĐA ★", 24, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
+    } else d.add(txt(this, 1058, 524, growth ? "✨ THÁNH GIAI – ĐÃ TỐI ĐA ✨" : "★ ĐÃ TỐI ĐA ★", 22, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
     // khóa / bán / phân giải
     d.add(
       new Button(this, 912, 600, 104, 54, o.locked ? "🔓 Mở" : "🔒 Khóa", {

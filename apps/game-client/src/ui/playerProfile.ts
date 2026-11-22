@@ -4,7 +4,7 @@ import { CHARACTER_BY_ID, COSMETIC_BY_ID, FISH_BY_ID, FORM_BY_ID, ROD_BY_ID, TIT
 import type { CosmeticSlot } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
-import { auraTexture, characterHeadTexture, characterTexture, fishTextureFor, rodIconTexture } from "../art/textures.ts";
+import { auraTexture, characterHeadTexture, characterTexture, fishDisplayMult, fishTextureFor, rodIconTexture } from "../art/textures.ts";
 import { Button, formatNum, goTo, modal, toast, txt } from "./widgets.ts";
 import { COLORS } from "./theme.ts";
 import { hexToInt } from "../art/color.ts";
@@ -71,7 +71,7 @@ export function showPlayerProfile(scene: Phaser.Scene, p: Social.PlayerCard, opt
     g.fillGradientStyle(0x1a3d66, 0x1a3d66, 0x0d2340, 0x0d2340, 0.95).fillRoundedRect(x, y, 198, 230, 14);
     g.lineStyle(3, hexToInt(FISH_RARITY_COLOR[def.rarity])).strokeRoundedRect(x, y, 198, 230, 14);
     add(g);
-    add(scene.add.image(x + 99, y + 74, fishTextureFor(scene, def, f.form)).setDisplaySize(170, 106));
+    add(scene.add.image(x + 99, y + 74, fishTextureFor(scene, def, f.form, f.stars)).setDisplaySize(170 * Math.min(1.1, fishDisplayMult(def, f.stars)), 106 * Math.min(1.1, fishDisplayMult(def, f.stars))));
     const fm = f.form ? FORM_BY_ID.get(f.form) : null;
     const total = f.wins + f.losses;
     add(txt(scene, x + 99, y + 160, `${def.name}${fm ? `\n${fm.name}` : ""}\nLv.${f.level} · ⚔${formatNum(f.power)}`, 14, { align: "center", color: FISH_RARITY_COLOR[def.rarity] }).setOrigin(0.5));

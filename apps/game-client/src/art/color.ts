@@ -1,5 +1,11 @@
 /** Tiện ích màu sắc cho phần vẽ thủ tục. */
 export function parseHex(hex: string): [number, number, number, number] {
+  // chấp nhận cả "rgba(r,g,b,a)" / "rgb(r,g,b)" (kết quả của shade())
+  const m = /^rgba?\(([^)]+)\)$/.exec(hex.trim());
+  if (m) {
+    const [r = 0, g = 0, b = 0, a = 1] = m[1]!.split(",").map((x) => parseFloat(x));
+    return [r, g, b, a];
+  }
   let h = hex.replace("#", "");
   if (h.length === 3) h = h.split("").map((c) => c + c).join("");
   const n = parseInt(h.slice(0, 6), 16);

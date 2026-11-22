@@ -651,14 +651,18 @@ export interface SystemMail {
   body: string;
   created_at: string;
   read_at: string | null;
+  rewards: import("@dccc/shared").MailReward | null;
+  claimed_at: string | null;
 }
 
 /** Thư Ban Quản Trị gửi cho mình (mới nhất trước). */
 export async function fetchMail(limit = 30): Promise<SystemMail[]> {
   const sb = await getClient();
-  const { data, error } = await sb.from("system_mail").select("id, title, body, created_at, read_at").order("created_at", { ascending: false }).limit(limit);
+  const { data, error } = await sb.from("system_mail").select("id, title, body, created_at, read_at, rewards, claimed_at").order("created_at", { ascending: false }).limit(limit);
   if (error) throw new Error(friendlyRpc(error.message));
   return (data as SystemMail[]) ?? [];
 }
 
 export const markMailRead = (id: number) => rpc("mark_mail_read", { p_id: id });
+
+export const markMailClaimed = (id: number) => rpc("mark_mail_claimed", { p_id: id });

@@ -3,7 +3,7 @@
  * trả save mới hoặc lỗi. Mọi khoản chi đều ghi sổ với txId duy nhất.
  */
 import { RARITY_ORDER } from "@dccc/game-config";
-import type { CharRarity, CharacterDef, FishDef, FishFormDef, RodDef } from "./types.ts";
+import type { CharRarity, CharacterDef, Element, FishDef, FishFormDef, RodDef } from "./types.ts";
 import {
   DAILY_BOSS_TICKETS,
   MATERIAL_DROP,
@@ -20,10 +20,52 @@ export interface Cost {
   gold: number;
   stones: number;
   soul: number;
+  /** Đá Tiến Hoá theo hệ (trưởng thành cá giai cao). */
+  evo?: { element: Element; n: number };
 }
 
 export const MAX_BREAKTHROUGH = 5;
 export const MAX_STARS = 5;
+
+// ------------------------------------------------------------------ giai đoạn trưởng thành của cá
+/**
+ * Cá Huyền Thoại (siêu hiếm), Boss & Thần Thoại có 4 GIAI ĐOẠN TRƯỞNG THÀNH (lưu ở `stars`, 1..4): không đột biến sang dạng khác nữa,
+ * mà lên giai bằng vàng + Mảnh Linh Hồn + Đá Nâng Cấp + Đá Tiến Hoá đúng hệ. Càng trưởng thành càng to, đẹp, mạnh.
+ * Cá thường vẫn tiến hoá sao (★, hợp cá cùng loài) như cũ.
+ */
+export const STAGE_NAMES = ["Sơ Giai", "Trung Giai", "Cao Giai", "Thánh Giai"] as const;
+export const MAX_STAGE = 4;
+export function isGrowthFish(f: Pick<FishDef, "rarity"> | undefined | null): boolean {
+  return !!f && (f.rarity === "legendary" || f.rarity === "boss" || f.rarity === "mythic");
+}
+/** Giai đoạn (1..4) của cá Boss/Thần Thoại – bản cũ có 5 sao tính là Thánh Giai. */
+export function fishStage(stars: number): number {
+  return Math.max(1, Math.min(MAX_STAGE, stars));
+}
+export function stageName(stars: number): string {
+  return STAGE_NAMES[fishStage(stars) - 1]!;
+}
+/** Đá Tiến Hoá theo hệ: id vật phẩm (khớp game-data EVO_ITEMS). Lông Phượng Thần dùng thay cho mọi hệ. */
+export const ELEMENT_EVO_ITEM: Record<Element, string> = {
+  water: "e_ngoc_long_hon",
+  fire: "e_loi_dung_nham",
+  ice: "e_tinh_the_bang_ha",
+  thunder: "e_sam_thach",
+  dark: "e_u_minh_thach",
+  light: "e_thanh_quang_thach",
+  earth: "e_dia_mach_thach",
+};
+export const DIVINE_EVO_ITEM = "e_long_phuong_than";
+/** Số Đá Tiến Hoá đúng hệ để lên giai tiếp theo (theo giai hiện tại): Trung 1, Cao 2, Thánh 3. */
+export const STAGE_EVO_STONES = [0, 1, 2, 3];
+/** Kích thước hiển thị theo giai (Thánh Giai = 1, Sơ Giai nhỏ nhất). */
+export function stageScale(stars: number): number {
+  return [0.62, 0.75, 0.88, 1][fishStage(stars) - 1]!;
+}
+/** Số Đá Tiến Hoá dùng được cho một hệ (đá đúng hệ + Lông Phượng Thần). */
+export function evoStonesFor(s: PlayerSave, element: Element): number {
+  return (s.evoItems[ELEMENT_EVO_ITEM[element]] ?? 0) + (s.evoItems[DIVINE_EVO_ITEM] ?? 0);
+}
 
 const RARITY_COST: Record<CharRarity, number> = { N: 1, R: 1.3, SR: 1.7, SSR: 2.2, UR: 3, LR: 4 };
 
@@ -62,7 +104,8 @@ export function rodEvolveCost(r: RodDef, stars: number): Cost {
   return { gold: Math.round(3000 * k * RARITY_COST[r.rarity]), stones: 25 * k, soul: 3 * k };
 }
 
-export function fishMaxLevel(stars: number): number {
+export function fishMaxLevel(stars: number, growth = false): number {
+  if (growth) return [15, 25, 35, 50][fishStage(stars) - 1]!;
   return 10 * Math.min(MAX_STARS, Math.max(1, stars));
 }
 
@@ -71,7 +114,15 @@ export function fishUpgradeCost(f: FishDef, level: number): Cost {
 }
 
 export function fishEvolveCost(f: FishDef, stars: number): Cost {
-  return { gold: Math.round(f.value * 2 * stars + 100), stones: 10 * stars, soul: Math.max(0, fishRarityIdx(f) - 1) * stars };
+  if (!isGrowthFish(f)) return { gold: Math.round(f.value * 2 * stars + 100), stones: 10 * stars, soul: Math.max(0, fishRarityIdx(f) - 1) * stars };
+  // trưởng thành (Huyền Thoại/Boss/Thần Thoại): vàng + linh hồn + đá nâng cấp + Đá Tiến Hoá đúng hệ theo giai
+  const st = fishStage(stars);
+  return {
+    gold: Math.round(f.value * 4 * st * st + 5000 * st),
+    stones: 40 * st,
+    soul: 25 * st,
+    evo: { element: f.element, n: STAGE_EVO_STONES[st] ?? 1 },
+  };
 }
 
 /** Nguyên liệu nhận được khi phân giải một con cá. */
@@ -107,6 +158,7 @@ export function canAfford(s: PlayerSave, c: Cost): string | null {
   if (s.gold < c.gold) return `Cần ${c.gold.toLocaleString("vi-VN")} vàng`;
   if (s.materials.stones < c.stones) return `Cần ${c.stones} Đá Nâng Cấp`;
   if (s.materials.soul < c.soul) return `Cần ${c.soul} Mảnh Linh Hồn`;
+  if (c.evo && evoStonesFor(s, c.evo.element) < c.evo.n) return `Cần ${c.evo.n} Đá Tiến Hoá hệ ${ELEMENT_NAME_VI[c.evo.element]} (rơi từ Boss Thế Giới / câu cá)`;
   return null;
 }
 
@@ -117,7 +169,20 @@ function pay(s: PlayerSave, c: Cost, txId: string, reason: string, now: number) 
   if (c.gold) addLedger(s, txId, "gold", -c.gold, reason, now);
   if (c.stones) addLedger(s, txId, "stones", -c.stones, reason, now);
   if (c.soul) addLedger(s, txId, "soul", -c.soul, reason, now);
+  if (c.evo) {
+    // dùng đá đúng hệ trước, thiếu thì dùng Lông Phượng Thần
+    let n = c.evo.n;
+    for (const id of [ELEMENT_EVO_ITEM[c.evo.element], DIVINE_EVO_ITEM]) {
+      const take = Math.min(n, s.evoItems[id] ?? 0);
+      if (!take) continue;
+      s.evoItems[id]! -= take;
+      if (s.evoItems[id] === 0) delete s.evoItems[id];
+      n -= take;
+    }
+  }
 }
+
+const ELEMENT_NAME_VI: Record<Element, string> = { water: "Thủy", fire: "Hỏa", ice: "Băng", thunder: "Lôi", dark: "Ám", light: "Quang", earth: "Thổ" };
 
 /** Khung chung: kiểm tra trùng giao dịch, đủ tiền, rồi áp dụng thay đổi. */
 function transact(
@@ -200,8 +265,9 @@ export function evolveFodder(save: PlayerSave, uid: string): OwnedFish | null {
 }
 
 export function nextFishAction(save: PlayerSave, o: OwnedFish, f: FishDef): { action: FishAction; cost: Cost | null } {
-  if (o.level < fishMaxLevel(o.stars)) return { action: "upgrade", cost: fishUpgradeCost(f, o.level) };
-  if (o.stars < MAX_STARS) return { action: "evolve", cost: fishEvolveCost(f, o.stars) };
+  const growth = isGrowthFish(f);
+  if (o.level < fishMaxLevel(o.stars, growth)) return { action: "upgrade", cost: fishUpgradeCost(f, o.level) };
+  if (o.stars < (growth ? MAX_STAGE : MAX_STARS)) return { action: "evolve", cost: fishEvolveCost(f, o.stars) };
   return { action: "max", cost: null };
 }
 
@@ -212,8 +278,9 @@ export function developFish(save: PlayerSave, uid: string, fishById: Map<string,
   if (!f) return { ok: false, error: "Dữ liệu cá không hợp lệ" };
   const { action, cost } = nextFishAction(save, o, f);
   if (action === "max" || !cost) return { ok: false, error: "Cá đã đạt tối đa" };
+  // cá thường tiến hoá sao cần hợp 1 con cùng loài; Huyền Thoại/Boss/Thần Thoại trưởng thành chỉ tốn vàng + linh hồn + đá
   let fodderUid: string | null = null;
-  if (action === "evolve") {
+  if (action === "evolve" && !isGrowthFish(f)) {
     const fodder = evolveFodder(save, uid);
     if (!fodder) return { ok: false, error: `Cần thêm 1 con ${f.name} (không khóa) để tiến hóa` };
     fodderUid = fodder.uid;
@@ -223,7 +290,7 @@ export function developFish(save: PlayerSave, uid: string, fishById: Map<string,
     if (action === "upgrade") t.level += 1;
     else {
       t.stars += 1;
-      s.fishes = s.fishes.filter((x) => x.uid !== fodderUid);
+      if (fodderUid) s.fishes = s.fishes.filter((x) => x.uid !== fodderUid);
     }
   });
 }

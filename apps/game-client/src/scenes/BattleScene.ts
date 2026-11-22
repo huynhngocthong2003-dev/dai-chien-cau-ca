@@ -3,7 +3,7 @@ import { screenRect } from "../ui/wide.ts";
 import { FISH_RARITY_COLOR } from "@dccc/game-config";
 import { FISH_BY_ID } from "@dccc/game-data";
 import { roastedXp, type BattleEvent, type Fighter, type MatchResult, type OwnedFish, type RoastedFish } from "@dccc/shared";
-import { fishTexture, fishTextureFor, roastedFishTexture } from "../art/textures.ts";
+import { fishTexture, fishDisplayMult, fishTextureFor, roastedFishTexture } from "../art/textures.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
@@ -136,7 +136,7 @@ export class BattleScene extends Phaser.Scene {
     this.names.forEach((n) => n.destroy());
     const mk = (f: Fighter, side: 0 | 1) => {
       const def = FISH_BY_ID.get(f.fishId)!;
-      const img = this.add.image(side === 0 ? -200 : 1480, 400, fishTextureFor(this, def, f.form)).setDisplaySize(300, 190).setFlipX(side === 1);
+      const img = this.add.image(side === 0 ? -200 : 1480, 400, fishTextureFor(this, def, f.form, f.stars)).setDisplaySize(300 * fishDisplayMult(def, f.stars), 190 * fishDisplayMult(def, f.stars)).setFlipX(side === 1);
       this.tweens.add({ targets: img, x: side === 0 ? 380 : 900, duration: 500, ease: "Back.easeOut" });
       this.tweens.add({ targets: img, y: 410, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: side * 300 });
       const bar = new Bar(this, (side === 0 ? 380 : 900) - 150, 220, 300, 26, side === 0 ? 0x4caf50 : 0xe53935, "");

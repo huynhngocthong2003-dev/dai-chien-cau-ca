@@ -1,6 +1,6 @@
 /**
- * E2E Đấu Sinh Tử + Hồ sơ + Thể đột biến:
- * đặt sẵn 5 con cá + 1 Ngọc Long Hồn, tiến hóa 1 con, chọn 3 con đấu máy (Dễ), bỏ qua phát lại,
+ * E2E Đấu Sinh Tử + Hồ sơ + Trưởng thành giai đoạn:
+ * đặt sẵn 5 con cá + Đá Tiến Hoá hệ Thổ, cho Boss lên Trung Giai, chọn 3 con đấu máy (Dễ), bỏ qua phát lại,
  * kiểm tra thắng → cá nướng / thua → mất cá mạnh nhất; cho nhân vật ăn cá nướng nhận KN; trưng bày ở Hồ sơ.
  * Chạy: node tests/e2e/deathmatch.cjs [thư-mục-ảnh] [url]
  */
@@ -20,8 +20,10 @@ const errs = [];
   await p.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('dccc_save_v1'));
     const mk = (uid, fishId, level) => ({ uid, fishId, level, stars: 1, weightKg: 2, zoneId: 'z_ben_tan_thu', caughtAt: Date.now(), locked: false });
-    s.fishes = [mk('t1', 'f_ca_chep', 9), mk('t2', 'f_ca_ro', 8), mk('t3', 'f_ca_tre', 7), mk('t4', 'f_boss_lao_ngu', 5), mk('t5', 'f_ca_chep', 2)];
-    s.evoItems = { e_ngoc_long_hon: 20 };
+    s.fishes = [mk('t1', 'f_ca_chep', 9), mk('t2', 'f_ca_ro', 8), mk('t3', 'f_ca_tre', 7), { ...mk('t4', 'f_boss_lao_ngu', 15) }, mk('t5', 'f_ca_chep', 2)];
+    s.evoItems = { e_dia_mach_thach: 3 };
+    s.gold = 500000;
+    s.materials = { ...s.materials, stones: 500, soul: 500 };
     localStorage.setItem('dccc_save_v1', JSON.stringify(s));
   });
   await p.reload({ waitUntil: 'domcontentloaded' });
@@ -39,25 +41,19 @@ const errs = [];
     sc.render();
   });
   await p.waitForTimeout(300);
-  // Chỉ cá Boss mới có nút 🧬; dùng vật phẩm → đột biến CHẮC CHẮN thành công, ra 1 dạng của Ngọc Long Hồn
-  await p.mouse.click(1200, 130); // 🧬 Thể
-  await p.waitForTimeout(500);
-  await p.screenshot({ path: `${out}/forms.png` });
-  await p.mouse.click(120 + 20 + 96, 60 + 104 + 396); // "Đột biến 100%" – Ngọc Long Hồn (modal 1040×600 tại 120,60)
-  await p.waitForTimeout(1200);
-  await p.screenshot({ path: `${out}/form-reveal.png` });
+  // Boss đủ cấp Sơ Giai (15) → nút "Trưởng thành → Trung Giai" (vàng + linh hồn + đá + 1 Đá Tiến Hoá hệ Thổ, không cần cá cùng loài)
+  await p.screenshot({ path: `${out}/growth-before.png` });
+  await p.mouse.click(1058, 524);
+  await p.waitForTimeout(900);
+  await p.screenshot({ path: `${out}/growth-after.png` });
   let s = await save();
   const t4 = s.fishes.find((f) => f.uid === 't4');
-  if (!['long', 'long_hac', 'long_kim', 'long_huyet', 'long_bich'].includes(t4?.form) || s.evoItems.e_ngoc_long_hon !== 19 || !t4.formRoll) errs.push(`Đột biến sai: ${JSON.stringify(t4)} ${JSON.stringify(s.evoItems)}`);
-  else console.log(`• Boss Lão Ngư đột biến thành "${t4.form}" ngay lần đầu (100%), hệ số ${JSON.stringify(t4.formRoll)}`);
-  await p.mouse.click(640, 60 + 600 - 46); // Tuyệt vời!
-  await p.waitForTimeout(400);
-  // cá thường không có nút đột biến
-  await p.evaluate(() => { const sc = window.__game.scene.getScene('Inventory'); sc.selectedUid = 't1'; sc.render(); });
-  await p.waitForTimeout(300);
+  if (!t4 || t4.stars !== 2 || s.evoItems.e_dia_mach_thach !== 2 || s.fishes.length !== 5 || t4.form) errs.push(`Trưởng thành sai: ${JSON.stringify(t4)} ${JSON.stringify(s.evoItems)}`);
+  else console.log('• Boss Lão Ngư trưởng thành lên Trung Giai (tốn 1 Địa Mạch Thạch, không đột biến, không mất cá)');
+  // không còn nút đột biến (🧬) ở cá Boss
   await p.mouse.click(1200, 130);
   await p.waitForTimeout(400);
-  if (await p.evaluate(() => window.__game.scene.getScene('Inventory').children.list.some((o) => o.depth === 900))) errs.push('Cá thường vẫn mở được bảng đột biến');
+  if (await p.evaluate(() => window.__game.scene.getScene('Inventory').children.list.some((o) => o.depth === 900))) errs.push('Vẫn mở được bảng đột biến');
 
   // --- Đấu Sinh Tử với máy
   await start('DeathMatch', { mode: 'ai' });

@@ -4,6 +4,8 @@ import { TIER_COLOR, TIER_ORDER } from "@dccc/game-config";
 import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
 import { COSMETIC_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import { drawFormFish } from "./FormArt.ts";
+import { STAGE_K } from "./StageArt.ts";
+import { fishStage, isGrowthFish, stageScale } from "@dccc/shared";
 import { FISH_H, FISH_W, drawFish, drawFishSilhouette } from "./FishArt.ts";
 import { CHAR_H, CHAR_W, defaultLook, drawAura, drawCharacter, type Look } from "./CharacterArt.ts";
 import { WORLD_H, WORLD_W, drawDock, drawZoneBackground } from "./Backgrounds.ts";
@@ -30,21 +32,37 @@ export function canvasTexture(
   return key;
 }
 
-export function fishTexture(scene: Phaser.Scene, fish: FishDef): string {
-  const res = fish.appearance.scale >= 1.5 ? 1.4 : 1;
-  return canvasTexture(scene, `fish_${fish.id}`, FISH_W, FISH_H, (ctx) => drawFish(ctx, fish), res);
+/** stage 0 = hình loài (sách cá, câu được); 1..4 = cá Huyền Thoại/Boss/Thần Thoại theo giai trưởng thành. */
+export function fishTexture(scene: Phaser.Scene, fish: FishDef, stage = 0): string {
+  const res = fish.appearance.scale >= 1.5 || stage >= 3 ? 1.4 : 1;
+  return canvasTexture(scene, `fish_${fish.id}${stage ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => drawFish(ctx, fish, stage), res);
 }
 
 /** Cá đã đột biến (ngoại hình riêng theo dạng). */
-export function formFishTexture(scene: Phaser.Scene, fish: FishDef, form: FishFormDef): string {
-  const res = fish.appearance.scale >= 1.5 ? 1.4 : 1;
-  return canvasTexture(scene, `fishform_${fish.id}_${form.id}`, FISH_W, FISH_H, (ctx) => drawFormFish(ctx, fish, form), res);
+export function formFishTexture(scene: Phaser.Scene, fish: FishDef, form: FishFormDef, stage = 0): string {
+  const res = fish.appearance.scale >= 1.5 || stage >= 3 ? 1.4 : 1;
+  return canvasTexture(scene, `fishform_${fish.id}_${form.id}${stage ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => drawFormFish(ctx, fish, form, stage), res);
 }
 
-/** Texture cá theo dạng đột biến nếu có. */
-export function fishTextureFor(scene: Phaser.Scene, fish: FishDef, formId?: string | null): string {
+/** Giai hiển thị: 0 nếu không phải cá trưởng thành hoặc không biết sao. */
+function displayStage(fish: FishDef, stars?: number | null): number {
+  return stars && isGrowthFish(fish) ? fishStage(stars) : 0;
+}
+
+/** Texture cá theo dạng đột biến + giai trưởng thành (truyền `stars` của cá đang sở hữu). */
+export function fishTextureFor(scene: Phaser.Scene, fish: FishDef, formId?: string | null, stars?: number | null): string {
   const form = formId ? FORM_BY_ID.get(formId) : null;
-  return form ? formFishTexture(scene, fish, form) : fishTexture(scene, fish);
+  const st = displayStage(fish, stars);
+  return form ? formFishTexture(scene, fish, form, st) : fishTexture(scene, fish, st);
+}
+
+/**
+ * Hệ số phóng hình cá trưởng thành so với khung hiển thị thường: Sơ Giai nhỏ, Thánh Giai lớn nhất
+ * (cá được vẽ thu nhỏ trong texture để chừa chỗ hào quang/cánh).
+ */
+export function fishDisplayMult(fish: FishDef, stars?: number | null): number {
+  const st = displayStage(fish, stars);
+  return st ? stageScale(st) / STAGE_K : 1;
 }
 
 export function fishSilhouetteTexture(scene: Phaser.Scene, fish: FishDef): string {
