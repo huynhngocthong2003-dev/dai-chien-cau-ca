@@ -248,6 +248,23 @@ async function playOneFish(p) {
     const gated = await p4.evaluate(() => window.__game.scene.isActive('Account') && window.__game.scene.getScene('Account').required);
     if (!gated) errs.push('Đăng xuất không quay về màn đăng nhập bắt buộc');
     else step('Tải lại trang giữ đăng nhập; đăng xuất → quay về màn đăng nhập');
+    await p4.context().close();
+
+    // Máy 5: tiến trình CAO HƠN chỉ còn trong bản cất trên máy (đợt máy chủ từ chối lưu) → tự tìm lại & tải lên
+    const lost = { ...s4, level: 9, xp: 0, updatedAt: s4.updatedAt - 1000 };
+    const p5 = await openGate(browser, urlOnline, async (page) => {
+      await mock(page);
+      await page.addInitScript((b) => { if (!localStorage.getItem('dccc_e2e_once')) { localStorage.setItem('dccc_e2e_once', '1'); localStorage.setItem('dccc_save_v1_backup_1', b); } }, JSON.stringify(lost));
+    });
+    await p5.fill('#acc-email', 'ca@vi.du');
+    await p5.fill('#acc-pass', 'matkhau123');
+    await p5.mouse.click(1050, 178);
+    await p5.waitForFunction(() => JSON.parse(localStorage.getItem('dccc_save_v1')).level === 9, null, { timeout: 15000 }).catch(() => errs.push('Không tìm lại tiến trình cao hơn còn cất trên máy'));
+    await p5.waitForTimeout(1500);
+    const srv = [...db.saves.values()][0];
+    if (!srv || srv.level !== 9) errs.push('Tiến trình tìm lại chưa được tải lên tài khoản (cấp trên máy chủ: ' + (srv && srv.level) + ')');
+    else step('Máy 5: tìm lại tiến trình cấp 9 còn cất trên máy và tải lên tài khoản');
+    await p5.context().close();
   }
 
   await browser.close();

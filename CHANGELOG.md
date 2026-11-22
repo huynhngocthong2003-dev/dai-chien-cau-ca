@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.29.1] – 2026-11-22 – Tự tìm lại tiến trình bị lỡ trên máy
+### Sửa lỗi
+- Đợt máy chủ từ chối lưu (21–22/11) làm tiến trình chỉ còn trên máy/trình duyệt đã chơi. Khi đăng nhập, game giờ dò cả các bản cất trên máy (`dccc_save_v1_backup_*`): bản nào CÙNG người chơi với tài khoản mà cấp/số cá cao hơn → tự dùng lại và tải lên tài khoản, báo "Đã tìm lại tiến trình cấp X…".
+- Không lấy lại tiến trình cũ hơn lần người chơi tự "Chơi lại từ đầu".
+- E2E tài khoản thêm bước máy 5 (tìm lại tiến trình còn cất trên máy).
+
 ## [0.29.0] – 2026-11-22 – Sửa đồng bộ tiến trình điện thoại ↔ máy tính
 ### Sửa lỗi
 - **Máy chủ chặn nhầm mọi lần lưu** (nguyên nhân "kẹt lv29" / không đồng bộ): một bản guard gắn thêm trên máy chủ (`trg_player_saves_guard`) so `save_version` (phiên bản định dạng, luôn là 8) rồi tự tăng nó sau mỗi lần ghi → từ lần ghi thứ 2 trở đi mọi lần lưu bị từ chối. Đã gỡ, đưa `save_version` về đúng, thay bằng guard mới (migration `20261205000001_stale_save_guard`).

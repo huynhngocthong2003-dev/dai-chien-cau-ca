@@ -60,3 +60,20 @@ function isNewerReset(a: PlayerSave, b: PlayerSave): boolean {
 export function isStaleSaveError(message: string | null | undefined): boolean {
   return !!message && message.includes("STALE_SAVE");
 }
+
+/**
+ * Tìm lại tiến trình bị lỡ: trong các bản cất trên máy, chọn bản CÙNG người chơi với tài khoản
+ * mà tiến xa hơn bản tài khoản (vd đợt máy chủ từ chối lưu, tiến trình chỉ còn trên máy).
+ * Bỏ qua bản cũ hơn lần người chơi tự "Chơi lại từ đầu".
+ */
+export function pickRecovery(account: PlayerSave, candidates: PlayerSave[]): PlayerSave | null {
+  // "Chơi lại từ đầu" tạo bản mới ngay lúc đó (createdAt ≈ resetAt) → tiến trình trước đó là chủ ý bỏ
+  const playerReset = account.resetAt !== undefined && Math.abs(account.createdAt - account.resetAt) < 5000 ? account.resetAt : 0;
+  let best: PlayerSave | null = null;
+  for (const c of candidates) {
+    if (c.playerId !== account.playerId) continue;
+    if (c.updatedAt < playerReset) continue;
+    if (compareProgress(c, best ?? account) > 0) best = c;
+  }
+  return best;
+}

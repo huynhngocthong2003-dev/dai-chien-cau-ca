@@ -14,6 +14,8 @@ export interface SaveStorage {
   clear(): Promise<void>;
   /** Cất dữ liệu không đọc được sang chỗ riêng để có thể khôi phục thủ công. */
   backup(data: unknown): Promise<void>;
+  /** Các bản sao lưu đang cất trên máy (để tìm lại tiến trình bị lỡ). */
+  listBackups?(): Promise<unknown[]>;
 }
 
 const LOCAL_KEY = "dccc_save_v1";
@@ -26,6 +28,23 @@ export class LocalSaveStorage implements SaveStorage {
     } catch {
       /* bỏ qua */
     }
+  }
+  async listBackups() {
+    const out: unknown[] = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith(`${LOCAL_KEY}_backup_`)) continue;
+        try {
+          out.push(JSON.parse(localStorage.getItem(k) ?? "null"));
+        } catch {
+          /* bản hỏng – bỏ qua */
+        }
+      }
+    } catch {
+      /* bộ nhớ trình duyệt bị chặn */
+    }
+    return out;
   }
   async load() {
     try {

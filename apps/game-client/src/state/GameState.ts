@@ -30,6 +30,7 @@ import {
   type TitleDef,
   recycleAll,
   decideSync,
+  pickRecovery,
   decodeBackup,
   encodeBackup,
   redeemGiftCode,
@@ -503,16 +504,31 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     const d = decideSync(this._save, remote);
     if (d.backupLocal) await this.baseStorage.backup(this._save);
     if (d.use === "remote" && remote) this._save = remote;
+    let recovered = false;
+    if (remote && this.baseStorage.listBackups) {
+      // tiến trình bị lỡ còn cất trên máy (đợt máy chủ từ chối lưu) → lấy lại và tải lên
+      const cands: PlayerSave[] = [];
+      for (const raw of await this.baseStorage.listBackups()) {
+        const p = parseSave(raw);
+        if (p.ok && this.isConsistent(p.save)) cands.push(p.save);
+      }
+      const best = pickRecovery(this._save, cands);
+      if (best) {
+        await this.baseStorage.backup(this._save);
+        this._save = { ...refillBossTickets(best, Date.now()), ...(this._save.resetAt !== undefined ? { resetAt: this._save.resetAt } : {}) };
+        recovered = true;
+      }
+    }
     const online = new Online.OnlineSaveStorage(user, this.baseStorage, () => this.adoptRemoteAfterStale(user));
     this.storage = online;
     this.online = user;
     await online.save(this._save);
-    if (d.upload) await online.flush();
+    if (d.upload || recovered) await online.flush();
     this.emit("changed", this._save);
     this.emit("account", user);
     void this.publishProfile();
     this.startHeartbeat();
-    return d.reason;
+    return recovered ? `Đã tìm lại tiến trình cấp ${this._save.level} còn lưu trên máy và cập nhật lên tài khoản` : d.reason;
   }
 
   /**

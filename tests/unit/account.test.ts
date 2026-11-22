@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyCatch, createNewSave, decideSync, isStaleSaveError, decodeBackup, encodeBackup, type PlayerSave } from "@dccc/shared";
+import { applyCatch, createNewSave, decideSync, isStaleSaveError, pickRecovery, decodeBackup, encodeBackup, type PlayerSave } from "@dccc/shared";
 import { CATALOG, FISH_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 
@@ -83,5 +83,27 @@ describe("Đồng bộ 2 máy cùng tài khoản (v0.29)", () => {
   it("nhận ra lỗi STALE_SAVE từ máy chủ", () => {
     expect(isStaleSaveError("STALE_SAVE: Tiến trình trên máy này cũ hơn")).toBe(true);
     expect(isStaleSaveError("network")).toBe(false);
+  });
+});
+
+describe("Tìm lại tiến trình bị lỡ trên máy (v0.29.1)", () => {
+  it("chọn bản cùng người chơi, tiến xa nhất", () => {
+    const acc = { ...played("p_me"), level: 18 };
+    const a = { ...acc, level: 21 };
+    const b = { ...acc, level: 20 };
+    const other = { ...played("p_other"), level: 40 };
+    expect(pickRecovery(acc, [b, other, a])?.level).toBe(21);
+    expect(pickRecovery(acc, [{ ...acc, level: 10 }, other])).toBeNull();
+  });
+  it("không lấy lại tiến trình trước khi người chơi tự chơi lại từ đầu", () => {
+    const now = Date.now();
+    const acc = { ...createNewSave("p_me", "Mới", CATALOG, now), resetAt: now };
+    const old = { ...played("p_me"), level: 25, updatedAt: now - 60000 };
+    expect(pickRecovery(acc, [old])).toBeNull();
+  });
+  it("bản khôi phục của quản trị (resetAt khác createdAt) vẫn cho lấy lại", () => {
+    const acc = { ...played("p_me"), level: 18, createdAt: Date.now() - 3 * 86400000, resetAt: Date.now() };
+    const old = { ...acc, level: 21, updatedAt: Date.now() - 86400000, resetAt: undefined };
+    expect(pickRecovery(acc, [old])?.level).toBe(21);
   });
 });
