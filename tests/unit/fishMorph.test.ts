@@ -28,3 +28,21 @@ describe("Màu", () => {
     expect(parseHex("rgba(10, 20, 30, 0.5)")).toEqual([10, 20, 30, 0.5]);
   });
 });
+
+import { evoFeatures } from "../../apps/game-client/src/art/fishMorph.ts";
+import { isGrowthFish } from "@dccc/shared";
+describe("Tiến hoá giai đoạn – mỗi loài một dáng riêng", () => {
+  it("dáng tiến hoá (dáng gốc + bộ chi tiết riêng) không trùng giữa các loài trưởng thành", () => {
+    const seen = new Set<string>();
+    for (const f of FISHES.filter((x) => isGrowthFish(x))) {
+      const sig = `${morphSignature(fishMorph(f.id, f.appearance))}#${JSON.stringify(evoFeatures(f.id, f.appearance))}`;
+      expect(seen.has(sig)).toBe(false);
+      seen.add(sig);
+    }
+    expect(seen.size).toBeGreaterThan(10);
+  });
+  it("tất định", () => {
+    const f = FISHES.find((x) => isGrowthFish(x))!;
+    expect(evoFeatures(f.id, f.appearance)).toEqual(evoFeatures(f.id, f.appearance));
+  });
+});

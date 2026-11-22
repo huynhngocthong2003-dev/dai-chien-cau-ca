@@ -132,3 +132,26 @@ export function morphSignature(m: FishMorph): string {
     m.lure,
   ].join("|");
 }
+
+/** Bộ chi tiết TIẾN HOÁ riêng của từng loài (Huyền Thoại/Boss/Thần Thoại) – thêm dần theo giai trên dáng gốc. */
+export interface EvoFeatures {
+  /** Đồ trên đầu: sừng nai phân nhánh / sừng nhọn / vương miện pha lê / mào lửa. */
+  head: "antlers" | "horns" | "crystal" | "flame";
+  /** Thân: vảy giáp viền vàng / gai quanh thân / sọc phát sáng. */
+  body: "scales" | "spikes" | "glow";
+  /** Thêm: bờm bay / mây bông / vây cánh dài. */
+  extra: "mane" | "clouds" | "finwings";
+  /** Màu điểm nhấn (vàng / bạc / hồng ngọc / ngọc lục). */
+  accent: string;
+}
+
+export function evoFeatures(id: string, a: FishAppearance): EvoFeatures {
+  const r = picker(hash(`evo_${id}`));
+  const long = a.shape === "eel" || a.shape === "serpent" || a.shape === "long";
+  return {
+    head: long ? r.pick(["antlers", "antlers", "horns", "flame"] as const) : r.pick(["horns", "crystal", "flame", "crystal", "antlers"] as const),
+    body: a.spikes ? r.pick(["spikes", "scales"] as const) : r.pick(["scales", "glow", "spikes"] as const),
+    extra: long ? r.pick(["mane", "mane", "finwings"] as const) : r.pick(["clouds", "finwings", "mane"] as const),
+    accent: r.pick(["#ffca28", "#e0e0e0", "#ff4081", "#1de9b6", "#ffca28"] as const),
+  };
+}

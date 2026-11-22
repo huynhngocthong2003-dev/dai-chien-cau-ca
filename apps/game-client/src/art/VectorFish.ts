@@ -3,7 +3,7 @@
  * Thân dựng quanh một "xương sống" cong → mỗi loài một dáng (xem fishMorph.ts), tự canh vừa khung.
  */
 import type { FishAppearance, FishDef } from "@dccc/shared";
-import { fishMorph, type FishMorph } from "./fishMorph.ts";
+import { evoFeatures, fishMorph, type FishMorph } from "./fishMorph.ts";
 import { rgba, shade } from "./color.ts";
 
 type Pt = { x: number; y: number };
@@ -265,49 +265,20 @@ function bounds(g: Geo, extra: Pt[][]): { x0: number; y0: number; x1: number; y1
 export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">, stage = 1) {
   const a = fish.appearance;
   const base = fishMorph(fish.id, a);
-  // TRƯỞNG THÀNH: thân cá biến đổi thật theo giai (như mẫu):
-  //  nhóm dài (rồng / lươn / cá dài) → uốn chữ S, mọc gai vàng, sừng, râu, cuộn thành rồng;
-  //  nhóm tròn → tròn mập, đầu & mắt to, đuôi bướm, gai pha lê, vây sứa dài.
+  // TRƯỞNG THÀNH: giữ DÁNG GỐC của chính loài đó, lớn & dữ dần + bộ chi tiết tiến hoá riêng (evoFeatures)
   const k = Math.max(0, stage - 1);
-  const longType = a.shape === "eel" || a.shape === "serpent" || a.shape === "long" || a.shape === "shark";
-  const special = base.snout === "hammer" || base.snout === "sword";
-  const m: FishMorph = longType
-    ? {
-        ...base,
-        aspect: k >= 2 ? (k >= 3 ? 6.6 : 5.8) : base.aspect * (1 + 0.22 * k),
-        coil: [0, 0.32, 0.8, 1][k],
-        peak: k >= 2 ? 0.8 : base.peak,
-        hump: k >= 2 ? 1 : base.hump,
-        wave: base.wave * 0.5,
-        bend: base.bend * 0.4,
-        head: base.head * (1 + 0.1 * k),
-        tilt: k >= 2 ? 0 : base.tilt + 5 * k,
-        tailSize: base.tailSize * (k >= 2 ? 1.7 + 0.3 * (k - 2) : 1 + 0.3 * k),
-        dorsal: k >= 1 ? "spiky" : base.dorsal,
-        dorsalSize: base.dorsalSize * (1 + 0.15 * k),
-        tail: k >= 1 ? "fan" : base.tail,
-        pectoral: base.pectoral * (1 + 0.2 * k),
-        whiskers: base.whiskers || k >= 1,
-        snout: k >= 2 && !special ? "duck" : base.snout,
-        mouth: k >= 2 && !special ? "grin" : base.mouth,
-        scales: true,
-        eyeSize: base.eyeSize * (1 - 0.06 * k),
-      }
-    : {
-        ...base,
-        aspect: k >= 2 ? 1.08 : Math.max(1.05, base.aspect * (1 - 0.1 * k)),
-        peak: k >= 2 ? 0.55 : base.peak,
-        hump: Math.max(base.hump, 1.1),
-        head: base.head * (1 + 0.12 * k),
-        bend: base.bend + 0.05 * k,
-        tilt: base.tilt + 3 * k,
-        eyeSize: base.eyeSize * (1 + 0.1 * k),
-        tail: k >= 1 ? "fan" : base.tail,
-        tailSize: base.tailSize * (k >= 2 ? 1.25 : 1 + 0.25 * k),
-        dorsal: k >= 2 ? "none" : k >= 1 ? "crest" : base.dorsal,
-        dorsalSize: base.dorsalSize * (1 + 0.2 * k),
-        pectoral: base.pectoral * (1 + 0.22 * k),
-      };
+  const fx = evoFeatures(fish.id, a);
+  const m: FishMorph = {
+    ...base,
+    head: base.head * (1 + 0.06 * k),
+    hump: base.hump * (1 + 0.04 * k),
+    tailSize: base.tailSize * (1 + 0.28 * k),
+    dorsalSize: base.dorsalSize * (1 + 0.32 * k),
+    dorsal: k >= 1 && base.dorsal === "none" ? "crest" : base.dorsal,
+    pectoral: base.pectoral * (1 + (fx.extra === "finwings" ? 0.45 : 0.2) * k),
+    whiskers: base.whiskers || (k >= 2 && fx.head === "antlers"),
+    scales: base.scales || fx.body === "scales",
+  };
   const g = buildGeo(m, a);
   const outline = shade(a.body, -0.52);
   const tail = tailShape(g);
@@ -389,10 +360,10 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   // lớp sau: đuôi, vây lưng, vây bụng
   paintFin(ctx, tail, g.spine[0]!.p, m.tailColor ? { ...a, fin: m.tailColor } : a, outline);
   if (stage >= 2) tailSwirls(ctx, g, tail);
-  const gold: FishAppearance = { ...a, fin: "#ffc107" };
-  if (dorsal) paintFin(ctx, dorsal, at(g, 0.5).p, longType && stage >= 2 ? gold : a, longType && stage >= 2 ? "#8d5a00" : outline);
-  // Cao Giai+ (nhóm dài): bờm rồng bay sau đầu
-  if (longType && stage >= 3) drawMane(ctx, g, a, stage);
+  const gold: FishAppearance = { ...a, fin: fx.accent };
+  if (dorsal) paintFin(ctx, dorsal, at(g, 0.5).p, stage >= 3 && fx.head !== "crystal" ? gold : a, stage >= 3 && fx.head !== "crystal" ? "#8d5a00" : outline);
+  // bờm bay sau gáy (loài có bờm): Trung Giai ngắn → Thánh Giai dài
+  if (fx.extra === "mane" && stage >= 2) drawMane(ctx, g, a, stage + 1);
   if (!tube) {
     paintFin(ctx, vent, botAt(g, 0.3), a, outline);
     paintFin(ctx, pelvic, botAt(g, 0.55), a, outline);
@@ -511,8 +482,8 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   ctx.stroke(body);
 
   // gai quanh thân (cá nóc…)
-  if ((a.spikes && a.shape === "puffer") || (!longType && stage >= 3)) {
-    const crystal = !longType && stage >= 3;
+  if ((a.spikes && a.shape === "puffer") || (fx.body === "spikes" && stage >= 3)) {
+    const crystal = fx.body === "spikes" && stage >= 3;
     ctx.fillStyle = crystal ? shade(crystalColor(a), 0.35) : shade(a.fin, 0.15);
     ctx.strokeStyle = crystal ? shade(crystalColor(a), -0.45) : outline;
     ctx.lineWidth = 2.2;
@@ -554,7 +525,7 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
 
   // sừng
   // sừng: dài dần theo giai; nhóm tròn mọc sừng từ Cao Giai
-  if ((a.horns || (!longType && stage >= 3)) && !(longType && stage >= 2) && !m.whiskers) {
+  if ((a.horns && !(stage >= 2 && fx.head === "antlers")) || (fx.head === "horns" && stage >= 2)) {
     for (const k of [0, 1]) {
       const hb = topAt(g, 0.8 + k * 0.06, 0.95);
       const hs = at(g, 0.8 + k * 0.06);
@@ -594,11 +565,14 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   }
   drawFace(ctx, g, outline, hammer, stage);
   // Trung Giai+: đốm sáng chòm sao trên thân; Cao Giai+: tinh vân; Thánh Giai: thân ngân hà
-  if (stage >= 2) drawStarBody(ctx, body, g, a, stage);
-  // vương miện: nhóm dài mọc sừng rồng vàng, nhóm tròn mọc gai pha lê dọc lưng
-  if (longType && stage >= 2) drawAntlers(ctx, g, stage);
-  if (!longType && stage >= 3) drawCrystalCrown(ctx, g, a, stage);
-  if (!longType && stage >= 3) drawClouds(ctx, g, stage);
+  if (stage >= 2 && (fx.body === "glow" || stage >= 4)) drawStarBody(ctx, body, g, a, stage);
+  // đồ trên đầu riêng từng loài, lớn dần theo giai
+  if (stage >= 2) {
+    if (fx.head === "antlers") drawAntlers(ctx, g, stage);
+    else if (fx.head === "crystal") drawCrystalCrown(ctx, g, a, stage);
+    else if (fx.head === "flame") drawFlameCrest(ctx, g, stage);
+  }
+  if (fx.extra === "clouds" && stage >= 3) drawClouds(ctx, g, stage);
   goldTrim = false;
   ctx.restore();
 }
@@ -608,13 +582,13 @@ function crystalColor(a: FishAppearance) {
 }
 
 function drawCrystalCrown(ctx: CanvasRenderingContext2D, g: Geo, a: FishAppearance, stage: number) {
-  const n = stage >= 4 ? 7 : 5;
+  const n = stage >= 4 ? 5 : stage >= 3 ? 4 : 3;
   const col = crystalColor(a);
   for (let i = 0; i < n; i++) {
-    const t = 0.38 + (i / Math.max(1, n - 1)) * 0.5;
+    const t = 0.66 + (i / Math.max(1, n - 1)) * 0.24;
     const s = at(g, t);
     const b = topAt(g, t, 0.9);
-    const hgt = g.bodyH * (0.2 + 0.3 * Math.sin((i / Math.max(1, n - 1)) * Math.PI)) * (stage >= 4 ? 1.35 : 1);
+    const hgt = g.bodyH * (0.18 + 0.3 * Math.sin((i / Math.max(1, n - 1)) * Math.PI)) * (0.7 + 0.25 * (stage - 2));
     const w = g.bodyH * 0.07;
     const tip = { x: b.x + s.n.x * hgt, y: b.y + s.n.y * hgt };
     const p = new Path2D();
@@ -993,5 +967,27 @@ function drawClouds(ctx: CanvasRenderingContext2D, g: Geo, stage: number) {
     ctx.strokeStyle = "rgba(244,143,177,0.8)";
     ctx.lineWidth = 1.6;
     ctx.stroke(puff);
+  }
+}
+
+/** Mào lửa trên đầu (Trung Giai nhỏ → Thánh Giai bùng cao). */
+function drawFlameCrest(ctx: CanvasRenderingContext2D, g: Geo, stage: number) {
+  const n = 3 + stage;
+  for (let i = 0; i < n; i++) {
+    const t = 0.7 + (i / (n - 1)) * 0.2;
+    const s = at(g, t);
+    const b = topAt(g, t, 0.9);
+    const h = g.bodyH * (0.25 + 0.2 * Math.sin((i / (n - 1)) * Math.PI)) * (0.7 + 0.3 * (stage - 2));
+    const tip = { x: b.x + s.n.x * h - s.t.x * h * 0.5, y: b.y + s.n.y * h - s.t.y * h * 0.5 };
+    const gr = ctx.createLinearGradient(b.x, b.y, tip.x, tip.y);
+    gr.addColorStop(0, "#ff3d00");
+    gr.addColorStop(0.6, "#ffab00");
+    gr.addColorStop(1, "rgba(255,241,118,0.6)");
+    ctx.fillStyle = gr;
+    ctx.beginPath();
+    ctx.moveTo(b.x - s.t.x * 6, b.y - s.t.y * 6);
+    ctx.quadraticCurveTo(b.x + s.n.x * h * 0.5 + s.t.x * 8, b.y + s.n.y * h * 0.5 + s.t.y * 8, tip.x, tip.y);
+    ctx.quadraticCurveTo(b.x + s.n.x * h * 0.4 - s.t.x * 10, b.y + s.n.y * h * 0.4 - s.t.y * 10, b.x + s.t.x * 6, b.y + s.t.y * 6);
+    ctx.fill();
   }
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.33.0] – 2026-11-22 – Tiến hoá giai đoạn: giữ dáng gốc, mỗi loài một bộ chi tiết riêng
+### Thay đổi
+- Bỏ kiểu biến mọi loài thành cùng một khuôn (rồng cuộn / cầu gai). Nay **mỗi loài giữ dáng gốc của chính nó** rồi lớn dần qua 4 giai, kèm **bộ chi tiết tiến hoá riêng** chọn theo loài (`evoFeatures`): đồ đầu (sừng nai phân nhánh / sừng nhọn / vương miện pha lê / mào lửa), thân (vảy giáp / gai quanh thân / sọc phát sáng), thêm (bờm bay / mây bông / vây cánh). Vây, đuôi, gai lưng, sừng dài dần; Cao Giai vây lưng màu điểm nhấn; Thánh Giai cánh tiên + thân ngân hà. Test bảo đảm không 2 loài trưởng thành nào trùng dáng.
+- **Huyền Minh Long Ngư**: giữ đúng hình gốc, thêm dần vảy rồng viền vàng, gai lưng cao, bờm lửa + bờm lụa, sừng to thêm nhánh, vây má nhọn, mõm dài nhọn, nanh dài, gai mày, mắt vàng → đồng tử dọc, ngọc thần trên trán (Thánh Giai), đuôi lụa dài nhiều dải.
+- Diễm Ma Thâm Hải & Tiên Ngư Hồng Ngọc giữ hình gốc ở mọi giai (lớn dần + hiệu ứng giai).
+
 ## [0.32.2] – 2026-11-22 – Huyền Minh Long Ngư giữ đúng dáng gốc khi trưởng thành
 ### Sửa lỗi
 - Huyền Minh Long Ngư từ Trung Giai trở lên bị vẽ thành cá mập tròn: nay giữ dáng rồng nước thân mảnh, gai lưng vàng, đuôi lụa trắng như hình gốc rồi mới cuộn thành rồng ở Cao/Thánh Giai.
