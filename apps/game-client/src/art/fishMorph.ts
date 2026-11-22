@@ -39,6 +39,8 @@ export interface FishMorph {
   eyeSize: number;
   /** Cuộn chữ S theo chiều dài thân (rồng cuộn khi trưởng thành), 0 = không. */
   coil?: number;
+  /** Màu đuôi riêng (vd đuôi lụa trắng). */
+  tailColor?: string;
 }
 
 /** Số giả ngẫu nhiên tất định theo chuỗi. */
@@ -77,6 +79,8 @@ const BASE: Record<FishAppearance["shape"], Omit<Partial<FishMorph>, "aspect"> &
 
 /** Vài loài chỉnh tay cho đúng đặc trưng (ngoài phần sinh tự động). */
 const OVERRIDES: Record<string, Partial<FishMorph>> = {
+  // giữ đúng dáng hình gốc (rồng nước thân mảnh, gai lưng vàng, đuôi lụa trắng)
+  f_huyen_minh_long_ngu: { aspect: 6.4, peak: 0.78, head: 1.1, dorsal: "spiky", dorsalSize: 1.1, tail: "flame", tailSize: 1.3, tailColor: "#e0f7fa", whiskers: true, scales: true, wave: 0.35, tilt: 4 },
   f_ca_ro: { dorsal: "spiky", dorsalSize: 1.25, mouth: "grin", tail: "round", snout: "blunt" },
   f_ca_map_bua: { snout: "hammer", mouth: "grin", dorsal: "sail", tail: "lunate", tilt: 8 },
   f_hoa_long_ngu: { tail: "flame", dorsal: "crest", whiskers: true, wave: 0.4, snout: "duck" },

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.32.2] – 2026-11-22 – Huyền Minh Long Ngư giữ đúng dáng gốc khi trưởng thành
+### Sửa lỗi
+- Huyền Minh Long Ngư từ Trung Giai trở lên bị vẽ thành cá mập tròn: nay giữ dáng rồng nước thân mảnh, gai lưng vàng, đuôi lụa trắng như hình gốc rồi mới cuộn thành rồng ở Cao/Thánh Giai.
+
 ## [0.32.1] – 2026-11-22 – Cá trưởng thành BIẾN DÁNG thật
 ### Thay đổi
 - Thân cá Huyền Thoại / Boss / Thần Thoại biến đổi rõ theo giai (như ảnh mẫu):

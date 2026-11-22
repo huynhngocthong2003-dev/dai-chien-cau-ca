@@ -387,7 +387,7 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   // Cao Giai+: dải lụa bay từ đuôi
   if (stage >= 3) drawRibbons(ctx, g, a, stage);
   // lớp sau: đuôi, vây lưng, vây bụng
-  paintFin(ctx, tail, g.spine[0]!.p, a, outline);
+  paintFin(ctx, tail, g.spine[0]!.p, m.tailColor ? { ...a, fin: m.tailColor } : a, outline);
   if (stage >= 2) tailSwirls(ctx, g, tail);
   const gold: FishAppearance = { ...a, fin: "#ffc107" };
   if (dorsal) paintFin(ctx, dorsal, at(g, 0.5).p, longType && stage >= 2 ? gold : a, longType && stage >= 2 ? "#8d5a00" : outline);
