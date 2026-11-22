@@ -60,36 +60,12 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D) {
     const dy = q.y - r.y;
     const len = Math.hypot(dx, dy) || 1;
     // thân thon ở đuôi, dày dần về cổ
-    const w = 6 + 17 * Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.5) - (t > 0.92 ? (t - 0.92) * 40 : 0);
+    const w = 3 + 20 * Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.5) - (t > 0.92 ? (t - 0.92) * 40 : 0);
     // pháp tuyến hướng LÊN (phía lưng)
     pts.push({ p, n: { x: dy / len, y: -dx / len }, w });
   }
   const top = pts.map(({ p, n, w }) => ({ x: p.x + n.x * w, y: p.y + n.y * w }));
   const bot = pts.map(({ p, n, w }) => ({ x: p.x - n.x * w, y: p.y - n.y * w }));
-
-  // --- đuôi lụa (nhiều dải mỏng bay ra sau)
-  const tail = pts[0]!.p;
-  for (let k = 0; k < 7; k++) {
-    const g = ctx.createLinearGradient(tail.x, tail.y, 0, tail.y);
-    g.addColorStop(0, "rgba(224,247,250,0.95)");
-    g.addColorStop(1, "rgba(128,222,234,0)");
-    ctx.fillStyle = g;
-    const spread = (k - 3) * 15;
-    ctx.beginPath();
-    ctx.moveTo(tail.x + 4, tail.y - 6);
-    ctx.bezierCurveTo(tail.x - 30, tail.y - 40 + spread, tail.x - 60, tail.y + 10 + spread * 1.4, 6 + k * 4, tail.y - 30 + spread * 2.2);
-    ctx.bezierCurveTo(tail.x - 50, tail.y + 18 + spread * 1.3, tail.x - 24, tail.y - 10 + spread * 0.6, tail.x + 4, tail.y + 6);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.strokeStyle = "rgba(255,255,255,0.75)";
-  ctx.lineWidth = 1.5;
-  for (let k = 0; k < 5; k++) {
-    ctx.beginPath();
-    ctx.moveTo(tail.x, tail.y);
-    ctx.bezierCurveTo(tail.x - 30, tail.y - 30 + k * 12, tail.x - 55, tail.y + k * 10, 14 + k * 6, tail.y - 20 + k * 16);
-    ctx.stroke();
-  }
 
   // --- vây lưng vàng dọc sống lưng (gai nhọn ngả về sau)
   for (let i = 4; i < N - 2; i += 3) {
@@ -177,6 +153,33 @@ function drawHuyenMinhLongNgu(ctx: CanvasRenderingContext2D) {
   ctx.strokeStyle = "#0d2b45";
   ctx.lineWidth = 3;
   ctx.stroke(body);
+
+  // --- đuôi lụa (nhiều dải mỏng bay ra sau) – vẽ sau thân
+  // neo sâu vào thân (vài đốt về phía trước) và vẽ ĐÈ lên đầu đuôi để che chỗ thân bị cắt
+  const t0 = pts[0]!.p;
+  const t3 = pts[4]!.p;
+  const tail = { x: (t0.x + t3.x) / 2 + 4, y: (t0.y + t3.y) / 2 };
+  for (let k = 0; k < 7; k++) {
+    const g = ctx.createLinearGradient(tail.x, tail.y, 0, tail.y);
+    g.addColorStop(0, "rgba(224,247,250,0.95)");
+    g.addColorStop(1, "rgba(128,222,234,0)");
+    ctx.fillStyle = g;
+    const spread = (k - 3) * 15;
+    ctx.beginPath();
+    ctx.moveTo(tail.x + 4, tail.y - 6);
+    ctx.bezierCurveTo(tail.x - 30, tail.y - 40 + spread, tail.x - 60, tail.y + 10 + spread * 1.4, 6 + k * 4, tail.y - 30 + spread * 2.2);
+    ctx.bezierCurveTo(tail.x - 50, tail.y + 18 + spread * 1.3, tail.x - 24, tail.y - 10 + spread * 0.6, tail.x + 4, tail.y + 6);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.strokeStyle = "rgba(255,255,255,0.75)";
+  ctx.lineWidth = 1.5;
+  for (let k = 0; k < 5; k++) {
+    ctx.beginPath();
+    ctx.moveTo(tail.x, tail.y);
+    ctx.bezierCurveTo(tail.x - 30, tail.y - 30 + k * 12, tail.x - 55, tail.y + k * 10, 14 + k * 6, tail.y - 20 + k * 16);
+    ctx.stroke();
+  }
 
   // --- vây ngực trong suốt
   for (const [i, s] of [[30, 1], [14, 0.8]] as const) {

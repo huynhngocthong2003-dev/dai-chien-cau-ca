@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.0] – 2026-11-22 – Cá phong cách chibi vector, mỗi loài một dáng
+### Thay đổi
+- Vẽ lại toàn bộ cá theo phong cách **chibi vector hoạt hình** (thân bóng, viền cùng tông màu, vảy sáng, mắt to long lanh, ngóc đầu như đang nhảy) – vẽ bằng code, không tốn tài nguyên tải.
+- **Mỗi loài một hình dáng riêng**: dáng thân (tròn mập / dài / dẹt / thân rắn chữ S), mõm (tù, nhọn, hếch, mũi kiếm, đầu búa), miệng, đuôi (chẻ, tròn, quạt, lưỡi liềm, roi, lửa…), vây lưng (gai, buồm, sóng, mào…), râu, đèn lồng. Có test bảo đảm không loài nào trùng dáng (`fishMorph.ts`).
+- 3 cá thần thoại có hình vẽ riêng giữ nguyên.
+- Huyền Minh Long Ngư: đuôi lụa vẽ đè lên và neo sâu vào thân, thân vuốt nhọn ở đuôi – hết lỗi đuôi bị cắt cụt.
+- Bộ vẽ cũ giữ lại dưới tên `drawClassicFish`.
+
 ## [0.30.1] – 2026-11-22 – Skin không còn che mũ / phụ kiện
 ### Thay đổi
 - Skin tách thành phần: phần THÂN (áo, đồ sau lưng) luôn hiện; **mũ** đang đội thay phần mũ của skin, **phụ kiện** đang đeo thay phần mặt / đồ cầm tay của skin. Ô nào trống thì vẫn hiện phần đó của skin như cũ. Cánh, sừng vẫn hiện cùng skin.

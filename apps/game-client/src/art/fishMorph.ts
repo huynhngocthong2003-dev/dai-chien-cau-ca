@@ -61,7 +61,7 @@ function picker(seed: number) {
 }
 
 /** Dáng gốc theo nhóm hình. */
-const BASE: Record<FishAppearance["shape"], Partial<FishMorph> & { aspect: [number, number] }> = {
+const BASE: Record<FishAppearance["shape"], Omit<Partial<FishMorph>, "aspect"> & { aspect: [number, number] }> = {
   // tỉ lệ chibi: thân ngắn, đầu to
   round: { aspect: [1.55, 1.95], peak: 0.64, head: 1.15 },
   long: { aspect: [2.2, 2.8], peak: 0.66, head: 1 },

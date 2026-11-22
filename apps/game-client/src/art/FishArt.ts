@@ -1,4 +1,5 @@
 import { CUSTOM_FISH_ART } from "./MythicArt.ts";
+import { drawVectorFish } from "./VectorFish.ts";
 import type { FishAppearance, FishDef } from "@dccc/shared";
 import { Rng } from "@dccc/shared";
 import { OUTLINE, hashString, rgba, shade } from "./color.ts";
@@ -474,6 +475,12 @@ export function drawFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id"
     ctx.restore();
     return;
   }
+  // phong cách vector chibi (v0.31) – mỗi loài một dáng riêng
+  drawVectorFish(ctx, fish);
+}
+
+/** Bộ vẽ cũ (trước v0.31) – giữ để so sánh / quay lại khi cần. */
+export function drawClassicFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">) {
   const a = fish.appearance;
   const rng = new Rng(hashString(fish.id));
   ctx.lineCap = "round";

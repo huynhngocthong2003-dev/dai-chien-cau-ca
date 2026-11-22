@@ -245,9 +245,9 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   const dorsal = dorsalShape(g);
   // vây bụng (sau) & vây hậu môn
   const ventT = at(g, 0.3);
-  const vent = smallFin(botAt(g, 0.3, 0.9), { x: -ventT.t.x * 0.6 - ventT.n.x * 0.8, y: -ventT.t.y * 0.6 - ventT.n.y * 0.8 }, ventT.t, g.bodyH * 0.38, g.bodyH * 0.28);
+  const vent = smallFin(botAt(g, 0.3, 0.85), { x: -ventT.t.x * 0.85 - ventT.n.x * 0.5, y: -ventT.t.y * 0.85 - ventT.n.y * 0.5 }, ventT.t, g.bodyH * 0.3, g.bodyH * 0.22);
   const pelT = at(g, 0.55);
-  const pelvic = smallFin(botAt(g, 0.55, 0.92), { x: -pelT.t.x * 0.4 - pelT.n.x * 0.9, y: -pelT.t.y * 0.4 - pelT.n.y * 0.9 }, pelT.t, g.bodyH * 0.34, g.bodyH * 0.22);
+  const pelvic = smallFin(botAt(g, 0.56, 0.85), { x: -pelT.t.x * 0.75 - pelT.n.x * 0.65, y: -pelT.t.y * 0.75 - pelT.n.y * 0.65 }, pelT.t, g.bodyH * 0.26, g.bodyH * 0.18);
   // vây ngực (trước, đè lên thân)
   const pecS = at(g, 0.7);
   const pecO = { x: pecS.p.x - pecS.n.x * pecS.lo * 0.25, y: pecS.p.y - pecS.n.y * pecS.lo * 0.25 };
