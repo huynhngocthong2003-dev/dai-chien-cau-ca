@@ -201,7 +201,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: "Tuyết Nhi",
     title: "Phù Thủy Băng",
     rarity: "SSR",
-    element: "ice",
+    element: "water",
     base: { hp: 130, pull: 16, speed: 18, luck: 16 },
     growth: { hp: 10, pull: 1.3, speed: 0.7, luck: 0.5 },
     active: {
@@ -240,7 +240,7 @@ export const CHARACTERS: CharacterDef[] = [
       id: "p_khac_bang",
       name: "Khắc Băng",
       description: "+35% sát thương lên cá hệ Băng.",
-      effects: [{ kind: "element_damage", element: "ice", value: 0.35 }],
+      effects: [{ kind: "element_damage", element: "water", value: 0.35 }],
     },
     unlock: { kind: "gacha" },
     appearance: { species: "tiger", fur: "#ff9330", light: "#fff3e0", mark: "#3a2414", eye: "#2e7d32", outfit: "#b71c1c", outfitKind: "tee", accent: "#ffeb3b", hat: "bandana", aura: "#ff5722" },
@@ -282,7 +282,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: "Lôi Vũ",
     title: "Thần Sấm Biển Cả",
     rarity: "UR",
-    element: "thunder",
+    element: "metal",
     base: { hp: 180, pull: 30, speed: 22, luck: 15 },
     growth: { hp: 13, pull: 2.4, speed: 0.9, luck: 0.4 },
     active: {
@@ -345,7 +345,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: "Lam Ngọc Hầu",
     title: "Hầu Vương Sapphire",
     rarity: "LR",
-    element: "thunder",
+    element: "metal",
     base: { hp: 300, pull: 52, speed: 40, luck: 30 },
     growth: { hp: 20, pull: 3.6, speed: 1.3, luck: 0.7 },
     active: {

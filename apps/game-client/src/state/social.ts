@@ -3,11 +3,13 @@
  * Chỉ hoạt động khi đã đăng nhập tài khoản online.
  */
 import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
-import { ownedFishPower, teamPower, winRate, type MatchResult, type PlazaShow, type RaceLeague, type RaceStats, type PlayerSave, type PvpMatchRecord, type RankCategory } from "@dccc/shared";
+import { ownedFishPower, teamPower, winRate, type MatchResult, type PlazaShow, type RaceLeague, type RaceStats, type PlayerSave, type PvpMatchRecord, type RankCategory, type Element } from "@dccc/shared";
 import { getClient } from "./online.ts";
 
 export interface ShowcaseFish {
   fishId: string;
+  /** Nguyên tố của con cá (theo khu câu). */
+  element?: Element;
   level: number;
   stars: number;
   form: string | null;
@@ -67,6 +69,7 @@ export function cardFromSave(save: PlayerSave): Omit<PlayerCard, "user_id" | "fr
       fishId: o.fishId,
       level: o.level,
       stars: o.stars,
+      element: o.element,
       form: o.form ?? null,
       wins: o.wins ?? 0,
       losses: o.losses ?? 0,

@@ -3,6 +3,7 @@
  */
 import type { Element, FishDef, FishFormDef } from "./types.ts";
 import { Rng } from "./rng.ts";
+import { elementMatchup } from "./elements.ts";
 import { fishStats, ownedFishPower } from "./progression.ts";
 import type { FormRoll } from "./save.ts";
 
@@ -21,13 +22,14 @@ export interface Fighter {
   form: string | null;
 }
 
-export function makeFighter(f: FishDef, o: { uid: string; level: number; stars: number; formRoll?: FormRoll }, form?: FishFormDef | null): Fighter {
+/** `o.element`: hệ của chính con cá (theo khu câu) – không có thì dùng hệ loài. */
+export function makeFighter(f: FishDef, o: { uid: string; level: number; stars: number; formRoll?: FormRoll; element?: Element }, form?: FishFormDef | null): Fighter {
   const s = fishStats(f, o.level, o.stars, form, o.formRoll);
   return {
     uid: o.uid,
     fishId: f.id,
     name: form ? `${f.name} (${form.name})` : f.name,
-    element: s.element,
+    element: o.element ?? s.element,
     level: o.level,
     stars: o.stars,
     maxHp: s.hp,
@@ -39,35 +41,20 @@ export function makeFighter(f: FishDef, o: { uid: string; level: number; stars: 
   };
 }
 
-/** Hệ khắc chế: khóa khắc các hệ trong danh sách. */
-const BEATS: Record<Element, Element[]> = {
-  water: ["fire"],
-  fire: ["ice"],
-  ice: ["earth"],
-  earth: ["thunder"],
-  thunder: ["water"],
-  light: ["dark"],
-  dark: ["light"],
-};
-
-/** Khắc hệ chỉ điều chỉnh nhẹ (~±10% sát thương) – lực chiến vẫn là yếu tố quyết định. */
-export const ELEMENT_ADVANTAGE = 1.1;
-export const ELEMENT_DISADVANTAGE = 0.92;
-
+/** Hệ số khắc chế – dùng bảng 7 nguyên tố chung (shared/elements.ts): ×1.5 / ×1.0 / ×0.75. */
 export function elementMultiplier(att: Element, tgt: Element): number {
-  if (BEATS[att].includes(tgt)) return ELEMENT_ADVANTAGE;
-  if (BEATS[tgt].includes(att)) return ELEMENT_DISADVANTAGE;
-  return 1;
+  return elementMatchup(att, tgt).mult;
 }
 
+/** Chiêu đặc biệt theo hệ (mỗi 3 lượt). */
 export const SPECIAL_NAME: Record<Element, string> = {
-  fire: "Thiêu Đốt",
-  ice: "Đóng Băng",
-  thunder: "Lôi Kích",
-  dark: "Hút Máu",
-  light: "Thánh Quang",
-  earth: "Khiên Đá",
-  water: "Song Kích",
+  metal: "Giáp Kim Cương",
+  wood: "Sinh Mệnh",
+  water: "Thủy Triều",
+  fire: "Bùng Cháy",
+  earth: "Địa Chấn",
+  dark: "Hút Sinh Lực",
+  light: "Thanh Tẩy",
 };
 
 export type BattleEvent =
@@ -125,7 +112,7 @@ export function duel(a: Fighter, b: Fighter, rng: Rng): DuelResult {
     }
     if (skip[me]) {
       skip[me] = false;
-      events.push({ t: "skip", side: me, reason: f[foe].element === "ice" ? "freeze" : "stun" });
+      events.push({ t: "skip", side: me, reason: "stun" });
     } else {
       turns[me]++;
       if (turns[me] % 3 === 0) {
@@ -135,19 +122,29 @@ export function duel(a: Fighter, b: Fighter, rng: Rng): DuelResult {
         if (el === "water" && hp[foe] > 0) total += hit(me, 0.6).d;
         events.push({ t: "special", side: me, element: el, name: SPECIAL_NAME[el], dmg: total, hp: [hp[0], hp[1]] });
         if (el === "fire") burn[foe] = 2;
-        if (el === "ice") skip[foe] = true;
-        if (el === "thunder" && rng.chance(0.5)) skip[foe] = true;
+        // Thổ – Địa Chấn: 50% làm choáng đối thủ 1 lượt
+        if (el === "earth" && rng.chance(0.5)) skip[foe] = true;
+        // Mộc – Sinh Mệnh: hồi 18% máu
+        if (el === "wood") {
+          const amt = Math.round(f[me].maxHp * 0.18);
+          hp[me] = Math.min(f[me].maxHp, hp[me] + amt);
+          events.push({ t: "heal", side: me, amount: amt, hp: [hp[0], hp[1]] });
+        }
         if (el === "dark") {
           const amt = Math.round(total * 0.4);
           hp[me] = Math.min(f[me].maxHp, hp[me] + amt);
           events.push({ t: "heal", side: me, amount: amt, hp: [hp[0], hp[1]] });
         }
         if (el === "light") {
-          const amt = Math.round(f[me].maxHp * 0.15);
+          // Ánh sáng – Thanh Tẩy: xoá thiêu đốt / choáng trên mình + hồi máu
+          burn[me] = 0;
+          skip[me] = false;
+          const amt = Math.round(f[me].maxHp * 0.12);
           hp[me] = Math.min(f[me].maxHp, hp[me] + amt);
           events.push({ t: "heal", side: me, amount: amt, hp: [hp[0], hp[1]] });
         }
-        if (el === "earth") {
+        // Kim – Giáp Kim Cương: chặn một nửa đòn kế tiếp
+        if (el === "metal") {
           shield[me] = true;
           events.push({ t: "shield", side: me });
         }

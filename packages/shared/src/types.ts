@@ -3,7 +3,8 @@
 /** LR (Legend Rare) là bậc cao nhất, trên UR. */
 export type CharRarity = "N" | "R" | "SR" | "SSR" | "UR" | "LR";
 export type FishRarity = "common" | "rare" | "precious" | "epic" | "legendary" | "mythic" | "boss";
-export type Element = "water" | "fire" | "ice" | "thunder" | "dark" | "light" | "earth";
+/** 7 NGUYÊN TỐ: Kim, Mộc, Thủy, Hỏa, Thổ, Bóng tối, Ánh sáng (xem shared/elements.ts). */
+export type Element = "metal" | "wood" | "water" | "fire" | "earth" | "dark" | "light";
 
 /** Hiệu ứng kỹ năng chủ động trong lúc câu cá. Tất cả do logic chung tính toán. */
 export type ActiveEffect =
@@ -270,6 +271,8 @@ export interface FishDef {
   def: number;
   spd: number;
   skill: { id: string; name: string; description: string };
+  /** true: hệ cố định theo loài (Boss / cá đặc biệt), không theo khu câu. */
+  elementFixed?: boolean;
   value: number; // giá bán cơ bản (vàng)
   xp: number;
   weightKg: [number, number];
@@ -286,6 +289,8 @@ export interface ZoneDef {
   difficulty: 1 | 2 | 3 | 4 | 5 | 6;
   spawn: { fishId: string; weight: number }[];
   bossId: string;
+  /** Nguyên tố của khu: cá câu ở đây mang hệ này (trừ loài có hệ cố định). */
+  element: Element;
   /** Boss phụ của khu (xuất hiện ngẫu nhiên như Boss chính). */
   extraBosses?: string[];
   /** Boss phụ SIÊU HIẾM của khu (tỉ lệ cực thấp, ngoại hình tí hon hoặc khổng lồ). */

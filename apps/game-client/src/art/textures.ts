@@ -1,10 +1,11 @@
 import Phaser from "phaser";
-import type { AccessoryKind, CharacterDef, FishFormDef, SkinKind, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, JunkDef, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
+import type { AccessoryKind, CharacterDef, Element, FishFormDef, SkinKind, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, JunkDef, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
 import { TIER_COLOR, TIER_ORDER } from "@dccc/game-config";
 import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
 import { COSMETIC_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import { drawFormFish } from "./FormArt.ts";
 import { drawEvoItem } from "./EvoItemArt.ts";
+import { drawElementIcon } from "./ElementArt.ts";
 import { STAGE_K } from "./StageArt.ts";
 import { fishStage, isGrowthFish, stageScale } from "@dccc/shared";
 import { FISH_H, FISH_W, drawFish, drawFishSilhouette } from "./FishArt.ts";
@@ -355,4 +356,9 @@ export function roastedFishTexture(scene: Phaser.Scene, fish: FishDef): string {
 /** Hình Đá Tiến Hoá / thần vật. */
 export function evoItemTexture(scene: Phaser.Scene, itemId: string): string {
   return canvasTexture(scene, `evo_${itemId}`, 128, 128, (ctx) => drawEvoItem(ctx, itemId));
+}
+
+/** Biểu tượng nguyên tố (một hình cho mỗi hệ – dùng ở mọi màn). */
+export function elementTexture(scene: Phaser.Scene, el: Element): string {
+  return canvasTexture(scene, `elem_${el}`, 96, 96, (ctx) => drawElementIcon(ctx, el));
 }

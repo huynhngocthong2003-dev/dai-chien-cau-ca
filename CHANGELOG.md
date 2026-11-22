@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.35.0] – 2026-11-22 – ĐẠI TU GĐ2: Hệ thống 7 nguyên tố & khắc chế
+### Thay đổi lớn
+- **7 nguyên tố**: Kim, Mộc, Thủy, Hỏa, Thổ, Bóng Tối, Ánh Sáng (thay hệ cũ; Băng gộp vào Thủy, Lôi → Kim). Bảng hiển thị chung `ELEMENT_INFO` (tên, màu) + **biểu tượng vẽ thủ tục duy nhất cho mỗi hệ** (`art/ElementArt.ts`).
+- **Khắc chế** (`packages/shared/src/elements.ts` – nguồn sự thật duy nhất, Edge Function dùng chung): Kim>Mộc>Thổ>Thủy>Hỏa>Kim, Bóng Tối⇄Ánh Sáng. **×1.5 / ×1.0 / ×0.75**; trận đấu hiện "KHẮC CHẾ!" / "BẤT LỢI!".
+- **Hệ theo khu**: Bến Tân Thủ = Thổ, Biển Nhiệt Đới = Mộc, **Vương Quốc Kim Loại = Kim (khu mới)**, Biển Lửa = Hỏa, Vùng Băng Giá = Thủy, Vực Sâu Bí Ẩn = Bóng Tối, Đại Dương Thần Thoại = Ánh Sáng. Mỗi loài ĐÚNG 1 hệ (loài sống nhiều khu lấy hệ khu chính; Huyền Minh Long Ngư = Thủy, Diễm Ma Thâm Hải = Hỏa cố định). Mỗi con cá lưu `element` trong bản lưu (cá cũ tự gán theo quy tắc khi mở game, không đổi cấp/chỉ số).
+- **Khu thứ 7 – Vương Quốc Kim Loại** (cấp 10, độ khó 3): 8 loài hệ Kim + Boss **Kim Long Đế** + Boss siêu hiếm **Cá Kim Tiền Tí Hon**, cảnh tháp thép & bánh răng vàng.
+- **Vực Sâu Bí Ẩn chuyển xuống cấp 26, độ khó 5**; chỉ số / độ khó câu của cá Vực Sâu tăng theo (tier 3 → 5), cá Kim tier 3.
+- Chiêu đặc biệt trận tự động theo hệ: Giáp Kim Cương, Sinh Mệnh, Thủy Triều, Bùng Cháy, Địa Chấn, Hút Sinh Lực, Thanh Tẩy. Thể đột biến không còn đổi hệ.
+- Biểu tượng nguyên tố ở: Kho Cá (lưới + chi tiết), Bộ Sưu Tập, Đấu Sinh Tử, màn Trận đấu, kết quả câu cá, Hồ sơ / trưng bày, Chọn Khu Vực.
+### Kiểm thử
+- 195 unit test (mới: bảng khắc chế 7×7, ánh xạ khu → hệ, 1 hệ/loài, gán hệ bản lưu cũ), typecheck, lint; E2E smoke, Bộ Sưu Tập, Đấu Sinh Tử, Thời trang, Chọn nhiều, Tài khoản, Đua cá.
+
 ## [0.34.0] – 2026-11-22 – Tiến hoá hệ (5 hệ) → 4 giai đoạn trưởng thành · Hình Đá Tiến Hoá
 ### Thay đổi
 - Cá Huyền Thoại / Boss / Thần Thoại phát triển theo 2 bước:

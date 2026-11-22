@@ -7,15 +7,17 @@ import { fishSilhouetteTexture, fishTexture } from "../art/textures.ts";
 import { Button, fadeIn, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
+import { elementBadge, elementTag } from "../ui/element.ts";
 import { hexToInt } from "../art/color.ts";
 
 const NODE_POS: [number, number][] = [
-  [140, 560],
-  [300, 400],
-  [170, 250],
-  [400, 190],
-  [560, 330],
-  [480, 520],
+  [120, 575],
+  [300, 465],
+  [150, 325],
+  [330, 200],
+  [545, 245],
+  [600, 415],
+  [440, 570],
 ];
 
 export class ZoneScene extends Phaser.Scene {
@@ -66,6 +68,8 @@ export class ZoneScene extends Phaser.Scene {
         color: unlocked ? COLORS.textGold : COLORS.textDim,
         align: "center",
       }).setOrigin(0.5);
+      // nguyên tố của khu (cá câu ở đây mang hệ này)
+      elementBadge(this, x + 46, y - 42, z.element, 36);
       const hit = this.add.zone(x, y + 20, 170, 170).setInteractive({ useHandCursor: true });
       hit.on("pointerup", () => this.select(z));
       if (z.id === s.selectedZoneId) {
@@ -90,6 +94,7 @@ export class ZoneScene extends Phaser.Scene {
     c.add(txt(this, X + 270, Y + 34, z.name, 34, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
     c.add(txt(this, X + 24, Y + 64, z.description, 18, { wrap: 492, weight: "700", color: COLORS.textDim }));
     c.add(txt(this, X + 24, Y + 118, `Yêu cầu cấp ${z.requiredLevel} · Độ khó ${"★".repeat(z.difficulty)} · ${zoneBosses(z).length} Boss`, 17, { color: COLORS.textGold, wrap: 500 }));
+    c.add(elementTag(this, X + 390, Y + 127, z.element, 30, 17));
     // danh sách cá
     c.add(txt(this, X + 24, Y + 148, "Cá trong khu vực (đã câu được sẽ hiện màu):", 17, { weight: "700" }));
     const list = [...z.spawn.map((sp) => sp.fishId), ...zoneBosses(z), ...(z.secretBossId ? [z.secretBossId] : [])];

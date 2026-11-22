@@ -3,7 +3,7 @@ import { makeScrollArea } from "../ui/scrollArea.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { ECONOMY, FISH_RARITY_COLOR, FISH_RARITY_LABEL, RARITY_ORDER } from "@dccc/game-config";
 import { EVO_ITEMS, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
-import { canAfford, decomposeValue, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
+import { canAfford, decomposeValue, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type Element, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
 import { costText } from "./GearScene.ts";
 import { GameState } from "../state/GameState.ts";
 import { evoItemTexture, fishDisplayMult, fishSilhouetteTexture, fishTextureFor, formFishTexture } from "../art/textures.ts";
@@ -12,16 +12,8 @@ import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
 import { Sfx } from "../audio/Sfx.ts";
+import { elementBadge, elementName, elementTag, fishElementOf } from "../ui/element.ts";
 
-const ELEMENT_LABEL: Record<string, string> = {
-  water: "💧 Nước",
-  fire: "🔥 Lửa",
-  ice: "❄️ Băng",
-  thunder: "⚡ Sấm",
-  dark: "🌑 Bóng Tối",
-  light: "✨ Ánh Sáng",
-  earth: "🪨 Đất",
-};
 
 export class InventoryScene extends Phaser.Scene {
   private tab: "bag" | "collection" = "bag";
@@ -108,6 +100,7 @@ export class InventoryScene extends Phaser.Scene {
     check?: "on" | "off" | "locked",
     formId?: string,
     stars?: number,
+    element?: Element,
   ) {
     const g = this.add.graphics();
     const col = hexToInt(FISH_RARITY_COLOR[f.rarity]);
@@ -123,6 +116,8 @@ export class InventoryScene extends Phaser.Scene {
     }
     const gm = Math.min(1.12, fishDisplayMult(f, stars));
     c.add(this.add.image(x + w / 2, y + h * 0.42, seen ? fishTextureFor(this, f, formId, stars) : fishSilhouetteTexture(this, f)).setDisplaySize(w * 0.9 * gm, w * 0.56 * gm));
+    // huy hiệu nguyên tố (góc phải trên)
+    if (seen) c.add(elementBadge(this, x + w - 17, y + 17, element ?? f.element, Math.min(28, w * 0.24)));
     c.add(txt(this, x + w / 2, y + h - 14, label, 13, { align: "center", weight: "700", color: seen ? FISH_RARITY_COLOR[f.rarity] : COLORS.textDim }).setOrigin(0.5));
     const z = this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true });
     z.on("pointerup", () => {
@@ -159,12 +154,12 @@ export class InventoryScene extends Phaser.Scene {
           else this.picked.add(o.uid);
           this.confirmArmed = null;
           this.render();
-        }, check);
+        }, check, o.form, o.stars, fishElementOf(o, f));
       } else {
         this.cell(c, x, y, 128, 150, f, true, o.uid === this.selectedUid, label, () => {
           this.selectedUid = o.uid;
           this.render();
-        }, undefined, o.form, o.stars);
+        }, undefined, o.form, o.stars, fishElementOf(o, f));
       }
     });
     if (pages > 1) {
@@ -338,14 +333,14 @@ export class InventoryScene extends Phaser.Scene {
     const lines = [
       `Lực chiến: ${formatNum(fishPower(f))}`,
       `HP ${formatNum(f.hp)} · Công ${f.atk} · Thủ ${f.def} · Tốc ${f.spd}`,
-      `Thuộc tính: ${ELEMENT_LABEL[f.element]}`,
+      `Nguyên tố: ${elementName(f.element)} (cá câu ở khu nào mang hệ khu đó)`,
       `Kỹ năng: ${f.skill.name} – ${f.skill.description}`,
       `Khu vực: ${f.zones.map((z) => ZONE_BY_ID.get(z)?.name).join(", ")}`,
     ];
     d.add(txt(this, 876, y, lines.join("\n"), 17, { weight: "700", wrap: 366, color: COLORS.text }).setLineSpacing(4));
   }
 
-  private header(d: Phaser.GameObjects.Container, f: FishDef, seen: boolean, formId?: string, stars?: number) {
+  private header(d: Phaser.GameObjects.Container, f: FishDef, seen: boolean, formId?: string, stars?: number, element?: Element) {
     const col = FISH_RARITY_COLOR[f.rarity];
     const glow = this.add.image(1058, 210, "p_spark").setTint(hexToInt(col)).setScale(9).setAlpha(seen ? 0.25 : 0);
     d.add(glow);
@@ -354,13 +349,15 @@ export class InventoryScene extends Phaser.Scene {
     d.add(this.add.image(1058, 210, seen ? fishTextureFor(this, f, formId, stars) : fishSilhouetteTexture(this, f)).setDisplaySize(330 * dm, 206 * dm));
     d.add(txt(this, 1058, 330, seen ? f.name : "???", 30, { color: col, align: "center" }).setOrigin(0.5));
     d.add(txt(this, 1058, 364, FISH_RARITY_LABEL[f.rarity], 20, { color: col, align: "center" }).setOrigin(0.5));
+    // nguyên tố – huy hiệu lớn góc trái trên khung chi tiết
+    if (seen) d.add(elementTag(this, 870, 128, element ?? f.element, 44, 20));
   }
 
   private renderDetail(o: OwnedFish | null) {
     const d = this.detailPanel();
     if (!o) return;
     const f = FISH_BY_ID.get(o.fishId)!;
-    this.header(d, f, true, o.form, o.stars);
+    this.header(d, f, true, o.form, o.stars, fishElementOf(o, f));
     const form = o.form ? FORM_BY_ID.get(o.form) ?? null : null;
     const st = fishStats(f, o.level, o.stars, form, o.formRoll);
     const growth = isGrowthFish(f);
@@ -372,7 +369,7 @@ export class InventoryScene extends Phaser.Scene {
         this,
         876,
         388,
-        `Cấp ${o.level}/${fishMaxLevel(o.stars, growth)}  ${growth ? `🌱 ${stageName(o.stars)}` : `${"★".repeat(o.stars)}${"☆".repeat(5 - o.stars)}`}   Lực chiến ${formatNum(ownedFishPower(f, o, form))}\nHP ${formatNum(st.hp)} · Công ${st.atk} · Thủ ${st.def} · Tốc ${st.spd}\n${ELEMENT_LABEL[st.element]} · ${o.weightKg} kg · ${f.skill.name}`,
+        `Cấp ${o.level}/${fishMaxLevel(o.stars, growth)}  ${growth ? `🌱 ${stageName(o.stars)}` : `${"★".repeat(o.stars)}${"☆".repeat(5 - o.stars)}`}   Lực chiến ${formatNum(ownedFishPower(f, o, form))}\nHP ${formatNum(st.hp)} · Công ${st.atk} · Thủ ${st.def} · Tốc ${st.spd}\nHệ ${elementName(fishElementOf(o, f))} · ${o.weightKg} kg · ${f.skill.name}`,
         16,
         { weight: "700", wrap: 372 },
       ).setLineSpacing(3),

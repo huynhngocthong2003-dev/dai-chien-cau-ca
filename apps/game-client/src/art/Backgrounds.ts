@@ -232,6 +232,47 @@ export function drawZoneBackground(ctx: CanvasRenderingContext2D, zone: ZoneDef)
       iceberg(ctx, 520, 200, 70, rng);
       iceberg(ctx, 900, 280, 110, rng);
       break;
+    case "z_vuong_quoc_kim_loai":
+      // tháp thép & bánh răng vàng của vương quốc chìm
+      for (const [x, h, w] of [[560, 210, 46], [660, 290, 60], [760, 180, 40], [960, 250, 54], [1120, 200, 44]] as const) {
+        const tg = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+        tg.addColorStop(0, "#90a4ae");
+        tg.addColorStop(0.5, "#eceff1");
+        tg.addColorStop(1, "#546e7a");
+        ctx.fillStyle = tg;
+        ctx.beginPath();
+        ctx.moveTo(x - w / 2, HORIZON);
+        ctx.lineTo(x - w / 2, HORIZON - h);
+        ctx.lineTo(x, HORIZON - h - w * 0.7);
+        ctx.lineTo(x + w / 2, HORIZON - h);
+        ctx.lineTo(x + w / 2, HORIZON);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#37474f";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = "#ffca28";
+        for (let yy = HORIZON - h + 20; yy < HORIZON - 10; yy += 34) ctx.fillRect(x - w * 0.18, yy, w * 0.36, 12);
+      }
+      for (const [gx, gy, r] of [[860, HORIZON - 70, 46], [460, HORIZON - 40, 30]] as const) {
+        ctx.fillStyle = "#ffb300";
+        ctx.beginPath();
+        for (let i = 0; i < 24; i++) {
+          const a2 = (i / 24) * Math.PI * 2;
+          const rr = i % 2 ? r : r * 1.22;
+          ctx.lineTo(gx + Math.cos(a2) * rr, gy + Math.sin(a2) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#6d4c00";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = "#455a64";
+        ctx.beginPath();
+        ctx.arc(gx, gy, r * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
     case "z_dai_duong_than_thoai":
       for (const [x, y, w] of [[620, 200, 150], [900, 150, 110], [1150, 240, 130]] as const) {
         ctx.fillStyle = "#7e57c2";

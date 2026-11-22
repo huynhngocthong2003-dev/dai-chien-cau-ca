@@ -45,7 +45,7 @@ export const RODS: RodDef[] = [
     "Hút ánh sáng xung quanh, cá vực sâu sợ nó."),
   rod("r_dung_nham", "Cần Dung Nham", "SR", { pull: 75, durability: 210, reelSpeed: 1.3, rareRate: 10, antiSnap: 15 },
     { id: "rp_nung_chay", name: "Nung Chảy", description: "+25% sát thương lên cá hệ Băng, dây hồi 4 độ bền/giây.",
-      effects: [{ kind: "element_damage", element: "ice", value: 0.25 }, { kind: "durability_regen", perSec: 4 }] },
+      effects: [{ kind: "element_damage", element: "water", value: 0.25 }, { kind: "durability_regen", perSec: 4 }] },
     { kind: "gold", amount: 20000, level: 16 }, { shaft: "#bf360c", handle: "#212121", glow: "#ff6e40", line: "#ffccbc", wrap: "#ffab00", ornament: "flame" },
     "Vẫn còn âm ỉ cháy bên trong lõi đá."),
   rod("r_bang_tinh", "Cần Băng Tinh", "SR", { pull: 90, durability: 225, reelSpeed: 1.3, rareRate: 11, antiSnap: 15 },

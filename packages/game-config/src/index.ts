@@ -135,3 +135,14 @@ export const TOPUP_BANK = {
   account: "13152551",
   accountName: "HUYNH NGOC THONG",
 } as const;
+
+/** Hiển thị 7 NGUYÊN TỐ – dùng chung mọi màn (biểu tượng vẽ ở art/ElementArt.ts theo đúng màu này). */
+export const ELEMENT_INFO = {
+  metal: { name: "Kim", color: "#ffca28", dark: "#8d6e00", glyph: "⚔" },
+  wood: { name: "Mộc", color: "#66bb6a", dark: "#1b5e20", glyph: "🌿" },
+  water: { name: "Thủy", color: "#29b6f6", dark: "#01579b", glyph: "💧" },
+  fire: { name: "Hỏa", color: "#ff5722", dark: "#8d1c00", glyph: "🔥" },
+  earth: { name: "Thổ", color: "#a1887f", dark: "#4e342e", glyph: "⛰" },
+  dark: { name: "Bóng Tối", color: "#9575cd", dark: "#311b92", glyph: "🌑" },
+  light: { name: "Ánh Sáng", color: "#fff176", dark: "#8d7a00", glyph: "☀" },
+} as const;

@@ -9,6 +9,7 @@ import { Button, formatNum, goTo, modal, toast, txt } from "./widgets.ts";
 import { COLORS } from "./theme.ts";
 import { hexToInt } from "../art/color.ts";
 import { openChat } from "./chat.ts";
+import { elementBadge } from "./element.ts";
 
 /** Chỉ giữ đồ hợp lệ (đề phòng dữ liệu hồ sơ cũ / lạ). */
 export function safeEquip(e: Partial<Record<string, string>> | undefined): Partial<Record<CosmeticSlot, string>> {
@@ -72,6 +73,7 @@ export function showPlayerProfile(scene: Phaser.Scene, p: Social.PlayerCard, opt
     g.lineStyle(3, hexToInt(FISH_RARITY_COLOR[def.rarity])).strokeRoundedRect(x, y, 198, 230, 14);
     add(g);
     add(scene.add.image(x + 99, y + 74, fishTextureFor(scene, def, f.form, f.stars)).setDisplaySize(170 * Math.min(1.1, fishDisplayMult(def, f.stars)), 106 * Math.min(1.1, fishDisplayMult(def, f.stars))));
+    add(elementBadge(scene, x + 180, y + 18, f.element ?? def.element, 28));
     const fm = f.form ? FORM_BY_ID.get(f.form) : null;
     const total = f.wins + f.losses;
     add(txt(scene, x + 99, y + 160, `${def.name}${fm ? `\n${fm.name}` : ""}\nLv.${f.level} · ⚔${formatNum(f.power)}`, 14, { align: "center", color: FISH_RARITY_COLOR[def.rarity] }).setOrigin(0.5));

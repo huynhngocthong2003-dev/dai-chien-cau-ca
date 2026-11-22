@@ -1,13 +1,15 @@
 import Phaser from "phaser";
 import { screenRect } from "../ui/wide.ts";
-import { FISH_RARITY_COLOR } from "@dccc/game-config";
+import { ELEMENT_INFO, FISH_RARITY_COLOR } from "@dccc/game-config";
 import { FISH_BY_ID } from "@dccc/game-data";
-import { roastedXp, type BattleEvent, type Fighter, type MatchResult, type OwnedFish, type RoastedFish } from "@dccc/shared";
+import { roastedXp, type BattleEvent, type Element, type Fighter, type MatchResult, type OwnedFish, type RoastedFish } from "@dccc/shared";
 import { fishTexture, fishDisplayMult, fishTextureFor, roastedFishTexture } from "../art/textures.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
+import { elementBadge } from "../ui/element.ts";
+import { hexToInt } from "../art/color.ts";
 
 export interface BattleData {
   result: MatchResult;
@@ -17,15 +19,8 @@ export interface BattleData {
   outcome: { won: boolean; lost?: OwnedFish; roasted?: RoastedFish; gold?: number; xp?: number };
 }
 
-const ELEMENT_COLOR: Record<string, number> = {
-  water: 0x40c4ff,
-  fire: 0xff6d00,
-  ice: 0xb3e5fc,
-  earth: 0x8d6e63,
-  thunder: 0xffeb3b,
-  light: 0xfff59d,
-  dark: 0x9c27b0,
-};
+/** Màu hiệu ứng theo nguyên tố – lấy từ bảng chung. */
+const elementColorInt = (el: Element) => hexToInt(ELEMENT_INFO[el].color);
 
 /** Phát lại trận Đấu Sinh Tử (kết quả đã tính sẵn, chỉ hiển thị). */
 export class BattleScene extends Phaser.Scene {
@@ -145,6 +140,9 @@ export class BattleScene extends Phaser.Scene {
         color: FISH_RARITY_COLOR[def.rarity],
         align: "center",
       }).setOrigin(0.5);
+      // huy hiệu nguyên tố bên cạnh tên
+      const eb = elementBadge(this, (side === 0 ? 380 : 900) - n.width / 2 - 22, 186, f.element, 34);
+      img.once(Phaser.GameObjects.Events.DESTROY, () => eb.destroy());
       return { img, bar, n };
     };
     const A = mk(a, 0);
@@ -184,7 +182,9 @@ export class BattleScene extends Phaser.Scene {
         target.setTintFill(0xffffff);
         this.time.delayedCall(80, () => target.clearTint());
         this.float(target.x, target.y - 100, `-${ev.dmg}${ev.crit ? " CHÍ MẠNG!" : ""}`, ev.crit ? "#ffeb3b" : "#ffffff", ev.crit ? 40 : 32);
-        if (ev.adv > 1) this.float(target.x, target.y - 40, "Khắc hệ!", "#69f0ae", 22);
+        // khắc chế ×1.5 / bất lợi ×0.75 (hệ số do logic chung tính – màn này chỉ hiển thị)
+        if (ev.adv > 1) this.float(target.x, target.y - 40, "KHẮC CHẾ!", "#69f0ae", 26);
+        else if (ev.adv < 1) this.float(target.x, target.y - 40, "BẤT LỢI!", "#ff8a80", 24);
         hpBars(ev.hp);
         if (ev.crit) Sfx.crit();
         await this.wait(380);
@@ -192,7 +192,7 @@ export class BattleScene extends Phaser.Scene {
       }
       case "special": {
         Sfx.skill();
-        const col = ELEMENT_COLOR[ev.element] ?? 0xffffff;
+        const col = elementColorInt(ev.element);
         const banner = txt(this, actor.x, actor.y - 150, `✨ ${ev.name}!`, 34, { color: "#fff59d" }).setOrigin(0.5);
         this.tweens.add({ targets: banner, scale: 1.2, duration: 300, yoyo: true, onComplete: () => banner.destroy() });
         this.add
@@ -206,7 +206,7 @@ export class BattleScene extends Phaser.Scene {
         break;
       }
       case "skip":
-        this.float(actor.x, actor.y - 100, ev.reason === "freeze" ? "❄ Bị đóng băng" : "⚡ Bị tê liệt", "#b3e5fc", 26);
+        this.float(actor.x, actor.y - 100, ev.reason === "freeze" ? "❄ Bị đóng băng" : "💫 Bị choáng", "#b3e5fc", 26);
         await this.wait(450);
         break;
       case "burn":

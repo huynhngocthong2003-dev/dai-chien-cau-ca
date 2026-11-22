@@ -50,14 +50,22 @@ describe("Cơ chế trận đấu", () => {
     expect(elementMultiplier("light", "dark")).toBeGreaterThan(1);
   });
 
-  it("ưu tiên lực chiến: cá mạnh hơn ~30% vẫn thắng phần lớn dù bị khắc hệ", () => {
-    // Cá Lóc (Tối) bị cá Ánh Sáng khắc; cho cá Lóc cấp cao hơn để lực chiến hơn ~30%
-    const light = FISHES.find((f) => f.element === "light" && f.rarity !== "boss")!;
+  it("khắc chế ×1.5 có tác dụng thật; nhưng cá mạnh hơn hẳn (~70%) vẫn thắng phần lớn dù bị khắc", () => {
+    // cá Bóng tối bị cá Ánh sáng khắc
+    const light = FISHES.find((f) => f.element === "light" && f.rarity === "rare")!;
+    const darkF = FISHES.find((f) => f.element === "dark" && f.rarity === "rare")!;
+    expect(elementMultiplier(light.element, darkF.element)).toBe(1.5);
+    // cùng cấp: bên được khắc thắng phần lớn
+    const a = makeFighter(light, { uid: "a", level: 10, stars: 1 });
+    const b = makeFighter(darkF, { uid: "b", level: 10, stars: 1 });
+    let wa = 0;
+    for (let seed = 1; seed <= 200; seed++) if (duel(a, b, new Rng(seed)).winner === 0) wa++;
+    expect(wa).toBeGreaterThan(110);
+    // cá Bóng tối mạnh hơn ~70% thì vẫn thắng phần lớn
     const weak = makeFighter(light, { uid: "w", level: 5, stars: 1 });
     let lv = 5;
-    let strong = makeFighter(FISH_BY_ID.get("f_ca_loc")!, { uid: "s", level: lv, stars: 1 });
-    while (strong.power < weak.power * 1.3 && lv < 50) strong = makeFighter(FISH_BY_ID.get("f_ca_loc")!, { uid: "s", level: ++lv, stars: Math.ceil(lv / 10) });
-    expect(elementMultiplier(light.element, strong.element)).toBeGreaterThan(1);
+    let strong = makeFighter(darkF, { uid: "s", level: lv, stars: 1 });
+    while (strong.power < weak.power * 1.7 && lv < 50) strong = makeFighter(darkF, { uid: "s", level: ++lv, stars: Math.ceil(lv / 10) });
     let w = 0;
     for (let seed = 1; seed <= 200; seed++) if (duel(strong, weak, new Rng(seed)).winner === 0) w++;
     expect(w).toBeGreaterThan(140);
@@ -251,7 +259,7 @@ describe("Thể tiến hóa đột biến", () => {
     const avg = fishStats(boss, 5, 1, hoa, { hp: 1, atk: 1, def: 1 });
     const surge = fishStats(boss, 5, 1, hoa, { hp: 1, atk: 2.4, def: 1 });
     expect(surge.atk).toBeGreaterThan(avg.atk * 1.5);
-    expect(avg.element).toBe("fire");
+    expect(avg.element).toBe(boss.element); // thể đột biến KHÔNG đổi nguyên tố (hệ theo khu câu)
     expect(FISH_FORMS.every((f) => FORMS_BY_ITEM.get(f.itemId)!.length >= 2)).toBe(true);
   });
 });

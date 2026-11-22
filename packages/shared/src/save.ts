@@ -1,5 +1,6 @@
 import { ECONOMY, PROGRESSION } from "@dccc/game-config";
-import type { CharacterDef, CosmeticSlot, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
+import { elementOfCatch } from "./elements.ts";
+import type { CharacterDef, CosmeticSlot, Element, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
 import { sumPassive } from "./loadout.ts";
 
 export const SAVE_VERSION = 8;
@@ -15,6 +16,8 @@ export const DAILY_BOSS_TICKETS = 3;
 export interface OwnedFish {
   uid: string;
   fishId: string;
+  /** Nguyên tố của con cá này (theo khu câu được; loài hệ cố định thì theo loài). */
+  element?: Element;
   weightKg: number;
   zoneId: string;
   caughtAt: number;
@@ -276,6 +279,8 @@ export interface CatchInput {
   fish: FishDef;
   weightKg: number;
   zoneId: string;
+  /** Nguyên tố của khu câu (để gán hệ cho con cá). */
+  zoneElement?: Element;
   passives: PassiveEffect[];
   now: number;
   bossHunt?: boolean;
@@ -289,6 +294,7 @@ export function applyCatch(save: PlayerSave, input: CatchInput): ActionResult & 
   s.fishes.push({
     uid: input.txId,
     fishId: input.fish.id,
+    element: elementOfCatch(input.fish, input.zoneElement),
     weightKg: input.weightKg,
     zoneId: input.zoneId,
     caughtAt: input.now,

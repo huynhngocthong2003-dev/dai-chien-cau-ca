@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { CHARACTERS, CHARACTER_BY_ID, FISHES, FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
-import { FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
+import { ELEMENT_INFO, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
 import {
   RACE,
   RACE_LEAGUES,
@@ -56,15 +56,8 @@ import { COLORS } from "../ui/theme.ts";
 import { extraX } from "../ui/wide.ts";
 import { Sfx } from "../audio/Sfx.ts";
 
-const ELEMENT_COLOR: Record<string, number> = {
-  water: 0x40c4ff,
-  fire: 0xff6d00,
-  ice: 0xb3e5fc,
-  earth: 0xa1887f,
-  thunder: 0xffeb3b,
-  light: 0xfff59d,
-  dark: 0xd500f9,
-};
+/** Màu vệt tăng tốc theo nguyên tố – bảng chung 7 hệ. */
+const ELEMENT_COLOR: Record<string, number> = Object.fromEntries(Object.entries(ELEMENT_INFO).map(([k, v]) => [k, parseInt(v.color.slice(1), 16)]));
 const GRADE_COLOR: Record<RaceStats["grade"], string> = { S: "#ff4081", A: "#ffd740", B: "#69f0ae", C: "#40c4ff", D: "#b0bec5" };
 const LANE_Y = [432, 540, 650];
 const LANE_SCALE = [0.74, 0.84, 0.94];

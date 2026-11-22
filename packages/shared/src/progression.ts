@@ -51,8 +51,8 @@ export function stageName(stars: number): string {
 export const ELEMENT_EVO_ITEM: Record<Element, string> = {
   water: "e_ngoc_long_hon",
   fire: "e_loi_dung_nham",
-  ice: "e_tinh_the_bang_ha",
-  thunder: "e_sam_thach",
+  wood: "e_tinh_the_bang_ha",
+  metal: "e_sam_thach",
   dark: "e_u_minh_thach",
   light: "e_thanh_quang_thach",
   earth: "e_dia_mach_thach",
@@ -149,7 +149,7 @@ export function fishStats(f: FishDef, level = 1, stars = 1, form?: FishFormDef |
     atk: Math.round(f.atk * m * fm("atk")),
     def: Math.round(f.def * m * fm("def")),
     spd: f.spd + (stars - 1) * 2 + (form?.spdBonus ?? 0),
-    element: form?.element ?? f.element,
+    element: f.element, // hệ theo loài / khu câu – thể đột biến không đổi hệ
   };
 }
 

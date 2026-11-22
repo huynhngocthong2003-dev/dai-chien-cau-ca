@@ -1,6 +1,19 @@
 # PROJECT STATUS
 
-Cập nhật: 2026-11-20 (v0.19.0)
+Cập nhật: 2026-11-22 (v0.35.0)
+
+## ĐẠI TU (Master Prompt 11 phần – xem docs/GIAI_DOAN_1_BAO_CAO.md)
+| GĐ đại tu | Trạng thái |
+|---|---|
+| 1 – Phân tích & kế hoạch | ✅ Báo cáo `docs/GIAI_DOAN_1_BAO_CAO.md` |
+| 2 – 7 nguyên tố & khắc chế | ✅ v0.35.0 (Kim, Mộc, Thủy, Hỏa, Thổ, Bóng Tối, Ánh Sáng; khắc ×1.5/×1.0/×0.75; hệ theo khu câu; khu thứ 7 Vương Quốc Kim Loại; biểu tượng thống nhất) |
+| 3 – Chiến đấu 3vs3 theo lượt (máy chủ) | ⬜ |
+| 4 – Nâng cấp Linh Hồn + Ngọc (= Đá Nâng Cấp), phân giải, bán | ⬜ |
+| 5 – PvE 50 ải | ⬜ |
+| 6 – PvP phòng riêng 30 giây | ⬜ |
+| 7 – Giao diện & hiệu ứng | ⬜ |
+| 8 – Kiểm thử & nghiệm thu | ⬜ |
+
 
 | Giai đoạn | Trạng thái |
 |---|---|

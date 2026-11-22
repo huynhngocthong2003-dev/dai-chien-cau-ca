@@ -9,6 +9,7 @@ const timestamp = z.number().int().min(0).max(1e14);
 export const ownedFishSchema = z.object({
   uid: id,
   fishId: id,
+  element: z.enum(["metal", "wood", "water", "fire", "earth", "dark", "light"]).optional(),
   weightKg: z.number().min(0).max(1e6),
   zoneId: id,
   caughtAt: timestamp,

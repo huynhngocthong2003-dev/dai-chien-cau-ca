@@ -46,6 +46,7 @@ import {
   developCharacter,
   developFish,
   applyMailReward,
+  assignMissingElements,
   type MailReward,
   developRod,
   refillBossTickets,
@@ -85,6 +86,12 @@ function uid(prefix: string): string {
  * Nguồn trạng thái duy nhất phía client ở Giai đoạn 1. Mọi thay đổi đi qua các
  * hàm thuần túy trong @dccc/shared (cũng sẽ chạy trên server ở Giai đoạn 4).
  */
+/** Bản lưu cũ: gán nguyên tố cho cá chưa có hệ theo quy tắc khu câu (một lần, rồi lưu lên tài khoản). */
+function withElements<T extends PlayerSave>(s: T): T {
+  assignMissingElements(s, FISH_BY_ID, ZONE_BY_ID);
+  return s;
+}
+
 class GameStateStore extends Phaser.Events.EventEmitter {
   private _save!: PlayerSave;
   storage: SaveStorage = new MemorySaveStorage();
@@ -139,7 +146,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     if (raw) {
       const parsed = parseSave(raw);
       if (parsed.ok && this.isConsistent(parsed.save)) {
-        this._save = refillBossTickets(parsed.save, Date.now());
+        this._save = refillBossTickets(withElements(parsed.save), Date.now());
         await this.persist();
         return;
       }
@@ -193,6 +200,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
       fish,
       weightKg,
       zoneId,
+      zoneElement: ZONE_BY_ID.get(zoneId)?.element,
       passives: this.loadout().passives,
       now: Date.now(),
       bossHunt,
@@ -494,7 +502,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     let remote: PlayerSave | null = null;
     if (remoteRaw) {
       const p = parseSave(remoteRaw);
-      if (p.ok && this.isConsistent(p.save)) remote = refillBossTickets(p.save, Date.now());
+      if (p.ok && this.isConsistent(p.save)) remote = refillBossTickets(withElements(p.save), Date.now());
       else {
         // KHÔNG BAO GIỜ ghi đè tài khoản khi không đọc được bản trên máy chủ (bản game cũ / dữ liệu lạ):
         // giữ nguyên dữ liệu tài khoản, chơi tạm trên máy và báo người chơi tải lại trang.
@@ -518,7 +526,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
       const best = pickRecovery(this._save, cands);
       if (best) {
         await this.baseStorage.backup(this._save);
-        this._save = { ...refillBossTickets(best, Date.now()), ...(this._save.resetAt !== undefined ? { resetAt: this._save.resetAt } : {}) };
+        this._save = { ...refillBossTickets(withElements(best), Date.now()), ...(this._save.resetAt !== undefined ? { resetAt: this._save.resetAt } : {}) };
         recovered = true;
       }
     }
@@ -547,7 +555,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
       const p = raw ? parseSave(raw) : null;
       if (!p || !p.ok || !this.isConsistent(p.save)) return;
       await this.baseStorage.backup(this._save);
-      this._save = refillBossTickets(p.save, Date.now());
+      this._save = refillBossTickets(withElements(p.save), Date.now());
       await this.baseStorage.save(this._save);
       this.emit("changed", this._save);
       this.emit("synced-remote", "Đã tải tiến trình mới nhất từ tài khoản (bạn vừa chơi trên máy khác)");
@@ -629,7 +637,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     if (!this.isConsistent(p.save)) return { ok: false, error: "Sao lưu chứa vật phẩm không tồn tại trong game" };
     await this.baseStorage.backup(this._save);
     // resetAt mới: máy chủ hiểu đây là chủ ý thay tiến trình (không phải máy cũ ghi đè)
-    this.commit({ ...refillBossTickets(p.save, Date.now()), resetAt: Date.now() });
+    this.commit({ ...refillBossTickets(withElements(p.save), Date.now()), resetAt: Date.now() });
     return { ok: true, save: this._save };
   }
 

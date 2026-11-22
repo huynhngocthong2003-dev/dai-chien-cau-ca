@@ -1,4 +1,5 @@
 import type { Element, FishAppearance, FishDef, FishRarity } from "@dccc/shared";
+import { ZONES } from "./zones.ts";
 
 /** Chỉ số cơ bản theo bậc khu vực (1..6). */
 const TIER_HP = [0, 90, 220, 450, 800, 1300, 2000];
@@ -78,8 +79,9 @@ const Z3 = "z_vuc_sau";
 const Z4 = "z_bien_lua";
 const Z5 = "z_bang_gia";
 const Z6 = "z_dai_duong_than_thoai";
+const Z7 = "z_vuong_quoc_kim_loai";
 
-export const FISHES: FishDef[] = [
+const RAW_FISHES: FishDef[] = [
   // ===== Bến Câu Tân Thủ =====
   fish("f_ca_ro", "Cá Rô Đồng", "common", "water", 1, [Z1], 30, [0.1, 0.6],
     { shape: "round", body: "#8d9b5a", belly: "#e6ee9c", pattern: "scales", patternColor: "#55602a55" },
@@ -133,28 +135,28 @@ export const FISHES: FishDef[] = [
     ["Rạn San Hô", "Tạo khiên gai phản sát thương."], "Rạn san hô sống, ăn mọi thứ đi ngang qua."),
 
   // ===== Vực Sâu Bí Ẩn =====
-  fish("f_ca_den_long", "Cá Đèn Lồng", "common", "light", 3, [Z3], 30, [0.5, 3],
+  fish("f_ca_den_long", "Cá Đèn Lồng", "common", "light", 5, [Z3], 30, [0.5, 3],
     { shape: "angler", body: "#3949ab", belly: "#7986cb", teeth: true, eye: "glow", eyeColor: "#e1f5fe", glow: "#fff59d" },
     ["Ánh Sáng Mê Hoặc", "Làm đối thủ mất lượt."], "Chiếc đèn trên đầu dụ con mồi lại gần."),
-  fish("f_ca_ma", "Cá Ma Trong Suốt", "common", "dark", 3, [Z3], 50, [0.2, 1.5],
+  fish("f_ca_ma", "Cá Ma Trong Suốt", "common", "dark", 5, [Z3], 50, [0.2, 1.5],
     { shape: "long", body: "#b0bec566", belly: "#eceff166", fin: "#cfd8dc88", eye: "glow", eyeColor: "#80d8ff" },
     ["Tàng Hình", "Né đòn 30%."], "Nhìn xuyên được cả xương sống."),
-  fish("f_luon_dien", "Lươn Điện Vực Sâu", "rare", "thunder", 3, [Z3, Z6], 70, [2, 12],
+  fish("f_luon_dien", "Lươn Điện Vực Sâu", "rare", "metal", 5, [Z3, Z6], 70, [2, 12],
     { shape: "eel", body: "#1a237e", belly: "#ffeb3b", pattern: "stripes", patternColor: "#ffff00aa", eye: "glow", eyeColor: "#ffff00", glow: "#ffff8d" },
     ["Phóng Điện", "Gây choáng 1 lượt."], "Mỗi cú quẫy phát ra 600 vôn."),
-  fish("f_ca_rang_kiem", "Cá Răng Kiếm", "rare", "dark", 3, [Z3], 65, [1, 5],
+  fish("f_ca_rang_kiem", "Cá Răng Kiếm", "rare", "dark", 5, [Z3], 65, [1, 5],
     { shape: "round", body: "#212121", belly: "#616161", teeth: true, eye: "angry", eyeColor: "#ff1744", scale: 1.05 },
     ["Răng Nanh", "Gây chảy máu."], "Răng dài đến mức không ngậm được miệng."),
-  fish("f_ca_mat_quy", "Cá Mắt Quỷ", "precious", "dark", 3, [Z3], 45, [3, 15],
+  fish("f_ca_mat_quy", "Cá Mắt Quỷ", "precious", "dark", 5, [Z3], 45, [3, 15],
     { shape: "angler", body: "#4a148c", belly: "#7b1fa2", teeth: true, eye: "glow", eyeColor: "#ff1744", glow: "#ea80fc", scale: 1.2 },
     ["Ánh Nhìn Ma Quỷ", "Giảm tấn công đối thủ 20%."], "Ai nhìn vào mắt nó sẽ gặp ác mộng ba đêm."),
-  fish("f_ca_ho_bong_dem", "Cá Hố Bóng Đêm", "precious", "dark", 3, [Z3], 75, [4, 20],
+  fish("f_ca_ho_bong_dem", "Cá Hố Bóng Đêm", "precious", "dark", 5, [Z3], 75, [4, 20],
     { shape: "eel", body: "#cfd8dc", belly: "#ffffff", fin: "#90a4ae", teeth: true, eye: "angry", eyeColor: "#263238" },
     ["Lưỡi Bạc", "Tấn công 2 lần."], "Thân bạc dài như thanh kiếm."),
-  fish("f_ac_ngu_gai_tim", "Ác Ngư Gai Tím", "epic", "dark", 3, [Z3], 40, [30, 120],
+  fish("f_ac_ngu_gai_tim", "Ác Ngư Gai Tím", "epic", "dark", 5, [Z3], 40, [30, 120],
     { shape: "puffer", body: "#6a1b9a", belly: "#ce93d8", fin: "#9c27b0", spikes: true, teeth: true, eye: "glow", eyeColor: "#ff1744", scale: 1.4 },
     ["Gai Độc Tím", "Phản sát thương và gây độc."], "Gai nhọn mọc khắp người, miệng đầy răng cưa."),
-  fish("f_boss_hac_long", "Hắc Long Ngư Vực Thẳm", "boss", "dark", 3, [Z3], 60, [500, 1500],
+  fish("f_boss_hac_long", "Hắc Long Ngư Vực Thẳm", "boss", "dark", 5, [Z3], 60, [500, 1500],
     { shape: "serpent", body: "#1b0033", belly: "#4a148c", fin: "#7c4dff", spikes: true, teeth: true, horns: true, eye: "glow", eyeColor: "#00e5ff", glow: "#7c4dff", scale: 1.9 },
     ["Hố Đen", "Hút năng lượng toàn đội đối thủ."], "Kẻ canh giữ đáy vực, chưa ai thấy hết thân nó."),
 
@@ -184,32 +186,61 @@ export const FISHES: FishDef[] = [
     { shape: "angler", body: "#ff8f00", belly: "#ffecb3", fin: "#ff3d00", pattern: "scales", patternColor: "#d84315aa", teeth: true, horns: true, spikes: true, eye: "glow", eyeColor: "#ff1744", glow: "#ff3d00", scale: 2 },
     ["Miệng Núi Lửa", "Nuốt chửng – gây sát thương bằng 40% HP."], "Hàm răng như dãy núi lửa, mỗi tiếng gầm làm biển sôi."),
 
+  // ===== Vương Quốc Kim Loại (hệ Kim) =====
+  fish("f_ca_thiec_bac", "Cá Thiếc Bạc", "common", "metal", 3, [Z7], 40, [1, 7],
+    { shape: "long", body: "#b0bec5", belly: "#eceff1", fin: "#78909c", pattern: "scales", patternColor: "#ffffff88" },
+    ["Vảy Thiếc", "Giảm 10% sát thương nhận vào."], "Vảy bạc sáng loáng như lá thiếc mới đánh bóng."),
+  fish("f_ca_dong_do", "Cá Đồng Đỏ", "common", "metal", 3, [Z7], 45, [1, 9],
+    { shape: "round", body: "#c77b3f", belly: "#ffe0b2", fin: "#8d4b1f", pattern: "spots", patternColor: "#5d300f66" },
+    ["Thân Đồng", "Tăng phòng thủ 2 lượt."], "Thân đúc bằng đồng đỏ, gõ vào kêu boong boong."),
+  fish("f_ca_banh_rang", "Cá Bánh Răng", "rare", "metal", 3, [Z7], 50, [2, 10],
+    { shape: "flat", body: "#90a4ae", belly: "#cfd8dc", fin: "#ffca28", spikes: true, eye: "glow", eyeColor: "#ffca28" },
+    ["Xoay Bánh Răng", "Đánh 2 lần với 60% sát thương."], "Vây lưng là một bánh răng quay tít không ngừng."),
+  fish("f_ca_giap_sat", "Cá Giáp Sắt", "rare", "metal", 3, [Z7], 30, [3, 14],
+    { shape: "puffer", body: "#607d8b", belly: "#b0bec5", fin: "#455a64", spikes: true, eye: "angry", eyeColor: "#ffab00" },
+    ["Giáp Gai", "Phản 15% sát thương cận chiến."], "Phồng lên thành quả cầu sắt đầy gai."),
+  fish("f_ca_kiem_thep", "Cá Kiếm Thép", "precious", "metal", 3, [Z7], 85, [40, 160],
+    { shape: "long", body: "#cfd8dc", belly: "#ffffff", fin: "#546e7a", eye: "angry", eyeColor: "#263238", scale: 1.4 },
+    ["Kiếm Thép", "Xuyên 30% phòng thủ."], "Mũi kiếm rèn từ thép tinh luyện ngàn lần."),
+  fish("f_ca_map_thep", "Cá Mập Thép", "epic", "metal", 3, [Z7], 70, [400, 1200],
+    { shape: "shark", body: "#78909c", belly: "#eceff1", fin: "#37474f", teeth: true, spikes: true, eye: "glow", eyeColor: "#ff6d00", scale: 1.5 },
+    ["Hàm Thép", "Cắn xé, sát thương ×1.6 lên mục tiêu dưới 50% máu."], "Hàm răng thép nghiền nát cả mỏ neo."),
+  fish("f_kim_giap_long_ngu", "Kim Giáp Long Ngư", "legendary", "metal", 3, [Z7], 72, [180, 600],
+    { shape: "serpent", body: "#ffca28", belly: "#fff8e1", fin: "#ff8f00", pattern: "scales", patternColor: "#8d6e0088", spikes: true, horns: true, eye: "glow", eyeColor: "#ffffff", glow: "#ffe082", scale: 1.7 },
+    ["Kim Giáp Hộ Thể", "Miễn nhiễm sát thương 1 lượt, sau đó phản đòn."], "Rồng biển khoác giáp vàng ròng, mỗi vảy là một tấm khiên."),
+  fish("f_boss_kim_long_de", "Kim Long Đế", "boss", "metal", 3, [Z7], 66, [1800, 4500],
+    { shape: "serpent", body: "#b8860b", belly: "#ffe082", fin: "#fff59d", spikes: true, teeth: true, horns: true, eye: "glow", eyeColor: "#ff1744", glow: "#ffd740", scale: 2 },
+    ["Vạn Kiếm Quy Tông", "Triệu hồi mưa kiếm vàng, giảm phòng thủ toàn đội đối thủ."], "Đế vương của Vương Quốc Kim Loại, thân rèn từ vàng và thép thần."),
+  fish("f_sboss_kim_tien", "Cá Kim Tiền Tí Hon", "boss", "metal", 3, [Z7], 95, [0.2, 0.6],
+    { shape: "round", body: "#ffd740", belly: "#fff8e1", fin: "#ff8f00", pattern: "scales", patternColor: "#b8860b88", eye: "glow", eyeColor: "#ff6d00", glow: "#fff59d", scale: 0.5 },
+    ["Mưa Tiền Vàng", "Né 50% đòn đánh, mỗi lượt rơi vàng."], "Bé tí như đồng xu nhưng là Boss – ai câu được sẽ phát tài cả năm."),
+
   // ===== Vùng Băng Giá =====
-  fish("f_ca_tuyet", "Cá Tuyết Bạc", "common", "ice", 5, [Z5], 35, [1, 8],
+  fish("f_ca_tuyet", "Cá Tuyết Bạc", "common", "water", 5, [Z5], 35, [1, 8],
     { shape: "long", body: "#b0bec5", belly: "#ffffff", pattern: "spots", patternColor: "#78909c88" },
     ["Thân Lạnh", "Làm chậm đối thủ."], "Món khoái khẩu của gấu bắc cực."),
-  fish("f_ca_hoi_bang", "Cá Hồi Băng", "common", "ice", 5, [Z5], 55, [2, 12],
+  fish("f_ca_hoi_bang", "Cá Hồi Băng", "common", "water", 5, [Z5], 55, [2, 12],
     { shape: "long", body: "#ef9a9a", belly: "#e1f5fe", fin: "#90caf9", pattern: "spots", patternColor: "#5c6bc066" },
     ["Ngược Dòng", "Tăng tốc độ 2 lượt."], "Bơi ngược cả dòng sông băng."),
-  fish("f_ca_pha_le", "Cá Pha Lê", "rare", "ice", 5, [Z5], 45, [0.5, 4],
+  fish("f_ca_pha_le", "Cá Pha Lê", "rare", "water", 5, [Z5], 45, [0.5, 4],
     { shape: "flat", body: "#b3e5fc", belly: "#ffffff", fin: "#e1f5fe", eye: "glow", eyeColor: "#00b0ff", glow: "#e1f5fe" },
     ["Khúc Xạ", "Phản 20% sát thương phép."], "Trong suốt như pha lê, lấp lánh dưới băng."),
-  fish("f_ca_noc_bang", "Cá Nóc Băng", "rare", "ice", 5, [Z5], 25, [1, 6],
+  fish("f_ca_noc_bang", "Cá Nóc Băng", "rare", "water", 5, [Z5], 25, [1, 6],
     { shape: "puffer", body: "#4fc3f7", belly: "#e1f5fe", spikes: true, eye: "angry", eyeColor: "#01579b" },
     ["Gai Băng", "Đóng băng đối thủ 1 lượt."], "Gai của nó là những mũi băng nhọn."),
-  fish("f_ca_voi_sat_thu", "Cá Voi Sát Thủ Băng", "precious", "ice", 5, [Z5], 70, [300, 900],
+  fish("f_ca_voi_sat_thu", "Cá Voi Sát Thủ Băng", "precious", "water", 5, [Z5], 70, [300, 900],
     { shape: "shark", body: "#212121", belly: "#ffffff", fin: "#212121", teeth: true, eye: "angry", eyeColor: "#d32f2f", scale: 1.5 },
     ["Săn Bầy", "Tăng sát thương theo số cá đồng đội."], "Thợ săn đỉnh cao của vùng cực."),
-  fish("f_ca_kiem_bang", "Cá Kiếm Băng", "epic", "ice", 5, [Z5], 90, [60, 200],
+  fish("f_ca_kiem_bang", "Cá Kiếm Băng", "epic", "water", 5, [Z5], 90, [60, 200],
     { shape: "long", body: "#4fc3f7", belly: "#e1f5fe", fin: "#0288d1", horns: true, eye: "glow", eyeColor: "#e1f5fe", glow: "#b3e5fc", scale: 1.45 },
     ["Kiếm Băng", "Đâm xuyên và đóng băng."], "Mũi kiếm làm từ băng vĩnh cửu."),
-  fish("f_bang_long_ngu", "Băng Long Ngư", "legendary", "ice", 5, [Z5], 70, [150, 500],
+  fish("f_bang_long_ngu", "Băng Long Ngư", "legendary", "water", 5, [Z5], 70, [150, 500],
     { shape: "serpent", body: "#26c6da", belly: "#e0f7fa", fin: "#00838f", spikes: true, teeth: true, horns: true, eye: "glow", eyeColor: "#ffffff", glow: "#84ffff", scale: 1.7 },
     ["Băng Phong", "Đóng băng toàn đội đối thủ 1 lượt."], "Rồng biển phủ băng, hơi thở làm đông cứng sóng."),
   fish("f_than_ngu_bac_cuc", "Thần Ngư Bắc Cực", "mythic", "light", 5, [Z5], 80, [200, 700],
     { shape: "long", body: "#e1f5fe", belly: "#ffffff", fin: "#b388ff", pattern: "scales", patternColor: "#80d8ff88", horns: true, eye: "glow", eyeColor: "#18ffff", glow: "#ffffff", scale: 1.7 },
     ["Cực Quang", "Hồi máu toàn đội và tăng thủ."], "Xuất hiện cùng cực quang mỗi trăm năm."),
-  fish("f_boss_bang_de", "Băng Đế Hải Xà", "boss", "ice", 5, [Z5], 65, [1500, 4000],
+  fish("f_boss_bang_de", "Băng Đế Hải Xà", "boss", "water", 5, [Z5], 65, [1500, 4000],
     { shape: "serpent", body: "#0277bd", belly: "#b3e5fc", fin: "#e1f5fe", spikes: true, teeth: true, horns: true, eye: "glow", eyeColor: "#ff1744", glow: "#80d8ff", scale: 2 },
     ["Kỷ Băng Hà", "Đóng băng toàn sân 2 lượt."], "Hoàng đế của biển băng, ngủ say dưới sông băng nghìn năm."),
 
@@ -217,7 +248,7 @@ export const FISHES: FishDef[] = [
   fish("f_ca_than_quang", "Cá Thần Quang", "rare", "light", 6, [Z6], 60, [2, 10],
     { shape: "round", body: "#fff176", belly: "#ffffff", fin: "#ffd54f", eye: "glow", eyeColor: "#ff6f00", glow: "#fff59d" },
     ["Hào Quang", "Tăng thủ cho đồng đội."], "Phát sáng như một mặt trời nhỏ."),
-  fish("f_ca_sam_set", "Cá Sấm Sét", "rare", "thunder", 6, [Z6], 85, [3, 15],
+  fish("f_ca_sam_set", "Cá Sấm Sét", "rare", "metal", 6, [Z6], 85, [3, 15],
     { shape: "long", body: "#3f51b5", belly: "#ffeb3b", pattern: "stripes", patternColor: "#ffff00cc", eye: "glow", eyeColor: "#ffff00", glow: "#ffff8d" },
     ["Lôi Kích", "Gây choáng ngẫu nhiên."], "Vằn trên thân là những tia sét thật."),
   fish("f_ca_thien_than", "Cá Thiên Thần", "precious", "light", 6, [Z6], 50, [1, 6],
@@ -251,7 +282,7 @@ export const FISHES: FishDef[] = [
   fish("f_tien_ngu_hong_ngoc", "Tiên Ngư Hồng Ngọc", "mythic", "light", 6, [Z6], 78, [80, 400],
     { shape: "round", body: "#f48fb1", belly: "#fce4ec", fin: "#ff80ab", pattern: "stripes", patternColor: "#b2ebf2aa", horns: true, eye: "glow", eyeColor: "#4a148c", glow: "#ff80ab", scale: 1.8 },
     ["Mộng Ảo Hồng Quang", "Ánh hồng mê hoặc khiến đối thủ quên tấn công."], "Công chúa của biển sao – nụ cười của nàng làm cả đại dương bừng sáng."),
-  fish("f_boss_hai_than_cu_thu", "Hải Thần Cự Thú", "boss", "thunder", 6, [Z6], 70, [5000, 15000],
+  fish("f_boss_hai_than_cu_thu", "Hải Thần Cự Thú", "boss", "metal", 6, [Z6], 70, [5000, 15000],
     { shape: "serpent", body: "#1a237e", belly: "#82b1ff", fin: "#ffd600", spikes: true, teeth: true, horns: true, eye: "glow", eyeColor: "#ffff00", glow: "#448aff", scale: 2.1 },
     ["Lôi Hải Cuồng Phong", "Gây sát thương sấm sét lên toàn đội."], "Cự thú cuối cùng của đại dương, sấm sét bao quanh thân."),
 
@@ -262,10 +293,10 @@ export const FISHES: FishDef[] = [
   fish("f_ca_nhan_ngu_xanh", "Cá Ngừ Vây Xanh", "precious", "water", 2, [Z2, Z5], 80, [50, 250],
     { shape: "shark", body: "#1565c0", belly: "#e3f2fd", fin: "#ffd600", scale: 1.3 },
     ["Tốc Biến", "Luôn ra đòn trước."], "Tên lửa của đại dương."),
-  fish("f_ca_bach_tuoc", "Cá Mặt Trăng", "epic", "light", 3, [Z3, Z5], 25, [200, 1000],
+  fish("f_ca_bach_tuoc", "Cá Mặt Trăng", "epic", "light", 5, [Z3, Z5], 25, [200, 1000],
     { shape: "flat", body: "#cfd8dc", belly: "#ffffff", fin: "#90a4ae", eye: "glow", eyeColor: "#7c4dff", glow: "#e8eaf6", scale: 1.6 },
     ["Nguyệt Quang", "Hồi 10% HP mỗi lượt."], "Tròn và sáng như mặt trăng đêm rằm."),
-  fish("f_ca_hong_long", "Cá Hồng Long", "legendary", "dark", 3, [Z3, Z4], 70, [10, 40],
+  fish("f_ca_hong_long", "Cá Hồng Long", "legendary", "dark", 5, [Z3, Z4], 70, [10, 40],
     { shape: "long", body: "#c62828", belly: "#ffcdd2", fin: "#b71c1c", pattern: "scales", patternColor: "#ffd70088", teeth: true, eye: "glow", eyeColor: "#ffd600", glow: "#ff5252", scale: 1.4 },
     ["Long Huyết", "Tăng 30% tấn công khi dưới 50% HP."], "Loài cá cảnh quý nhất, đắt hơn vàng ròng."),
 
@@ -277,16 +308,37 @@ export const FISHES: FishDef[] = [
   fish("f_sboss_kinh_ngu_cau_vong", "Kình Ngư Cầu Vồng", "boss", "light", 2, [Z2], 40, [20000, 60000],
     { shape: "round", body: "#ab47bc", belly: "#fff59d", fin: "#29b6f6", pattern: "stripes", patternColor: "#ff5252aa", horns: true, eye: "glow", eyeColor: "#ffffff", glow: "#ea80fc", scale: 2.5 },
     ["Mưa Cầu Vồng", "Hồi 30% HP cả đội."], "Cá voi khổng lồ bảy sắc – chỉ hiện ra sau những cơn mưa hiếm hoi."),
-  fish("f_sboss_noc_bong_gon", "Nóc Bông Gòn", "boss", "water", 3, [Z3], 55, [0.1, 0.3],
+  fish("f_sboss_noc_bong_gon", "Nóc Bông Gòn", "boss", "water", 5, [Z3], 55, [0.1, 0.3],
     { shape: "puffer", body: "#f8bbd0", belly: "#ffffff", fin: "#f06292", pattern: "spots", patternColor: "#ffffffcc", eye: "glow", eyeColor: "#7c4dff", glow: "#ff80ab", scale: 0.6 },
     ["Ôm Mềm", "Làm đối thủ ngủ 1 lượt."], "Tròn ủm như cục bông, ai nhìn cũng muốn ôm – nhưng cực khó câu!"),
   fish("f_sboss_co_long_vuong", "Cổ Long Vương Dung Nham", "boss", "fire", 4, [Z4], 62, [40000, 120000],
     { shape: "serpent", body: "#3e2723", belly: "#ff6d00", fin: "#ffab00", pattern: "scales", patternColor: "#ff3d00cc", teeth: true, horns: true, spikes: true, eye: "glow", eyeColor: "#ffea00", glow: "#ff3d00", scale: 2.6 },
     ["Diệt Thế Hỏa", "Thiêu đốt 15% HP mỗi lượt."], "Rồng cổ đại dài như dãy núi lửa, ngủ say ngàn năm dưới biển lửa."),
-  fish("f_sboss_ca_tuyet_mochi", "Cá Tuyết Mochi", "boss", "ice", 5, [Z5], 58, [0.08, 0.25],
+  fish("f_sboss_ca_tuyet_mochi", "Cá Tuyết Mochi", "boss", "water", 5, [Z5], 58, [0.08, 0.25],
     { shape: "round", body: "#ffffff", belly: "#e1f5fe", fin: "#b3e5fc", pattern: "none", eye: "glow", eyeColor: "#29b6f6", glow: "#e1f5fe", scale: 0.55 },
     ["Lăn Tuyết", "Đóng băng đối thủ 2 lượt."], "Viên mochi tuyết biết bơi, mềm mịn và lạnh buốt tay."),
   fish("f_sboss_leviathan", "Leviathan Diệt Thế", "boss", "dark", 6, [Z6], 68, [80000, 250000],
     { shape: "shark", body: "#0d0d1a", belly: "#4a148c", fin: "#7c4dff", pattern: "stripes", patternColor: "#00e5ffaa", teeth: true, horns: true, spikes: true, eye: "glow", eyeColor: "#00e5ff", glow: "#651fff", scale: 2.7 },
     ["Nuốt Trời", "Nuốt chửng: hút 25% HP đối thủ."], "Quái vật cổ xưa lớn hơn cả hòn đảo – truyền thuyết của mọi cần thủ."),
 ];
+
+/**
+ * HỆ CỦA LOÀI = hệ của khu đầu tiên loài đó sống. Mỗi loài chỉ có ĐÚNG 1 hệ:
+ *  - loài sống 1 khu: hệ của khu đó;
+ *  - loài sống nhiều khu: hệ khu chính (cố định, không đổi theo nơi câu);
+ *  - loài đặc biệt (FIXED_ELEMENT): hệ riêng.
+ */
+const FIXED_ELEMENT: Record<string, Element> = {
+  f_huyen_minh_long_ngu: "water", // rồng nước ngân hà
+  f_diem_ma_tham_hai: "fire", // ác ma dung nham
+};
+const ZONE_ELEMENT = new Map(ZONES.map((z) => [z.id, z.element]));
+
+export const FISHES: FishDef[] = RAW_FISHES.map((f) => {
+  const fixed = FIXED_ELEMENT[f.id];
+  if (fixed) return { ...f, element: fixed, elementFixed: true };
+  const home = ZONE_ELEMENT.get(f.zones[0]!) ?? f.element;
+  // loài sống ở NHIỀU khu: chỉ 1 hệ duy nhất = hệ khu chính (khu đầu tiên), câu ở khu nào cũng vậy
+  return f.zones.length > 1 ? { ...f, element: home, elementFixed: true } : { ...f, element: home };
+});
+

@@ -27,6 +27,7 @@ import {
   type JunkDef,
   rollWeight,
   catchRewards,
+  elementOfCatch,
   fishPower,
   type FishDef,
   type FishingEvent,
@@ -44,6 +45,7 @@ import { hexToInt, parseHex } from "../art/color.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
+import { elementBadge } from "../ui/element.ts";
 import { FishingTogether } from "../ui/fishingTogether.ts";
 import { FishingChat } from "../ui/fishingChat.ts";
 
@@ -984,7 +986,10 @@ export class FishingScene extends Phaser.Scene {
       c.add(img);
       this.tweens.add({ targets: img, scale: f.appearance.scale >= 1.5 ? 0.95 : 0.85, duration: 500, ease: "Back.easeOut" });
       this.tweens.add({ targets: img, y: 290, duration: 1200, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-      c.add(txt(this, 640, 410, f.name, 36, { color: FISH_RARITY_COLOR[f.rarity], align: "center" }).setOrigin(0.5));
+      const nameT = txt(this, 640, 410, f.name, 36, { color: FISH_RARITY_COLOR[f.rarity], align: "center" }).setOrigin(0.5);
+      c.add(nameT);
+      // nguyên tố của con cá vừa câu (theo khu câu)
+      c.add(elementBadge(this, 640 - nameT.width / 2 - 26, 410, elementOfCatch(f, this.zone.element), 40));
       const brag = pickLine(CATCH_LINES, 0.5, { ca: f.name, kg: String(this.weightKg) });
       if (brag) c.add(txt(this, 640, 528, `“${brag}”`, 17, { color: "#fff59d", align: "center", wrap: 560, weight: "700" }).setOrigin(0.5));
       c.add(txt(this, 640, 448, `${FISH_RARITY_LABEL[f.rarity]} · ${this.weightKg} kg · Lực chiến ${formatNum(fishPower(f))}`, 22, { align: "center", weight: "700" }).setOrigin(0.5));

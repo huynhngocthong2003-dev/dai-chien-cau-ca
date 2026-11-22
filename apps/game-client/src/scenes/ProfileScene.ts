@@ -15,6 +15,7 @@ import { COLORS } from "../ui/theme.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { htmlOverlay } from "../ui/htmlOverlay.ts";
 import { hexToInt } from "../art/color.ts";
+import { elementBadge } from "../ui/element.ts";
 
 const pct = (r: number | null) => (r === null ? "chưa đấu" : `${Math.round(r * 100)}% thắng`);
 
@@ -167,6 +168,7 @@ export class ProfileScene extends Phaser.Scene {
         fishId: o.fishId,
         level: o.level,
         stars: o.stars,
+        element: o.element,
         form: o.form ?? null,
         wins: o.wins ?? 0,
         losses: o.losses ?? 0,
@@ -206,6 +208,7 @@ export class ProfileScene extends Phaser.Scene {
     const fm = f.form ? FORM_BY_ID.get(f.form) : null;
     if (fm) objs.push(this.add.image(x + w / 2, y + h * 0.33, "p_spark").setTint(hexToInt(fm.glow)).setScale(5).setAlpha(0.4));
     objs.push(this.add.image(x + w / 2, y + h * 0.33, fishTextureFor(this, def, f.form, f.stars)).setDisplaySize(w * 0.85 * Math.min(1.1, fishDisplayMult(def, f.stars)), w * 0.53 * Math.min(1.1, fishDisplayMult(def, f.stars))));
+    objs.push(elementBadge(this, x + w - 18, y + 18, f.element ?? def.element, 28));
     const r = f.wins + f.losses ? f.wins / (f.wins + f.losses) : null;
     objs.push(
       txt(this, x + w / 2, y + h * 0.7, `${def.name}${fm ? `\n${fm.name}` : ""}\nLv.${f.level} · ⚔${formatNum(f.power)}`, 15, {
