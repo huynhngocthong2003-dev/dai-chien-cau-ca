@@ -14,8 +14,12 @@ export interface Look {
   accessory: { kind: AccessoryKind; color: string; accent: string };
   wings: Part<WingKind> | null;
   horns: Part<HornKind> | null;
-  /** Skin trọn bộ (thay mũ + áo + phụ kiện). */
+  /** Skin: phần THÂN (áo, cánh/đồ sau lưng) luôn hiện; phần mũ / phụ kiện của skin chỉ hiện khi ô đó đang trống. */
   skin: SkinKind | null;
+  /** Đang mặc mũ riêng → mũ đó thay phần mũ của skin. */
+  ownHat?: boolean;
+  /** Đang đeo phụ kiện riêng → phụ kiện đó thay phần mặt/đồ cầm tay của skin. */
+  ownAccessory?: boolean;
   /** Màu phát sáng theo bậc thời trang cao nhất đang mặc (null = không). */
   glow: string | null;
   /** Số lấp lánh tĩnh (bậc càng cao càng nhiều). */
@@ -902,6 +906,18 @@ function drawHat(ctx: CanvasRenderingContext2D, h: Look["hat"]) {
 }
 
 // ------------------------------------------------------------------ tổng hợp
+/** Mặt + mũ: phần nào của skin bị đồ riêng (mũ / phụ kiện) thay thì vẽ đồ riêng. */
+function drawHeadwear(ctx: CanvasRenderingContext2D, a: CharacterAppearance, look: Look) {
+  if (look.skin && !look.ownAccessory) {
+    drawSkinFace(ctx, look.skin);
+    drawSkin2Face(ctx, look.skin);
+  } else drawFaceAccessory(ctx, a, look.accessory);
+  if (look.skin && !look.ownHat) {
+    drawSkinHat(ctx, look.skin);
+    drawSkin2Hat(ctx, look.skin);
+  } else drawHat(ctx, look.hat);
+}
+
 /** Vẽ nhân vật thú cưng chibi. `look` = đồ đang mặc (mặc định theo nhân vật). */
 export function drawCharacter(
   ctx: CanvasRenderingContext2D,
@@ -918,15 +934,7 @@ export function drawCharacter(
     drawEarsBack(ctx, a);
     drawHead(ctx, a);
     drawFace(ctx, a);
-    if (look.skin) {
-      drawSkinFace(ctx, look.skin);
-      drawSkin2Face(ctx, look.skin);
-      drawSkinHat(ctx, look.skin);
-      drawSkin2Hat(ctx, look.skin);
-    } else {
-      drawFaceAccessory(ctx, a, look.accessory);
-      drawHat(ctx, look.hat);
-    }
+    drawHeadwear(ctx, a, look);
     if (look.horns) drawHorns(ctx, look.horns, CX, HEAD_Y, HEAD_R, look.glow);
     ctx.restore();
     if (look.sparkle) drawSparkles(ctx, look.glow ?? "#ffffff", Math.ceil(look.sparkle / 2), CHAR_W, CHAR_H);
@@ -982,7 +990,7 @@ export function drawCharacter(
   const sleeve = look.skin ? skinSleeve(look.skin) : sleeveColor(look.outfit);
   drawArm(ctx, a, CX - 34, BODY_Y - 24, CX + 12, BODY_Y, sleeve);
   drawArm(ctx, a, CX + 36, BODY_Y - 24, CX + 40, BODY_Y - 4, sleeve);
-  if (look.skin) {
+  if (look.skin && !look.ownAccessory) {
     drawSkinProp(ctx, look.skin);
     drawSkin2Prop(ctx, look.skin);
   } else drawAccessoryBody(ctx, look.accessory);
@@ -990,15 +998,7 @@ export function drawCharacter(
   drawEarsBack(ctx, a);
   drawHead(ctx, a);
   drawFace(ctx, a);
-  if (look.skin) {
-    drawSkinFace(ctx, look.skin);
-    drawSkin2Face(ctx, look.skin);
-    drawSkinHat(ctx, look.skin);
-    drawSkin2Hat(ctx, look.skin);
-  } else {
-    drawFaceAccessory(ctx, a, look.accessory);
-    drawHat(ctx, look.hat);
-  }
+  drawHeadwear(ctx, a, look);
   if (look.horns) drawHorns(ctx, look.horns, CX, HEAD_Y, HEAD_R, look.glow);
   if (look.sparkle) drawSparkles(ctx, look.glow ?? "#ffffff", look.sparkle, CHAR_W, CHAR_H);
 }

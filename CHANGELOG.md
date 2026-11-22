@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.30.1] – 2026-11-22 – Skin không còn che mũ / phụ kiện
+### Thay đổi
+- Skin tách thành phần: phần THÂN (áo, đồ sau lưng) luôn hiện; **mũ** đang đội thay phần mũ của skin, **phụ kiện** đang đeo thay phần mặt / đồ cầm tay của skin. Ô nào trống thì vẫn hiện phần đó của skin như cũ. Cánh, sừng vẫn hiện cùng skin.
+- Chỉ số thưởng của đồ không đổi.
+
 ## [0.30.0] – 2026-11-22 – Hòm Thư hệ thống
 ### Thêm
 - **📬 Hòm Thư** ở sảnh (dưới nút Đua Cá): thư Ban Quản Trị gửi riêng từng người (đền bù, thông báo). Có thư chưa đọc → tự mở khi vào sảnh; nút hiện số thư chưa đọc.

@@ -79,7 +79,11 @@ export function resolveLook(c: CharacterDef, equip: Equip = {}): Look {
   if (acc) look.accessory = { kind: acc.visual.kind as AccessoryKind, color: acc.visual.color, accent: acc.visual.accent };
   if (wings) look.wings = { kind: wings.visual.kind as WingKind, color: wings.visual.color, accent: wings.visual.accent };
   if (horns) look.horns = { kind: horns.visual.kind as HornKind, color: horns.visual.color, accent: horns.visual.accent };
-  if (skin) look.skin = skin.visual.kind as SkinKind;
+  if (skin) {
+    look.skin = skin.visual.kind as SkinKind;
+    look.ownHat = !!hat;
+    look.ownAccessory = !!acc;
+  }
   const tier = topTier(equip);
   if (tier === "superior" || tier === "legendary" || tier === "divine") look.glow = TIER_COLOR[tier];
   look.sparkle = tier === "divine" ? 10 : tier === "legendary" ? 5 : 0;
