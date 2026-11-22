@@ -6,6 +6,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SaveStorage } from "./storage.ts";
+import { isStaleSaveError } from "@dccc/shared";
 
 const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -118,6 +119,8 @@ export class OnlineSaveStorage implements SaveStorage {
   constructor(
     readonly user: OnlineUser,
     private readonly local: SaveStorage,
+    /** Gọi khi máy chủ báo bản này cũ hơn tài khoản (STALE_SAVE). */
+    private readonly onStale?: () => Promise<void>,
   ) {
     if (typeof document !== "undefined")
       document.addEventListener("visibilitychange", () => {
@@ -147,6 +150,12 @@ export class OnlineSaveStorage implements SaveStorage {
       this.lastError = null;
     } catch (e) {
       this.lastError = (e as Error).message;
+      if (isStaleSaveError(this.lastError)) {
+        // bản cũ – bỏ, không thử đẩy lại; tải bản mới nhất từ tài khoản
+        this.lastError = "Đã tải tiến trình mới nhất từ tài khoản (máy này đang dùng bản cũ)";
+        await this.onStale?.();
+        return;
+      }
       this.pending ??= data; // thử lại lần lưu sau
     }
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyCatch, createNewSave, decideSync, decodeBackup, encodeBackup, type PlayerSave } from "@dccc/shared";
+import { applyCatch, createNewSave, decideSync, isStaleSaveError, decodeBackup, encodeBackup, type PlayerSave } from "@dccc/shared";
 import { CATALOG, FISH_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 
@@ -61,5 +61,27 @@ describe("Đồng bộ khi đăng nhập", () => {
     expect(decideSync(played("p_x"), played("p_y"))).toMatchObject({ use: "remote", backupLocal: true });
     const fresh = createNewSave("p_new", "Mới", CATALOG, Date.now());
     expect(decideSync(fresh, played("p_y"))).toMatchObject({ use: "remote", backupLocal: false });
+  });
+});
+
+describe("Đồng bộ 2 máy cùng tài khoản (v0.29)", () => {
+  it("máy cũ có updatedAt mới hơn nhưng cấp thấp hơn → vẫn lấy bản tài khoản", () => {
+    const remote = { ...played("p_same"), level: 29 };
+    const local = { ...remote, level: 17, updatedAt: remote.updatedAt + 99999 };
+    expect(decideSync(local, remote)).toMatchObject({ use: "remote", upload: false, backupLocal: true });
+  });
+  it("máy này cao cấp hơn → đẩy lên", () => {
+    const remote = { ...played("p_same"), level: 10 };
+    const local = { ...remote, level: 12, updatedAt: remote.updatedAt - 5000 };
+    expect(decideSync(local, remote)).toMatchObject({ use: "local", upload: true });
+  });
+  it("chơi lại từ đầu (resetAt mới) được tôn trọng", () => {
+    const remote = { ...played("p_same"), level: 20 };
+    const local = { ...createNewSave("p_same", "Mới", CATALOG, Date.now()), resetAt: Date.now() };
+    expect(decideSync(local, remote)).toMatchObject({ use: "local", upload: true });
+  });
+  it("nhận ra lỗi STALE_SAVE từ máy chủ", () => {
+    expect(isStaleSaveError("STALE_SAVE: Tiến trình trên máy này cũ hơn")).toBe(true);
+    expect(isStaleSaveError("network")).toBe(false);
   });
 });

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.29.0] – 2026-11-22 – Sửa đồng bộ tiến trình điện thoại ↔ máy tính
+### Sửa lỗi
+- **Máy chủ chặn nhầm mọi lần lưu** (nguyên nhân "kẹt lv29" / không đồng bộ): một bản guard gắn thêm trên máy chủ (`trg_player_saves_guard`) so `save_version` (phiên bản định dạng, luôn là 8) rồi tự tăng nó sau mỗi lần ghi → từ lần ghi thứ 2 trở đi mọi lần lưu bị từ chối. Đã gỡ, đưa `save_version` về đúng, thay bằng guard mới (migration `20261205000001_stale_save_guard`).
+- Guard mới: chặn bản lưu làm TỤT cấp/số cá (máy cũ) hoặc mang tiến trình của tài khoản khác, lỗi `STALE_SAVE`. Ngoại lệ khi bản lưu có `resetAt` mới (Chơi lại từ đầu / Nạp mã sao lưu).
+- Game: khi máy chủ báo `STALE_SAVE` → tự tải tiến trình mới nhất từ tài khoản (cất bản trên máy làm sao lưu), báo "☁️ Đã tải tiến trình mới nhất từ tài khoản".
+- Đăng nhập trên máy thứ 2: so **tiến trình** (cấp, số cá) trước, thời gian lưu chỉ phân xử khi ngang nhau – máy để lâu không còn ghi đè máy kia.
+- Khôi phục tài khoản bị chép nhầm dữ liệu của người khác về bản sao lưu của chính chủ.
+
 ## [0.28.5] – 2026-11-20 – Khung chat câu cá to hơn nữa
 ### Thay đổi
 - Khung chat lúc câu cá to hơn nữa: 700×302, chữ tin nhắn cỡ 21, tiêu đề 24, ô nhập chữ 22 (cao 54), nút Gửi/▾ to hơn.

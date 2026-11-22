@@ -91,6 +91,7 @@ export const playerSaveSchema = z.object({
   appliedTx: z.array(id),
   createdAt: timestamp,
   updatedAt: timestamp,
+  resetAt: timestamp.optional(),
 });
 
 /**

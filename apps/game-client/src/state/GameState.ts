@@ -503,7 +503,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     const d = decideSync(this._save, remote);
     if (d.backupLocal) await this.baseStorage.backup(this._save);
     if (d.use === "remote" && remote) this._save = remote;
-    const online = new Online.OnlineSaveStorage(user, this.baseStorage);
+    const online = new Online.OnlineSaveStorage(user, this.baseStorage, () => this.adoptRemoteAfterStale(user));
     this.storage = online;
     this.online = user;
     await online.save(this._save);
@@ -513,6 +513,30 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     void this.publishProfile();
     this.startHeartbeat();
     return d.reason;
+  }
+
+  /**
+   * Máy chủ từ chối bản trên máy vì cũ hơn tài khoản (đã chơi tiếp trên máy khác) →
+   * tải bản mới nhất về, cất bản trên máy làm sao lưu, chơi tiếp bằng bản mới.
+   */
+  private staleBusy = false;
+  private async adoptRemoteAfterStale(user: Online.OnlineUser): Promise<void> {
+    if (this.staleBusy || this.online?.id !== user.id) return;
+    this.staleBusy = true;
+    try {
+      const raw = await Online.fetchRemoteSave(user.id);
+      const p = raw ? parseSave(raw) : null;
+      if (!p || !p.ok || !this.isConsistent(p.save)) return;
+      await this.baseStorage.backup(this._save);
+      this._save = refillBossTickets(p.save, Date.now());
+      await this.baseStorage.save(this._save);
+      this.emit("changed", this._save);
+      this.emit("synced-remote", "Đã tải tiến trình mới nhất từ tài khoản (bạn vừa chơi trên máy khác)");
+    } catch (e) {
+      console.warn("Không tải được tiến trình mới nhất:", (e as Error).message);
+    } finally {
+      this.staleBusy = false;
+    }
   }
 
   async signUp(email: string, password: string, name: string) {
@@ -567,12 +591,14 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     if (!p.ok) return { ok: false, error: "Dữ liệu sao lưu không hợp lệ hoặc của phiên bản game khác" };
     if (!this.isConsistent(p.save)) return { ok: false, error: "Sao lưu chứa vật phẩm không tồn tại trong game" };
     await this.baseStorage.backup(this._save);
-    this.commit(refillBossTickets(p.save, Date.now()));
+    // resetAt mới: máy chủ hiểu đây là chủ ý thay tiến trình (không phải máy cũ ghi đè)
+    this.commit({ ...refillBossTickets(p.save, Date.now()), resetAt: Date.now() });
     return { ok: true, save: this._save };
   }
 
   async reset() {
-    this._save = createNewSave(this._save.playerId, "Cần Thủ", CATALOG, Date.now());
+    const now = Date.now();
+    this._save = { ...createNewSave(this._save.playerId, "Cần Thủ", CATALOG, now), resetAt: now };
     await this.persist();
     this.emit("changed", this._save);
   }

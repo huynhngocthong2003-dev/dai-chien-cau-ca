@@ -651,3 +651,34 @@ do $$ begin
 end $$;
 reset role;
 select 'DB RACE INVITES TEST OK' as result;
+
+-- ================= Chặn máy cũ ghi đè (cùng mã người chơi) =================
+insert into public.player_saves (user_id, save, save_version, player_id, level)
+values ('22222222-2222-2222-2222-222222222222', '{"version":8,"stats":{"totalCaught":570},"playerId":"p_same"}', 8, 'p_same', 29)
+on conflict (user_id) do update set save = excluded.save, player_id = excluded.player_id, level = excluded.level;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ begin
+  begin update public.player_saves set save = '{"version":8,"stats":{"totalCaught":109},"playerId":"p_same"}', level = 12 where user_id = '22222222-2222-2222-2222-222222222222';
+    raise exception 'LỖI: máy cũ ghi đè được tiến trình mới';
+  exception when raise_exception then if sqlerrm not like 'STALE_SAVE%' then raise; end if; end;
+  -- tiến lên bình thường vẫn được
+  update public.player_saves set save = '{"version":8,"stats":{"totalCaught":575},"playerId":"p_same"}', level = 29 where user_id = '22222222-2222-2222-2222-222222222222';
+  -- xóa tiến trình (resetAt mới) được phép
+  update public.player_saves set save = '{"version":8,"stats":{"totalCaught":0},"playerId":"p_same","resetAt":123}', level = 1 where user_id = '22222222-2222-2222-2222-222222222222';
+  -- lưu nhiều lần liên tiếp không bị chặn (lỗi bản guard cũ tự tăng save_version)
+  update public.player_saves set save = '{"version":8,"stats":{"totalCaught":3},"playerId":"p_same","resetAt":123}', save_version = 8, level = 1 where user_id = '22222222-2222-2222-2222-222222222222';
+  update public.player_saves set save = '{"version":8,"stats":{"totalCaught":4},"playerId":"p_same","resetAt":123}', save_version = 8, level = 2 where user_id = '22222222-2222-2222-2222-222222222222';
+  update public.player_saves set save = '{"version":8,"stats":{"totalCaught":9},"playerId":"p_same","resetAt":123}', save_version = 8, level = 3 where user_id = '22222222-2222-2222-2222-222222222222';
+  -- máy đang giữ tiến trình của tài khoản KHÁC (playerId khác) → chặn
+  begin update public.player_saves set save = '{"version":8,"stats":{"totalCaught":999},"playerId":"p_other","resetAt":123}', level = 40 where user_id = '22222222-2222-2222-2222-222222222222';
+    raise exception 'LỖI: ghi đè được tiến trình của tài khoản khác';
+  exception when raise_exception then if sqlerrm not like 'STALE_SAVE%' then raise; end if; end;
+  -- nạp mã sao lưu (resetAt mới) được phép
+  update public.player_saves set save = '{"version":8,"stats":{"totalCaught":50},"playerId":"p_other","resetAt":456}', level = 5 where user_id = '22222222-2222-2222-2222-222222222222';
+end $$;
+reset role;
+do $$ begin
+  if (select level from public.player_saves where user_id = '22222222-2222-2222-2222-222222222222') <> 5 then raise exception 'Xóa tiến trình / nạp sao lưu bị chặn nhầm'; end if;
+end $$;
+select 'DB STALE SAVE GUARD TEST OK' as result;

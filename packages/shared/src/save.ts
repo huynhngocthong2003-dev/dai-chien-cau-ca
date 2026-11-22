@@ -149,6 +149,8 @@ export interface PlayerSave {
   appliedTx: string[];
   createdAt: number;
   updatedAt: number;
+  /** Thời điểm người chơi tự xoá tiến trình (chơi lại từ đầu) – máy chủ chỉ cho tụt cấp khi giá trị này đổi. */
+  resetAt?: number;
 }
 
 export interface GameCatalog {

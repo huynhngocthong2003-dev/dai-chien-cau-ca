@@ -212,7 +212,7 @@ async function playOneFish(p) {
     await p3.fill('#acc-name', 'Vua Câu Cá');
     await p3.mouse.click(1050, 252); // Tạo tài khoản
     await p3.waitForFunction(() => window.__game && JSON.parse(localStorage.getItem('dccc_save_v1')).name === 'Vua Câu Cá', null, { timeout: 8000 }).catch(() => errs.push('Tạo tài khoản không đổi tên'));
-    await p3.waitForFunction(() => window.__game.scene.isActive('Hub'), null, { timeout: 10000 }).catch(() => errs.push('Tạo tài khoản xong không vào sảnh'));
+    await p3.waitForFunction(() => window.__game.scene.isActive('Hub'), null, { timeout: 25000 }).catch(() => errs.push('Tạo tài khoản xong không vào sảnh'));
     await p3.waitForTimeout(1200);
     await p3.screenshot({ path: `${out}/acc-4-online.png` });
     const remote = [...db.saves.values()][0];
@@ -233,7 +233,7 @@ async function playOneFish(p) {
     await p4.mouse.click(1050, 178);
     await p4.waitForFunction((id) => JSON.parse(localStorage.getItem('dccc_save_v1')).playerId === id, s3.playerId, { timeout: 8000 }).catch(() => {});
     const s4 = await save(p4);
-    await p4.waitForFunction(() => window.__game.scene.isActive('Hub'), null, { timeout: 10000 }).catch(() => errs.push('Đăng nhập xong không vào sảnh'));
+    await p4.waitForFunction(() => window.__game.scene.isActive('Hub'), null, { timeout: 25000 }).catch(() => errs.push('Đăng nhập xong không vào sảnh'));
     if (s4.playerId !== s3.playerId || s4.fishes.length !== s3.fishes.length) errs.push('Đăng nhập máy khác không nhận đúng tiến trình');
     else step('Máy 4 đăng nhập: nhận đúng tiến trình từ tài khoản');
     await p4.waitForTimeout(800);

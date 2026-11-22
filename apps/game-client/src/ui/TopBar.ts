@@ -108,7 +108,10 @@ export class TopBar extends Phaser.GameObjects.Container {
     this.refresh(GameState.save);
     GameState.on("changed", this.handler);
     GameState.on("account", this.accountHandler);
+    const onRemote = (msg: string) => toast(scene, `☁️ ${msg}`);
+    GameState.on("synced-remote", onRemote);
     this.once(Phaser.GameObjects.Events.DESTROY, () => {
+      GameState.off("synced-remote", onRemote);
       GameState.off("changed", this.handler);
       GameState.off("account", this.accountHandler);
     });
