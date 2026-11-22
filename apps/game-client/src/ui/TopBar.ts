@@ -4,6 +4,7 @@ import { PROGRESSION } from "@dccc/game-config";
 import { CHARACTER_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
 import type { PlayerSave } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
+import { OnlineSaveStorage } from "../state/online.ts";
 import { characterHeadTexture } from "../art/textures.ts";
 import { Bar, Button, formatNum, goTo, toast, txt } from "./widgets.ts";
 import { isFullscreen, toggleFullscreen } from "./fullscreen.ts";
@@ -108,6 +109,15 @@ export class TopBar extends Phaser.GameObjects.Container {
     this.refresh(GameState.save);
     GameState.on("changed", this.handler);
     GameState.on("account", this.accountHandler);
+    // Báo rõ khi KHÔNG lưu được lên tài khoản (không để lỗi lưu âm thầm như đợt 21/11)
+    const syncTimer = scene.time.addEvent({ delay: 3000, loop: true, callback: () => this.refreshSync() });
+    this.once(Phaser.GameObjects.Events.DESTROY, () => syncTimer.remove());
+    this.storageT.setInteractive({ useHandCursor: true }).on("pointerup", () => {
+      const st = GameState.storage;
+      if (st instanceof OnlineSaveStorage && st.failing) {
+        void GameState.syncNow().then((err) => toast(scene, err ? `⚠️ Chưa lưu được: ${err}` : "☁️ Đã lưu lên tài khoản"));
+      }
+    });
     const onRemote = (msg: string) => toast(scene, `☁️ ${msg}`);
     GameState.on("synced-remote", onRemote);
     this.once(Phaser.GameObjects.Events.DESTROY, () => {
@@ -118,6 +128,14 @@ export class TopBar extends Phaser.GameObjects.Container {
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
   }
 
+  /** Nhãn lưu: đỏ "⚠️ Chưa lưu" khi lần lưu lên tài khoản thất bại liên tục. */
+  private refreshSync() {
+    const st = GameState.storage;
+    if (!(st instanceof OnlineSaveStorage)) return;
+    if (st.failing) this.storageT.setText("⚠️ Chưa lưu – bấm thử lại").setColor("#ff5252");
+    else this.storageT.setText("☁️ Tài khoản").setColor(COLORS.textDim);
+  }
+
   refresh(s: PlayerSave) {
     this.goldT.setText(formatNum(s.gold));
     this.gemT.setText(formatNum(s.diamonds));
@@ -125,6 +143,7 @@ export class TopBar extends Phaser.GameObjects.Container {
     this.soulT.setText(formatNum(s.materials.soul));
     const k = GameState.storage.kind;
     this.storageT.setText(k === "online" ? "☁️ Tài khoản" : k === "cloud" ? "☁️ Đám mây" : "💾 Trên máy");
+    this.refreshSync();
     if (this.nameT) {
       const c = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
       this.avatar.setTexture(characterHeadTexture(this.scene, c, s.characters[c.id]?.equip)).setDisplaySize(62, 74);

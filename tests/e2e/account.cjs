@@ -21,7 +21,7 @@ async function open(browser, url, setup) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const p = await ctx.newPage();
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
-  p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('401') && !m.text().includes('400')) errs.push('console: ' + m.text()); });
+  p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('401') && !m.text().includes('400') && !m.text().includes('status of 500')) errs.push('console: ' + m.text()); });
   if (setup) await setup(p);
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
@@ -33,7 +33,7 @@ async function openGate(browser, url, setup) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const p = await ctx.newPage();
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
-  p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('401') && !m.text().includes('400')) errs.push('console: ' + m.text()); });
+  p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('401') && !m.text().includes('400') && !m.text().includes('status of 500')) errs.push('console: ' + m.text()); });
   if (setup) await setup(p);
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Account'), null, { timeout: 30000 });
@@ -159,6 +159,7 @@ async function playOneFish(p) {
             return json(200, row ? [{ save: row.save }] : []);
           }
           if (req.method() === 'POST') {
+            if (db.failPush) return json(500, { message: 'máy chủ lỗi (giả lập)' });
             const b = req.postDataJSON();
             const row = Array.isArray(b) ? b[0] : b;
             if (row.user_id !== uid) return json(403, { message: 'new row violates row-level security policy' });
@@ -265,6 +266,28 @@ async function playOneFish(p) {
     if (!srv || srv.level !== 9) errs.push('Tiến trình tìm lại chưa được tải lên tài khoản (cấp trên máy chủ: ' + (srv && srv.level) + ')');
     else step('Máy 5: tìm lại tiến trình cấp 9 còn cất trên máy và tải lên tài khoản');
     await p5.context().close();
+
+    // Máy 6: máy chủ từ chối lưu → phải BÁO RÕ trên màn hình (không âm thầm), bấm để thử lại
+    db.failPush = true;
+    const p6 = await openGate(browser, urlOnline, mock);
+    await p6.fill('#acc-email', 'ca@vi.du');
+    await p6.fill('#acc-pass', 'matkhau123');
+    await p6.mouse.click(1050, 178);
+    await p6.waitForFunction(() => window.__game.scene.isActive('Hub'), null, { timeout: 25000 }).catch(() => {});
+    const findWarn = () => p6.evaluate(() => { const t = window.__game.scene.getScene('Hub').children.list.flatMap((o) => (o.list ? o.list : [o])).find((o) => o.text && o.text.includes('Chưa lưu')); if (!t) return null; const m = t.getWorldTransformMatrix(); return { x: m.tx, y: m.ty, w: t.width }; });
+    let warn = null;
+    for (let i = 0; i < 60 && !warn; i++) { await p6.waitForTimeout(1000); warn = await findWarn(); }
+    await p6.screenshot({ path: `${out}/acc-7-sync-fail.png` });
+    if (!warn) errs.push('Máy chủ từ chối lưu mà không báo trên màn hình');
+    else {
+      db.failPush = false;
+      await p6.mouse.click(warn.x - warn.w / 2, warn.y);
+      let gone = false;
+      for (let i = 0; i < 15 && !gone; i++) { await p6.waitForTimeout(1000); gone = !(await findWarn()); }
+      if (!gone) errs.push('Bấm thử lại lưu nhưng cảnh báo không mất');
+      else step('Máy 6: máy chủ lỗi lưu → hiện "⚠️ Chưa lưu", bấm thử lại → lưu được');
+    }
+    await p6.context().close();
   }
 
   await browser.close();

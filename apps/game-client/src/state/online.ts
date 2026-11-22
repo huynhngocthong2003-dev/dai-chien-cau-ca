@@ -115,6 +115,11 @@ export class OnlineSaveStorage implements SaveStorage {
   private pending: unknown = null;
   lastSyncedAt: number | null = null;
   lastError: string | null = null;
+  /** Số lần lưu lên tài khoản thất bại liên tiếp. */
+  failCount = 0;
+  get failing(): boolean {
+    return this.failCount >= 2;
+  }
 
   constructor(
     readonly user: OnlineUser,
@@ -148,15 +153,21 @@ export class OnlineSaveStorage implements SaveStorage {
       await pushRemoteSave(this.user.id, data as { version: number; playerId: string; level: number });
       this.lastSyncedAt = Date.now();
       this.lastError = null;
+      this.failCount = 0;
     } catch (e) {
       this.lastError = (e as Error).message;
       if (isStaleSaveError(this.lastError)) {
+        this.failCount = 0;
         // bản cũ – bỏ, không thử đẩy lại; tải bản mới nhất từ tài khoản
         this.lastError = "Đã tải tiến trình mới nhất từ tài khoản (máy này đang dùng bản cũ)";
         await this.onStale?.();
         return;
       }
+      this.failCount++;
+      console.warn("Lưu lên tài khoản thất bại:", this.lastError);
       this.pending ??= data; // thử lại lần lưu sau
+      // tự thử lại sau 20 giây kể cả khi người chơi đứng yên
+      if (!this.timer) this.timer = setTimeout(() => void this.flush(), 20000);
     }
   }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.29.2] – 2026-11-22 – Báo rõ khi không lưu được lên tài khoản
+### Thêm
+- Thanh trên cùng: lưu lên tài khoản thất bại liên tiếp → nhãn đỏ "⚠️ Chưa lưu – bấm thử lại" (bấm để lưu ngay). Không còn lỗi lưu âm thầm như đợt 21–22/11.
+- Lưu lỗi tự thử lại mỗi 20 giây kể cả khi người chơi đứng yên.
+- E2E tài khoản: máy 6 giả lập máy chủ lỗi lưu → phải hiện cảnh báo, bấm thử lại → lưu được.
+
 ## [0.29.1] – 2026-11-22 – Tự tìm lại tiến trình bị lỡ trên máy
 ### Sửa lỗi
 - Đợt máy chủ từ chối lưu (21–22/11) làm tiến trình chỉ còn trên máy/trình duyệt đã chơi. Khi đăng nhập, game giờ dò cả các bản cất trên máy (`dccc_save_v1_backup_*`): bản nào CÙNG người chơi với tài khoản mà cấp/số cá cao hơn → tự dùng lại và tải lên tài khoản, báo "Đã tìm lại tiến trình cấp X…".
