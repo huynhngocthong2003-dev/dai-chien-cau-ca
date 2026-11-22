@@ -682,3 +682,19 @@ do $$ begin
   if (select level from public.player_saves where user_id = '22222222-2222-2222-2222-222222222222') <> 5 then raise exception 'Xóa tiến trình / nạp sao lưu bị chặn nhầm'; end if;
 end $$;
 select 'DB STALE SAVE GUARD TEST OK' as result;
+
+-- ================= Hòm Thư hệ thống =================
+insert into public.system_mail (user_id, title, body) values ('22222222-2222-2222-2222-222222222222', 'Đền bù', 'Thư cho 2222');
+insert into public.system_mail (user_id, title, body) values ('33333333-3333-3333-3333-333333333333', 'Riêng', 'Thư cho 3333');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ declare n int; mid bigint; begin
+  select count(*) into n from public.system_mail; if n <> 1 then raise exception 'Thấy thư của người khác (%)', n; end if;
+  begin insert into public.system_mail (user_id, title, body) values ('22222222-2222-2222-2222-222222222222', 'x', 'tự gửi'); raise exception 'LỖI: người chơi tự gửi thư được';
+  exception when insufficient_privilege then null; end;
+  select id into mid from public.system_mail limit 1;
+  perform public.mark_mail_read(mid);
+  if (select read_at from public.system_mail where id = mid) is null then raise exception 'Không đánh dấu đã đọc được'; end if;
+end $$;
+reset role;
+select 'DB SYSTEM MAIL TEST OK' as result;

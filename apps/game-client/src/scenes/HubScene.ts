@@ -15,6 +15,7 @@ import { addAmbience } from "../art/ambience.ts";
 import { addFashionFx } from "../art/fashionFx.ts";
 import { openGiftCode } from "../ui/giftCode.ts";
 import { openWorldChat } from "../ui/worldChat.ts";
+import { openMailbox } from "../ui/mailbox.ts";
 import { htmlOverlay } from "../ui/htmlOverlay.ts";
 
 /** Tính năng chưa mở (hiện chưa có – mọi mục ở sảnh đã hoạt động). */
@@ -156,6 +157,23 @@ export class HubScene extends Phaser.Scene {
     // kênh chat thế giới
     const wc = new Button(this, 92 - extraX(this) + safeX(this), 130, 150, 50, "🌍 Chat", { color: COLORS.blue, fontSize: 20, onClick: () => openWorldChat(this) });
     wc.setDepth(20);
+    // Hòm Thư hệ thống (thư đền bù / thông báo) – có thư chưa đọc thì tự mở 1 lần
+    if (GameState.online) {
+      const mb = new Button(this, 92 - extraX(this) + safeX(this), 310, 150, 50, "📬 Hòm Thư", { color: COLORS.purple, fontSize: 18, onClick: () => void openMail(false) });
+      mb.setDepth(20);
+      const openMail = async (auto: boolean) => {
+        try {
+          const mails = await Social.fetchMail();
+          if (!this.scene.isActive()) return;
+          const unread = mails.filter((x) => !x.read_at).length;
+          mb.label.setText(unread ? `📬 Hòm Thư (${unread})` : "📬 Hòm Thư");
+          if (!auto || unread) openMailbox(this, mails, () => mb.label.setText(mails.some((x) => !x.read_at) ? `📬 Hòm Thư (${mails.filter((x) => !x.read_at).length})` : "📬 Hòm Thư"));
+        } catch (e) {
+          if (!auto) toast(this, `Không mở được Hòm Thư: ${(e as Error).message}`, COLORS.red);
+        }
+      };
+      void openMail(true);
+    }
     // Quảng Trường: gặp gỡ, trò chuyện, khoe cá
     const pz = new Button(this, 92 - extraX(this) + safeX(this), 190, 150, 50, "🏙 Quảng Trường", { color: COLORS.orange, fontSize: 17, onClick: () => goTo(this, "Plaza") });
     pz.setDepth(20);
@@ -324,6 +342,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.29.2 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.30.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

@@ -643,3 +643,22 @@ export interface RaceInvite {
 }
 export const raceMyInvites = async () => ((await rpc("race_my_invites")) as RaceInvite[] | null) ?? [];
 export const raceInviteRespond = (id: number, accept: boolean) => rpc("race_invite_respond", { p_id: id, p_accept: accept });
+
+// ------------------------------------------------------------------ Hòm Thư hệ thống
+export interface SystemMail {
+  id: number;
+  title: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+}
+
+/** Thư Ban Quản Trị gửi cho mình (mới nhất trước). */
+export async function fetchMail(limit = 30): Promise<SystemMail[]> {
+  const sb = await getClient();
+  const { data, error } = await sb.from("system_mail").select("id, title, body, created_at, read_at").order("created_at", { ascending: false }).limit(limit);
+  if (error) throw new Error(friendlyRpc(error.message));
+  return (data as SystemMail[]) ?? [];
+}
+
+export const markMailRead = (id: number) => rpc("mark_mail_read", { p_id: id });

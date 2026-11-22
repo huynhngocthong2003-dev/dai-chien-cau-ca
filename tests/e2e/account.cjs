@@ -184,6 +184,8 @@ async function playOneFish(p) {
         }
         if (u.pathname === '/rest/v1/pvp_matches' || u.pathname === '/rest/v1/friendships' || u.pathname === '/rest/v1/topup_orders') return json(200, []);
         if (u.pathname === '/rest/v1/rpc/claim_topups') return json(200, []);
+        if (u.pathname === '/rest/v1/system_mail') return json(200, db.mail ? [{ id: 1, title: 'Quà đền bù lỗi lưu', body: 'Ban Quản Trị gửi bạn 1.000 kim cương và 50.000 vàng.', created_at: new Date().toISOString(), read_at: null }] : []);
+        if (u.pathname === '/rest/v1/rpc/mark_mail_read') { db.mailRead = true; return json(200, null); }
         if (u.pathname.startsWith('/rest/v1/rpc/')) return json(200, null);
         return json(404, { message: 'mock: không hỗ trợ ' + req.method() + ' ' + u.pathname });
       });
@@ -252,6 +254,7 @@ async function playOneFish(p) {
     await p4.context().close();
 
     // Máy 5: tiến trình CAO HƠN chỉ còn trong bản cất trên máy (đợt máy chủ từ chối lưu) → tự tìm lại & tải lên
+    db.mail = true;
     const lost = { ...s4, level: 9, xp: 0, updatedAt: s4.updatedAt - 1000 };
     const p5 = await openGate(browser, urlOnline, async (page) => {
       await mock(page);
@@ -265,6 +268,15 @@ async function playOneFish(p) {
     const srv = [...db.saves.values()][0];
     if (!srv || srv.level !== 9) errs.push('Tiến trình tìm lại chưa được tải lên tài khoản (cấp trên máy chủ: ' + (srv && srv.level) + ')');
     else step('Máy 5: tìm lại tiến trình cấp 9 còn cất trên máy và tải lên tài khoản');
+    // Hòm Thư: có thư chưa đọc → tự mở khi vào sảnh, mở thư = đánh dấu đã đọc
+    await p5.waitForFunction(() => window.__game.scene.isActive('Hub'), null, { timeout: 25000 }).catch(() => {});
+    const mailShown = await p5.waitForFunction(() => { const has = (o) => (o.text && o.text.includes('Quà đền bù lỗi lưu')) || (o.list && o.list.some(has)); return window.__game.scene.getScene('Hub').children.list.some(has); }, null, { timeout: 15000 }).then(() => true).catch(() => false);
+    await p5.waitForTimeout(800);
+    await p5.screenshot({ path: `${out}/acc-6b-mailbox.png` });
+    if (!mailShown) errs.push('Có thư chưa đọc mà Hòm Thư không tự mở');
+    else if (!db.mailRead) errs.push('Mở thư nhưng không đánh dấu đã đọc');
+    else step('Hòm Thư: thư đền bù tự hiện khi vào sảnh, mở thư → đã đọc');
+    db.mail = false;
     await p5.context().close();
 
     // Máy 6: máy chủ từ chối lưu → phải BÁO RÕ trên màn hình (không âm thầm), bấm để thử lại

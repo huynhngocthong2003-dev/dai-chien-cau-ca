@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0] – 2026-11-22 – Hòm Thư hệ thống
+### Thêm
+- **📬 Hòm Thư** ở sảnh (dưới nút Đua Cá): thư Ban Quản Trị gửi riêng từng người (đền bù, thông báo). Có thư chưa đọc → tự mở khi vào sảnh; nút hiện số thư chưa đọc.
+- Bảng `system_mail` (migration `20261206000001_system_mail`): người chơi chỉ đọc thư của mình, không tự gửi được; RPC `mark_mail_read`. Thư chỉ để thông báo – phần thưởng cộng thẳng qua sổ giao dịch.
+- Đã gửi thư đền bù lỗi lưu 21–22/11 cho 4 người chơi (cấp, cá, vàng, kim cương đã cộng có ghi sổ).
+- Test: DB (RLS hòm thư), E2E tài khoản (thư tự hiện, mở → đã đọc).
+
 ## [0.29.2] – 2026-11-22 – Báo rõ khi không lưu được lên tài khoản
 ### Thêm
 - Thanh trên cùng: lưu lên tài khoản thất bại liên tiếp → nhãn đỏ "⚠️ Chưa lưu – bấm thử lại" (bấm để lưu ngay). Không còn lỗi lưu âm thầm như đợt 21–22/11.
