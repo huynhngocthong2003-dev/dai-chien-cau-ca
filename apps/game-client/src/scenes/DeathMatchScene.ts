@@ -222,7 +222,7 @@ export class DeathMatchScene extends Phaser.Scene {
   private renderPvpLocked(c: Phaser.GameObjects.Container) {
     c.add(panel(this, 240, 170, 800, 500, 0.95));
     c.add(txt(this, 640, 230, "🔒 Đấu 3vs3 với người", 32, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
-    const who = this.opponent ? `Bạn muốn đấu với ${this.opponent.name}.\n\n` : "";
+    const who = this.opponent ? `Bạn muốn đấu với ${this.opponent.display_name}.\n\n` : "";
     const lines = [
       `${who}Chế độ này sẽ mở ở Giai đoạn 6 của bản đại tu:`,
       "",
