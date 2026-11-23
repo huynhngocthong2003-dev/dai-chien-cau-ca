@@ -173,7 +173,7 @@ export class HubScene extends Phaser.Scene {
     // kênh chat thế giới
     const wc = new Button(this, 92 - extraX(this) + safeX(this), 130, 150, 50, "🌍 Chat", { color: COLORS.blue, fontSize: 20, onClick: () => openWorldChat(this) });
     wc.setDepth(20);
-    // Boss Thế Giới (12h · 15h · 20h): "LIVE" khi đang diễn ra
+    // Boss Thế Giới (12h · 15h · 20h · 23h): "LIVE" khi đang diễn ra
     const wbSlot = worldBossSlot(Date.now());
     const wb = new Button(this, 92 - extraX(this) + safeX(this), GameState.online ? 250 : 190, 150, 50, "🐉 Boss TG", {
       color: wbSlot.live ? COLORS.red : COLORS.orange,
@@ -437,6 +437,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.49.1 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.50.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

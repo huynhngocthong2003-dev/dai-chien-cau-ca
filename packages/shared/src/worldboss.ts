@@ -1,6 +1,6 @@
 /**
  * BOSS THẾ GIỚI – logic thuần (chạy cả máy chủ Edge Function `world-boss` lẫn game, có test).
- *  - Xuất hiện 12h · 15h · 20h (giờ Việt Nam, UTC+7), mỗi lần 30 phút; mọi người chơi đánh chung 1 thanh máu.
+ *  - Xuất hiện 12h · 15h · 20h · 23h (giờ Việt Nam, UTC+7), mỗi lần 30 phút; mọi người chơi đánh chung 1 thanh máu.
  *  - Boss xoay vòng 7 con (7 hệ) theo ngày + khung giờ.
  *  - Mỗi lượt vào đánh: đội 3 cá, 15 đòn canh kim (máy chủ xét thời điểm bấm như trận 3vs3); tối đa 3 lượt / khung giờ.
  *  - Hết giờ / hạ boss: xếp hạng theo TỔNG SÁT THƯƠNG → quà theo hạng (gửi Hòm Thư);
@@ -26,11 +26,11 @@ export interface WorldBossDef {
 
 export const WORLD_BOSS = {
   /** Giờ bắt đầu theo giờ Việt Nam. */
-  hours: [12, 15, 20] as const,
+  hours: [12, 15, 20, 23] as const,
   durationMin: 30,
   tzOffsetMin: 7 * 60,
   /** Máu theo khung giờ (20h đông người → trâu hơn). */
-  maxHp: [800_000, 800_000, 1_200_000] as const,
+  maxHp: [800_000, 800_000, 1_200_000, 1_200_000] as const,
   hitsPerEntry: 15,
   entriesPerSlot: 3,
 } as const;
@@ -72,13 +72,13 @@ export function worldBossSlot(now: number): WorldBossSlot {
 
 /** Boss của khung giờ: xoay vòng 7 con theo ngày + khung. */
 export function worldBossFor<T>(slot: Pick<WorldBossSlot, "dayIndex" | "slotIndex">, bosses: readonly T[]): T {
-  // NGẪU NHIÊN mỗi khung giờ đúng 1 boss – băm tất định (máy chủ & máy khách ra cùng boss), tránh trùng khung liền trước
+  // NGẪU NHIÊN mỗi khung giờ đúng 1 boss – băm tất định (máy chủ & máy khách ra cùng boss).
+  // Trong cùng 1 ngày, khung sau LUÔN khác boss khung liền trước (bước nhảy 1..n-1).
   const n = bosses.length;
   const per = WORLD_BOSS.hours.length;
-  const pick = (k: number) => wbHash(k) % n;
-  const k = slot.dayIndex * per + slot.slotIndex;
-  let i = pick(k);
-  if (n > 1 && i === pick(k - 1)) i = (i + 1 + (wbHash(k ^ 0x5bd1e995) % (n - 1))) % n;
+  const base = slot.dayIndex * per;
+  let i = wbHash(base) % n;
+  for (let j = 1; j <= slot.slotIndex && n > 1; j++) i = (i + 1 + (wbHash(base + j) % (n - 1))) % n;
   return bosses[i]!;
 }
 

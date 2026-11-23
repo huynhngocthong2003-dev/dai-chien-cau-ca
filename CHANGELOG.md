@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.50.0] – 2026-11-23 – Tỉ lệ câu theo chỉ số người chơi · Boss 23h
+### Thêm
+- **Tỉ lệ ra cá / rác tuỳ theo chỉ số người chơi**: may mắn (nhân vật + bùa) và tỉ lệ hiếm của cần càng cao → **cá cấp cao càng nhiều**, cá thường & rác càng ít. Ví dụ Bến Câu Tân Thủ: may mắn 0 → 22% cá Hiếm trở lên · 9,5% rác; may mắn 50 → 33% · 6% rác; may mắn 150 → 51% · 3,4% rác. Cá hiếm hơn vẫn luôn khó gặp hơn cá cấp dưới.
+- Nút **📊 Tỉ lệ** trong màn câu cá: bảng tỉ lệ rác, từng cấp cá (Thường → Thần Thoại) và Boss tính đúng theo chỉ số hiện tại của bạn (kể cả "Đàn cá quý").
+- **Boss Thế Giới thêm khung 23h** (23h–23h30): nay có 4 khung **12h · 15h · 20h · 23h**, máu boss khung 23h như khung 20h.
+### Thay đổi
+- Chọn boss ngẫu nhiên: trong cùng một ngày, khung sau luôn là boss khác khung trước.
+
 ## [0.49.1] – 2026-11-23 – Sửa May Mắn & Mùa Cá Lớn
 ### Sửa lỗi
 - **May mắn giờ giảm tỉ lệ vớt rác**: trước đây rác cố định 12% mỗi lần quăng bất kể may mắn → nâng may mắn vẫn ra rác. Nay: may mắn thấp ~9%, +50 may mắn ~6%, +150 may mắn ~3,5% (tối thiểu 2% để còn nhiệm vụ Sinh Thái). "Đàn cá quý" (+60 may mắn) cũng giảm rác.

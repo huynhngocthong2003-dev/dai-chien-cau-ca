@@ -1,6 +1,6 @@
 import type { WorldBossDef } from "@dccc/shared";
 
-/** 7 BOSS THẾ GIỚI – sinh vật biển × trái cây, mỗi hệ 1 con (xoay vòng theo khung giờ 12h · 15h · 20h). */
+/** 7 BOSS THẾ GIỚI – sinh vật biển × trái cây, mỗi hệ 1 con (xoay vòng theo khung giờ 12h · 15h · 20h · 23h). */
 export const WORLD_BOSSES: WorldBossDef[] = [
   { id: "wb_thanh_long", name: "Thanh Long Long Vương", title: "Dragon Fruit Emperor", element: "wood", def: 260, description: "Cá rồng thân dài vảy thanh long hồng, lá xanh dọc sống lưng, râu dài, đuôi lửa đỏ." },
   { id: "wb_ot_hoa", name: "Ớt Hỏa Long Ngư", title: "Chili Flame Dragonfish", element: "fire", def: 240, description: "Cá hình trái ớt đỏ bóng, to ở đầu thon nhọn về đuôi, đội đài lá và cuống ớt xanh." },

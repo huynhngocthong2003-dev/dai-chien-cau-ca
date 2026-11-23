@@ -170,7 +170,7 @@ Deno.serve(async (req: Request) => {
 
     if (op === "enter") {
       const b = await liveBoss();
-      if (!b) return json(400, { error: "Boss Thế Giới chưa xuất hiện – quay lại lúc 12h · 15h · 20h" });
+      if (!b) return json(400, { error: "Boss Thế Giới chưa xuất hiện – quay lại lúc 12h · 15h · 20h · 23h" });
       if (b.hp <= 0) return json(400, { error: "Boss đã bị hạ gục – chờ khung giờ sau" });
       const { count: used } = await admin.from("world_boss_sessions").select("id", { count: "exact", head: true }).eq("boss", b.id).eq("user_id", me);
       if ((used ?? 0) >= WORLD_BOSS.entriesPerSlot) return json(400, { error: `Bạn đã dùng hết ${WORLD_BOSS.entriesPerSlot} lượt đánh của khung giờ này` });

@@ -42,7 +42,7 @@ const ROOM_SPOTS = [
 ];
 
 /**
- * BOSS THẾ GIỚI – 12h · 15h · 20h (giờ VN): mọi người chơi đánh chung 1 thanh máu.
+ * BOSS THẾ GIỚI – 12h · 15h · 20h · 23h (giờ VN): mọi người chơi đánh chung 1 thanh máu.
  * Mỗi lượt vào: đội 3 cá mạnh nhất (cá khoá cũng được – không mất cá), 15 đòn canh kim; tối đa 3 lượt / khung giờ.
  * Sát thương nhiều nhất → quà nhiều nhất (Hòm Thư); kết liễu → Đá Tiến Hoá đúng hệ boss.
  */
@@ -352,7 +352,7 @@ export class WorldBossScene extends Phaser.Scene {
     const shown = this.team().length;
     const can = live && hp > 0 && left > 0 && shown >= 3;
     const go = new Button(this, 1098, 540, 300, 64, `⚔ VÀO ĐÁNH (${left}/${WORLD_BOSS.entriesPerSlot} lượt)`, { color: COLORS.red, fontSize: 22, disabled: !can, onClick: () => void this.enter() });
-    go.on("disabled-click", () => toast(this, !live ? "Boss chưa xuất hiện – quay lại lúc 12h · 15h · 20h" : hp <= 0 ? "Boss đã bị hạ gục" : left <= 0 ? "Hết lượt đánh của khung giờ này" : "Hãy trưng bày đủ 3 cá (Hồ Sơ) trước khi vào phòng boss"));
+    go.on("disabled-click", () => toast(this, !live ? "Boss chưa xuất hiện – quay lại lúc 12h · 15h · 20h · 23h" : hp <= 0 ? "Boss đã bị hạ gục" : left <= 0 ? "Hết lượt đánh của khung giờ này" : "Hãy trưng bày đủ 3 cá (Hồ Sơ) trước khi vào phòng boss"));
     c.add(go);
     if (can) this.tweens.add({ targets: go, scale: 1.05, duration: 600, yoyo: true, repeat: -1 });
     // vào phòng boss phải TRƯNG BÀY đủ 3 cá (lực chiến = tổng 3 con)
@@ -364,7 +364,7 @@ export class WorldBossScene extends Phaser.Scene {
   private rules(c: Phaser.GameObjects.Container, y: number) {
     const b = this.bossInfo();
     const lines = [
-      "⏰ 12h · 15h · 20h, mỗi lần 30 phút",
+      "⏰ 12h · 15h · 20h · 23h, mỗi lần 30 phút",
       `⚔ Mỗi lượt ${WORLD_BOSS.hitsPerEntry} đòn canh kim (Space / chạm thanh)`,
       "🏅 Sát thương càng nhiều → quà càng nhiều",
       `🗡 Kết liễu: +1 Đá Tiến Hoá hệ ${ELEMENT_INFO[b.element].name} + 20 💎`,

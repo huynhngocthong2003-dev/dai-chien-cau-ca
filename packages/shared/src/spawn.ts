@@ -14,12 +14,48 @@ export function luckFactor(loadout: Loadout, castPower: number): number {
  */
 export const RARITY_SPAWN_MULT: Partial<Record<FishDef["rarity"], number>> = { legendary: 0.5, mythic: 0.1 };
 
+/** May mắn làm cá THƯỜNG ít cắn hơn (nhường chỗ cho cá cấp cao): trọng số Thường ÷ (1 + lf × hệ số này). */
+export const COMMON_LUCK_DAMP = 0.45;
+
 export function spawnWeights(zone: ZoneDef, fishById: Map<string, FishDef>, lf: number) {
-  return zone.spawn.map((s) => {
+  const l = Math.max(0, lf);
+  const base = zone.spawn.map((s) => {
     const fish = fishById.get(s.fishId);
     if (!fish) throw new Error(`Không tìm thấy cá ${s.fishId} trong khu ${zone.id}`);
-    return { fish, weight: s.weight * (RARITY_SPAWN_MULT[fish.rarity] ?? 1) * (1 + lf * RARE_WEIGHT_SCALING[fish.rarity]) };
+    const luck = fish.rarity === "common" ? 1 : 1 + l * RARE_WEIGHT_SCALING[fish.rarity];
+    return { fish, weight: s.weight * (RARITY_SPAWN_MULT[fish.rarity] ?? 1) * luck };
   });
+  // may mắn làm cá Thường ít đi, nhưng KHÔNG bao giờ ít hơn cá Hiếm (cá càng hiếm càng khó gặp)
+  const sum = (r: FishDef["rarity"]) => base.filter((w) => w.fish.rarity === r).reduce((n, w) => n + w.weight, 0);
+  const common = sum("common");
+  if (!common) return base;
+  const k = Math.min(1, Math.max(1 / (1 + l * COMMON_LUCK_DAMP), sum("rare") / common));
+  return base.map((w) => (w.fish.rarity === "common" ? { ...w, weight: w.weight * k } : w));
+}
+
+/**
+ * BẢNG TỈ LỆ theo CHỈ SỐ NGƯỜI CHƠI (may mắn nhân vật + tỉ lệ hiếm của cần + bùa + lực quăng):
+ * rác, từng cấp cá, Boss – đúng công thức chooseFish/rollJunk dùng khi câu.
+ */
+export function catchOdds(
+  zone: ZoneDef,
+  fishById: Map<string, FishDef>,
+  loadout: Loadout,
+  castPower: number,
+  junkBase: number,
+): { lf: number; junk: number; byRarity: Partial<Record<FishDef["rarity"], number>> } {
+  const lf = luckFactor(loadout, castPower);
+  const junk = junkChanceFor(junkBase, lf);
+  const secret = zone.secretBossId ? Math.min(0.0015, FISHING.secretBossChance * (1 + lf * 0.5)) : 0;
+  const boss = bossChance(lf);
+  const fishPart = 1 - junk;
+  const normal = fishPart * (1 - secret) * (1 - boss);
+  const ws = spawnWeights(zone, fishById, lf);
+  const tot = ws.reduce((n, w) => n + w.weight, 0) || 1;
+  const byRarity: Partial<Record<FishDef["rarity"], number>> = {};
+  for (const w of ws) byRarity[w.fish.rarity] = (byRarity[w.fish.rarity] ?? 0) + (normal * w.weight) / tot;
+  byRarity.boss = (byRarity.boss ?? 0) + fishPart * (secret + (1 - secret) * boss);
+  return { lf, junk, byRarity };
 }
 
 /**
