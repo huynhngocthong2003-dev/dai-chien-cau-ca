@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.52.0] – 2026-11-23 – Chiêu boss gây sát thương · Né / Đỡ chiêu
+### Thêm
+- **Chiêu boss gây sát thương lên người chơi** (trong lượt đánh): bạn có **thanh máu = tổng máu 3 cá trưng bày** (hiện dưới chân nhân vật). Boss tung chiêu theo lịch **giây 6, rồi mỗi 8 giây**; mỗi chiêu trừ **25%** máu (boss khắc hệ đội: **35%**, đội khắc boss: **15%**).
+- **Hết máu = 💀 bị boss hạ gục**: lượt đánh kết thúc sớm (sát thương đã gây vẫn được tính & xếp hạng). Máy chủ tự tính máu theo thời gian và từ chối mọi đòn sau khi gục – không gian lận được.
+- **Cảnh báo trước khi boss ra đòn**: dải tên chiêu + "⚠ NÉ NGAY! Bấm B" và vòng đỏ co dần về nhân vật, chuyển **xanh "⚡ NÉ!"** khi tới lúc né.
+- **Né / Đỡ chiêu**: bấm **B** (hoặc nút **🛡 Né (B)**):
+  - sát lúc chiêu chạm (≤ 0,45 giây trước) → **NÉ HOÀN HẢO**: không mất máu, nhân vật nhảy tránh, "MISS";
+  - sớm hơn trong lúc cảnh báo (≤ 1,3 giây) → **ĐỠ ĐÒN**: khiên bảo vệ, chỉ mất 40% sát thương;
+  - bấm quá sớm: "Chưa tới lúc né!" (không mất lượt né). Mỗi chiêu tính lần bấm đầu tiên; máy chủ chấm theo đồng hồ của mình.
+- Ở sảnh chờ (chưa vào đánh) chiêu boss vẫn chỉ là hiệu ứng.
+
 ## [0.51.0] – 2026-11-23 – Boss tung chiêu
 ### Thêm
 - **Boss Thế Giới tung chiêu thức** mỗi 7–11 giây khi đang xuất hiện: gồng sức (năng lượng hút về miệng, ngửa ra sau, dải tên chiêu "⚠ …!") rồi phóng vào người chơi – nhân vật trúng chiêu bị hất lùi, chớp đỏ, rung màn hình. Mỗi boss 2 chiêu riêng theo hệ:

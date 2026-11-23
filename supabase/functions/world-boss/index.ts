@@ -22,6 +22,11 @@ import {
   wbRankReward,
   worldBossFor,
   worldBossTeam,
+  WB_SKILL,
+  wbJudgeGuard,
+  wbPlayerHp,
+  wbPlayerMaxHp,
+  wbSkillPct,
   worldBossMaxHp,
   worldBossSlot,
   type CombatFish,
@@ -199,7 +204,30 @@ Deno.serve(async (req: Request) => {
         .select("id, seed, bar_at")
         .single();
       if (sErr || !ses) return json(500, { error: "Không vào được trận" });
-      return json(200, { session: ses.id, hits: 0, hitsMax: WORLD_BOSS.hitsPerEntry, bar: barFor(Number(ses.seed), 0), serverNow: new Date().toISOString(), power: pick.power, fromShowcase: pick.fromShowcase, team: built.team.map((f: CombatFish) => ({ uid: f.uid, fishId: f.fishId, name: f.name, atk: f.atk, element: f.element, elements: f.elements, form: f.form, stars: f.stars, parents: f.parents })) });
+      // máu người chơi = tổng máu 3 cá trưng bày; chiêu boss trừ % máu theo lịch cố định
+      const playerMaxHp = wbPlayerMaxHp(built.team);
+      const skillPct = wbSkillPct(b.element as never, built.team);
+      return json(200, { session: ses.id, hits: 0, hitsMax: WORLD_BOSS.hitsPerEntry, playerMaxHp, playerHp: playerMaxHp, skillPct, skill: { firstMs: WB_SKILL.firstMs, everyMs: WB_SKILL.everyMs }, bar: barFor(Number(ses.seed), 0), serverNow: new Date().toISOString(), power: pick.power, fromShowcase: pick.fromShowcase, team: built.team.map((f: CombatFish) => ({ uid: f.uid, fishId: f.fishId, name: f.name, atk: f.atk, element: f.element, elements: f.elements, form: f.form, stars: f.stars, parents: f.parents })) });
+    }
+
+    // NÉ / ĐỠ chiêu boss: máy chủ chấm thời điểm bấm theo đồng hồ của mình (mỗi chiêu chỉ tính lần bấm đầu)
+    if (op === "guard") {
+      const sid = typeof body?.session === "string" ? body.session : "";
+      if (!UUID.test(sid)) return json(400, { error: "Phiên đánh không hợp lệ" });
+      const { data: s } = await admin.from("world_boss_sessions").select("id, user_id, team, created_at, guards, boss").eq("id", sid).maybeSingle();
+      if (!s || s.user_id !== me) return json(404, { error: "Không tìm thấy phiên đánh" });
+      const elapsed = Date.now() - Date.parse(s.created_at);
+      const verdict = wbJudgeGuard(elapsed, WB_SKILL);
+      const guards = { ...((s.guards ?? {}) as Record<string, "dodge" | "guard">) };
+      if (verdict && !guards[verdict.k]) {
+        guards[verdict.k] = verdict.kind;
+        await admin.from("world_boss_sessions").update({ guards }).eq("id", sid);
+      }
+      const { data: bRow } = await admin.from("world_boss").select("element").eq("id", s.boss).maybeSingle();
+      const team = s.team as CombatFish[];
+      const playerMaxHp = wbPlayerMaxHp(team);
+      const playerHp = wbPlayerHp(playerMaxHp, wbSkillPct((bRow?.element ?? "water") as never, team), elapsed, WB_SKILL, guards as Record<number, "dodge" | "guard">);
+      return json(200, { verdict: verdict ? { k: verdict.k, kind: guards[verdict.k] } : null, guards, playerHp, playerMaxHp });
     }
 
     if (op === "hit") {
@@ -214,6 +242,15 @@ Deno.serve(async (req: Request) => {
       if (!b || b.hp <= 0 || Date.parse(b.ends_at) <= Date.now()) {
         if (b) await settle(b);
         return json(409, { error: b && b.hp <= 0 ? "Boss đã bị hạ gục!" : "Boss đã rút lui (hết giờ)", ended: true });
+      }
+      // chiêu boss: tính máu người chơi theo thời gian từ lúc vào trận – hết máu thì không đánh tiếp được
+      const team = s.team as CombatFish[];
+      const playerMaxHp = wbPlayerMaxHp(team);
+      const skillPct = wbSkillPct(b.element as never, team);
+      const playerHp = wbPlayerHp(playerMaxHp, skillPct, Date.now() - Date.parse(s.created_at), WB_SKILL, (s.guards ?? {}) as Record<number, "dodge" | "guard">);
+      if (playerHp <= 0) {
+        await admin.from("world_boss_sessions").update({ hits: WORLD_BOSS.hitsPerEntry }).eq("id", sid).eq("hits", s.hits);
+        return json(409, { error: "💀 Bạn đã bị boss hạ gục!", ko: true, playerHp: 0, playerMaxHp });
       }
       const elapsed = Date.now() - Date.parse(s.bar_at);
       if (s.hits > 0 && elapsed < MIN_GAP_MS) return json(429, { error: "Đánh quá nhanh" });
@@ -240,6 +277,8 @@ Deno.serve(async (req: Request) => {
         hitsMax: WORLD_BOSS.hitsPerEntry,
         bar: hits < WORLD_BOSS.hitsPerEntry ? barFor(Number(s.seed), hits) : null,
         sessionDamage: Number(s.damage) + Number(r.dealt),
+        playerHp,
+        playerMaxHp,
       });
     }
     return json(400, { error: "Thao tác không hợp lệ" });

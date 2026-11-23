@@ -69,3 +69,39 @@ describe("Boss Thế Giới", () => {
     expect(one.uids).toEqual(["a"]);
   });
 });
+
+describe("Chiêu boss gây sát thương lên người chơi", () => {
+  it("lịch cố định: giây 6 rồi mỗi 8 giây; trừ máu theo khắc hệ; hết máu = 0", async () => {
+    const { WB_SKILL, wbPlayerHp, wbPlayerMaxHp, wbSkillPct, wbSkillsLanded } = await import("@dccc/shared");
+    expect(wbSkillsLanded(5999)).toBe(0);
+    expect(wbSkillsLanded(6000)).toBe(1);
+    expect(wbSkillsLanded(13999)).toBe(1);
+    expect(wbSkillsLanded(14000)).toBe(2);
+    const team = [{ hp: 400, element: "wood" as const }, { hp: 300, element: "wood" as const }, { hp: 300, element: "wood" as const }];
+    expect(wbPlayerMaxHp(team)).toBe(1000);
+    // Kim khắc Mộc → boss Kim đánh đội Mộc mạnh; boss Thổ bị Mộc khắc → đánh nhẹ
+    expect(wbSkillPct("metal", team)).toBe(WB_SKILL.pct.strong);
+    expect(wbSkillPct("earth", team)).toBe(WB_SKILL.pct.weak);
+    expect(wbSkillPct("light", team)).toBe(WB_SKILL.pct.normal);
+    expect(wbPlayerHp(1000, 0.25, 0)).toBe(1000);
+    expect(wbPlayerHp(1000, 0.25, 6000)).toBe(750);
+    expect(wbPlayerHp(1000, 0.25, 30000)).toBe(0); // chiêu thứ 4 (giây 30) hạ gục
+    expect(wbPlayerHp(1000, 0.35, 22000)).toBe(0); // bị khắc: gục ở chiêu thứ 3 (giây 22)
+    expect(wbPlayerHp(1000, 0.15, 30000)).toBe(400);
+  });
+});
+
+describe("Né / đỡ chiêu boss", () => {
+  it("bấm sát lúc chạm = né hoàn hảo; sớm hơn trong cảnh báo = đỡ (40%); quá sớm = không tính", async () => {
+    const { WB_GUARD, wbJudgeGuard, wbPlayerHp } = await import("@dccc/shared");
+    const sched = { firstMs: 6000, everyMs: 8000 };
+    expect(wbJudgeGuard(5800, sched)).toEqual({ k: 0, kind: "dodge" });
+    expect(wbJudgeGuard(6200, sched)).toEqual({ k: 0, kind: "dodge" }); // trễ chút do mạng vẫn tính
+    expect(wbJudgeGuard(5000, sched)).toEqual({ k: 0, kind: "guard" });
+    expect(wbJudgeGuard(3000, sched)).toBeNull();
+    expect(wbJudgeGuard(13700, sched)).toEqual({ k: 1, kind: "dodge" });
+    expect(wbPlayerHp(1000, 0.25, 15000, sched, { 0: "dodge" })).toBe(750);
+    expect(wbPlayerHp(1000, 0.25, 15000, sched, { 0: "guard", 1: "dodge" })).toBe(1000 - 250 * WB_GUARD.guardMult);
+    expect(wbPlayerHp(1000, 0.25, 15000, sched)).toBe(500);
+  });
+});

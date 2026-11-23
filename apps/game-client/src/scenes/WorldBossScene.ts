@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { ELEMENT_INFO } from "@dccc/game-config";
 import { CHARACTER_BY_ID, FISH_BY_ID, FORM_BY_ID, WORLD_BOSSES } from "@dccc/game-data";
-import { ELEMENT_EVO_ITEM, TIMING_BANDS, TIMING_LABEL, WORLD_BOSS, needlePos, timingZone, wbRankReward, worldBossFor, worldBossMaxHp, worldBossSlot, worldBossTeam, type BarParams, type OwnedFish } from "@dccc/shared";
+import { ELEMENT_EVO_ITEM, TIMING_BANDS, TIMING_LABEL, WORLD_BOSS, needlePos, timingZone, wbRankReward, worldBossFor, worldBossMaxHp, worldBossSlot, worldBossTeam, wbPlayerHp, wbJudgeGuard, wbSkillImpactMs, WB_GUARD, type WbGuardKind, type BarParams, type OwnedFish } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { wbCall, type WbEnter, type WbHit, type WbStatus } from "../state/worldBoss.ts";
 import { characterTexture, worldBossArenaTexture, worldBossTexture } from "../art/textures.ts";
@@ -53,7 +53,24 @@ const ROOM_SPOTS = [
  */
 export class WorldBossScene extends Phaser.Scene {
   private status: WbStatus | null = null;
-  private fight: { e: WbEnter; hits: number; bar: BarParams | null; t0: number; busy: boolean; dmg: number } | null = null;
+  private fight: {
+    e: WbEnter;
+    hits: number;
+    bar: BarParams | null;
+    t0: number;
+    busy: boolean;
+    dmg: number;
+    /** Máu người chơi (chiêu boss trừ theo lịch máy chủ); start = lúc vào trận (giờ thật). */
+    hp: number;
+    start: number;
+    skillsCast: number;
+    ko: boolean;
+    /** Chiêu đã né / đỡ (theo chỉ số chiêu) & chiêu đã cảnh báo. */
+    guards: Partial<Record<number, WbGuardKind>>;
+    warned: number;
+  } | null = null;
+  private myHpBar?: Bar;
+  private myHpT?: Phaser.GameObjects.Text;
   private timer: number | null = null;
   private root?: Phaser.GameObjects.Container;
   private needle?: Phaser.GameObjects.Graphics;
@@ -113,12 +130,14 @@ export class WorldBossScene extends Phaser.Scene {
     this.nextSkillAt = Date.now() + 3500;
     this.skillIdx = 0;
     // boss tung chiêu định kỳ (giờ thật) khi đang xuất hiện
-    const skillTimer = window.setInterval(() => this.scene.isActive() && this.maybeCastSkill(), 500);
+    const skillTimer = window.setInterval(() => this.scene.isActive() && this.maybeCastSkill(), 100);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.clearInterval(skillTimer));
     fadeIn(this);
     menuBackdrop(this);
     new TopBar(this, { title: "Boss Thế Giới", onBack: () => goTo(this, "Hub") });
     this.input.keyboard?.on("keydown-SPACE", () => this.hit());
+    // B = né / đỡ chiêu boss (giống Đấu Sinh Tử)
+    this.input.keyboard?.on("keydown-B", () => this.guard());
     this.render();
     if (GameState.online) {
       void this.refresh();
@@ -408,7 +427,7 @@ export class WorldBossScene extends Phaser.Scene {
       const err = await GameState.syncNow(); // máy chủ đọc đội từ bản lưu mới nhất
       if (err) throw new Error(`Chưa đồng bộ được bản lưu: ${err}`);
       const e = await wbCall<WbEnter>({ op: "enter", team: team.map((f) => f.uid) });
-      this.fight = { e, hits: e.hits, bar: e.bar, t0: performance.now(), busy: false, dmg: 0 };
+      this.fight = { e, hits: e.hits, bar: e.bar, t0: performance.now(), busy: false, dmg: 0, hp: e.playerHp ?? e.playerMaxHp ?? 1, start: Date.now(), skillsCast: 0, ko: false, guards: {}, warned: 0 };
       Sfx.skill();
       this.render();
     } catch (err) {
@@ -423,6 +442,13 @@ export class WorldBossScene extends Phaser.Scene {
     const hud = this.add.graphics();
     hud.fillStyle(0x0a1628, 0.8).fillRoundedRect(1036, 560, 214, 132, 14);
     c.add(hud);
+    // nút né / đỡ chiêu boss (điện thoại) – phím B trên máy tính
+    c.add(new Button(this, 1143, 522, 200, 54, "🛡 Né (B)", { color: COLORS.purple, fontSize: 20, onClick: () => this.guard() }));
+    // thanh máu của bạn (chiêu boss trừ dần)
+    this.myHpBar = new Bar(this, ME_POS.x - 80, ME_POS.y + 36, 160, 20, 0x43a047, "");
+    this.myHpT = txt(this, ME_POS.x, ME_POS.y + 46, "", 14, { weight: "700", color: "#ffffff", align: "center" }).setOrigin(0.5).setStroke("#1b1530", 4);
+    c.add([this.myHpBar, this.myHpT]);
+    this.refreshMyHp();
     this.hudT = txt(this, 1143, 592, `Đòn ${f.hits}/${f.e.hitsMax}\nSát thương: ${formatNum(f.dmg)}`, 16, { align: "center", weight: "700" }).setOrigin(0.5);
     c.add(this.hudT);
     c.add(new Button(this, 1143, 654, 180, 46, "Rút lui", { color: COLORS.blue, fontSize: 18, onClick: () => this.endFight() }));
@@ -454,19 +480,45 @@ export class WorldBossScene extends Phaser.Scene {
   /** Boss gồng sức → báo tên chiêu → phóng chiêu vào người chơi (bản thân + người trong phòng). */
   private maybeCastSkill() {
     const boss = this.bossImg;
-    if (!boss?.active || this.bossBase.dead || Date.now() < this.nextSkillAt) return;
-    const live = this.status?.slot.live ?? worldBossSlot(Date.now()).live;
+    if (!boss?.active || this.bossBase.dead) return;
+    const f = this.fight;
+    // đang trong trận thì boss chắc chắn đang xuất hiện (máy chủ đã cho vào)
+    const live = f ? true : (this.status?.slot.live ?? worldBossSlot(Date.now()).live);
     if (!live) return;
     const skills = BOSS_SKILLS[this.bossInfo().id];
     if (!skills?.length) return;
-    const skill = skills[this.skillIdx++ % skills.length]!;
+    if (f) {
+      // TRONG TRẬN: chiêu theo đúng lịch máy chủ (giây 6, rồi mỗi 8 giây) và TRỪ MÁU người chơi
+      if (f.ko || !f.e.skill) return;
+      // cảnh báo trước khi chiêu chạm để kịp né / đỡ
+      const warnAt = f.start + wbSkillImpactMs(f.warned, f.e.skill);
+      if (Date.now() >= warnAt - WB_GUARD.warnMs) {
+        this.warnSkill(f, f.warned, warnAt);
+        f.warned++;
+      }
+      const impact = f.start + wbSkillImpactMs(f.skillsCast, f.e.skill);
+      if (Date.now() < impact - 1100) return;
+      const k = f.skillsCast++;
+      const skill = skills[this.skillIdx++ % skills.length]!;
+      this.castSkill(skill, Math.max(0, impact - Date.now()), () => this.takeSkillHit(f, k), () => f.guards[k] === "dodge");
+      return;
+    }
+    if (Date.now() < this.nextSkillAt) return;
     this.nextSkillAt = Date.now() + Phaser.Math.Between(7000, 11000);
-    // gồng sức: ngửa ra sau, rực sáng
+    this.castSkill(skills[this.skillIdx++ % skills.length]!, 1100, null);
+  }
+
+  /** Gồng sức → báo tên chiêu → phóng chiêu; chiêu chạm người chơi sau `impactIn` ms (onMyHit = trừ máu mình). */
+  private castSkill(skill: (typeof BOSS_SKILLS)[string][number], impactIn: number, onMyHit: (() => void) | null, meDodged: () => boolean = () => false) {
+    const boss = this.bossImg!;
+    const chargeMs = Math.max(400, Math.min(750, impactIn - 350));
     skillBanner(this, skill, this.cx(), 300);
-    chargeUp(this, skill, { x: this.hookX(), y: HOOK_Y - 10 }, 750);
+    chargeUp(this, skill, { x: this.hookX(), y: HOOK_Y - 10 }, chargeMs);
     Sfx.skill();
     this.tweens.killTweensOf(this.yank);
-    this.tweens.add({ targets: this.yank, x: 40, a: 6, duration: 600, ease: "Sine.easeInOut" });
+    this.tweens.add({ targets: this.yank, x: 40, a: 6, duration: chargeMs * 0.8, ease: "Sine.easeInOut" });
+    // trừ máu đúng thời điểm máy chủ tính (không phụ thuộc hiệu ứng chạy nhanh/chậm)
+    if (onMyHit) window.setTimeout(() => this.scene.isActive() && onMyHit(), impactIn);
     window.setTimeout(() => {
       if (!this.scene.isActive() || !boss.active) return;
       this.cameras.main.shake(220, 0.006);
@@ -474,14 +526,114 @@ export class WorldBossScene extends Phaser.Scene {
       const targets = [{ x: ME_POS.x, y: ME_POS.y, body: this.meBody ?? null }, ...this.roomBodies.map((r) => ({ x: r.x, y: r.y, body: r.body as Phaser.GameObjects.Image | null }))];
       castBossSkill(this, skill, { x: this.hookX() + this.yank.x, y: HOOK_Y - 10 }, targets, (i) => {
         const b = targets[i]?.body;
-        if (!b?.active) return;
+        if (!b?.active || (i === 0 && meDodged())) return;
         // trúng chiêu: hất lùi + chớp đỏ
         this.tweens.add({ targets: b, x: b.x - 16, duration: 90, yoyo: true, ease: "Quad.easeOut" });
         b.setTint(0xff8a80);
         window.setTimeout(() => b.active && b.clearTint(), 220);
         if (i === 0) Sfx.hook();
       });
-    }, 750);
+    }, chargeMs);
+  }
+
+  /** Chiêu boss trúng mình: trừ máu theo đúng công thức máy chủ; hết máu = bị hạ gục. */
+  private takeSkillHit(f: NonNullable<WorldBossScene["fight"]>, k: number) {
+    if (this.fight !== f || f.ko || !f.e.skill) return;
+    const before = f.hp;
+    f.hp = Math.min(before, wbPlayerHp(f.e.playerMaxHp, f.e.skillPct, Date.now() - f.start + 50, f.e.skill, f.guards));
+    this.refreshMyHp();
+    const lost = before - f.hp;
+    if (f.guards[k] === "dodge") this.floatText("MISS – NÉ HOÀN HẢO!", "#69f0ae");
+    if (lost > 0) {
+      const t = txt(this, ME_POS.x, ME_POS.y - CHAR_VIEW.h - 70, `-${formatNum(lost)}`, 30, { color: "#ff5252", align: "center" }).setOrigin(0.5).setDepth(21).setStroke("#1b1530", 6);
+      this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 1000, onComplete: () => t.destroy() });
+      this.cameras.main.flash(120, 255, 60, 60);
+    }
+    if (f.hp <= 0) this.knockOut(f);
+  }
+
+  /** Cảnh báo chiêu thứ k: vòng đỏ co dần về nhân vật đúng lúc chiêu chạm; vào vùng NÉ thì chuyển xanh. */
+  private warnSkill(f: NonNullable<WorldBossScene["fight"]>, k: number, impactAt: number) {
+    const ms = Math.max(200, impactAt - Date.now());
+    const cx = ME_POS.x;
+    const cy = ME_POS.y - CHAR_VIEW.h / 2;
+    const ring = this.add.circle(cx, cy, 150).setStrokeStyle(6, 0xff1744, 1).setDepth(19);
+    const core = this.add.circle(cx, cy, 46).setStrokeStyle(3, 0x69f0ae, 0.9).setDepth(19);
+    const t = txt(this, cx + 40, ME_POS.y - CHAR_VIEW.h - 110, "⚠ NÉ NGAY! Bấm B", 26, { color: "#ff5252", align: "center" }).setOrigin(0.5).setDepth(21).setStroke("#1b1530", 7);
+    this.tweens.add({ targets: t, scale: 1.12, duration: 180, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: ring, radius: 46, duration: ms, ease: "Linear" });
+    const dodgeAt = impactAt - WB_GUARD.dodgeMs;
+    const tick = window.setInterval(() => {
+      if (!ring.active) return window.clearInterval(tick);
+      if (Date.now() >= dodgeAt) {
+        ring.setStrokeStyle(8, 0x69f0ae, 1);
+        t.setText("⚡ NÉ! (B)").setColor("#69f0ae");
+      }
+      if (f.guards[k]) t.setText(f.guards[k] === "dodge" ? "✔ ĐÃ NÉ" : "🛡 ĐÃ ĐỠ").setColor("#b9f6ca");
+    }, 50);
+    window.setTimeout(() => {
+      window.clearInterval(tick);
+      for (const o of [ring, core, t]) if (o.active) this.tweens.add({ targets: o, alpha: 0, duration: 200, onComplete: () => o.destroy() });
+    }, ms + 250);
+  }
+
+  /** Bấm né / đỡ (B hoặc nút 🛡): máy khách đoán ngay, máy chủ chấm chính thức theo đồng hồ của mình. */
+  private guard() {
+    const f = this.fight;
+    if (!f || f.ko || !f.e.skill) return;
+    const v = wbJudgeGuard(Date.now() - f.start, f.e.skill);
+    if (!v) return this.floatText("Chưa tới lúc né!", "#b0bec5");
+    if (f.guards[v.k]) return;
+    f.guards[v.k] = v.kind;
+    const me = this.meBody;
+    if (v.kind === "dodge") {
+      Sfx.skill();
+      this.floatText("⚡ NÉ HOÀN HẢO!", "#69f0ae");
+      if (me?.active) this.tweens.add({ targets: me, x: me.x - 34, y: me.y - 26, duration: 160, yoyo: true, ease: "Quad.easeOut" });
+    } else {
+      Sfx.click();
+      this.floatText("🛡 ĐỠ ĐÒN! (-60% sát thương)", "#80d8ff");
+      const sh = this.add.circle(ME_POS.x, ME_POS.y - CHAR_VIEW.h / 2, 64, 0x40c4ff, 0.25).setStrokeStyle(4, 0x80d8ff).setDepth(18);
+      this.tweens.add({ targets: sh, alpha: 0, scale: 1.2, duration: 900, delay: 500, onComplete: () => sh.destroy() });
+    }
+    void wbCall<{ guards: Partial<Record<number, WbGuardKind>>; playerHp: number }>({ op: "guard", session: f.e.session })
+      .then((r) => {
+        if (this.fight !== f) return;
+        f.guards = { ...r.guards }; // máy chủ là trọng tài
+        f.hp = Math.min(f.hp, r.playerHp);
+        this.refreshMyHp();
+      })
+      .catch(() => null);
+  }
+
+  private floatText(msg: string, color: string) {
+    const t = txt(this, ME_POS.x + 60, ME_POS.y - CHAR_VIEW.h - 150, msg, 24, { color, align: "center" }).setOrigin(0.5).setDepth(22).setStroke("#1b1530", 6);
+    this.tweens.add({ targets: t, y: t.y - 40, alpha: 0, duration: 1100, delay: 300, onComplete: () => t.destroy() });
+  }
+
+  private refreshMyHp() {
+    const f = this.fight;
+    if (!f) return;
+    const max = f.e.playerMaxHp || 1;
+    this.myHpBar?.set(f.hp / max);
+    this.myHpT?.setText(`❤ ${formatNum(f.hp)} / ${formatNum(max)}`);
+  }
+
+  /** Bị boss hạ gục: lượt đánh kết thúc sớm (sát thương đã gây vẫn tính). */
+  private knockOut(f: NonNullable<WorldBossScene["fight"]>) {
+    if (f.ko) return;
+    f.ko = true;
+    f.hp = 0;
+    this.refreshMyHp();
+    this.needle?.clear();
+    if (this.meBody?.active) this.tweens.add({ targets: this.meBody, angle: -80, alpha: 0.55, y: this.meBody.y + 10, duration: 420, ease: "Quad.easeIn" });
+    const t = txt(this, this.cx(), 380, "💀 BẠN ĐÃ BỊ BOSS HẠ GỤC!", 44, { color: "#ff5252", align: "center" }).setOrigin(0.5).setDepth(22).setStroke("#1b1530", 10).setScale(0.3);
+    this.tweens.add({ targets: t, scale: 1, duration: 300, ease: "Back.easeOut" });
+    toast(this, `Lượt đánh kết thúc · sát thương đã gây: ${formatNum(f.dmg)}`, COLORS.red);
+    window.setTimeout(() => {
+      t.destroy();
+      if (this.scene.isActive() && this.fight === f) this.endFight();
+    }, 2200);
   }
 
   /** Tư thế boss theo thời gian thật: nhấp nhô, lắc thân, thở phồng, trôi nhẹ + độ lệch khi bị giật. */
@@ -506,7 +658,7 @@ export class WorldBossScene extends Phaser.Scene {
   override update() {
     this.poseBoss();
     const f = this.fight;
-    if (!f || !f.bar || !this.needle) return;
+    if (!f || f.ko || !f.bar || !this.needle) return;
     const p = needlePos(f.bar, performance.now() - f.t0);
     const x = this.barX() + p * BAR.w;
     this.needle.clear();
@@ -516,7 +668,7 @@ export class WorldBossScene extends Phaser.Scene {
 
   private hit() {
     const f = this.fight;
-    if (!f || f.busy || !f.bar || f.hits >= f.e.hitsMax) return;
+    if (!f || f.ko || f.busy || !f.bar || f.hits >= f.e.hitsMax) return;
     f.busy = true;
     const pressMs = Math.round(performance.now() - f.t0);
     const guess = timingZone(needlePos(f.bar, pressMs));
@@ -529,6 +681,10 @@ export class WorldBossScene extends Phaser.Scene {
         f.t0 = performance.now();
         f.dmg = r.sessionDamage;
         f.busy = false;
+        if (typeof r.playerHp === "number") {
+          f.hp = r.playerHp; // máy chủ là trọng tài
+          this.refreshMyHp();
+        }
         this.showHit(r, guess);
         if (r.killed) {
           Sfx.catchFanfare(true);
@@ -541,6 +697,7 @@ export class WorldBossScene extends Phaser.Scene {
       })
       .catch((e: Error) => {
         f.busy = false;
+        if (/bị boss hạ gục/.test(e.message)) return this.knockOut(f);
         toast(this, e.message, COLORS.red);
         if (/hạ gục|rút lui|hết đòn/.test(e.message)) this.endFight();
       });
@@ -566,6 +723,7 @@ export class WorldBossScene extends Phaser.Scene {
 
   private endFight() {
     this.fight = null;
+    this.nextSkillAt = Date.now() + 6000;
     this.bossImg?.disableInteractive();
     void this.refresh();
     this.render();

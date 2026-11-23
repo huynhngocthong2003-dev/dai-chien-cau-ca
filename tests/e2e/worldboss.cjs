@@ -35,7 +35,8 @@ const status = () => ({
       const body = req.postDataJSON() ?? {};
       db.ops.push(body.op);
       if (body.op === 'status') return json(200, status());
-      if (body.op === 'enter') { db.entered++; return json(200, { session: '11111111-1111-4111-8111-111111111111', hits: 0, hitsMax: 15, bar: { periodMs: 1400, phase: 0.1 }, serverNow: now(), power: 1234, team: ['w2', 'w1', 'w3'].map((u, i) => ({ uid: u, fishId: 'f_ca_chep', name: 'Cá', atk: 100 + i, element: 'water', form: null, stars: 1 })) }); }
+      if (body.op === 'enter') { db.entered++; return json(200, { session: '11111111-1111-4111-8111-111111111111', hits: 0, hitsMax: 15, bar: { periodMs: 1400, phase: 0.1 }, serverNow: now(), power: 1234, playerMaxHp: 1000, playerHp: 1000, skillPct: db.ko ? 0.5 : 0.25, skill: db.ko ? { firstMs: 3000, everyMs: 3000 } : { firstMs: 6000, everyMs: 8000 }, team: ['w2', 'w1', 'w3'].map((u, i) => ({ uid: u, fishId: 'f_ca_chep', name: 'Cá', atk: 100 + i, element: 'water', form: null, stars: 1 })) }); }
+      if (body.op === 'guard') { db.guards = (db.guards ?? 0) + 1; return json(200, { verdict: { k: 0, kind: 'dodge' }, guards: { 0: 'dodge' }, playerHp: 1000, playerMaxHp: 1000 }); }
       if (body.op === 'hit') {
         db.hits++;
         const dmg = 20000;
@@ -125,6 +126,37 @@ const status = () => ({
   if (!back) errs.push('Kết liễu xong không về bảng');
   else console.log('• Đòn kết liễu → về bảng (quà gửi Hòm Thư)');
   await p.screenshot({ path: `${out}/worldboss-killed.png` });
+  // chiêu boss gây sát thương: máu người chơi giảm theo lịch, hết máu → bị hạ gục, lượt đánh kết thúc
+  db.hp = 500000; db.ko = true;
+  await p.evaluate(() => { const sc = window.__game.scene.getScene('WorldBoss'); sc.status = null; sc.render(); });
+  await p.waitForTimeout(500);
+  await p.evaluate(() => window.__game.scene.getScene('WorldBoss').enter());
+  await p.waitForFunction(() => !!window.__game.scene.getScene('WorldBoss').fight, null, { timeout: 8000 });
+  // ghi máu ngay trong trang theo đồng hồ thật (máy test chậm không làm lệch kết quả)
+  await p.evaluate(() => { const sc = window.__game.scene.getScene('WorldBoss'); window.__snap = {}; const t = window.setInterval(() => { const f = sc.fight; if (!f) return window.clearInterval(t); const el = Date.now() - f.start; if (el >= 4300 && !window.__snap.a) window.__snap.a = { hp: f.hp, guards: { ...f.guards } }; if (el >= 7300 && !window.__snap.b) window.__snap.b = f.hp; }, 10); });
+  const hp0 = await p.evaluate(() => window.__game.scene.getScene('WorldBoss').fight.hp);
+  // cảnh báo hiện trước chiêu đầu (chạm ở giây 1,5) → bấm B sát lúc chạm = NÉ HOÀN HẢO
+  const warned = await p.waitForFunction(() => window.__game.scene.getScene('WorldBoss').children.list.some((o) => o.text && /NÉ NGAY|NÉ! \(B\)/.test(o.text)), null, { timeout: 3000 }).then(() => true).catch(() => false);
+  // bấm né đúng 0,25 giây trước khi chiêu chạm (đo bằng đồng hồ thật ngay trong trang)
+  const pressEl = await p.evaluate(() => new Promise((res) => { const sc = window.__game.scene.getScene('WorldBoss'); const t = window.setInterval(() => { const f = sc.fight; if (f && Date.now() - f.start >= 2650) { window.clearInterval(t); const el = Date.now() - f.start; sc.guard(); res(el); } }, 5); }));
+  const bKey = await p.evaluate(() => window.__game.scene.getScene('WorldBoss').input.keyboard.listenerCount('keydown-B'));
+  await p.waitForTimeout(150);
+  await p.screenshot({ path: `${out}/worldboss-dodge.png` });
+  await p.waitForFunction(() => window.__snap.b !== undefined, null, { timeout: 12000 }).catch(() => {});
+  const mid = await p.evaluate(() => window.__snap.a);
+  const mid2 = await p.evaluate(() => window.__snap.b);
+  await p.screenshot({ path: `${out}/worldboss-skill-dmg.png` });
+  const ko = await p.waitForFunction(() => window.__game.scene.getScene('WorldBoss').children.list.some((o) => o.text && o.text.includes('BỊ BOSS HẠ GỤC')), null, { timeout: 9000 }).then(() => true).catch(() => false);
+  await p.screenshot({ path: `${out}/worldboss-ko.png` });
+  await p.waitForFunction(() => !window.__game.scene.getScene('WorldBoss').fight, null, { timeout: 6000 }).catch(() => {});
+  const ended = await p.evaluate(() => !window.__game.scene.getScene('WorldBoss').fight);
+  if (!warned) errs.push('Không cảnh báo trước khi boss tung chiêu');
+  else if (!bKey) errs.push('Chưa gắn phím B để né');
+  else if (hp0 !== 1000 || !mid || mid.hp !== 1000 || mid.guards[0] !== 'dodge' || !db.guards) errs.push('Bấm B đúng lúc mà không né được chiêu: ' + JSON.stringify({ hp0, mid, guards: db.guards, pressEl }));
+  else if (mid2 !== 500) errs.push('Không né thì chiêu phải trừ máu (1000 → 500): ' + JSON.stringify({ mid2 }));
+  else if (!ko || !ended) errs.push('Hết máu mà không bị hạ gục / lượt đánh không kết thúc: ' + JSON.stringify({ ko, ended }));
+  else console.log('• Cảnh báo "⚠ NÉ NGAY" → bấm B sát lúc chạm: NÉ HOÀN HẢO (không mất máu); chiêu sau không né: 1000 → 500 → 💀 bị hạ gục, lượt kết thúc');
+  db.ko = false;
   // chưa trưng bày đủ 3 cá → không vào được phòng boss, có nút đi trưng bày
   const gate = await p.evaluate(async () => {
     const src = window.performance.getEntriesByType('resource').map((e) => e.name).find((n) => /\/src\/state\/GameState\.ts/.test(n)) ?? '/src/state/GameState.ts';

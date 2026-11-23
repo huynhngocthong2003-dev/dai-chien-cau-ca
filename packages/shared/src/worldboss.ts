@@ -139,3 +139,69 @@ export function worldBossTeam(
   const fromShowcase = picked.length;
   return { uids: picked.map((f) => f.uid), power: picked.reduce((n, f) => n + pow(f), 0), fromShowcase };
 }
+
+/**
+ * CHIÊU BOSS GÂY SÁT THƯƠNG LÊN NGƯỜI CHƠI (trong lượt đánh): boss tung chiêu theo LỊCH CỐ ĐỊNH tính từ lúc vào trận
+ * (giây 6, rồi mỗi 8 giây). Máu người chơi = tổng máu 3 cá trưng bày. Mỗi chiêu trừ % máu tối đa theo khắc hệ:
+ * boss khắc đội 35% · bình thường 25% · đội khắc boss 15%. Hết máu = bị hạ gục → lượt đánh kết thúc (máy chủ từ chối đòn sau đó).
+ */
+export const WB_SKILL = { firstMs: 6000, everyMs: 8000, pct: { strong: 0.35, normal: 0.25, weak: 0.15 } } as const;
+
+/** Máu tối đa của người chơi trong lượt đánh boss. */
+export function wbPlayerMaxHp(team: Pick<CombatFish, "hp">[]): number {
+  return Math.max(1, team.reduce((n, f) => n + Math.max(0, f.hp), 0));
+}
+
+/** % máu mỗi chiêu boss lấy đi, theo hệ boss tấn công hệ của đội (lấy hệ bị khắc nặng nhất trong đội). */
+export function wbSkillPct(bossElement: Element, team: Pick<CombatFish, "element" | "elements">[]): number {
+  let worst: "strong" | "normal" | "weak" = "weak";
+  for (const f of team) {
+    const k = multiMatchup([bossElement], f.elements?.length ? f.elements : [f.element]).kind;
+    if (k === "strong") worst = "strong";
+    else if (k === "normal" && worst === "weak") worst = "normal";
+  }
+  return WB_SKILL.pct[worst];
+}
+
+export type WbSkillSchedule = { firstMs: number; everyMs: number };
+/** Kết quả phòng thủ một chiêu: né hoàn hảo (0 sát thương) hoặc đỡ đòn (40%). */
+export type WbGuardKind = "dodge" | "guard";
+
+/**
+ * NÉ / ĐỠ CHIÊU BOSS: bấm B trong lúc boss cảnh báo. Tính theo thời điểm bấm so với lúc chiêu chạm (d = chạm − bấm):
+ * −after ≤ d ≤ dodgeMs → NÉ HOÀN HẢO · d ≤ guardMs → ĐỠ ĐÒN (−60% sát thương) · sớm hơn = chưa tới lúc (không tính).
+ */
+export const WB_GUARD = { dodgeMs: 450, guardMs: 1300, afterMs: 250, guardMult: 0.4, warnMs: 1600 } as const;
+
+/** Số chiêu boss đã trúng sau `elapsedMs` kể từ lúc vào trận. */
+export function wbSkillsLanded(elapsedMs: number, sched: WbSkillSchedule = WB_SKILL): number {
+  return elapsedMs < sched.firstMs ? 0 : Math.floor((elapsedMs - sched.firstMs) / sched.everyMs) + 1;
+}
+
+/** Thời điểm (ms từ lúc vào trận) chiêu thứ k (0-based) chạm người chơi. */
+export function wbSkillImpactMs(k: number, sched: WbSkillSchedule = WB_SKILL): number {
+  return sched.firstMs + k * sched.everyMs;
+}
+
+/** Chấm 1 lần bấm phòng thủ tại `elapsedMs`: chiêu nào (k) và né / đỡ; null nếu không nằm trong cửa sổ cảnh báo nào. */
+export function wbJudgeGuard(elapsedMs: number, sched: WbSkillSchedule = WB_SKILL): { k: number; kind: WbGuardKind } | null {
+  const k = Math.max(0, Math.round((elapsedMs - sched.firstMs) / sched.everyMs));
+  for (const kk of [k, k + 1, k - 1]) {
+    if (kk < 0) continue;
+    const d = wbSkillImpactMs(kk, sched) - elapsedMs;
+    if (d >= -WB_GUARD.afterMs && d <= WB_GUARD.dodgeMs) return { k: kk, kind: "dodge" };
+    if (d > WB_GUARD.dodgeMs && d <= WB_GUARD.guardMs) return { k: kk, kind: "guard" };
+  }
+  return null;
+}
+
+/** Máu còn lại của người chơi sau `elapsedMs` (chiêu đã né / đỡ được giảm sát thương). */
+export function wbPlayerHp(maxHp: number, pct: number, elapsedMs: number, sched: WbSkillSchedule = WB_SKILL, guards: Partial<Record<number, WbGuardKind>> = {}): number {
+  let lost = 0;
+  const n = wbSkillsLanded(elapsedMs, sched);
+  for (let k = 0; k < n; k++) {
+    const g = guards[k];
+    lost += pct * (g === "dodge" ? 0 : g === "guard" ? WB_GUARD.guardMult : 1);
+  }
+  return Math.max(0, Math.round(maxHp * (1 - lost)));
+}

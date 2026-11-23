@@ -24,6 +24,11 @@ export interface WbEnter {
   hitsMax: number;
   bar: BarParams;
   serverNow: string;
+  /** Máu người chơi (tổng máu 3 cá trưng bày) & lịch chiêu boss trừ máu. */
+  playerMaxHp: number;
+  playerHp?: number;
+  skillPct: number;
+  skill?: { firstMs: number; everyMs: number };
   /** Lực chiến đội = tổng 3 cá trưng bày. */
   power: number;
   fromShowcase?: number;
@@ -40,6 +45,8 @@ export interface WbHit {
   hitsMax: number;
   bar: BarParams | null;
   sessionDamage: number;
+  playerHp?: number;
+  playerMaxHp?: number;
 }
 
 export async function wbCall<T>(body: Record<string, unknown>): Promise<T> {
