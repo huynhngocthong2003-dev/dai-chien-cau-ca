@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.40.3] – 2026-11-23 – Sửa lỗi không đấu cá được
+### Sửa lỗi
+- **Đấu Cá (với máy và với người) không mở được trận**: máy chủ trận đấu bị thiếu quyền đọc bản lưu ("permission denied for table player_saves") nên mọi lần bấm đấu đều lỗi. Đã cấp lại quyền cho tài khoản máy chủ (migration `20261209000001_service_role_grants.sql`, đã áp lên máy chủ thật).
+- Triển khai lại máy chủ trận đấu (`battle`, `pvp`) với dữ liệu mới nhất: Kim Lân Thần Ngư, mã đột biến ĐB-1…ĐB-5, Đá Tiến Hoá Vạn Năng.
+
 ## [0.40.2] – 2026-11-23 – Biểu tượng tiền tệ vẽ mới
 ### Thay đổi
 - Thanh tài nguyên trên cùng: **đồng vàng, kim cương, đá nâng cấp, linh hồn** dùng biểu tượng vẽ (cùng bộ với menu & Vòng Quay) thay emoji.
