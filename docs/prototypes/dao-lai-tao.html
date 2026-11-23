@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800&display=swap">
 <style>
-/* Bố cục: 1 bản đồ canvas 16:9 (bể nuôi trái · đài lai tạo phải trên · khu ấp trứng phải dưới), thanh tài nguyên trên, bảng nổi khi bấm công trình.
+/* Bố cục: 2 mục (tab) – BẢN ĐỒ (canvas 16:9 rộng: bể nuôi lớn + 1 hang ấp trứng) và LAI TẠO (trang riêng); bảng nổi khi bấm cá / hang.
    Một thế giới hình ảnh duy nhất (đại dương hoạt hình sáng) – cố ý không đổi theo giao diện tối. */
 :root {
   --sea-deep: #0a3d7a;
@@ -36,7 +36,7 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 12px 20px;
 }
-.wrap { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.wrap { max-width: 1680px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
 .hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .hud h1 {
   margin: 0 auto 0 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(22px, 3.2vw, 34px);
@@ -50,6 +50,10 @@ body {
 }
 .chip i { width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; font-style: normal; border: 2px solid var(--ink); font-size: 13px; }
 .chip .g { background: var(--gold); } .chip .n { background: var(--gem); } .chip .f { background: var(--coral); color: #fff; }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tabs .btn[aria-current="page"] { background: linear-gradient(#ffe07a, #ffb300); color: var(--ink); text-shadow: none; }
+.breed-page { background: var(--panel); border: 4px solid var(--ink); border-radius: 22px; box-shadow: 0 8px 0 var(--ink); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.breed-page h2 { margin: 0; font-family: var(--font-display); font-size: 28px; line-height: 1.1; }
 .map-box {
   position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%;
   border: 4px solid var(--ink); border-radius: 22px; overflow: hidden; box-shadow: 0 8px 0 var(--ink), 0 18px 40px rgba(0,0,0,.35);
@@ -57,6 +61,7 @@ body {
 }
 canvas#map { width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+a.btn { text-decoration: none; display: inline-block; }
 .btn {
   font-family: var(--font-display); font-weight: 800; font-size: 17px; color: #fff; letter-spacing: .3px;
   padding: 8px 16px 6px; border-radius: 14px; border: 3px solid var(--ink); cursor: pointer;
@@ -139,14 +144,20 @@ canvas#map { width: 100%; height: 100%; display: block; touch-action: manipulati
     <span class="chip"><i class="n">💎</i><span id="gems">0</span> ngọc</span>
     <span class="chip"><i class="f">🐟</i><span id="count">0</span> cá</span>
   </div>
-  <div class="map-box" id="mapBox"><canvas id="map" width="1280" height="720" aria-label="Bản đồ: bể nuôi, đài lai tạo, khu ấp trứng"></canvas></div>
+  <nav class="tabs" aria-label="Mục">
+    <a class="btn" href="#ban-do" id="tabMap">🗺 Bản đồ</a>
+    <a class="btn purple" href="#lai-tao" id="tabBreed">💞 Lai Tạo</a>
+  </nav>
+  <section id="viewMap" style="display:flex;flex-direction:column;gap:10px">
+  <div class="map-box" id="mapBox"><canvas id="map" width="1280" height="720" aria-label="Bản đồ: bể nuôi thả và hang ấp trứng"></canvas></div>
   <div class="actions">
-    <button class="btn purple" id="openBreed">💞 Đài Lai Tạo</button>
-    <button class="btn orange" id="openHatch">🥚 Khu Ấp Trứng</button>
+    <button class="btn orange" id="openHatch">🥚 Hang Ấp Trứng</button>
     <button class="btn" id="openStock">🐟 Kho cá</button>
     <button class="btn green" id="collectAll">🪙 Thu hoạch tất cả</button>
   </div>
-  <p class="hint">Bấm vào cá đang bơi để xem thông tin hoặc đưa vào lai tạo. Bấm đài lai tạo / ổ trứng trên bản đồ để mở bảng. Biểu tượng 🪙 nổi trên đầu cá là tài nguyên đã đủ chu kỳ – bấm để thu.</p>
+  <p class="hint">Bấm vào cá đang bơi để xem thông tin hoặc đưa vào lai tạo. Bấm hang trên bản đồ để xem trứng đang ấp. Biểu tượng 🪙 nổi trên đầu cá là tài nguyên đã đủ chu kỳ – bấm để thu.</p>
+  </section>
+  <section id="viewBreed" hidden><div class="breed-page" id="breedPage"></div></section>
 </div>
 
 <div id="layer"></div>
@@ -570,10 +581,9 @@ function eggThumb(egg, w = 90, h = 100) {
 // ============================================================================
 const cv = $("map"), ctx = cv.getContext("2d");
 const W = 1280, HH = 720;
-/** Bể nuôi: hình elip tâm (400, 400). */
-const POOL = { cx: 395, cy: 410, rx: 345, ry: 250 };
-const DEN = { x: 975, y: 210 };
-const NESTS = [{ x: 850, y: 560 }, { x: 1010, y: 590 }, { x: 1165, y: 545 }];
+/** Bể nuôi chiếm gần hết bản đồ; hang ấp trứng ở đảo đá bên phải. */
+const POOL = { cx: 500, cy: 392, rx: 450, ry: 290 };
+const CAVE = { x: 1120, y: 420 };
 const swim = new Map(); // uid → {x,y,tx,ty,vx,face,enter}
 function swimFor(f) {
   let s = swim.get(f.uid);
@@ -607,7 +617,7 @@ function drawMap(t) {
   // đảo cát quanh bể + bãi phải
   const sand = (path) => { ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.save(); ctx.translate(0, 10); ctx.fill(path); ctx.restore(); const sg = ctx.createLinearGradient(0, 100, 0, 700); sg.addColorStop(0, "#ffe7a3"); sg.addColorStop(1, "#f2c25e"); ctx.fillStyle = sg; ctx.fill(path); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke(path); };
   const island = new Path2D(); island.ellipse(POOL.cx, POOL.cy + 6, POOL.rx + 40, POOL.ry + 36, 0, 0, Math.PI * 2); sand(island);
-  const right = new Path2D(); right.moveTo(790, 90); right.bezierCurveTo(900, 40, 1210, 50, 1250, 150); right.bezierCurveTo(1290, 330, 1260, 600, 1230, 650); right.bezierCurveTo(1100, 700, 860, 700, 790, 640); right.bezierCurveTo(760, 520, 820, 430, 800, 360); right.bezierCurveTo(780, 260, 760, 150, 790, 90); right.closePath(); sand(right);
+  const right = new Path2D(); right.ellipse(CAVE.x, CAVE.y + 70, 150, 170, 0, 0, Math.PI * 2); sand(right);
 
   // nước bể nuôi
   const pool = new Path2D(); pool.ellipse(POOL.cx, POOL.cy, POOL.rx, POOL.ry, 0, 0, Math.PI * 2);
@@ -635,66 +645,9 @@ function drawMap(t) {
     const r = 12 + (i % 3) * 4;
     ctx.fillStyle = i % 2 ? "#9fb3c8" : "#c3d1df"; ctx.beginPath(); ctx.ellipse(x, y, r * 1.3, r, a, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke();
   }
-  label("🐠 Bể Nuôi Thả", POOL.cx, 140);
+  label("🐠 Bể Nuôi Thả", POOL.cx, 84);
 
-  // ĐÀI LAI TẠO: bệ san hô 2 tầng + 2 ô bố mẹ + trái tim
-  const den = (x, y) => {
-    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x, y + 92, 190, 44, 0, 0, Math.PI * 2); ctx.fill();
-    const base = new Path2D(); base.ellipse(x, y + 70, 180, 50, 0, 0, Math.PI * 2);
-    const bg2 = ctx.createLinearGradient(0, y + 20, 0, y + 120); bg2.addColorStop(0, "#ff9eb5"); bg2.addColorStop(1, "#d94873");
-    ctx.fillStyle = bg2; ctx.fill(base); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke(base);
-    const top = new Path2D(); top.ellipse(x, y + 46, 160, 40, 0, 0, Math.PI * 2);
-    const tg = ctx.createLinearGradient(0, y + 6, 0, y + 86); tg.addColorStop(0, "#fff0f5"); tg.addColorStop(1, "#ffb3c8");
-    ctx.fillStyle = tg; ctx.fill(top); ctx.lineWidth = 5; ctx.stroke(top);
-    // nhánh san hô hai bên
-    for (const k of [-1, 1]) {
-      ctx.save(); ctx.translate(x + k * 168, y + 40);
-      const c = new Path2D(); c.moveTo(-8, 30); c.lineTo(-6, -10); c.lineTo(-22, -30); c.lineTo(-12, -34); c.lineTo(-2, -20); c.lineTo(0, -52); c.lineTo(10, -24); c.lineTo(22, -40); c.lineTo(26, -30); c.lineTo(8, -6); c.lineTo(8, 30); c.closePath();
-      ctx.fillStyle = "#ff4f6d"; ctx.fill(c); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.stroke(c);
-      ctx.restore();
-    }
-    // 2 bệ bố mẹ
-    const a = fishByUid(S.pick[0]), b = fishByUid(S.pick[1]);
-    [[x - 78, a], [x + 78, b]].forEach(([px, f], i) => {
-      const ped = new Path2D(); ped.ellipse(px, y + 38, 58, 18, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "#7ee0ff"; ctx.fill(ped); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.stroke(ped);
-      if (f) { ctx.save(); ctx.translate(px, y - 6 + Math.sin(t * 2 + i) * 4); if (i === 1) ctx.scale(-1, 1); drawFish(ctx, FISH[f.fish].look, 0.46, t + i); ctx.restore(); }
-      else { ctx.font = "800 30px 'Baloo 2', sans-serif"; ctx.fillStyle = INK; ctx.textAlign = "center"; ctx.fillText("?", px, y + 10); }
-    });
-    // trái tim giữa
-    const hb = 1 + Math.sin(t * 4) * 0.08; ctx.save(); ctx.translate(x, y - 10); ctx.scale(hb, hb);
-    const h = new Path2D(); h.moveTo(0, 14); h.bezierCurveTo(-26, -4, -14, -26, 0, -12); h.bezierCurveTo(14, -26, 26, -4, 0, 14);
-    ctx.fillStyle = "#ff3d71"; ctx.fill(h); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(h); ctx.restore();
-  };
-  den(DEN.x, DEN.y);
-  label("💞 Đài Lai Tạo", DEN.x, 84);
-
-  // KHU ẤP TRỨNG: 3 ổ vỏ sò
-  NESTS.forEach((n, i) => {
-    const slot = S.slots[i];
-    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(n.x, n.y + 46, 76, 20, 0, 0, Math.PI * 2); ctx.fill();
-    const nest = new Path2D(); nest.ellipse(n.x, n.y + 28, 72, 30, 0, 0, Math.PI * 2);
-    ctx.fillStyle = slot.open ? "#c58b4e" : "#8d8d99"; ctx.fill(nest); ctx.lineWidth = 4.5; ctx.strokeStyle = INK; ctx.stroke(nest);
-    ctx.strokeStyle = slot.open ? "#8a5a2b" : "#5c5c66"; ctx.lineWidth = 3;
-    for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(n.x + k * 24 - 10, n.y + 18); ctx.lineTo(n.x + k * 24 + 10, n.y + 40); ctx.stroke(); }
-    if (!slot.open) {
-      ctx.font = "800 34px 'Baloo 2', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = INK; ctx.fillText("🔒", n.x, n.y + 8);
-      const c = CFG.slotUnlock[i]; ctx.font = "800 16px 'Nunito', sans-serif"; ctx.fillStyle = "#fff"; ctx.strokeStyle = INK; ctx.lineWidth = 4;
-      const s = c.gold ? fmt(c.gold) + " vàng" : c.gems + " ngọc"; ctx.strokeText(s, n.x, n.y + 74); ctx.fillText(s, n.x, n.y + 74);
-    } else if (slot.egg) {
-      const left = slot.egg.end - Date.now();
-      const ready = left <= 0;
-      ctx.save(); ctx.translate(n.x, n.y - 6 + (ready ? 0 : Math.sin(t * 2 + i) * 2)); ctx.rotate(ready ? Math.sin(t * 14) * 0.08 : 0);
-      drawEgg(ctx, slot.egg.egg, 0.62, t + i, 0, ready ? 0.8 : 0.2); ctx.restore();
-      const txt = ready ? "✨ ẤP NỞ!" : "⏱ " + fmtTime(left);
-      ctx.font = "800 19px 'Baloo 2', sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.fillStyle = ready ? "#fff59d" : "#fff";
-      ctx.strokeText(txt, n.x, n.y + 78); ctx.fillText(txt, n.x, n.y + 78);
-    } else {
-      ctx.font = "800 16px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.lineWidth = 4; ctx.strokeStyle = INK;
-      ctx.strokeText("Ổ trống", n.x, n.y + 6); ctx.fillText("Ổ trống", n.x, n.y + 6);
-    }
-  });
-  label("🥚 Khu Ấp Trứng", 1008, 452);
+  drawCave(t);
 
   // CÁ trong bể (vẽ theo y để cá phía dưới đè lên)
   const list = S.fishes.filter((f) => !f.pending).map((f) => ({ f, s: swimFor(f) })).sort((a, b) => a.s.y - b.s.y);
@@ -705,7 +658,7 @@ function drawMap(t) {
     const speed = s.enter > 0 ? 3.2 : 0.7 + (TIERS[def.tier].scale - 1);
     if (d < 6) { const p = randomInPool(); s.tx = p.x; s.ty = p.y; } else { s.x += (dx / d) * speed; s.y += (dy / d) * speed; if (Math.abs(dx) > 2) s.face = dx > 0 ? 1 : -1; }
     if (s.enter > 0) s.enter -= 1 / 60;
-    const sc = 0.52 * TIERS[def.tier].scale;
+    const sc = 0.6 * TIERS[def.tier].scale;
     ctx.save(); ctx.translate(s.x, s.y + Math.sin(t * 2 + s.x * 0.01) * 4); ctx.scale(s.face, 1);
     drawFish(ctx, def.look, sc, t + s.x * 0.003); ctx.restore();
     // biểu tượng thu hoạch
@@ -716,6 +669,46 @@ function drawMap(t) {
       s.coin = { x: s.x, y: by };
     } else s.coin = null;
   }
+}
+
+/** HANG ẤP TRỨNG: núi đá có cửa hang tối, trứng đang ấp xếp trong cửa hang. */
+function drawCave(t) {
+  const { x, y } = CAVE;
+  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x, y + 150, 150, 30, 0, 0, Math.PI * 2); ctx.fill();
+  const rock = new Path2D();
+  rock.moveTo(x - 140, y + 150); rock.lineTo(x - 128, y - 10); rock.lineTo(x - 90, y - 90); rock.lineTo(x - 40, y - 120); rock.lineTo(x - 6, y - 170);
+  rock.lineTo(x + 40, y - 130); rock.lineTo(x + 92, y - 100); rock.lineTo(x + 130, y - 20); rock.lineTo(x + 142, y + 150); rock.closePath();
+  const rg = ctx.createLinearGradient(0, y - 170, 0, y + 150); rg.addColorStop(0, "#b9a48c"); rg.addColorStop(1, "#7a6450");
+  ctx.fillStyle = rg; ctx.fill(rock); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.lineJoin = "round"; ctx.stroke(rock);
+  // vân đá + rêu + san hô
+  ctx.lineWidth = 3; ctx.strokeStyle = "rgba(22,34,63,.35)";
+  for (const [a1, b1, a2, b2] of [[-100, -40, -70, -20], [60, -80, 90, -50], [-30, -120, -10, -95], [100, 20, 120, 50]]) { ctx.beginPath(); ctx.moveTo(x + a1, y + b1); ctx.lineTo(x + a2, y + b2); ctx.stroke(); }
+  ctx.fillStyle = "#3cc36b"; for (const [dx, dy] of [[-120, 120], [118, 110], [-6, -164]]) { ctx.beginPath(); ctx.ellipse(x + dx, y + dy, 22, 10, 0, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke(); }
+  // cửa hang
+  const mouth = new Path2D(); mouth.moveTo(x - 92, y + 150); mouth.bezierCurveTo(x - 96, y - 40, x + 96, y - 40, x + 92, y + 150); mouth.closePath();
+  const mg = ctx.createRadialGradient(x, y + 90, 10, x, y + 70, 150); mg.addColorStop(0, "#4b3a7a"); mg.addColorStop(1, "#140c2a");
+  ctx.fillStyle = mg; ctx.fill(mouth); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke(mouth);
+  // ánh ấm trong hang
+  const glow = ctx.createRadialGradient(x, y + 120, 5, x, y + 110, 110); glow.addColorStop(0, `rgba(255,214,110,${0.35 + Math.sin(t * 2) * 0.1})`); glow.addColorStop(1, "rgba(255,214,110,0)");
+  ctx.fillStyle = glow; ctx.fill(mouth);
+  // trứng trong hang (tối đa 3 ổ)
+  const eggs = S.slots.map((sl, i) => ({ sl, i })).filter((o) => o.sl.egg);
+  let ready = 0, soon = Infinity;
+  eggs.forEach(({ sl }, k) => {
+    const left = sl.egg.end - Date.now(); if (left <= 0) ready++; else soon = Math.min(soon, left);
+    const ex = x + (k - (eggs.length - 1) / 2) * 56, ey = y + 112;
+    ctx.save(); ctx.translate(ex, ey); ctx.rotate(left <= 0 ? Math.sin(t * 14 + k) * 0.1 : Math.sin(t * 1.5 + k) * 0.03);
+    drawEgg(ctx, sl.egg.egg, 0.44, t + k, 0, left <= 0 ? 0.9 : 0.25); ctx.restore();
+  });
+  // ổ rơm dưới trứng
+  ctx.fillStyle = "#c58b4e"; ctx.beginPath(); ctx.ellipse(x, y + 140, 86, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke();
+  // trạng thái
+  const open = S.slots.filter((sl) => sl.open).length;
+  const status = ready ? `✨ ${ready} trứng sẵn sàng nở!` : eggs.length ? `⏱ ${fmtTime(soon)}` : `Trống · ${open}/3 ổ mở`;
+  ctx.font = "800 20px 'Baloo 2', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.fillStyle = ready ? "#fff59d" : "#fff";
+  ctx.strokeText(status, x, y + 186); ctx.fillText(status, x, y + 186);
+  if (ready) { ctx.globalAlpha = 0.5 + Math.sin(t * 6) * 0.5; ctx.fillStyle = "#fff59d"; ctx.beginPath(); ctx.arc(x + 70, y - 60, 8, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+  label("🥚 Hang Ấp Trứng", x, y - 200);
 }
 
 // vòng lặp vẽ (60 khung/giây, dừng khi tab ẩn)
@@ -737,8 +730,7 @@ cv.addEventListener("click", (e) => {
   let best = null, bd = 1e9;
   for (const f of S.fishes) { const s = swim.get(f.uid); if (!s) continue; const d = Math.hypot(x - s.x, y - s.y); const lim = 50 * TIERS[FISH[f.fish].tier].scale; if (d < lim && d < bd) { bd = d; best = f; } }
   if (best) return openInfo(best);
-  if (Math.hypot((x - DEN.x) / 200, (y - DEN.y - 30) / 110) < 1) return openBreed();
-  for (let i = 0; i < NESTS.length; i++) if (Math.hypot(x - NESTS[i].x, y - NESTS[i].y) < 80) return openHatch();
+  if (Math.abs(x - CAVE.x) < 150 && y > CAVE.y - 220 && y < CAVE.y + 200) return openHatch();
 });
 
 // ============================================================================
@@ -793,11 +785,13 @@ function openInfo(f) {
   el.appendChild(row);
 }
 
-// ---- đài lai tạo
-function openBreed() {
-  const { el, close } = sheet("💞 Đài Lai Tạo");
+// ---- mục LAI TẠO (trang riêng)
+function openBreed() { location.hash = "lai-tao"; showView(); }
+function renderBreed() {
+  const el = $("breedPage");
+  const close = () => {};
   const render = () => {
-    [...el.children].slice(1).forEach((c) => c.remove());
+    el.innerHTML = "<h2>💞 Lai Tạo Cá Boss</h2>";
     const eligible = S.fishes.filter((f) => BREEDABLE.has(FISH[f.fish].tier));
     // cặp mẫu
     const quick = document.createElement("div"); quick.className = "actions";
@@ -859,13 +853,13 @@ function openBreed() {
     const go = document.createElement("button"); go.className = "btn green"; go.textContent = "💞 LAI TẠO"; go.style.fontSize = "22px";
     const free = S.slots.findIndex((s) => s.open && !s.egg);
     go.disabled = !recipe;
-    if (recipe && free < 0) msg.textContent = "Khu ấp trứng đã đầy – ấp nở hoặc mở thêm ổ.";
+    if (recipe && free < 0) msg.textContent = "Hang ấp trứng đã đầy – ấp nở hoặc mở thêm ổ.";
     go.onclick = () => {
       const slot = S.slots.findIndex((s) => s.open && !s.egg);
-      if (slot < 0) { msg.textContent = "Khu ấp trứng đã đầy – ấp nở hoặc mở thêm ổ."; return; }
+      if (slot < 0) { msg.textContent = "Hang ấp trứng đã đầy – ấp nở hoặc mở thêm ổ."; return; }
       const now = Date.now();
       S.slots[slot].egg = { recipe: recipe.id, egg: recipe.egg, start: now, end: now + recipe.hatchMinutes * 60_000 };
-      save(); close(); toast(`🥚 ${recipe.egg.name} đã vào ổ ${slot + 1}`); openHatch();
+      save(); toast(`🥚 ${recipe.egg.name} đã vào hang ấp (ổ ${slot + 1})`); location.hash = "ban-do"; showView(); openHatch();
     };
     el.appendChild(go);
   };
@@ -874,7 +868,7 @@ function openBreed() {
 
 // ---- khu ấp trứng
 function openHatch() {
-  const { el, back } = sheet("🥚 Khu Ấp Trứng");
+  const { el, back } = sheet("🥚 Hang Ấp Trứng");
   const grid = document.createElement("div"); grid.className = "slots"; el.appendChild(grid);
   const render = () => {
     grid.innerHTML = "";
@@ -980,7 +974,7 @@ function hatch(i) {
         b.onclick = () => {
           wrap.remove(); cancelAnimationFrame(raf); delete nf.pending; save();
           // cá mới bơi thẳng từ ổ ấp vào bể
-          const n = NESTS[i]; swim.set(nf.uid, { x: n.x, y: n.y - 10, tx: POOL.cx + 120, ty: POOL.cy, face: -1, enter: 3 });
+          swim.set(nf.uid, { x: CAVE.x - 60, y: CAVE.y + 110, tx: POOL.cx + 160, ty: POOL.cy, face: -1, enter: 3 });
           toast(`${def.name} đã vào Bể Nuôi Thả!`);
         };
         card.appendChild(b);
@@ -1002,7 +996,17 @@ function hatch(i) {
   let raf = requestAnimationFrame(loop);
 }
 
-$("openBreed").onclick = openBreed;
+/** Chuyển mục theo #ban-do / #lai-tao. */
+function showView() {
+  const breed = location.hash === "#lai-tao";
+  $("viewMap").hidden = breed; $("viewBreed").hidden = !breed;
+  $("viewMap").style.display = breed ? "none" : "flex";
+  $("tabMap").setAttribute("aria-current", breed ? "false" : "page");
+  $("tabBreed").setAttribute("aria-current", breed ? "page" : "false");
+  if (breed) renderBreed();
+}
+window.addEventListener("hashchange", showView);
+showView();
 $("openHatch").onclick = openHatch;
 $("openStock").onclick = () => {
   const { el, close } = sheet(`🐟 Kho cá (${S.fishes.length})`);
