@@ -14,6 +14,7 @@ import { FISH_H, FISH_W, drawFish, drawFishSilhouette } from "./FishArt.ts";
 import { CHAR_H, CHAR_W, defaultLook, drawAura, drawCharacter, type Look } from "./CharacterArt.ts";
 import { WORLD_H, WORLD_W, drawDock, drawZoneBackground } from "./Backgrounds.ts";
 import { drawJunk } from "./JunkArt.ts";
+import { MENU_ICON_SIZE, drawMenuIcon, type MenuIcon } from "./MenuIcons.ts";
 
 /** Tạo texture từ hàm vẽ Canvas 2D (chỉ tạo một lần, lazy). */
 export function canvasTexture(
@@ -52,6 +53,11 @@ function softEdges(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.fillStyle = g;
   ctx.fillRect(-w, -h, w * 2, h * 2);
   ctx.restore();
+}
+
+/** Biểu tượng mục menu sảnh (vẽ tay, cùng phong cách game). */
+export function menuIconTexture(scene: Phaser.Scene, kind: MenuIcon): string {
+  return canvasTexture(scene, `menuicon_${kind}`, MENU_ICON_SIZE, MENU_ICON_SIZE, (ctx) => drawMenuIcon(ctx, kind), 1.5);
 }
 
 /** Quầng sáng tròn mềm (thay cho hạt lấp lánh phóng to làm nền sau cá). */

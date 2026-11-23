@@ -1,11 +1,11 @@
 import Phaser from "phaser";
 import { extraX, safeX } from "../ui/wide.ts";
-import { CHARACTER_BY_ID, CHECKIN_REWARDS, COSMETICS, EVENTS, FISH_BY_ID, QUESTS, ROD_BY_ID, TITLES, ZONES, ZONE_BY_ID } from "@dccc/game-data";
+import { CHARACTER_BY_ID, CHECKIN_REWARDS, EVENTS, FISH_BY_ID, QUESTS, ROD_BY_ID, TITLES, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import { checkinState, dayKey, mailRewardClaimed, mailRewardEmpty, questProgress, refreshDaily, titleProgress } from "@dccc/shared";
 import { playerNameSchema } from "@dccc/validation";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
-import { auraTexture, characterHeadTexture, characterTexture, cosmeticTexture, dockTexture, fishSilhouetteTexture, fishTexture, rodIconTexture, zoneTexture } from "../art/textures.ts";
+import { auraTexture, characterHeadTexture, characterTexture, dockTexture, fishTexture, rodIconTexture, zoneTexture, menuIconTexture } from "../art/textures.ts";
 import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -106,9 +106,6 @@ export class HubScene extends Phaser.Scene {
     const eventsLeft = EVENTS.filter((e) => !s.claimedEvents.includes(e.id)).length;
     const charIcon = characterHeadTexture(this, char, GameState.equipOf(char.id));
     const rodIcon = rodIconTexture(this, ROD_BY_ID.get(s.selectedRodId)!);
-    const fishIcon = fishTexture(this, FISH_BY_ID.get("f_ca_chep")!);
-    const bookIcon = fishSilhouetteTexture(this, FISH_BY_ID.get("f_boss_hoa_nguc_bao_ngu")!);
-    const shopIcon = cosmeticTexture(this, CHARACTER_BY_ID.get("c_be_tom")!, COSMETICS.find((c) => c.id === "w_canh_thien_than")!.id);
     // có việc cần nhận: điểm danh hôm nay / nhiệm vụ xong / danh hiệu đạt
     const fresh = refreshDaily(s, Date.now());
     const questBadge =
@@ -122,19 +119,19 @@ export class HubScene extends Phaser.Scene {
     const items: { icon: string; iconKey?: string; label: string; color: number; act: () => void; locked?: string; badge?: string }[] = [
       { icon: "🧑", iconKey: charIcon, label: "Nhân Vật", color: COLORS.blue, act: () => goTo(this, "Characters") },
       { icon: "🎣", iconKey: rodIcon, label: "Cần Câu", color: COLORS.blue, act: () => goTo(this, "Rods") },
-      { icon: "🐟", iconKey: fishIcon, label: "Kho Cá", color: COLORS.blue, act: () => goTo(this, "Inventory"), badge: s.fishes.length ? String(s.fishes.length) : undefined },
-      { icon: "🛒", iconKey: shopIcon, label: "Cửa Hàng", color: COLORS.orange, act: () => goTo(this, "Shop") },
-      { icon: "📖", iconKey: bookIcon, label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
-      { icon: "⚙️", label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
-      { icon: "⚔️", label: "Đấu Cá", color: COLORS.red, act: () => goTo(this, "DeathMatch") },
-      { icon: "🥚", label: "Lai Tạo", color: COLORS.orange, act: () => goTo(this, "Breeding"), badge: breedBadge },
-      { icon: "🏁", label: "Đua Cá", color: COLORS.green, act: () => goTo(this, "Race") },
-      { icon: "🏙", label: "Quảng Trường", color: COLORS.orange, act: () => goTo(this, "Plaza") },
-      { icon: "🎡", label: "Vòng Quay", color: COLORS.purple, act: () => goTo(this, "Wheel"), badge: s.daily.freeSpinUsed && s.daily.day === dayKey(Date.now()) ? undefined : "FREE" },
-      { icon: "📜", label: "Nhiệm Vụ", color: COLORS.purple, act: () => goTo(this, "Quests"), badge: questBadge },
-      { icon: "🎉", label: "Sự Kiện", color: COLORS.orange, act: () => this.openEvents(), badge: eventsLeft ? "!" : undefined },
-      { icon: "🏆", label: "Xếp Hạng", color: COLORS.purple, act: () => goTo(this, "Ranking") },
-      { icon: "🛡️", label: "Hội", color: COLORS.purple, act: () => goTo(this, "Guild") },
+      { icon: "🐟", iconKey: menuIconTexture(this, "bag"), label: "Kho Cá", color: COLORS.blue, act: () => goTo(this, "Inventory"), badge: s.fishes.length ? String(s.fishes.length) : undefined },
+      { icon: "🛒", iconKey: menuIconTexture(this, "shop"), label: "Cửa Hàng", color: COLORS.orange, act: () => goTo(this, "Shop") },
+      { icon: "📖", iconKey: menuIconTexture(this, "book"), label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
+      { icon: "⚙️", iconKey: menuIconTexture(this, "gear"), label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
+      { icon: "⚔️", iconKey: menuIconTexture(this, "battle"), label: "Đấu Cá", color: COLORS.red, act: () => goTo(this, "DeathMatch") },
+      { icon: "🥚", iconKey: menuIconTexture(this, "breed"), label: "Lai Tạo", color: COLORS.orange, act: () => goTo(this, "Breeding"), badge: breedBadge },
+      { icon: "🏁", iconKey: menuIconTexture(this, "race"), label: "Đua Cá", color: COLORS.green, act: () => goTo(this, "Race") },
+      { icon: "🏙", iconKey: menuIconTexture(this, "plaza"), label: "Quảng Trường", color: COLORS.orange, act: () => goTo(this, "Plaza") },
+      { icon: "🎡", iconKey: menuIconTexture(this, "wheel"), label: "Vòng Quay", color: COLORS.purple, act: () => goTo(this, "Wheel"), badge: s.daily.freeSpinUsed && s.daily.day === dayKey(Date.now()) ? undefined : "FREE" },
+      { icon: "📜", iconKey: menuIconTexture(this, "quest"), label: "Nhiệm Vụ", color: COLORS.purple, act: () => goTo(this, "Quests"), badge: questBadge },
+      { icon: "🎉", iconKey: menuIconTexture(this, "event"), label: "Sự Kiện", color: COLORS.orange, act: () => this.openEvents(), badge: eventsLeft ? "!" : undefined },
+      { icon: "🏆", iconKey: menuIconTexture(this, "trophy"), label: "Xếp Hạng", color: COLORS.purple, act: () => goTo(this, "Ranking") },
+      { icon: "🛡️", iconKey: menuIconTexture(this, "guild"), label: "Hội", color: COLORS.purple, act: () => goTo(this, "Guild") },
     ];
     items.forEach((it, i) => {
       const col = i % 3;
@@ -348,6 +345,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.39.1 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.40.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

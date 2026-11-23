@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.40.0] – 2026-11-23 – Mỗi khu 1 Thần Thoại, biểu tượng menu mới
+### Thay đổi
+- **Phân bổ lại cá Thần Thoại: mỗi khu (ải) đúng 1 loài, cùng hệ khu** (trước đây 5/6 loài dồn ở Đại Dương Thần Thoại, 3 loài hệ Ánh Sáng):
+  Bến Tân Thủ – Thái Cổ Thần Ngư (Thổ) · Biển Nhiệt Đới – Tiên Ngư Hồng Ngọc (Mộc) · Vương Quốc Kim Loại – **Kim Lân Thần Ngư** (Kim, loài mới) · Biển Lửa – Diễm Ma Thâm Hải (Hỏa) · Băng Giá – Thần Ngư Bắc Cực (Thủy) · Vực Sâu Bí Ẩn – Huyền Minh Long Ngư (Bóng Tối) · Đại Dương Thần Thoại – Phượng Hoàng Biển (Ánh Sáng). Tỉ lệ gặp cực hiếm (< 0,6% mỗi lần cá cắn). Hệ cố định theo loài → **cá đã câu cũng đổi sang hệ mới**.
+- **Biểu tượng menu sảnh vẽ mới** đồng bộ phong cách game: giỏ cá, sạp hàng, sách sưu tập, bánh răng, kiếm & khiên, trứng lai, cờ đua, đài phun nước quảng trường, vòng quay, cuộn nhiệm vụ, hộp quà, cúp, khiên hội. Chữ dài trên nút tự thu nhỏ cho vừa.
+
 ## [0.39.1] – 2026-11-23 – Ký hiệu ĐB-1…ĐB-5, Bộ Sưu Tập chia vùng
 ### Thay đổi
 - Dạng đột biến ghi bằng **ký hiệu ĐB-1 … ĐB-5** (ĐB-1 phổ biến nhất 45% → ĐB-5 hiếm nhất 3%) thay cho phân loại bằng màu / tên cấp bậc.

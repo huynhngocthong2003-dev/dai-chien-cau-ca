@@ -79,6 +79,8 @@ export class Button extends Phaser.GameObjects.Container {
     } else {
       this.label = txt(scene, 0, o.sub ? -fs * 0.28 : 0, hasIcon ? `${o.icon} ${text}` : text, fs, { align: "center" }).setOrigin(0.5);
     }
+    // chữ dài hơn nút (vd "Quảng Trường") → tự thu nhỏ cho vừa
+    if (this.label.width > w - 12) this.label.setScale((w - 12) / this.label.width);
     this.add(this.label);
     if (o.sub) this.add(txt(scene, 0, fs * 0.55, o.sub, Math.round(fs * 0.55), { align: "center", weight: "700" }).setOrigin(0.5));
     if (o.badge) this.setBadge(o.badge);

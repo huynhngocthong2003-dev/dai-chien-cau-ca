@@ -86,16 +86,23 @@ describe("Dữ liệu game", () => {
 });
 
 describe("Thần ngư cực hiếm mới", () => {
-  it("Huyền Minh Long Ngư & Diễm Ma Thâm Hải: bậc Thần Thoại, chỉ ở Đại Dương Thần Thoại, cực khó gặp", async () => {
-    const { FISH_BY_ID, ZONE_BY_ID } = await import("@dccc/game-data");
-    const z = ZONE_BY_ID.get("z_dai_duong_than_thoai")!;
-    const total = z.spawn.reduce((a, x) => a + x.weight, 0);
-    for (const id of ["f_huyen_minh_long_ngu", "f_diem_ma_tham_hai", "f_tien_ngu_hong_ngoc"]) {
-      const f = FISH_BY_ID.get(id)!;
-      expect(f.rarity).toBe("mythic");
-      const w = z.spawn.find((x) => x.fishId === id)!.weight;
-      expect(w / total).toBeLessThan(0.001); // < 0,1% mỗi lần cá cắn (chưa tính may mắn)
-      expect(w).toBeLessThan(z.spawn.find((x) => x.fishId === "f_thai_co_than_ngu")!.weight / 4);
+  it("Thần Thoại: mỗi khu 1 loài, cực khó gặp (< 0,6% mỗi lần cá cắn)", async () => {
+    const { FISH_BY_ID, ZONES } = await import("@dccc/game-data");
+    for (const z of ZONES) {
+      const total = z.spawn.reduce((a, x) => a + x.weight, 0);
+      for (const x of z.spawn.filter((s) => FISH_BY_ID.get(s.fishId)!.rarity === "mythic")) expect(x.weight / total, z.id).toBeLessThan(0.006);
+    }
+  });
+});
+
+describe("Thần Thoại theo khu", () => {
+  it("khu nào cũng có đúng 1 loài Thần Thoại, cùng hệ với khu", async () => {
+    const { ZONES: Z, FISH_BY_ID: F } = await import("@dccc/game-data");
+    for (const z of Z) {
+      const mythics = z.spawn.map((s) => F.get(s.fishId)!).filter((f) => f.rarity === "mythic");
+      expect(mythics.length, z.id).toBe(1);
+      expect(mythics[0]!.element, z.id).toBe(z.element);
+      expect(mythics[0]!.elementFixed, z.id).toBe(true);
     }
   });
 });

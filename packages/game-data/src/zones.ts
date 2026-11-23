@@ -19,6 +19,8 @@ export const ZONES: ZoneDef[] = [
       { fishId: "f_ca_loc", weight: 14 },
       { fishId: "f_ca_tai_tuong", weight: 8 },
       { fishId: "f_ca_chep_rong", weight: 5 },
+      // THẦN THOẠI của khu (cực hiếm)
+      { fishId: "f_thai_co_than_ngu", weight: 0.12 },
     ],
     theme: { skyTop: "#5ec8f2", skyBottom: "#c9f1ff", waterTop: "#3fb6d9", waterBottom: "#145c8a", accent: "#7cc84a", ground: "#5aa83a", weather: "leaves" },
   },
@@ -42,6 +44,8 @@ export const ZONES: ZoneDef[] = [
       { fishId: "f_ca_nhan_ngu_xanh", weight: 4 },
       { fishId: "f_ca_map_bua", weight: 2 },
       { fishId: "f_ca_chep_rong", weight: 0.8 },
+      // THẦN THOẠI của khu (cực hiếm)
+      { fishId: "f_tien_ngu_hong_ngoc", weight: 0.15 },
     ],
     theme: { skyTop: "#29b6f6", skyBottom: "#fff3c4", waterTop: "#1de9b6", waterBottom: "#00796b", accent: "#ff8a65", ground: "#f6d68b", weather: "sparkles" },
   },  {
@@ -61,6 +65,8 @@ export const ZONES: ZoneDef[] = [
       { fishId: "f_ca_kiem_thep", weight: 6 },
       { fishId: "f_ca_map_thep", weight: 3 },
       { fishId: "f_kim_giap_long_ngu", weight: 0.8 },
+      // THẦN THOẠI của khu (cực hiếm)
+      { fishId: "f_kim_lan_than_ngu", weight: 0.2 },
     ],
     theme: { skyTop: "#455a64", skyBottom: "#cfd8dc", waterTop: "#90a4ae", waterBottom: "#1c2a33", accent: "#ffca28", ground: "#78909c", weather: "sparkles" },
   },
@@ -83,6 +89,8 @@ export const ZONES: ZoneDef[] = [
       { fishId: "f_ran_bien_lua", weight: 3 },
       { fishId: "f_ca_hong_long", weight: 1 },
       { fishId: "f_hoa_long_ngu", weight: 0.8 },
+      // THẦN THOẠI của khu (cực hiếm)
+      { fishId: "f_diem_ma_tham_hai", weight: 0.2 },
     ],
     theme: { skyTop: "#3e0b0b", skyBottom: "#ff7043", waterTop: "#ff5722", waterBottom: "#4e0d00", accent: "#ffab00", ground: "#3e2723", weather: "embers" },
   },
@@ -128,6 +136,8 @@ export const ZONES: ZoneDef[] = [
       { fishId: "f_ac_ngu_gai_tim", weight: 2.5 },
       { fishId: "f_ca_bach_tuoc", weight: 2 },
       { fishId: "f_ca_hong_long", weight: 0.7 },
+      // THẦN THOẠI của khu (cực hiếm)
+      { fishId: "f_huyen_minh_long_ngu", weight: 0.25 },
     ],
     theme: { skyTop: "#0d0221", skyBottom: "#3a1c71", waterTop: "#311b92", waterBottom: "#050014", accent: "#b388ff", ground: "#263238", weather: "bubbles" },
   },
@@ -151,12 +161,7 @@ export const ZONES: ZoneDef[] = [
       { fishId: "f_ky_lan_ngu", weight: 1.5 },
       { fishId: "f_long_vuong_hai_than", weight: 1.2 },
       { fishId: "f_hoa_long_ngu", weight: 1 },
-      { fishId: "f_thai_co_than_ngu", weight: 0.4 },
       { fishId: "f_phuong_hoang_bien", weight: 0.4 },
-      // thần ngư CỰC HIẾM (≈ 1/5 tỉ lệ thần thoại thường)
-      { fishId: "f_huyen_minh_long_ngu", weight: 0.08 },
-      { fishId: "f_diem_ma_tham_hai", weight: 0.08 },
-      { fishId: "f_tien_ngu_hong_ngoc", weight: 0.08 },
     ],
     theme: { skyTop: "#4a148c", skyBottom: "#ffab91", waterTop: "#7c4dff", waterBottom: "#1a0638", accent: "#ffd740", ground: "#b39ddb", weather: "sparkles" },
   },

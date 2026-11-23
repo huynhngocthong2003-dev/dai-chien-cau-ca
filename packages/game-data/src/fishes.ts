@@ -278,20 +278,23 @@ const RAW_FISHES: FishDef[] = [
   fish("f_long_vuong_hai_than", "Long Vương Hải Thần", "legendary", "water", 6, [Z6], 70, [400, 1200],
     { shape: "serpent", body: "#00897b", belly: "#ffe082", fin: "#ffd600", spikes: true, teeth: true, horns: true, eye: "glow", eyeColor: "#ffd600", glow: "#64ffda", scale: 1.8 },
     ["Long Uy", "Giảm tấn công toàn đội đối thủ."], "Vua của các loài rồng biển."),
-  fish("f_thai_co_than_ngu", "Thái Cổ Thần Ngư", "mythic", "earth", 6, [Z6], 55, [2000, 6000],
+  fish("f_kim_lan_than_ngu", "Kim Lân Thần Ngư", "mythic", "metal", 6, [Z7], 72, [400, 1400],
+    { shape: "long", body: "#cfd8dc", belly: "#fffde7", fin: "#ffd54f", pattern: "scales", patternColor: "#ffb300aa", horns: true, spikes: true, eye: "glow", eyeColor: "#ffd600", glow: "#ffe082", scale: 1.7 },
+    ["Kim Lân Hộ Thể", "Giáp vảy vàng: giảm mạnh sát thương nhận vào 2 lượt."], "Vảy bạc viền vàng cứng hơn thép, vương miện kim loại lấp lánh – chúa tể Vương Quốc Kim Loại."),
+  fish("f_thai_co_than_ngu", "Thái Cổ Thần Ngư", "mythic", "earth", 6, [Z1], 55, [2000, 6000],
     { shape: "round", body: "#5d4037", belly: "#ffcc80", fin: "#3e2723", pattern: "scales", patternColor: "#ffab0066", teeth: true, horns: true, spikes: true, eye: "glow", eyeColor: "#00e676", glow: "#ffab00", scale: 2 },
     ["Thái Cổ", "Miễn nhiễm hiệu ứng 2 lượt."], "Sinh vật cổ xưa nhất, lưng nó từng được tưởng là một hòn đảo."),
   fish("f_phuong_hoang_bien", "Phượng Hoàng Biển", "mythic", "fire", 6, [Z6], 95, [50, 200],
     { shape: "long", body: "#ff1744", belly: "#ffea00", fin: "#ff9100", pattern: "scales", patternColor: "#ffd60088", horns: true, eye: "glow", eyeColor: "#ffffff", glow: "#ff9100", scale: 1.7 },
     ["Niết Bàn", "Hồi sinh với 100% HP một lần."], "Tái sinh từ bọt sóng mỗi khi bị hạ gục."),
   // Hai thần ngư cực hiếm – có hình vẽ riêng (art/MythicArt.ts)
-  fish("f_huyen_minh_long_ngu", "Huyền Minh Long Ngư", "mythic", "water", 6, [Z6], 92, [300, 1200],
+  fish("f_huyen_minh_long_ngu", "Huyền Minh Long Ngư", "mythic", "water", 6, [Z3], 92, [300, 1200],
     { shape: "serpent", body: "#26c6da", belly: "#fff3c4", fin: "#ffd54f", pattern: "scales", patternColor: "#ffffff66", horns: true, eye: "glow", eyeColor: "#e0f7fa", glow: "#80deea", scale: 2 },
     ["Sóng Thần Thiên Đàn", "Triệu hồi rồng nước khổng lồ tinh tú cuốn phăng đối thủ."], "Rồng nước sinh ra từ dải ngân hà rơi xuống biển sâu; vảy nó lấp lánh cả một bầu trời sao."),
-  fish("f_diem_ma_tham_hai", "Diễm Ma Thâm Hải", "mythic", "fire", 6, [Z6], 62, [1500, 5000],
+  fish("f_diem_ma_tham_hai", "Diễm Ma Thâm Hải", "mythic", "fire", 6, [Z4], 62, [1500, 5000],
     { shape: "shark", body: "#2a1236", belly: "#4a1020", fin: "#d50000", teeth: true, horns: true, spikes: true, eye: "glow", eyeColor: "#ff1744", glow: "#ff3d00", scale: 2.1 },
     ["Hỏa Ngục Phệ Hồn", "Phun bão lửa lôi điện nuốt chửng cả màn chơi."], "Ác ma dung nham ngủ dưới vực sâu nhất; nơi nó bơi qua, nước biển sôi sùng sục."),
-  fish("f_tien_ngu_hong_ngoc", "Tiên Ngư Hồng Ngọc", "mythic", "light", 6, [Z6], 78, [80, 400],
+  fish("f_tien_ngu_hong_ngoc", "Tiên Ngư Hồng Ngọc", "mythic", "light", 6, [Z2], 78, [80, 400],
     { shape: "round", body: "#f48fb1", belly: "#fce4ec", fin: "#ff80ab", pattern: "stripes", patternColor: "#b2ebf2aa", horns: true, eye: "glow", eyeColor: "#4a148c", glow: "#ff80ab", scale: 1.8 },
     ["Mộng Ảo Hồng Quang", "Ánh hồng mê hoặc khiến đối thủ quên tấn công."], "Công chúa của biển sao – nụ cười của nàng làm cả đại dương bừng sáng."),
   fish("f_boss_hai_than_cu_thu", "Hải Thần Cự Thú", "boss", "metal", 6, [Z6], 70, [5000, 15000],
@@ -354,8 +357,14 @@ const RAW_FISHES: FishDef[] = [
  *  - loài đặc biệt (FIXED_ELEMENT): hệ riêng.
  */
 const FIXED_ELEMENT: Record<string, Element> = {
-  f_huyen_minh_long_ngu: "water", // rồng nước ngân hà
-  f_diem_ma_tham_hai: "fire", // ác ma dung nham
+  // THẦN THOẠI: mỗi khu 1 loài, hệ cố định theo loài (cá đã câu cũng theo hệ này)
+  f_thai_co_than_ngu: "earth", // Bến Tân Thủ
+  f_tien_ngu_hong_ngoc: "wood", // Biển Nhiệt Đới
+  f_kim_lan_than_ngu: "metal", // Vương Quốc Kim Loại
+  f_diem_ma_tham_hai: "fire", // Biển Lửa – ác ma dung nham
+  f_than_ngu_bac_cuc: "water", // Băng Giá
+  f_huyen_minh_long_ngu: "dark", // Vực Sâu – rồng huyền minh (u tối)
+  f_phuong_hoang_bien: "light", // Đại Dương Thần Thoại
   // cá lai (không có khu câu)
   f_lai_thiet_ngu_san_ho: "metal",
   f_lai_chien_giap: "metal",

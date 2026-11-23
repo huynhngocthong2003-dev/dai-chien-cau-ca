@@ -262,9 +262,9 @@ describe("Tỉ lệ theo độ hiếm (càng hiếm càng khó – Thần Thoạ
     expect(n.legendary).toBeGreaterThan(n.mythic);
     expect(n.mythic).toBeGreaterThan(n.secret);
     expect(n.secret).toBeGreaterThan(0);
-    // khu không có cá Huyền Thoại/Thần Thoại → luôn ra Boss
+    // khu đầu (có Thần Thoại của khu, không có Huyền Thoại) → Boss / Boss siêu hiếm / Thần Thoại, không ra Huyền Thoại
     const z1 = ZONE_BY_ID.get("z_ben_tan_thu")!;
     const r1 = new Rng(3);
-    for (let i = 0; i < 3000; i++) expect(["boss", "secret"]).toContain(chooseHuntFish(z1, FISH_BY_ID, r1).kind);
+    for (let i = 0; i < 3000; i++) expect(["boss", "secret", "mythic"]).toContain(chooseHuntFish(z1, FISH_BY_ID, r1).kind);
   });
 });

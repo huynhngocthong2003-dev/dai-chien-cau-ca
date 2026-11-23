@@ -53,7 +53,7 @@ describe("Gán nguyên tố cho cá", () => {
       expect(ELEMENT_IDS).toContain(f.element);
       if (!f.elementFixed) expect(f.element).toBe(ZONE_BY_ID.get(f.zones[0]!)!.element);
     }
-    expect(FISH_BY_ID.get("f_huyen_minh_long_ngu")!.element).toBe("water");
+    expect(FISH_BY_ID.get("f_huyen_minh_long_ngu")!.element).toBe("dark"); // Vực Sâu Bí Ẩn
     expect(FISHES.filter((f) => f.zones.includes("z_vuong_quoc_kim_loai")).every((f) => f.element === "metal")).toBe(true);
   });
   it("cá câu được mang hệ của KHU NƠI CÂU; loài sống nhiều khu chỉ có 1 hệ (khu chính)", () => {

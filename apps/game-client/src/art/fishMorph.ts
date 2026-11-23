@@ -114,6 +114,8 @@ const OVERRIDES: Record<string, Partial<FishMorph>> = {
   f_sboss_co_long_vuong: { aspect: 3.4, peak: 0.7, head: 1.4, hump: 1.3, bend: 0.3, wave: 0.2, tilt: 18, snout: "upturned", mouth: "fangs", tail: "flame", tailSize: 1.35, dorsal: "spiky", dorsalSize: 1.45, whiskers: false, lure: false, eyeSize: 1.15, sig: { head: "flame", mane: true } },
   // Cá Tuyết Mochi – bánh mochi tròn dẹt, vây ngắn, vương miện tuyết
   f_sboss_ca_tuyet_mochi: { aspect: 1.25, peak: 0.5, head: 1.25, hump: 0.85, bend: 0.06, tilt: 5, snout: "blunt", mouth: "smile", tail: "fan", tailSize: 0.9, dorsal: "none", pectoral: 0.8, whiskers: false, scales: false, eyeSize: 1.6, sig: { head: "crystal" } },
+  // Kim Lân Thần Ngư – cá kiếm vảy bạc viền vàng, vây đôi, vương miện kim loại, vây cánh
+  f_kim_lan_than_ngu: { aspect: 3.1, peak: 0.64, head: 1.05, hump: 1.15, bend: 0.24, tilt: 14, snout: "pointed", mouth: "grin", tail: "fork", tailSize: 1.3, dorsal: "double", dorsalSize: 1.35, pectoral: 1.3, whiskers: false, lure: false, scales: true, eyeSize: 1.3, sig: { head: "crystal", finwings: true } },
   // Leviathan Diệt Thế – thuỷ quái lươn khổng lồ, hàm nanh, gai lưng, đuôi roi, bờm
   f_sboss_leviathan: { aspect: 3.8, peak: 0.7, head: 1.45, hump: 1.3, bend: 0.14, wave: 0.2, tilt: 4, snout: "pointed", mouth: "fangs", tail: "lunate", tailSize: 1.2, dorsal: "sail", dorsalSize: 1.6, pectoral: 1.4, whiskers: false, lure: false, eyeSize: 1.0, sig: { head: "horns", finwings: true } },
   // giữ đúng dáng hình gốc (rồng nước thân mảnh, gai lưng vàng, đuôi lụa trắng)
