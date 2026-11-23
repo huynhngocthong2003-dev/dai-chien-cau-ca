@@ -12,7 +12,6 @@ import { DESIGN_H, installWide, targetWidth } from "./ui/wide.ts";
 import { Music, type MusicTheme } from "./audio/Music.ts";
 import { Sfx } from "./audio/Sfx.ts";
 import { DeathMatchScene } from "./scenes/DeathMatchScene.ts";
-import { BattleScene } from "./scenes/BattleScene.ts";
 import { Combat3Scene } from "./scenes/Combat3Scene.ts";
 import { ProfileScene } from "./scenes/ProfileScene.ts";
 import { QuestScene } from "./scenes/QuestScene.ts";
@@ -47,7 +46,7 @@ async function start() {
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
     fps: { target: 60 },
-    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, BattleScene, Combat3Scene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
+    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, Combat3Scene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 
@@ -61,7 +60,7 @@ async function start() {
     const k = sc.scene.key;
     if (k === "Hub" || k === "Plaza") return "hub";
     if (k === "Fishing") return (sc as unknown as { bossHunt?: boolean }).bossHunt ? "boss" : "fishing";
-    if (k === "Battle" || k === "DeathMatch" || k === "Race") return "battle";
+    if (k === "Combat3" || k === "DeathMatch" || k === "Race") return "battle";
     return "calm";
   };
   const hookMusic = () => {

@@ -124,7 +124,7 @@ export class HubScene extends Phaser.Scene {
       { icon: "🛒", iconKey: shopIcon, label: "Cửa Hàng", color: COLORS.orange, act: () => goTo(this, "Shop") },
       { icon: "📖", iconKey: bookIcon, label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
       { icon: "⚙️", label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
-      { icon: "⚔️", label: "Đấu Sinh Tử", color: COLORS.red, act: () => goTo(this, "DeathMatch"), badge: s.roasted.length ? `🍖${s.roasted.length}` : undefined },
+      { icon: "⚔️", label: "Đấu Cá", color: COLORS.red, act: () => goTo(this, "DeathMatch") },
       { icon: "🎡", label: "Vòng Quay", color: COLORS.purple, act: () => goTo(this, "Wheel"), badge: s.daily.freeSpinUsed && s.daily.day === dayKey(Date.now()) ? undefined : "FREE" },
       { icon: "📜", label: "Nhiệm Vụ", color: COLORS.purple, act: () => goTo(this, "Quests"), badge: questBadge },
       { icon: "🎉", label: "Sự Kiện", color: COLORS.orange, act: () => this.openEvents(), badge: eventsLeft ? "!" : undefined },
@@ -347,6 +347,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.36.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.36.1 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

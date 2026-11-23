@@ -66,38 +66,21 @@ const errs = [];
   if (!t4 || t4.stars !== 2 || s.evoItems.e_ngoc_long_hon !== 1 || s.fishes.length !== 5) errs.push(`Trưởng thành sai: ${JSON.stringify(t4)} ${JSON.stringify(s.evoItems)}`);
   else console.log('• Lên Trung Giai (tốn 1 Ngọc Long Hồn, không mất cá, giữ dạng hệ Long)');
 
-  // --- Đấu Sinh Tử với máy
+  // --- Màn Đấu Cá: bản Đấu Sinh Tử cũ đã gỡ – chế độ cũ "ai" tự chuyển sang tab 3vs3
   await start('DeathMatch', { mode: 'ai' });
   await p.waitForTimeout(800);
-  // chọn 3 thẻ đầu (đã sắp theo lực chiến)
-  for (let i = 0; i < 3; i++) { await p.mouse.click(20 + i * 136 + 64, 178 + 71); await p.waitForTimeout(150); }
-  await p.mouse.click(920, 176); // Dễ
-  await p.waitForTimeout(300);
+  const dm = await p.evaluate(() => { const sc = window.__game.scene.getScene('DeathMatch'); return { mode: sc.mode, tabs: sc.tabs.length }; });
+  if (dm.mode !== 'arena' || dm.tabs !== 3) errs.push(`Màn Đấu Cá sai: ${JSON.stringify(dm)}`);
+  if (await p.evaluate(() => !!window.__game.scene.getScene('Battle'))) errs.push('Màn trận Đấu Sinh Tử cũ vẫn còn');
   await p.screenshot({ path: `${out}/deathmatch-pick.png` });
-  const before = await save();
-  await p.mouse.click(1058, 640); // BẮT ĐẦU
-  await p.waitForFunction(() => window.__game.scene.isActive('Battle'), null, { timeout: 5000 });
-  await p.waitForTimeout(2500);
-  await p.screenshot({ path: `${out}/battle.png` });
-  await p.mouse.click(1180, 680); // Bỏ qua
-  await p.waitForTimeout(800);
-  await p.screenshot({ path: `${out}/battle-result.png` });
-  s = await save();
-  const won = (s.stats.dmWins ?? 0) === 1;
-  const lost = (s.stats.dmLosses ?? 0) === 1;
-  if (won === lost) errs.push('Kết quả trận không được ghi');
-  if (won) {
-    if (s.roasted.length !== 1 || s.gold <= before.gold) errs.push('Thắng nhưng không nhận cá nướng/vàng');
-    else console.log(`• THẮNG: nhận cá nướng ${s.roasted[0].fishId} Lv.${s.roasted[0].level}, +${s.gold - before.gold} vàng`);
-  } else {
-    if (s.fishes.length !== before.fishes.length - 1) errs.push('Thua nhưng không mất cá');
-    else console.log('• THUA: mất con cá mạnh nhất', before.fishes.find((f) => !s.fishes.some((x) => x.uid === f.uid)).uid);
-  }
-  const fought = s.fishes.filter((f) => (f.wins ?? 0) + (f.losses ?? 0) > 0).length;
-  if (fought < 2) errs.push('Chưa ghi thắng/thua cho từng cá');
+  await p.mouse.click(360, 116); // tab Đấu với người (khoá, có thông báo giai đoạn)
+  await p.waitForTimeout(400);
+  if (await p.evaluate(() => window.__game.scene.getScene('DeathMatch').mode) !== 'pvp') errs.push('Tab Đấu với người không mở được thông báo');
+  else console.log('• Đấu Cá: tab 3vs3 mặc định, tab Đấu với người hiển thị khoá + Giai đoạn 6');
+  await p.screenshot({ path: `${out}/pvp-locked.png` });
 
-  // --- Cho ăn cá nướng (nếu có; nếu thua thì đặt sẵn 1 con để kiểm tra)
-  if (!won) {
+  // --- Cho ăn cá nướng (cá nướng cũ vẫn dùng được)
+  {
     await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('dccc_save_v1')); s.roasted = [{ id: 'r_test', fishId: 'f_ca_ro', level: 3, stars: 1 }]; localStorage.setItem('dccc_save_v1', JSON.stringify(s)); });
     await p.reload({ waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'));

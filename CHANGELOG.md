@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.1] – 2026-11-23 – Đấu Cá: chỉ còn bản 3vs3 mới
+### Thay đổi
+- Gỡ **Đấu Sinh Tử bản cũ** (đấu 1 lần tự động, thua mất cá) cả với máy lẫn với người: bỏ tab cũ, màn trận cũ `BattleScene`, ghép trận ngẫu nhiên cũ. Nút ở sảnh đổi tên **Đấu Cá**.
+- Màn Đấu Cá còn 3 tab: **⚔ Đấu 3vs3 với máy** (mặc định; Dễ/Thường/Khó là độ giỏi của MÁY), **👥 Đấu với người 🔒** (hiển thị khoá + nội dung Giai đoạn 6), **🍖 Cá nướng** (cá nướng đã có vẫn cho nhân vật ăn được).
+- Nút "⚔ Đấu" ở hồ sơ/bạn bè/hội mở tab Đấu với người (khoá, nêu tên đối thủ) thay vì trận cũ.
+- Dữ liệu cũ giữ nguyên: thống kê thắng/thua, cá nướng, kết quả trận cũ đang chờ đồng bộ.
+
 ## [0.36.0] – 2026-11-23 – ĐẠI TU GĐ3: Chiến đấu 3vs3 theo lượt
 ### Thêm
 - **Lõi trận 3vs3** (`packages/shared/src/combat.ts`, thuần & tất định – game và máy chủ dùng chung): 3 cá mỗi bên theo thứ tự xuất trận; cá NHANH hơn đi trước rồi luân phiên, cá mới vào sân so lại tốc độ (bằng nhau → tung đồng xu theo seed); hạ đủ 3 cá là thắng, không hồi sinh, không đổi đội giữa trận.

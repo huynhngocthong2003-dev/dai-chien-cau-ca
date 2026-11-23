@@ -88,7 +88,7 @@ export class AccountScene extends Phaser.Scene {
         this,
         218,
         330,
-        "Tạo tài khoản miễn phí (email + mật khẩu) để:\n\n☁️ Lưu tiến trình an toàn trên máy chủ\n📱 Chơi tiếp trên mọi thiết bị\n👥 Kết bạn, nhắn tin, Quảng Trường\n🏁 Đua cá & Đấu Sinh Tử với người thật\n🏆 Lên Bảng Xếp Hạng",
+        "Tạo tài khoản miễn phí (email + mật khẩu) để:\n\n☁️ Lưu tiến trình an toàn trên máy chủ\n📱 Chơi tiếp trên mọi thiết bị\n👥 Kết bạn, nhắn tin, Quảng Trường\n🏁 Đua cá với người thật · ⚔ Đấu cá trên máy chủ\n🏆 Lên Bảng Xếp Hạng",
         18,
         { align: "center", weight: "700", wrap: 370 },
       )

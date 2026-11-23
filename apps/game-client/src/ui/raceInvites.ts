@@ -27,7 +27,7 @@ export function installRaceInvites(game: Phaser.Game) {
   };
   const racingNow = (sc: Phaser.Scene) => {
     const mode = (sc as unknown as { mode?: string }).mode;
-    return (sc.scene.key === "Race" && (mode === "race" || mode === "countdown")) || sc.scene.key === "Battle";
+    return (sc.scene.key === "Race" && (mode === "race" || mode === "countdown")) || sc.scene.key === "Combat3";
   };
 
   const show = (sc: Phaser.Scene, inv: Social.RaceInvite) => {
