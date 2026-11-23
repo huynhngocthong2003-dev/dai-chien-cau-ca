@@ -70,8 +70,22 @@ export function worldBossSlot(now: number): WorldBossSlot {
 
 /** Boss của khung giờ: xoay vòng 7 con theo ngày + khung. */
 export function worldBossFor<T>(slot: Pick<WorldBossSlot, "dayIndex" | "slotIndex">, bosses: readonly T[]): T {
+  // NGẪU NHIÊN mỗi khung giờ đúng 1 boss – băm tất định (máy chủ & máy khách ra cùng boss), tránh trùng khung liền trước
   const n = bosses.length;
-  return bosses[(((slot.dayIndex * WORLD_BOSS.hours.length + slot.slotIndex) % n) + n) % n]!;
+  const per = WORLD_BOSS.hours.length;
+  const pick = (k: number) => wbHash(k) % n;
+  const k = slot.dayIndex * per + slot.slotIndex;
+  let i = pick(k);
+  if (n > 1 && i === pick(k - 1)) i = (i + 1 + (wbHash(k ^ 0x5bd1e995) % (n - 1))) % n;
+  return bosses[i]!;
+}
+
+/** Băm số nguyên 32-bit (xáo trộn đều) – chọn boss ngẫu nhiên tất định theo khung giờ. */
+function wbHash(x: number): number {
+  let h = (x | 0) ^ 0x9e3779b9;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 0;
 }
 
 /** Máu tối đa của boss trong khung giờ. */

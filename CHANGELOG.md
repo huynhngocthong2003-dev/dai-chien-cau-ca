@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.48.0] – 2026-11-23 – Sảnh Boss riêng · Boss Cá Trái Cây · Chúc mừng nhận quà
+### Thêm
+- **Hòm Thư – màn CHÚC MỪNG khi nhận quà**: bấm "🎁 Nhận quà" → tia sáng, pháo giấy, từng món quà hiện lần lượt kèm hình (vàng, kim cương, đá, linh hồn, Đá Tiến Hoá, cá) và số lượng đầy đủ; bấm "Tuyệt vời!" để đóng.
+- **Sảnh đánh boss riêng cho từng boss** (vẽ tay + hạt hiệu ứng động): 🌿 Rừng Thanh Long · 🌋 Núi Lửa Ruộng Ớt · 🌊 Biển Dưa Hấu · 🏯 Pháo Đài Dứa Vàng · ⛰ Hang Sầu Riêng · ✨ Thiên Cung Khế · 🌑 Vực Măng Cụt.
+- Bố cục mới: **boss bên phải, to gấp 10 lần cá thường** (tràn khung), **đội cá người chơi bên trái**, lao vào mỗi khi ra đòn. Vẫn đánh bằng **thanh kim trượt** (canh kim vào giữa rồi bấm Space / chạm).
+### Thay đổi
+- **Boss dùng tạo hình Cá Trái Cây**: Thanh Long, Ớt (vẽ đúng dáng trái ớt: đỏ bóng, đài lá + cuống xanh), Dưa Hấu, Dứa (đuôi chùm lá dứa), Sầu Riêng (gai bám viền thân), Khế, Măng Cụt (thân tròn, đuôi đài lá nhọn cong ra). Mọi con đều có vảy.
+- **Boss xuất hiện ngẫu nhiên**: mỗi khung giờ chỉ 1 boss, chọn ngẫu nhiên (máy chủ quyết định), hầu như không trùng khung liền trước.
+
 ## [0.47.0] – 2026-11-23 – Boss Thế Giới: 7 Boss Trái Cây
 ### Thêm
 - **Boss Thế Giới** lúc **12h · 15h · 20h** (giờ Việt Nam), mỗi lần 30 phút – mọi người chơi đánh chung 1 thanh máu (máy chủ làm trọng tài, trừ máu nguyên tử).

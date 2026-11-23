@@ -3,10 +3,10 @@ import { EVO_ITEM_BY_ID, FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import { mailRewardClaimed, mailRewardEmpty, type MailReward } from "@dccc/shared";
 import * as Social from "../state/social.ts";
 import { GameState } from "../state/GameState.ts";
-import { Sfx } from "../audio/Sfx.ts";
 import { fishTextureFor } from "../art/textures.ts";
 import { Button, formatNum, modal, toast, txt } from "./widgets.ts";
 import { COLORS } from "./theme.ts";
+import { celebrateReward } from "./rewardCelebration.ts";
 
 /** Dòng mô tả quà. */
 function rewardLines(r: MailReward): string[] {
@@ -29,7 +29,7 @@ function rewardLines(r: MailReward): string[] {
 
 /**
  * Hòm Thư: thư từ Ban Quản Trị (đền bù, thông báo). Mở thư nào thì đánh dấu đã đọc thư đó.
- * Thư chỉ để thông báo – phần thưởng đã được cộng thẳng vào tài khoản (có ghi sổ).
+ * Thư có quà (đền bù, Boss Thế Giới…): bấm "🎁 Nhận quà" → cộng vào tài khoản (txId chống nhận trùng) → màn chúc mừng.
  */
 export function openMailbox(scene: Phaser.Scene, mails: Social.SystemMail[], onChange?: () => void) {
   const m = modal(scene, 900, 560, "📬 Hòm Thư");
@@ -70,8 +70,9 @@ export function openMailbox(scene: Phaser.Scene, mails: Social.SystemMail[], onC
               return;
             }
             mail.claimed_at = new Date().toISOString();
-            if (!res.already) Sfx.coin();
-            toast(scene, res.already ? "Quà này đã được nhận trước đó" : "🎁 Đã nhận quà vào tài khoản!", COLORS.green);
+            // nhận quà → màn chúc mừng hiện các món quà
+            if (res.already) toast(scene, "Quà này đã được nhận trước đó", COLORS.green);
+            else celebrateReward(scene, r, "🎉 CHÚC MỪNG! 🎉", mail.title);
             onChange?.();
             draw();
             show(mail);

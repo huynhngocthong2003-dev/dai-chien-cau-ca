@@ -78,6 +78,11 @@ const status = () => ({
   const st0 = await p.evaluate(() => window.__game.scene.getScene('WorldBoss').status);
   if (!st0 || st0.hp !== 50000) errs.push('Không tải được trạng thái boss: ' + JSON.stringify(st0)?.slice(0, 120));
   else console.log('• Màn Boss Thế Giới: Thanh Long Long Vương, máu chung, bảng sát thương');
+  const arena = await p.evaluate(() => { const sc = window.__game.scene.getScene('WorldBoss'); const b = sc.bossImg; return { tex: sc.textures.exists('wbarena_wb_thanh_long'), flip: b?.flipX, bx: b?.x, w: b?.displayWidth, team: sc.teamFx.map((f) => ({ x: f.x, w: f.displayWidth })) }; });
+  if (!arena.tex) errs.push('Không có sảnh đấu riêng cho boss');
+  else if (!arena.flip || arena.bx < 500 || arena.team.length !== 3 || arena.team.some((f) => f.x > 300)) errs.push('Bố cục sai (boss phải quay trái, đội cá bên trái): ' + JSON.stringify(arena));
+  else if (Math.abs(arena.w / arena.team[0].w - 10) > 0.01) errs.push('Boss không to gấp 10 lần cá: ' + JSON.stringify(arena));
+  else console.log('• Sảnh Rừng Thanh Long riêng của boss; boss bên phải to gấp 10 lần, đội cá bên trái');
   // vào đánh
   await p.mouse.click(1058, 540);
   await p.waitForFunction(() => !!window.__game.scene.getScene('WorldBoss').fight, null, { timeout: 8000 }).catch(() => errs.push('Không vào được trận boss'));

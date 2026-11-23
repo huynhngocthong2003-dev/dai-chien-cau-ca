@@ -36,6 +36,7 @@ async function openGate(browser, url, setup) {
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('401') && !m.text().includes('400') && !m.text().includes('status of 500')) errs.push('console: ' + m.text()); });
   if (setup) await setup(p);
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Account'), null, { timeout: 30000 });
   await p.waitForTimeout(600);
@@ -293,9 +294,17 @@ async function playOneFish(p) {
       await p5.screenshot({ path: `${out}/acc-6c-mail-claimed.png` });
       if (!db.mailClaimed) errs.push('Nhận quà nhưng không báo máy chủ đã nhận');
       else if (!srvSave || !srvSave.save.appliedTx.includes('mail_e2e_1')) errs.push('Quà chưa được lưu lên tài khoản');
+      else if (!(await findBtn('CHÚC MỪNG')) || !(await findBtn('+12.345 vàng')) || !(await findBtn('+7 kim cương'))) errs.push('Nhận quà nhưng không hiện màn chúc mừng với đủ phần quà');
       else if (!(await findBtn('Đã nhận'))) errs.push('Nhận xong nút không chuyển "Đã nhận"');
       else if (sv.ledger.filter((l) => l.txId === 'mail_e2e_1').length !== 2) errs.push('Sổ giao dịch quà sai');
-      else step('Hòm Thư: bấm Nhận quà → +12.345 vàng +7 kim cương (1 lần, có ghi sổ, đã lưu tài khoản)');
+      else {
+        step('Hòm Thư: bấm Nhận quà → màn CHÚC MỪNG hiện +12.345 vàng +7 kim cương (1 lần, có ghi sổ, đã lưu tài khoản)');
+        const ok = await findBtn('Tuyệt vời');
+        await p5.mouse.click(ok.x, ok.y);
+        await p5.waitForTimeout(700);
+        if (await findBtn('CHÚC MỪNG')) errs.push('Bấm "Tuyệt vời!" nhưng màn chúc mừng không đóng');
+        else step('Màn chúc mừng: bấm "Tuyệt vời!" → đóng, quay lại Hòm Thư');
+      }
     }
     db.mail = false;
     await p5.context().close();

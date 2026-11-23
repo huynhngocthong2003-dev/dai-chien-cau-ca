@@ -134,10 +134,12 @@ Deno.serve(async (req: Request) => {
         const { count: entries } = await admin.from("world_boss_sessions").select("id", { count: "exact", head: true }).eq("boss", b.id).eq("user_id", me);
         mine = { damage: dmg, rank: dmg > 0 ? (higher ?? 0) + 1 : null, entries: entries ?? 0 };
       }
+      // boss của khung giờ = boss đã ghi trong bảng (nếu đã xuất hiện) – không đổi giữa chừng
+      const shown = (b && WORLD_BOSS_BY_ID.get(b.boss_id)) || def;
       return json(200, {
         serverNow: new Date().toISOString(),
         slot: { key: slot.key, live: slot.live, startsAt: new Date(slot.startsAt).toISOString(), endsAt: new Date(slot.endsAt).toISOString() },
-        boss: { id: def.id, name: def.name, title: def.title, element: def.element, description: def.description },
+        boss: { id: shown.id, name: shown.name, title: shown.title, element: shown.element, description: shown.description },
         hp: b ? Number(b.hp) : worldBossMaxHp(slot),
         maxHp: b ? Number(b.max_hp) : worldBossMaxHp(slot),
         killer: b?.killer_name ?? null,

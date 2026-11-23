@@ -17,11 +17,24 @@ describe("Boss Thế Giới", () => {
     expect(s.endsAt - s.startsAt).toBe(WORLD_BOSS.durationMin * 60_000);
     expect(s.startsAt).toBe(vn(15));
   });
-  it("xoay vòng đủ 7 boss (7 hệ), mỗi khung 1 boss tất định", () => {
+  it("mỗi khung giờ 1 boss NGẪU NHIÊN (tất định), không trùng khung liền trước, đủ 7 boss xuất hiện", () => {
     expect(new Set(WORLD_BOSSES.map((b) => b.element)).size).toBe(7);
-    const seen = new Set<string>();
-    for (let d = 0; d < 3; d++) for (let i = 0; i < 3; i++) seen.add(worldBossFor({ dayIndex: 20000 + d, slotIndex: i }, WORLD_BOSSES).id);
+    const seen = new Map<string, number>();
+    let prev = "";
+    let sameAsPrev = 0;
+    let rotation = 0;
+    for (let d = 0; d < 200; d++)
+      for (let i = 0; i < 3; i++) {
+        const id = worldBossFor({ dayIndex: 20000 + d, slotIndex: i }, WORLD_BOSSES).id;
+        seen.set(id, (seen.get(id) ?? 0) + 1);
+        if (id === prev) sameAsPrev++;
+        if (WORLD_BOSSES[(WORLD_BOSSES.findIndex((b) => b.id === prev) + 1) % 7]!.id === id) rotation++;
+        prev = id;
+      }
     expect(seen.size).toBe(7);
+    for (const n of seen.values()) expect(n).toBeGreaterThan(40); // 600 khung / 7 ≈ 86, phân bố đều
+    expect(sameAsPrev).toBeLessThan(15); // hầu như không lặp boss liền kề
+    expect(rotation).toBeLessThan(300); // không còn xoay vòng theo thứ tự cố định
     const s = worldBossSlot(vn(12, 1));
     expect(worldBossFor(s, WORLD_BOSSES).id).toBe(worldBossFor(s, WORLD_BOSSES).id);
     expect(worldBossMaxHp({ slotIndex: 2 })).toBeGreaterThan(worldBossMaxHp({ slotIndex: 0 }));
