@@ -279,13 +279,19 @@ export const MATERIAL_DROP: Record<FishDef["rarity"], { stones: number; soul: nu
 /** Hệ số thưởng khi bắt Boss trong chế độ Săn Boss. */
 export const BOSS_HUNT_MULTIPLIER = 1.5;
 
-export function catchRewards(fish: FishDef, passives: PassiveEffect[], bossHunt = false) {
+/** TÂN THỦ BẮT KỊP: người chơi DƯỚI cấp 30 nhận ×2 kinh nghiệm khi câu cá (đạt cấp 30 → về bình thường). */
+export const NEWBIE_XP = { belowLevel: 30, mult: 2 } as const;
+export function newbieXpMult(level: number | undefined): number {
+  return level !== undefined && level < NEWBIE_XP.belowLevel ? NEWBIE_XP.mult : 1;
+}
+
+export function catchRewards(fish: FishDef, passives: PassiveEffect[], bossHunt = false, playerLevel?: number) {
   const xb = sumPassive(passives, "xp_bonus", (e) => e.value);
   const gb = sumPassive(passives, "gold_bonus", (e) => e.value);
   const m = bossHunt ? BOSS_HUNT_MULTIPLIER : 1;
   const d = MATERIAL_DROP[fish.rarity];
   return {
-    xp: Math.round(fish.xp * (1 + xb) * m),
+    xp: Math.round(fish.xp * (1 + xb) * m * newbieXpMult(playerLevel)),
     gold: Math.round(fish.value * 0.1 * (1 + gb) * m),
     stones: Math.round(d.stones * m),
     soul: Math.round(d.soul * m),
@@ -309,7 +315,7 @@ export function applyCatch(save: PlayerSave, input: CatchInput): ActionResult & 
   if (save.appliedTx.includes(input.txId)) return { ok: false, error: "Phần thưởng đã được nhận" };
   if (save.fishes.length >= ECONOMY.inventoryLimit) return { ok: false, error: "Kho cá đã đầy, hãy bán bớt cá" };
   const s = clone(save);
-  const r = catchRewards(input.fish, input.passives, input.bossHunt);
+  const r = catchRewards(input.fish, input.passives, input.bossHunt, save.level);
   s.fishes.push({
     uid: input.txId,
     fishId: input.fish.id,

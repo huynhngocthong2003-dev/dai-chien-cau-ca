@@ -48,14 +48,15 @@ describe("Save & kinh tế", () => {
     expect(s.level).toBe(1 + ups);
   });
 
-  it("mua cần bằng vàng trừ đúng tiền, thiếu cấp thì từ chối", () => {
+  it("mua cần bằng vàng trừ đúng tiền; KHÔNG giới hạn cấp, chỉ thiếu vàng mới từ chối", () => {
     const s = fresh();
     const oak = ROD_BY_ID.get("r_go_soi")!;
     const r = unlockItem(s, "rods", oak.id, oak.unlock, "buy_1", 5);
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.save.gold).toBe(s.gold - 300);
     const storm = ROD_BY_ID.get("r_bao_to")!;
-    expect(unlockItem({ ...s, gold: 1e6 }, "rods", storm.id, storm.unlock, "buy_2", 5).ok).toBe(false);
+    expect(unlockItem({ ...s, gold: 1e6 }, "rods", storm.id, storm.unlock, "buy_2", 5).ok).toBe(true); // cấp 1 vẫn mua được
+    expect(unlockItem({ ...s, gold: 10 }, "rods", storm.id, storm.unlock, "buy_3", 5).ok).toBe(false); // thiếu vàng
   });
 });
 

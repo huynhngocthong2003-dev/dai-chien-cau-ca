@@ -29,6 +29,8 @@ import {
   type JunkDef,
   rollWeight,
   catchRewards,
+  newbieXpMult,
+  NEWBIE_XP,
   elementOfCatch,
   fishPower,
   type FishDef,
@@ -76,6 +78,8 @@ export class FishingScene extends Phaser.Scene {
   private weightKg = 0;
   /** Sự kiện quăng cần đang diễn ra (đàn cá quý / mùa cá lớn). */
   private castEvent: CastEventKind | null = null;
+  /** Cấp người chơi ngay trước khi kéo cá lên (để hiện đúng KN – có thể x2 Tân Thủ). */
+  private levelBeforeCatch = 1;
   private castEventLeft = 0;
   private eventLabel?: Phaser.GameObjects.Text;
   private usesT?: Phaser.GameObjects.Text;
@@ -221,6 +225,8 @@ export class FishingScene extends Phaser.Scene {
 
     this.hint = txt(this, 640, 640, "", 30, { align: "center" }).setOrigin(0.5).setDepth(50);
     this.eventLabel = txt(this, 16, 166, "", 18, { color: "#ffe082" }).setDepth(50);
+    // Tân Thủ dưới cấp 30: x2 kinh nghiệm khi câu cá
+    if (newbieXpMult(s.level) > 1) txt(this, 330, 94, `⭐ x2 KN Tân Thủ (đến cấp ${NEWBIE_XP.belowLevel})`, 16, { color: "#b9f6ca", weight: "700" }).setDepth(50);
     this.castEvent = null;
     this.castEventLeft = 0;
     this.alertT = txt(this, 640, 220, "", 56, { align: "center", stroke: 10 }).setOrigin(0.5).setDepth(60).setAlpha(0);
@@ -892,6 +898,7 @@ export class FishingScene extends Phaser.Scene {
         else if (this.session.weightBonus > 0) toast(this, `Combo x${this.session.maxCombo}: cá nặng thêm ${Math.round(this.session.weightBonus * 100)}%!`, COLORS.gold);
       }
     }
+    this.levelBeforeCatch = GameState.save.level;
     const res = this.junk ? GameState.catchJunk(this.junk) : GameState.catchFish(FISH_BY_ID.get(f.id)!, this.weightKg, this.zone.id, this.bossHunt);
     if (res.ok && !this.junk) this.together?.setState("caught", { fishId: f.id, formId: null, kg: this.weightKg });
     else this.together?.setState("idle");
@@ -1013,9 +1020,10 @@ export class FishingScene extends Phaser.Scene {
       const brag = pickLine(CATCH_LINES, 0.5, { ca: f.name, kg: String(this.weightKg) });
       if (brag) c.add(txt(this, 640, 528, `“${brag}”`, 17, { color: "#fff59d", align: "center", wrap: 560, weight: "700" }).setOrigin(0.5));
       c.add(txt(this, 640, 448, `${FISH_RARITY_LABEL[f.rarity]} · ${this.weightKg} kg · Lực chiến ${formatNum(fishPower(f))}`, 22, { align: "center", weight: "700" }).setOrigin(0.5));
-      const r = catchRewards(f, this.loadout.passives, this.bossHunt);
+      const r = catchRewards(f, this.loadout.passives, this.bossHunt, this.levelBeforeCatch);
+      const x2 = newbieXpMult(this.levelBeforeCatch) > 1 ? " (x2 Tân Thủ)" : "";
       c.add(
-        txt(this, 640, 486, error ? `⚠ ${error}` : `+${formatNum(r.xp)} KN  +${formatNum(r.gold)}🪙  +${r.stones}🔷${r.soul ? `  +${r.soul}🔮` : ""}${r.tickets ? `  +${r.tickets}🎫` : ""}`, 22, {
+        txt(this, 640, 486, error ? `⚠ ${error}` : `+${formatNum(r.xp)} KN${x2}  +${formatNum(r.gold)}🪙  +${r.stones}🔷${r.soul ? `  +${r.soul}🔮` : ""}${r.tickets ? `  +${r.tickets}🎫` : ""}`, 22, {
           align: "center",
           color: error ? "#ff8a80" : "#b9f6ca",
         }).setOrigin(0.5),

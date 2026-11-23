@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.54.0] – 2026-11-23 – Tân Thủ x2 KN · Cần câu không giới hạn cấp
+### Thêm
+- **Tân Thủ bắt kịp: người chơi DƯỚI cấp 30 nhận ×2 kinh nghiệm khi câu cá** (cả cá lẫn rác vớt được); đạt cấp 30 tự về bình thường. Màn câu cá hiện "⭐ x2 KN Tân Thủ (đến cấp 30)", kết quả câu ghi "+… KN (x2 Tân Thủ)".
+### Thay đổi
+- **Cần câu không còn giới hạn cấp**: mọi cần mua bằng vàng chỉ cần đủ vàng (bỏ yêu cầu cấp 3 / 5 / 7 / 10 / 12 / 16 / 20…).
+
 ## [0.53.0] – 2026-11-23 – Cá 2 hệ: hệ chính / hệ phụ · Biến dị Song Hệ
 ### Thay đổi
 - **Cá 2 hệ (84 loài cá lai theo dòng): hệ ĐẦU là HỆ CHÍNH, hệ thứ 2 là HỆ PHỤ.** Mọi bậc lai (Boss Lai, Chiến Vương, Thần Thú, Cổ Thú) nay đều mang hệ chính – trước đây Chiến Vương theo hệ 2 và Cổ Thú thành Ánh Sáng / Bóng Tối. Thông tin cá & Bộ Sưu Tập ghi rõ "Chính: … · Phụ: …".

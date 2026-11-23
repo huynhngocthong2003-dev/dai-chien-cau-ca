@@ -129,3 +129,48 @@ describe("Sự kiện Tân Thủ", () => {
     expect(parseSave(JSON.parse(JSON.stringify(r.save))).ok).toBe(true);
   });
 });
+
+describe("Tân Thủ bắt kịp: dưới cấp 30 nhận x2 kinh nghiệm khi câu cá", () => {
+  it("cấp < 30: x2; từ cấp 30: bình thường (cá & rác)", async () => {
+    const { applyCatch, applyJunkCatch, catchRewards, createNewSave, newbieXpMult, NEWBIE_XP } = await import("@dccc/shared");
+    const { CATALOG, FISH_BY_ID, JUNK } = await import("@dccc/game-data");
+    expect(NEWBIE_XP).toEqual({ belowLevel: 30, mult: 2 });
+    expect(newbieXpMult(1)).toBe(2);
+    expect(newbieXpMult(29)).toBe(2);
+    expect(newbieXpMult(30)).toBe(1);
+    expect(newbieXpMult(55)).toBe(1);
+    const fish = FISH_BY_ID.get("f_ca_chep")!;
+    expect(catchRewards(fish, [], false, 5).xp).toBe(catchRewards(fish, [], false, 30).xp * 2);
+    const xpOf = (lvl: number) => {
+      const s = createNewSave("p", "T", CATALOG, 1);
+      s.level = lvl;
+      s.xp = 0;
+      const r = applyCatch(s, { txId: "c1", fish, weightKg: 1, zoneId: "z_ben_tan_thu", passives: [], now: 1 });
+      if (!r.ok) throw new Error(r.error);
+      return r.save.ledger.filter((l) => l.currency === "xp").reduce((n, l) => n + l.amount, 0);
+    };
+    expect(xpOf(10)).toBe(xpOf(30) * 2);
+    const junkXp = (lvl: number) => {
+      const s = createNewSave("p", "T", CATALOG, 1);
+      s.level = lvl;
+      const r = applyJunkCatch(s, JUNK[0]!, "j1", 1);
+      if (!r.ok) throw new Error(r.error);
+      return r.save.ledger.filter((l) => l.currency === "xp").reduce((n, l) => n + l.amount, 0);
+    };
+    expect(junkXp(3)).toBe(junkXp(40) * 2);
+  });
+});
+
+describe("Cần câu không giới hạn cấp", () => {
+  it("không cần câu nào đòi cấp người chơi; cấp 1 đủ vàng là mua được", async () => {
+    const { RODS, CATALOG } = await import("@dccc/game-data");
+    const { canUnlock, createNewSave } = await import("@dccc/shared");
+    for (const r of RODS) {
+      expect(r.unlock.kind, r.id).not.toBe("level");
+      if (r.unlock.kind === "gold") expect("level" in r.unlock && r.unlock.level, r.id).toBeFalsy();
+    }
+    const s = createNewSave("p", "T", CATALOG, 1);
+    s.gold = 10_000_000;
+    for (const r of RODS.filter((x) => x.unlock.kind === "gold")) expect(canUnlock(s, r.unlock).ok, r.id).toBe(true);
+  });
+});

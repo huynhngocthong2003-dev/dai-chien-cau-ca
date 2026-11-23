@@ -10,7 +10,9 @@ function rod(
   visual: RodDef["visual"],
   description: string,
 ): RodDef {
-  return { id, name, rarity, ...s, passive, unlock, visual, description };
+  // KHÔNG giới hạn cấp khi dùng / mua cần câu: chỉ cần đủ vàng (bỏ điều kiện cấp cũ)
+  const free: UnlockCondition = unlock.kind === "gold" ? { kind: "gold", amount: unlock.amount } : unlock.kind === "level" ? { kind: "starter" } : unlock;
+  return { id, name, rarity, ...s, passive, unlock: free, visual, description };
 }
 
 export const RODS: RodDef[] = [

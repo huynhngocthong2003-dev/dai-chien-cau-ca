@@ -3,7 +3,7 @@
  */
 import type { FishDef, JunkDef } from "./types.ts";
 import type { Rng } from "./rng.ts";
-import { addLedger, clone, grantXp, markTx, type ActionResult, type PlayerSave } from "./save.ts";
+import { addLedger, clone, grantXp, markTx, newbieXpMult, type ActionResult, type PlayerSave } from "./save.ts";
 
 /** Có vớt phải rác không – nếu có trả về loại rác (chọn theo trọng số). */
 export function rollJunk(rng: Rng, junk: JunkDef[], chance: number): JunkDef | null {
@@ -53,8 +53,10 @@ export function applyJunkCatch(save: PlayerSave, junk: JunkDef, txId: string, no
   const s = clone(save);
   s.eco.junk[junk.id] = (s.eco.junk[junk.id] ?? 0) + 1;
   s.stats.junkCaught = (s.stats.junkCaught ?? 0) + 1;
-  grantXp(s, JUNK_XP);
-  addLedger(s, txId, "xp", JUNK_XP, `junk:${junk.id}`, now);
+  // tân thủ dưới cấp 30: ×2 kinh nghiệm
+  const xp = JUNK_XP * newbieXpMult(save.level);
+  grantXp(s, xp);
+  addLedger(s, txId, "xp", xp, `junk:${junk.id}`, now);
   markTx(s, txId);
   s.updatedAt = now;
   return { ok: true, save: s };
