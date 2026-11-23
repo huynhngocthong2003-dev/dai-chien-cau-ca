@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { extraX, safeX } from "../ui/wide.ts";
 import { CHARACTER_BY_ID, CHECKIN_REWARDS, EVENTS, FISH_BY_ID, QUESTS, ROD_BY_ID, TITLES, ZONES, ZONE_BY_ID } from "@dccc/game-data";
-import { checkinState, dayKey, mailRewardClaimed, mailRewardEmpty, questProgress, refreshDaily, titleProgress, TUTORIAL_REWARD } from "@dccc/shared";
+import { checkinState, dayKey, mailRewardClaimed, mailRewardEmpty, questProgress, refreshDaily, titleProgress, TUTORIAL_REWARD, worldBossSlot } from "@dccc/shared";
 import { playerNameSchema } from "@dccc/validation";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
@@ -173,6 +173,16 @@ export class HubScene extends Phaser.Scene {
     // kênh chat thế giới
     const wc = new Button(this, 92 - extraX(this) + safeX(this), 130, 150, 50, "🌍 Chat", { color: COLORS.blue, fontSize: 20, onClick: () => openWorldChat(this) });
     wc.setDepth(20);
+    // Boss Thế Giới (12h · 15h · 20h): "LIVE" khi đang diễn ra
+    const wbSlot = worldBossSlot(Date.now());
+    const wb = new Button(this, 92 - extraX(this) + safeX(this), GameState.online ? 250 : 190, 150, 50, "🐉 Boss TG", {
+      color: wbSlot.live ? COLORS.red : COLORS.orange,
+      fontSize: 19,
+      badge: wbSlot.live ? "LIVE" : undefined,
+      onClick: () => goTo(this, "WorldBoss"),
+    });
+    wb.setDepth(20);
+    if (wbSlot.live) this.tweens.add({ targets: wb, scale: 1.07, duration: 500, yoyo: true, repeat: -1 });
     // Hòm Thư hệ thống (thư đền bù / thông báo) – có thư chưa đọc thì tự mở 1 lần
     if (GameState.online) {
       const mb = new Button(this, 92 - extraX(this) + safeX(this), 190, 150, 50, "📬 Hòm Thư", { color: COLORS.purple, fontSize: 18, onClick: () => void openMail(false) });
@@ -427,6 +437,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.46.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.47.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

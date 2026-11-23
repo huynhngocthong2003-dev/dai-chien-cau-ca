@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.47.0] – 2026-11-23 – Boss Thế Giới: 7 Boss Trái Cây
+### Thêm
+- **Boss Thế Giới** lúc **12h · 15h · 20h** (giờ Việt Nam), mỗi lần 30 phút – mọi người chơi đánh chung 1 thanh máu (máy chủ làm trọng tài, trừ máu nguyên tử).
+  - Vào đánh bằng đội 3 cá mạnh nhất (cá khoá cũng được – đánh boss **không mất cá**); mỗi lượt 15 đòn canh kim (Space / chạm thanh / chạm boss), tối đa 3 lượt mỗi khung giờ.
+  - **Sát thương càng nhiều quà càng nhiều** (gửi Hòm Thư khi hết giờ / hạ boss): hạng 1: 80 💎 · 30.000 🪙 · 60 🔷 · 30 🔮; hạng 2–3; hạng 4–10; còn lại vẫn có quà tham gia.
+  - **Người kết liễu** nhận thêm **1 Đá Tiến Hoá đúng hệ của boss** + 20 💎.
+  - Bảng sát thương top 10 cập nhật liên tục, hạng & quà dự kiến của mình, đồng hồ đếm ngược tới khung giờ kế tiếp.
+  - Nút **🐉 Boss TG** ở sảnh (nhấp nháy "LIVE" khi boss đang xuất hiện).
+- **7 Boss Trái Cây** (mỗi hệ 1 con, xoay vòng theo ngày & khung giờ), vẽ tay bằng đồ hoạ trong game – dáng mới, không dùng dáng cá có sẵn:
+  🐉 **Thanh Long Long Vương** (Mộc) – rồng phương Đông vảy thanh long, gai lá, sừng, râu dài, đuôi lửa xanh đỏ ·
+  🌶 **Ớt Hỏa Long Ngư** (Hỏa) – rồng con thân quả ớt, cánh lửa, cuống ớt làm sừng ·
+  🍉 **Dưa Hấu Hải Quái** (Thủy) – bạch tuộc dưa hấu phun nước ·
+  🍍 **Dứa Giáp Long Quy** (Kim) – rùa rồng mai mắt dứa, vương miện lá ·
+  🌰 **Sầu Riêng Bạo Ngư** (Thổ) – quái cầu gai sầu riêng ·
+  ⭐ **Khế Tinh Thần Ngư** (Ánh Sáng) – cá đuối thần hình sao khế ·
+  🟣 **Măng Cụt Hắc Mặc Ngư** (Bóng Tối) – mực khổng lồ măng cụt.
+### Máy chủ
+- Migration `20261211000001_world_boss.sql` (bảng boss, sát thương, phiên đánh + hàm `wb_apply_hit`) – đã áp. Edge Function mới `world-boss` – đã triển khai.
+
 ## [0.46.0] – 2026-11-23 – Đấu cá: B canh bảo vệ, V kỹ năng nạp nộ; lên giai không cần đá
 ### Thay đổi – Đấu cá 3vs3 (máy & người, máy chủ làm trọng tài)
 - **B = CANH BẢO VỆ**: canh kim trên thanh như khi đánh – chặn đòn kế tiếp của địch theo độ chuẩn: PERFECT 75% · XANH 55% · VÀNG 30% · ĐỎ 10% (hết giờ = phòng thủ thường 40%). Chặn HOÀN HẢO thưởng +15 nộ.

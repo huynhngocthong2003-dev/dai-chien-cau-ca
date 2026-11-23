@@ -17,6 +17,7 @@ import { PvpRoomScene } from "./scenes/PvpRoomScene.ts";
 import { BreedingScene } from "./scenes/BreedingScene.ts";
 import { installPvpInvites } from "./ui/pvpInvites.ts";
 import { installInlineIcons } from "./ui/inlineIcons.ts";
+import { WorldBossScene } from "./scenes/WorldBossScene.ts";
 import { ProfileScene } from "./scenes/ProfileScene.ts";
 import { QuestScene } from "./scenes/QuestScene.ts";
 import { WheelScene } from "./scenes/WheelScene.ts";
@@ -52,7 +53,7 @@ async function start() {
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
     fps: { target: 60 },
-    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, Combat3Scene, PvpRoomScene, BreedingScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
+    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, Combat3Scene, PvpRoomScene, BreedingScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene, WorldBossScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 

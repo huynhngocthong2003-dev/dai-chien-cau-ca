@@ -17,6 +17,7 @@ import { WORLD_H, WORLD_W, drawDock, drawZoneBackground } from "./Backgrounds.ts
 import { drawJunk } from "./JunkArt.ts";
 import { MENU_ICON_SIZE, drawMenuIcon, type MenuIcon } from "./MenuIcons.ts";
 import { RANK_BADGE_SIZE, drawRankBadge } from "./RankArt.ts";
+import { drawWorldBoss } from "./WorldBossArt.ts";
 
 /** Tạo texture từ hàm vẽ Canvas 2D (chỉ tạo một lần, lazy). */
 export function canvasTexture(
@@ -60,6 +61,11 @@ function softEdges(ctx: CanvasRenderingContext2D, w: number, h: number) {
 /** Biểu tượng mục menu sảnh (vẽ tay, cùng phong cách game). */
 export function menuIconTexture(scene: Phaser.Scene, kind: MenuIcon): string {
   return canvasTexture(scene, `menuicon_${kind}`, MENU_ICON_SIZE, MENU_ICON_SIZE, (ctx) => drawMenuIcon(ctx, kind), 1.5);
+}
+
+/** Boss Thế Giới (khung 320×200, nét mịn để phóng to). */
+export function worldBossTexture(scene: Phaser.Scene, id: string): string {
+  return canvasTexture(scene, `worldboss_${id}`, FISH_W, FISH_H, (ctx) => drawWorldBoss(ctx, id), 2.4);
 }
 
 /** Huy hiệu rank Đấu Sinh Tử theo hạng (0..4) và bậc (1..5). */

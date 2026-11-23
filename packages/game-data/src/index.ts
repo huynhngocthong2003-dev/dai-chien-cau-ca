@@ -34,3 +34,4 @@ export function speciesElements(f: FishDef): FishDef["element"][] {
 }
 export { CHECKIN_REWARDS, QUESTS, TITLES, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES };
 export const TITLE_BY_ID = new Map(TITLES.map((t) => [t.id, t]));
+export { WORLD_BOSSES, WORLD_BOSS_BY_ID } from "./worldboss.ts";

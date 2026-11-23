@@ -27,3 +27,4 @@ export * from "./combatSetup.ts";
 export * from "./breeding.ts";
 export * from "./rank.ts";
 export * from "./tutorial.ts";
+export * from "./worldboss.ts";

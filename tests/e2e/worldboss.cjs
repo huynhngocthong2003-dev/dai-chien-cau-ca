@@ -1,0 +1,103 @@
+/**
+ * E2E BOSS THẾ GIỚI (máy chủ Supabase GIẢ): sảnh có nút "Boss TG" → màn boss: bảng sát thương, máu chung →
+ * VÀO ĐÁNH (đội 3 cá mạnh nhất) → canh kim bấm SPACE ra đòn (máu boss giảm) → đòn kết liễu → về bảng.
+ * Chạy: node tests/e2e/worldboss.cjs <url-có-cấu-hình-https://fake.supabase.test> [thư-mục-ảnh]
+ */
+let pw;
+try { pw = require('playwright'); } catch { pw = require('/opt/node-tools/node_modules/playwright'); }
+const url = process.argv[2] || 'http://localhost:5198/';
+const out = process.argv[3] || 'test-results';
+require('fs').mkdirSync(out, { recursive: true });
+const errs = [];
+const UID = '00000000-0000-4000-8000-000000000001';
+const now = () => new Date().toISOString();
+const db = { hp: 50000, max: 800000, hits: 0, entered: 0, ops: [] };
+const status = () => ({
+  serverNow: now(),
+  slot: { key: '2026-11-23-12', live: true, startsAt: new Date(Date.now() - 60000).toISOString(), endsAt: new Date(Date.now() + 1500000).toISOString() },
+  boss: { id: 'wb_thanh_long', name: 'Thanh Long Long Vương', title: 'Dragon Fruit Emperor', element: 'wood', description: 'x' },
+  hp: db.hp, maxHp: db.max, killer: db.hp <= 0 ? 'Cần Thủ' : null,
+  top: [{ name: 'Pine Vô Địch', damage: 320000, me: false }, ...(db.hits ? [{ name: 'Cần Thủ', damage: db.hits * 20000, me: true }] : [])],
+  me: { damage: db.hits * 20000, rank: db.hits ? 2 : null, entries: db.entered, entriesLeft: 3 - db.entered },
+  rules: { hitsPerEntry: 15, entriesPerSlot: 3 },
+});
+(async () => {
+  const b = await pw.chromium.launch();
+  const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+  p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
+  await p.route('https://fake.supabase.test/**', async (route) => {
+    const req = route.request();
+    const path = new URL(req.url()).pathname;
+    const json = (s, body) => route.fulfill({ status: s, contentType: 'application/json', body: JSON.stringify(body) });
+    if (path === '/auth/v1/user') return json(200, { id: UID, email: 'a@test' });
+    if (path === '/functions/v1/world-boss') {
+      const body = req.postDataJSON() ?? {};
+      db.ops.push(body.op);
+      if (body.op === 'status') return json(200, status());
+      if (body.op === 'enter') { db.entered++; return json(200, { session: '11111111-1111-4111-8111-111111111111', hits: 0, hitsMax: 15, bar: { periodMs: 1400, phase: 0.1 }, serverNow: now(), team: body.team.map((u, i) => ({ uid: u, fishId: 'f_ca_chep', name: 'Cá', atk: 100 + i, element: 'water', form: null, stars: 1 })) }); }
+      if (body.op === 'hit') {
+        db.hits++;
+        const dmg = 20000;
+        db.hp = Math.max(0, db.hp - dmg);
+        return json(200, { zone: 'green', dmg, hp: db.hp, maxHp: db.max, killed: db.hp === 0, hits: body.n + 1, hitsMax: 15, bar: { periodMs: 1400, phase: 0.2 }, sessionDamage: (body.n + 1) * dmg });
+      }
+      return json(400, { error: 'op' });
+    }
+    if (path === '/functions/v1/pvp') return json(200, { rooms: [] });
+    if (path === '/rest/v1/player_saves') return req.method() === 'GET' ? json(200, []) : route.fulfill({ status: 201, body: '' });
+    if (path.startsWith('/rest/v1/rpc/')) return json(200, path.endsWith('unread_counts') || path.endsWith('claim_topups') ? [] : null);
+    if (path.startsWith('/rest/v1/')) return req.method() === 'GET' ? json(200, []) : route.fulfill({ status: 201, body: '' });
+    return json(404, {});
+  });
+  await p.addInitScript((uid) => {
+    localStorage.setItem('dccc_skip_tutorial', '1');
+    localStorage.setItem('dccc_auth', JSON.stringify({ access_token: 'tok', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'r', user: { id: uid, aud: 'authenticated', role: 'authenticated', email: 'a@test', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } }));
+  }, UID);
+  await p.goto(url, { waitUntil: 'domcontentloaded' });
+  await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
+  // thêm 3 con cá (tài khoản mới)
+  await p.evaluate(async () => {
+    const src = window.performance.getEntriesByType('resource').map((e) => e.name).find((n) => /\/src\/state\/GameState\.ts/.test(n)) ?? '/src/state/GameState.ts';
+    const { GameState } = await import(src);
+    const s = JSON.parse(JSON.stringify(GameState.save));
+    const mk = (uid, fishId, level) => ({ uid, fishId, level, stars: 1, weightKg: 2, zoneId: 'z_ben_tan_thu', caughtAt: Date.now(), locked: uid === 'w1' });
+    s.fishes = [mk('w1', 'f_boss_lao_ngu', 15), mk('w2', 'f_ca_ro', 8), mk('w3', 'f_ca_tre', 7)];
+    GameState.commit(s);
+    window.__game.scene.getScene('Hub').scene.restart();
+  });
+  await p.waitForTimeout(1500);
+  const hasBtn = await p.evaluate(() => {
+    const find = (list) => list.some((o) => (o.label && /Boss TG/.test(o.label.text)) || (o.list && find(o.list)));
+    return find(window.__game.scene.getScene('Hub').children.list);
+  });
+  if (!hasBtn) errs.push('Sảnh không có nút Boss TG');
+  await p.evaluate(() => window.__game.scene.getScene('Hub').scene.start('WorldBoss'));
+  await p.waitForFunction(() => window.__game.scene.isActive('WorldBoss'), null, { timeout: 8000 });
+  await p.waitForTimeout(1500);
+  await p.screenshot({ path: `${out}/worldboss-lobby.png` });
+  const st0 = await p.evaluate(() => window.__game.scene.getScene('WorldBoss').status);
+  if (!st0 || st0.hp !== 50000) errs.push('Không tải được trạng thái boss: ' + JSON.stringify(st0)?.slice(0, 120));
+  else console.log('• Màn Boss Thế Giới: Thanh Long Long Vương, máu chung, bảng sát thương');
+  // vào đánh
+  await p.mouse.click(1058, 540);
+  await p.waitForFunction(() => !!window.__game.scene.getScene('WorldBoss').fight, null, { timeout: 8000 }).catch(() => errs.push('Không vào được trận boss'));
+  const team = await p.evaluate(() => window.__game.scene.getScene('WorldBoss').fight?.e.team.map((t) => t.uid));
+  if (!team || team.length !== 3 || !team.includes('w1')) errs.push('Đội đánh boss sai (cá khoá cũng phải được đánh): ' + JSON.stringify(team));
+  else console.log('• Vào đánh: đội 3 cá mạnh nhất (kể cả cá khoá – không mất cá)');
+  for (let i = 0; i < 3; i++) {
+    await p.waitForTimeout(700);
+    await p.keyboard.press('Space');
+    await p.waitForTimeout(400);
+  }
+  await p.screenshot({ path: `${out}/worldboss-fight.png` });
+  if (db.hits < 3) errs.push('Bấm Space không ra đòn: ' + db.hits);
+  else console.log(`• Ra ${db.hits} đòn canh kim, máu boss còn ${db.hp}`);
+  await p.waitForTimeout(2200);
+  const back = await p.evaluate(() => !window.__game.scene.getScene('WorldBoss').fight);
+  if (!back) errs.push('Kết liễu xong không về bảng');
+  else console.log('• Đòn kết liễu → về bảng (quà gửi Hòm Thư)');
+  await p.screenshot({ path: `${out}/worldboss-killed.png` });
+  await b.close();
+  if (errs.length) { console.error('LỖI:\n' + errs.join('\n')); process.exit(1); }
+  console.log('WORLD BOSS E2E OK');
+})();

@@ -1,0 +1,10 @@
+{
+  "imports": {
+    "@dccc/shared": "../../../packages/shared/src/index.ts",
+    "@dccc/game-data": "../../../packages/game-data/src/index.ts",
+    "@dccc/game-config": "../../../packages/game-config/src/index.ts",
+    "@dccc/validation": "../../../packages/validation/src/index.ts",
+    "zod": "npm:zod@4.6.7",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.119.0"
+  }
+}
