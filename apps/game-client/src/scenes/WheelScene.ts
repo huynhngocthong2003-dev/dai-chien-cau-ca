@@ -133,7 +133,7 @@ export class WheelScene extends Phaser.Scene {
 
     panel(this, 820, 120, 440, 586, 0.92);
     txt(this, 1040, 160, "🎡 Thử vận may!", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5);
-    txt(this, 1040, 250, `Mỗi ngày 1 lượt MIỄN PHÍ · thêm lượt ${WHEEL_COST_DIAMONDS} 💎\nQuay x10: ${WHEEL_COST_10} 💎 – tỉ lệ ra đồ ngon CAO HƠN!\n\nGiải lớn: 👑 500 KC · 💎 Đá Tiến Hoá Vạn Năng\nCần Long Cốt · Phượng Hoàng · Hải Thần\nNhân vật Ngao Thiên · Viêm Hỏa · Thủy Tổ · Lôi Vũ\nĐá Tiến Hoá Thủy · Hỏa · Băng · Lôi`, 17, { align: "center", weight: "700", wrap: 410 }).setOrigin(0.5);
+    txt(this, 1040, 250, `Mỗi ngày 1 lượt MIỄN PHÍ · thêm lượt ${WHEEL_COST_DIAMONDS} 💎\nQuay x10: ${WHEEL_COST_10} 💎 – tỉ lệ ra đồ ngon CAO HƠN!\n\nGiải lớn: ✨ Đá Tiến Hoá Thần · 👑 500 KC\n💎 Đá Tiến Hoá Vạn Năng\nCần Long Cốt · Phượng Hoàng · Hải Thần\nNhân vật Ngao Thiên · Viêm Hỏa · Thủy Tổ · Lôi Vũ\nĐá Tiến Hoá Thủy · Hỏa · Băng · Lôi`, 17, { align: "center", weight: "700", wrap: 410 }).setOrigin(0.5);
     this.info = txt(this, 1040, 372, "", 18, { align: "center", color: "#b9f6ca", wrap: 400 }).setOrigin(0.5);
     new Button(this, 1040, 430, 230, 46, "📊 Tỉ lệ rơi", { color: COLORS.blue, fontSize: 19, onClick: () => this.showRates() });
     this.btn = new Button(this, 1040, 500, 340, 70, "", { color: COLORS.orange, fontSize: 26, onClick: () => this.spin() });

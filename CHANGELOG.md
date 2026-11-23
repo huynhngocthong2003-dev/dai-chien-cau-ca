@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.52.2] – 2026-11-23
+### Thêm
+- **Vòng Quay có ô ✨ Đá TH Thần** (Đá Tiến Hoá Thần – mở 4 dạng đột biến THẦN, dùng thay đá mọi hệ): tỉ lệ **0,5%** mỗi lượt (quay x10 cao hơn ×1,6), trúng hiện màn TRÚNG ĐỘC ĐẮC. Bớt tương ứng từ ô 500 Vàng – tỉ lệ các ô khác không đổi.
+
 ## [0.52.1] – 2026-11-23
 ### Thay đổi
 - Gỡ nút **📊 Tỉ lệ** trong màn câu cá – người chơi không xem được bảng tỉ lệ ra cá / rác. Cơ chế may mắn vẫn giữ nguyên (may mắn cao → nhiều cá cấp cao, ít rác).

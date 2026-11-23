@@ -164,7 +164,9 @@ describe("Vòng Quay – nhân vật & cần câu hiếm", () => {
     expect(evo.label).toBe("Đá TH Vạn Năng");
     const re = resolveReward(evo.reward, rng);
     expect(["e_u_minh_thach", "e_thanh_quang_thach", "e_dia_mach_thach"]).toContain(re.evoItem);
-    expect(WHEEL_PRIZES.some((p) => p.reward.evoItem === "e_long_phuong_than")).toBe(false);
+    // Đá Tiến Hoá Thần: đúng 1 ô riêng trên vòng quay (~0,5%), ô Vạn Năng không ra đá Thần
+    expect(WHEEL_PRIZES.filter((p) => p.reward.evoItem === "e_long_phuong_than").map((p) => p.id)).toEqual(["wh_da_than"]);
+    expect(evo.reward.evoPool).not.toContain("e_long_phuong_than");
     valid(s);
   });
 
@@ -258,5 +260,16 @@ describe("Nạp tiền (chủ dự án duyệt)", () => {
     expect(url).toContain("ACB-13152551");
     expect(url).toContain("amount=20000");
     expect(url).toContain("addInfo=DCCC1A2B3C");
+  });
+});
+
+describe("Vòng Quay có Đá Tiến Hoá Thần", () => {
+  it("ô Đá TH Thần ~0,5% và trao đúng Đá Tiến Hoá Thần", () => {
+    const tot = WHEEL_PRIZES.reduce((a, p) => a + p.weight, 0);
+    const p = WHEEL_PRIZES.find((x) => x.id === "wh_da_than")!;
+    expect(p.reward.evoItem).toBe("e_long_phuong_than");
+    expect(p.weight / tot).toBeGreaterThan(0.0045);
+    expect(p.weight / tot).toBeLessThan(0.0055);
+    expect(Math.round(tot * 100) / 100).toBeCloseTo(103.82, 1); // tổng trọng số giữ nguyên → các ô khác không đổi tỉ lệ
   });
 });

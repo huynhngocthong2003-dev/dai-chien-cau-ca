@@ -24,7 +24,7 @@ export const CHECKIN_REWARDS: RewardDef[] = [
 
 /** Vòng Quay May Mắn – trọng số ẩn với người chơi. */
 export const WHEEL_PRIZES: WheelPrizeDef[] = [
-  { id: "wh_vang_nho", label: "500 Vàng", icon: "🪙", color: "#ffca28", weight: 26, reward: { gold: 500 } },
+  { id: "wh_vang_nho", label: "500 Vàng", icon: "🪙", color: "#ffca28", weight: 25.48, reward: { gold: 500 } },
   { id: "wh_da", label: "10 Đá", icon: "🔷", color: "#7c4dff", weight: 16, reward: { stones: 10 } },
   { id: "wh_kc_nho", label: "20 KC", icon: "💎", color: "#29b6f6", weight: 12, reward: { diamonds: 20 } },
   { id: "wh_vang_lon", label: "3.000 Vàng", icon: "💰", color: "#ff9800", weight: 12, reward: { gold: 3000 } },
@@ -51,6 +51,8 @@ export const WHEEL_PRIZES: WheelPrizeDef[] = [
   { id: "wh_nv_thuy_to", label: "NV Thủy Tổ", icon: "🌊", color: "#00b8d4", weight: 0.04, reward: { characterId: "c_hai_vuong" } },
   { id: "wh_nv_loi_vu", label: "NV Lôi Vũ", icon: "⚡", color: "#ffd600", weight: 0.04, reward: { characterId: "c_than_sam" } },
   // ĐÁ TIẾN HOÁ VẠN NĂNG: dùng thay đá của MỌI hệ
+  // ĐÁ TIẾN HOÁ THẦN (~0,5%): mở 4 dạng đột biến THẦN, dùng thay đá mọi hệ
+  { id: "wh_da_than", label: "Đá TH Thần", icon: "✨", color: "#ff4081", weight: 0.52, reward: { evoItem: "e_long_phuong_than" } },
   { id: "wh_phuong_than", label: "Đá TH Vạn Năng", icon: "💎", color: "#ff6d00", weight: 0.12, reward: { evoPool: ["e_u_minh_thach", "e_thanh_quang_thach", "e_dia_mach_thach"] } },
 ];
 
