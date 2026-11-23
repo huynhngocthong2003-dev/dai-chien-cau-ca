@@ -1,12 +1,12 @@
 import Phaser from "phaser";
 import { extraX, safeX } from "../ui/wide.ts";
 import { CHARACTER_BY_ID, CHECKIN_REWARDS, EVENTS, FISH_BY_ID, QUESTS, ROD_BY_ID, TITLES, ZONES, ZONE_BY_ID } from "@dccc/game-data";
-import { checkinState, dayKey, mailRewardClaimed, mailRewardEmpty, questProgress, refreshDaily, titleProgress } from "@dccc/shared";
+import { checkinState, dayKey, mailRewardClaimed, mailRewardEmpty, questProgress, refreshDaily, titleProgress, TUTORIAL_REWARD } from "@dccc/shared";
 import { playerNameSchema } from "@dccc/validation";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
 import { auraTexture, characterHeadTexture, characterTexture, dockTexture, fishTexture, rodIconTexture, zoneTexture, menuIconTexture } from "../art/textures.ts";
-import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
+import { Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { Sfx } from "../audio/Sfx.ts";
@@ -16,6 +16,7 @@ import { addFashionFx } from "../art/fashionFx.ts";
 import { openGiftCode } from "../ui/giftCode.ts";
 import { openWorldChat } from "../ui/worldChat.ts";
 import { openMailbox } from "../ui/mailbox.ts";
+import { tutorialGuide, type GuideRect } from "../ui/tutorial.ts";
 import { htmlOverlay } from "../ui/htmlOverlay.ts";
 
 /** Tính năng chưa mở (hiện chưa có – mọi mục ở sảnh đã hoạt động). */
@@ -119,7 +120,7 @@ export class HubScene extends Phaser.Scene {
     const items: { icon: string; iconKey?: string; label: string; color: number; act: () => void; locked?: string; badge?: string }[] = [
       { icon: "🧑", iconKey: charIcon, label: "Nhân Vật", color: COLORS.blue, act: () => goTo(this, "Characters") },
       { icon: "🎣", iconKey: rodIcon, label: "Cần Câu", color: COLORS.blue, act: () => goTo(this, "Rods") },
-      { icon: "🐟", iconKey: menuIconTexture(this, "bag"), label: "Kho Cá", color: COLORS.blue, act: () => goTo(this, "Inventory"), badge: s.fishes.length ? String(s.fishes.length) : undefined },
+      { icon: "🐟", iconKey: menuIconTexture(this, "bag"), label: "Kho Cá", color: COLORS.blue, act: () => goTo(this, "Inventory", { tab: "bag" }), badge: s.fishes.length ? String(s.fishes.length) : undefined },
       { icon: "🛒", iconKey: menuIconTexture(this, "shop"), label: "Cửa Hàng", color: COLORS.orange, act: () => goTo(this, "Shop") },
       { icon: "📖", iconKey: menuIconTexture(this, "book"), label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
       { icon: "⚙️", iconKey: menuIconTexture(this, "gear"), label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
@@ -133,6 +134,7 @@ export class HubScene extends Phaser.Scene {
       { icon: "🏆", iconKey: menuIconTexture(this, "trophy"), label: "Xếp Hạng", color: COLORS.purple, act: () => goTo(this, "Ranking") },
       { icon: "🛡️", iconKey: menuIconTexture(this, "guild"), label: "Hội", color: COLORS.purple, act: () => goTo(this, "Guild") },
     ];
+    const menuBtns = new Map<string, Button>();
     items.forEach((it, i) => {
       const col = i % 3;
       const row = Math.floor(i / 3);
@@ -147,9 +149,21 @@ export class HubScene extends Phaser.Scene {
         onClick: it.act,
       });
       if (it.locked) b.on("disabled-click", () => toast(this, COMING[it.locked!]!));
+      menuBtns.set(it.label, b);
     });
     const dx = Math.max(0, extraX(this) - safeX(this) - 8);
     if (dx) for (const o of this.children.list.slice(gridStart)) (o as unknown as { x: number }).x += dx;
+
+    // hướng dẫn tân thủ (chỉ tài khoản mới)
+    // (bản lưu tài khoản mới có thể nạp xong sau khi sảnh hiện → nghe thêm sự kiện "changed")
+    this.tutC = undefined;
+    // giờ thật (máy yếu / FPS thấp làm đồng hồ Phaser chạy chậm)
+    window.setTimeout(() => this.scene.isActive() && this.runTutorial(fishBtn, menuBtns), 350);
+    const onSave = () => {
+      if (GameState.tutorial && !this.tutC && this.scene.isActive()) this.runTutorial(fishBtn, menuBtns);
+    };
+    GameState.on("changed", onSave);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => GameState.off("changed", onSave));
 
     if (GameState.loadWarning) {
       toast(this, GameState.loadWarning, COLORS.red);
@@ -179,7 +193,8 @@ export class HubScene extends Phaser.Scene {
           if (!auto) toast(this, `Không mở được Hòm Thư: ${(e as Error).message}`, COLORS.red);
         }
       };
-      void openMail(true);
+      // đang hướng dẫn tân thủ: không tự bật Hòm Thư (che mất chỗ cần bấm)
+      if (!GameState.tutorial) void openMail(true);
     }
     // Quảng Trường & Đua Cá: đã đưa vào bảng menu bên phải
     if (GameState.online && !HubScene.socialSynced) {
@@ -257,6 +272,73 @@ export class HubScene extends Phaser.Scene {
       m.root.add(btn);
     });
     m.root.add(txt(this, m.x + m.w / 2, m.y + m.h - 40, "Sự kiện mới sẽ được cập nhật thường xuyên!", 16, { color: COLORS.textDim, align: "center", weight: "700" }).setOrigin(0.5));
+  }
+
+  // ---------------------------------------------------------------- hướng dẫn tân thủ
+  private tutC?: Phaser.GameObjects.Container;
+
+  private runTutorial(fishBtn: Button, menu: Map<string, Button>) {
+    this.tutC?.destroy(true);
+    this.tutC = undefined;
+    const step = GameState.tutorial;
+    if (!step || !this.scene.isActive()) return;
+    const rect = (b: Button): GuideRect => ({ x: b.x, y: b.y, w: b.width, h: b.height });
+    if (step === "welcome") {
+      this.tutC = tutorialGuide(this, {
+        title: "🎣 Chào mừng Tân Thủ!",
+        text: `Mình sẽ hướng dẫn bạn chơi cơ bản:\nCâu con cá đầu tiên → xem Kho Cá → làm quen các mục chính.\n\nXong nhận quà ${formatNum(TUTORIAL_REWARD.gold)} 🪙 + ${TUTORIAL_REWARD.diamonds} 💎 + ${TUTORIAL_REWARD.stones} 🔷, rồi được chơi tự do!`,
+        next: {
+          label: "Bắt đầu ▶",
+          onClick: () => {
+            GameState.tutorialAdvance("welcome");
+            this.runTutorial(fishBtn, menu);
+          },
+        },
+      });
+    } else if (step === "to_bag" || step === "bag") {
+      const bag = menu.get("Kho Cá");
+      if (bag) this.tutC = tutorialGuide(this, { title: "🐟 Kho Cá", text: "Tuyệt vời! Bấm KHO CÁ để xem con cá bạn vừa câu được.", target: rect(bag) });
+    } else if (step === "tour") this.tutorialTour(menu, 0);
+    else this.tutC = tutorialGuide(this, { title: "Bước 1: Đi câu", text: "Bấm nút CÂU CÁ để ra bến câu và câu con cá đầu tiên!", target: rect(fishBtn) });
+  }
+
+  /** Giới thiệu nhanh các mục chính, xong → nhận quà, chơi tự do. */
+  private tutorialTour(menu: Map<string, Button>, i: number) {
+    this.tutC?.destroy(true);
+    const TOUR: [string, string][] = [
+      ["Đấu Cá", "⚔ ĐẤU CÁ: xếp 3 cá đấu 3vs3 theo lượt với máy hoặc người, leo Rank Sinh Tử.\nThua mất con lực chiến thấp nhất – nhớ KHOÁ 🔒 cá quý!"],
+      ["Lai Tạo", "🥚 LAI TẠO: ghép 1 cá ♂ + 1 cá ♀ (Huyền Thoại / Boss trở lên) ra trứng cá lai mang 2 hệ."],
+      ["Nhân Vật", "🧑 NHÂN VẬT & 🎣 CẦN CÂU: nâng cấp để kéo cá khoẻ hơn, câu được cá to và hiếm hơn."],
+      ["Nhiệm Vụ", "📜 NHIỆM VỤ: điểm danh mỗi ngày và làm nhiệm vụ để nhận vàng, kim cương."],
+      ["Vòng Quay", "🎡 VÒNG QUAY: mỗi ngày 1 lượt MIỄN PHÍ – có Đá Tiến Hoá, cần câu và nhân vật hiếm!"],
+    ];
+    const [name, text] = TOUR[i]!;
+    const b = menu.get(name);
+    const last = i === TOUR.length - 1;
+    this.tutC = tutorialGuide(this, {
+      title: `Làm quen (${i + 1}/${TOUR.length})`,
+      text,
+      target: b ? { x: b.x, y: b.y, w: b.width, h: b.height } : undefined,
+      lockTarget: true,
+      at: { x: 420, y: 360 },
+      next: {
+        label: last ? "Hoàn thành 🎉" : "Tiếp ▶",
+        onClick: () => (last ? this.finishTutorial() : this.tutorialTour(menu, i + 1)),
+      },
+    });
+  }
+
+  private finishTutorial() {
+    this.tutC?.destroy(true);
+    this.tutC = undefined;
+    const r = GameState.tutorialFinish(false);
+    if (!r.ok) return toast(this, r.error, COLORS.red);
+    Sfx.levelUp();
+    const m = modal(this, 620, 380, "🎉 Hoàn thành hướng dẫn!", () => this.scene.restart());
+    m.root.add(
+      txt(this, 640, m.y + 150, `Phần thưởng:\n+${formatNum(TUTORIAL_REWARD.gold)} 🪙   +${TUTORIAL_REWARD.diamonds} 💎   +${TUTORIAL_REWARD.stones} 🔷\n\nGiờ bạn được CHƠI TỰ DO – khám phá mọi thứ nhé!`, 22, { align: "center", weight: "700" }).setOrigin(0.5),
+    );
+    m.root.add(new Button(this, 640, m.y + m.h - 56, 240, 60, "Chơi thôi! 🎣", { color: COLORS.orange, fontSize: 24, onClick: () => m.close() }));
   }
 
   private openSettings() {
@@ -345,6 +427,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.44.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.45.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

@@ -9,6 +9,7 @@ import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { elementBadge, elementTag } from "../ui/element.ts";
 import { hexToInt } from "../art/color.ts";
+import { tutorialGuide } from "../ui/tutorial.ts";
 
 const NODE_POS: [number, number][] = [
   [120, 575],
@@ -78,6 +79,20 @@ export class ZoneScene extends Phaser.Scene {
       void name;
       void req;
     });
+    // hướng dẫn tân thủ: chọn khu đầu tiên, chỉ vào nút Câu Cá
+    const tut = GameState.tutorial;
+    if (tut) {
+      GameState.tutorialAdvance("go_fish");
+      this.select(ZONES[0]!);
+      window.setTimeout(() =>
+        this.scene.isActive() && tutorialGuide(this, {
+          title: "Chọn bến câu",
+          text: `${ZONES[0]!.name} là bến dành cho Tân Thủ, cá dễ câu.\nBấm CÂU CÁ để bắt đầu!`,
+          target: { x: 720 + 145, y: 92 + 566, w: 250, h: 72 },
+        }),
+      );
+      return;
+    }
     this.select(ZONES.find((z) => z.id === s.selectedZoneId) ?? ZONES[0]!);
   }
 

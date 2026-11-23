@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.45.0] – 2026-11-23 – Hướng dẫn tân thủ, hiệu ứng đột biến theo dáng cá
+### Thêm
+- **Hướng dẫn tân thủ** cho tài khoản mới: chào mừng → bấm CÂU CÁ → chọn bến Tân Thủ → quăng cần → giật khi có dấu ❗ → kéo cá (giữ kéo, thả khi lực căng đỏ) → xem Kho Cá → làm quen Đấu Cá, Lai Tạo, Nhân Vật/Cần Câu, Nhiệm Vụ, Vòng Quay → **nhận 2.000 🪙 + 30 💎 + 20 🔷** → chơi tự do. Trong lúc hướng dẫn chỉ bấm được đúng chỗ được chỉ; câu hụt / cá thoát thì quay lại bước quăng cần. Có nút "Bỏ qua hướng dẫn" (bấm 2 lần, không nhận quà). Người chơi cũ không bị ảnh hưởng.
+- **Nút 🧬 Đột biến** luôn có ở chi tiết cá Huyền Thoại / Boss / Thần Thoại chưa đột biến (không phải đợi đủ cấp Sơ Giai), có dấu "!" khi đang có Đá Tiến Hoá.
+### Thay đổi
+- **Hiệu ứng đột biến mới**: màn tối dần, cá rung, vòng năng lượng cùng màu dạng đột biến co vào thân → cá loé trắng → quầng sáng & sóng xung kích toả ra → bảng kết quả hiện hình cá mới đúng giai (không còn phủ kín màn bằng 1 màu).
+- **Hiệu ứng đột biến bám đúng dáng cá**: loài có hình vẽ riêng (Thần Thoại, Boss đặc biệt, cá lai) được dò đường viền thật để gai / lửa / bờm / râu / cánh / vương miện mọc đúng sống lưng, đầu, mũi, đuôi. Sửa lỗi **Huyết Long Thần** (khối gai đỏ nổi rời) và các dạng của **Hắc Long Ngư Vực Thẳm** thân cuộn (hàng vây thẳng cắt ngang, râu dựng đứng, cánh lệch, tia sét lạc góc).
+- **Cá Mập Búa**: vẽ lại đầu búa mềm mại kiểu cá mập búa thật (thuỳ đầu bo tròn, mắt ở chóp thuỳ, rãnh mũi, khe mang). **Hỏa Ngục Bạo Ngư** bỏ đầu búa, đổi sang đầu bạo chúa to hầm hố, hàm nanh, mào & bờm lửa – mỗi loài một kiểu đầu hợp tên.
+### Sửa lỗi
+- **Bấm Kho Cá lại mở Bộ Sưu Tập** (sau khi vào Bộ Sưu Tập): chuyển màn luôn làm mới dữ liệu màn.
+- Hẹn giờ của hướng dẫn dùng giờ thật (máy yếu / FPS thấp không bị treo).
+
 ## [0.44.0] – 2026-11-23 – Tiến hoá hệ: lên giai theo hướng dạng đột biến
 ### Thay đổi
 - **Giữ Tiến hoá hệ (Q6)**: cá đột biến **giữ nguyên hệ gốc**, chỉ thêm dạng đột biến – ghi rõ ở chi tiết cá ("Hệ Hỏa · 🧬 Lam Hỏa (thiên THỦ)"), thẻ chọn cá ("🧬 Lam Hỏa") và tên cá trong trận.

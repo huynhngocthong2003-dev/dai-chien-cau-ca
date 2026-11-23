@@ -33,6 +33,8 @@ let SK = 1;
 /** Điểm dọc sống lưng THẬT của con cá (đo trước khi vẽ) – gai / lửa mọc theo đúng dáng. */
 let backPts: { x: number; y: number; ang: number }[] | null = null;
 let tailAt: { x: number; y: number } | null = null;
+/** Đầu / mũi dò từ đường viền (khi loài không có điểm mốc vector). */
+let maskHead: { head: { x: number; y: number }; nose: { x: number; y: number } } | null = null;
 
 /** Vẽ hình mọc từ điểm (x,y) theo hướng pháp tuyến `ang` (hình gốc vẽ hướng lên trên). */
 function along(ctx: CanvasRenderingContext2D, x: number, y: number, ang: number, draw: () => void) {
@@ -117,10 +119,14 @@ function bolts(ctx: CanvasRenderingContext2D, col: string, n: number, seed: numb
   let s = seed;
   const r = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
   ctx.lineCap = "round";
+  // tâm thân cá thật (trung bình sống lưng & đuôi) – tia sét toả quanh thân
+  const pts0 = backPts?.length ? [...backPts, ...(tailAt ? [tailAt] : [])] : null;
+  const cx0 = pts0 ? pts0.reduce((a2, q) => a2 + q.x, 0) / pts0.length : CX;
+  const cy0 = pts0 ? pts0.reduce((a2, q) => a2 + q.y, 0) / pts0.length + 14 : CY;
   for (let i = 0; i < n; i++) {
     const a = r() * Math.PI * 2;
-    let x = CX + Math.cos(a) * 70;
-    let y = CY + Math.sin(a) * 40;
+    let x = cx0 + Math.cos(a) * 70;
+    let y = cy0 + Math.sin(a) * 40;
     const pts = [[x, y]];
     for (let k = 0; k < 4; k++) {
       x += Math.cos(a) * 16 + (r() - 0.5) * 22;
@@ -142,39 +148,63 @@ let headAt: { x: number; y: number } | null = null;
 let noseAt: { x: number; y: number } | null = null;
 
 function whiskers(ctx: CanvasRenderingContext2D, col: string, glow: string) {
-  const n = noseAt ? { x: noseAt.x - 4, y: noseAt.y - 2 } : P(298, 104);
+  const n = noseAt ? { x: noseAt.x - 2, y: noseAt.y } : P(298, 104);
+  // hướng đầu cá (đầu → mũi); râu mọc từ mũi, vắt ngược về phía thân, uốn lượn – đúng với mọi dáng (nằm, đứng, uốn)
+  const h = headAt ?? P(268, 80);
+  let dx = n.x - h.x;
+  let dy = n.y - h.y;
+  const L = Math.hypot(dx, dy) || 1;
+  dx /= L;
+  dy /= L;
+  const nx = -dy;
+  const ny = dx;
   ctx.lineCap = "round";
-  for (const [k, len] of [[1, 1], [-1, 0.85]] as const) {
+  for (const [k, len] of [[1, 1], [-1, 0.8]] as const) {
+    const ln = 52 * len * SK;
+    const ex = n.x - dx * ln * 0.75 + nx * k * ln * 0.55;
+    const ey = n.y - dy * ln * 0.75 + ny * k * ln * 0.55;
     for (const [w, c] of [[7, rgba(glow, 0.35)], [3.5, col]] as const) {
       ctx.lineWidth = w;
       ctx.strokeStyle = c;
       ctx.beginPath();
-      ctx.moveTo(n.x - 6, n.y + 4);
-      ctx.bezierCurveTo(n.x + 16, n.y + 12 * k, n.x - 14, n.y + 30 * k * len, n.x + 6, n.y + 46 * k * len);
+      ctx.moveTo(n.x, n.y);
+      ctx.bezierCurveTo(n.x + dx * 14 + nx * k * 10, n.y + dy * 14 + ny * k * 10, n.x - dx * ln * 0.3 + nx * k * ln * 0.6, n.y - dy * ln * 0.3 + ny * k * ln * 0.6, ex, ey);
       ctx.stroke();
     }
   }
 }
 
 function mane(ctx: CanvasRenderingContext2D, col: string) {
-  // bờm rồng dọc lưng
+  // bờm rồng dọc sống lưng THẬT của con cá (dáng nào cũng bám đúng); thiếu điểm mốc thì dùng vị trí mặc định
   ctx.fillStyle = col;
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = 2;
-  for (let i = 0; i < 8; i++) {
-    const p = P(80 + i * 24, 72 + Math.abs(i - 3.5) * 3);
+  const blade = () => {
     ctx.beginPath();
-    ctx.moveTo(p.x - 10, p.y);
-    ctx.quadraticCurveTo(p.x - 14, p.y - 22, p.x - 22 + (i % 2) * 6, p.y - 30);
-    ctx.quadraticCurveTo(p.x + 2, p.y - 18, p.x + 10, p.y);
+    ctx.moveTo(-10 * SK, 2);
+    ctx.quadraticCurveTo(-14 * SK, -22 * SK, -20 * SK, -32 * SK);
+    ctx.quadraticCurveTo(2 * SK, -18 * SK, 10 * SK, 2);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+  };
+  if (backPts?.length) {
+    backPts.forEach((q) => along(ctx, q.x, q.y, q.ang, blade));
+    return;
+  }
+  for (let i = 0; i < 8; i++) {
+    const p = P(80 + i * 24, 72 + Math.abs(i - 3.5) * 3);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    blade();
+    ctx.restore();
   }
 }
 
 function wings(ctx: CanvasRenderingContext2D, c1: string, c2: string, feather: boolean) {
-  const base = P(150, 82);
+  // cánh mọc từ giữa sống lưng thật
+  const mid = backPts?.length ? backPts[Math.floor(backPts.length / 2)]! : null;
+  const base = mid ? { x: mid.x, y: mid.y + 4 } : P(150, 82);
   for (const [dx, sc, al] of [[-26, 0.86, 0.8], [0, 1, 1]] as const) {
     ctx.save();
     ctx.globalAlpha = al;
@@ -408,6 +438,70 @@ function tierFront(ctx: CanvasRenderingContext2D, rarity: FishDef["rarity"], for
   }
 }
 
+
+/**
+ * Dò ĐƯỜNG VIỀN THẬT của hình cá (vẽ nháp lên canvas riêng rồi đọc độ đục từng cột) → sống lưng, đuôi, mũi, đầu.
+ * Dùng cho loài có hình vẽ riêng (Thần Thoại, Boss đặc biệt, cá lai) – không có sẵn điểm mốc như cá vẽ vector.
+ * Toạ độ trả về là toạ độ khung 320×200 (cùng hệ với các hiệu ứng đột biến). Cá quay đầu sang phải.
+ */
+type MaskAnchors = { back: { x: number; y: number; ang: number }[]; tail: { x: number; y: number }; nose: { x: number; y: number }; head: { x: number; y: number } };
+function maskAnchors(drawShape: (c: CanvasRenderingContext2D) => void): MaskAnchors | null {
+  const W = FISH_W;
+  const H = FISH_H;
+  const cv = document.createElement("canvas");
+  cv.width = W;
+  cv.height = H;
+  const c = cv.getContext("2d", { willReadFrequently: true });
+  if (!c) return null;
+  drawShape(c);
+  const d = c.getImageData(0, 0, W, H).data;
+  const top = new Array<number>(W).fill(-1);
+  const bot = new Array<number>(W).fill(-1);
+  let xmin = W;
+  let xmax = -1;
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++)
+      if (d[(y * W + x) * 4 + 3]! > 200) {
+        top[x] = y;
+        break;
+      }
+    if (top[x]! < 0) continue;
+    for (let y = H - 1; y >= 0; y--)
+      if (d[(y * W + x) * 4 + 3]! > 200) {
+        bot[x] = y;
+        break;
+      }
+    xmin = Math.min(xmin, x);
+    xmax = Math.max(xmax, x);
+  }
+  const w = xmax - xmin;
+  if (w < 30) return null;
+  const topAt = (x: number) => {
+    for (let k = 0; k < 8; k++) for (const xx of [x + k, x - k]) if (xx >= 0 && xx < W && top[xx]! >= 0) return top[xx]!;
+    return CY;
+  };
+  const botAt = (x: number) => {
+    for (let k = 0; k < 8; k++) for (const xx of [x + k, x - k]) if (xx >= 0 && xx < W && bot[xx]! >= 0) return bot[xx]!;
+    return CY;
+  };
+  const back: MaskAnchors["back"] = [];
+  for (let t = 0.2; t <= 0.76; t += 0.07) {
+    const x = Math.round(xmin + t * w);
+    const dy = topAt(x + 5) - topAt(x - 5);
+    // pháp tuyến hướng ra ngoài sống lưng (hình gốc của hiệu ứng vẽ hướng lên)
+    back.push({ x, y: topAt(x) + 3, ang: Math.atan2(dy, 10) - Math.PI / 2 });
+  }
+  const xt = Math.round(xmin + 0.04 * w);
+  const xn = Math.round(xmax - 0.03 * w);
+  const xh = Math.round(xmax - 0.2 * w);
+  return {
+    back,
+    tail: { x: xt, y: (topAt(xt) + botAt(xt)) / 2 },
+    nose: { x: xn, y: (topAt(xn) + botAt(xn)) / 2 },
+    head: { x: xh, y: topAt(xh) + (botAt(xh) - topAt(xh)) * 0.3 },
+  };
+}
+
 export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form: FishFormDef, stage = 0) {
   const look = form.look;
   SK = stage <= 1 ? 0.85 : stage === 2 ? 1 : stage === 3 ? 1.15 : 1.3;
@@ -429,8 +523,15 @@ export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form:
       const tp = inv0.transformPoint(a0.tail);
       tailAt = { x: tp.x, y: tp.y };
     } else {
-      backPts = null;
-      tailAt = null;
+      // hình vẽ riêng (không có điểm mốc) → dò đường viền thật để hiệu ứng bám đúng dáng cá
+      const m = maskAnchors((c) => {
+        c.translate(CX - (FISH_W / 2) * K, CY - (FISH_H / 2) * K);
+        c.scale(K, K);
+        drawFish(c, { id: fish.id, appearance: fish.appearance }, stage);
+      });
+      maskHead = m;
+      backPts = m?.back ?? null;
+      tailAt = m?.tail ?? null;
     }
   }
   tierBack(ctx, fish.rarity, form);
@@ -468,7 +569,11 @@ export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form:
     const np = inv.transformPoint(a.nose);
     headAt = { x: hp.x, y: hp.y };
     noseAt = { x: np.x, y: np.y };
+  } else if (maskHead) {
+    headAt = maskHead.head;
+    noseAt = maskHead.nose;
   } else headAt = noseAt = null;
+  maskHead = null;
   AURA[look.aura].front?.(ctx, form);
   tierFront(ctx, fish.rarity, form);
 }
@@ -477,12 +582,14 @@ export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form:
  * Lớp hiệu ứng đột biến dùng cho hình KHÔNG vẽ bằng VectorFish (cá lai Đảo Lai Tạo):
  * "back" = quầng sáng + hiệu ứng sau thân, "front" = hiệu ứng trước thân; to dần theo giai.
  */
-export function drawFormLayer(ctx: CanvasRenderingContext2D, form: FishFormDef, stage: number, layer: "back" | "front") {
+export function drawFormLayer(ctx: CanvasRenderingContext2D, form: FishFormDef, stage: number, layer: "back" | "front", shape?: (c: CanvasRenderingContext2D) => void) {
   SK = stage <= 1 ? 0.85 : stage === 2 ? 1 : stage === 3 ? 1.15 : 1.3;
-  backPts = null;
-  tailAt = null;
-  headAt = null;
-  noseAt = null;
+  // dò dáng thật của hình (cá lai) để gai / lửa / râu bám đúng chỗ
+  const m = shape ? maskAnchors(shape) : null;
+  backPts = m?.back ?? null;
+  tailAt = m?.tail ?? null;
+  headAt = m?.head ?? null;
+  noseAt = m?.nose ?? null;
   if (layer === "back") {
     backGlow(ctx, form.glow, 0.45 + 0.08 * Math.max(0, stage - 1));
     AURA[form.look.aura].back?.(ctx, form);

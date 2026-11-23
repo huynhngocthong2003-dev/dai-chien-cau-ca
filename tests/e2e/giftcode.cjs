@@ -24,6 +24,7 @@ async function redeem(p, code) {
   const errs = [];
   p.on('pageerror', (e) => errs.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(url);
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'));
   await p.waitForTimeout(500);

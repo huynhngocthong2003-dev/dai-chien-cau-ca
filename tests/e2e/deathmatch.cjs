@@ -15,6 +15,7 @@ const errs = [];
   const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
   p.on('pageerror', (e) => errs.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'));
   await p.evaluate(() => {
@@ -47,7 +48,11 @@ const errs = [];
   await p.waitForTimeout(600);
   await p.screenshot({ path: `${out}/forms.png` });
   await p.mouse.click(120 + 20 + 96, 60 + 104 + 396); // "Tiến hoá 100%" – Ngọc Long Hồn
-  await p.waitForTimeout(1200);
+  await p.waitForTimeout(900);
+  await p.screenshot({ path: `${out}/form-charge.png` }); // màn biến hình: vòng năng lượng co vào cá
+  // chờ hiệu ứng biến hình xong → bảng kết quả hiện
+  await p.waitForFunction(() => window.__game.scene.getScene('Inventory').children.list.some((o) => o.list && o.list.some((x) => x.type === 'Text' && /ĐỘT BIẾN THÀNH CÔNG/.test(x.text))), null, { timeout: 10000 });
+  await p.waitForTimeout(700);
   await p.screenshot({ path: `${out}/form-reveal.png` });
   let s = await save();
   let t4 = s.fishes.find((f) => f.uid === 't4');

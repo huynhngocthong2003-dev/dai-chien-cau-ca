@@ -60,6 +60,7 @@ export const playerSaveSchema = z.object({
   pvpApplied: z.array(z.string().uuid()).max(500),
   eco: z.object({ points: nonNegInt, junk: z.record(id, z.number().int().min(1).max(100000)), recycled: nonNegInt }),
   fishes: z.array(ownedFishSchema).max(1000),
+  tutorial: z.object({ step: z.string().regex(/^[a-z_]{1,16}$/), done: z.boolean().optional() }).optional(),
   stats: z.object({
     totalCaught: nonNegInt,
     bossesCaught: nonNegInt,

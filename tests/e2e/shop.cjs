@@ -13,6 +13,7 @@ const { chromium } = pw;
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
   p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto((process.argv[3] || 'http://localhost:5173/'));
   await p.waitForFunction(() => window.__ready);
   // cho người chơi tiền để thử (chỉ trong test)

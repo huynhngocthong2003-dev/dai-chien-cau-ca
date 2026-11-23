@@ -3,7 +3,7 @@ import { makeScrollArea } from "../ui/scrollArea.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { ECONOMY, ELEMENT_INFO, FISH_RARITY_COLOR, FISH_RARITY_LABEL, RARITY_ORDER } from "@dccc/game-config";
 import { EVO_ITEMS, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, FORM_RANK_INFO, ZONE_BY_ID, speciesElements } from "@dccc/game-data";
-import { STAGE_NAMES, canAfford, formSeen, decomposeValue, fishGender, isBreedable, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type Element, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
+import { STAGE_NAMES, canAfford, canEvolveForm, formSeen, decomposeValue, fishGender, isBreedable, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type Element, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
 import { costText } from "./GearScene.ts";
 import { GameState } from "../state/GameState.ts";
 import { evoItemTexture, fishDisplayMult, fishSilhouetteTexture, fishTextureFor, formFishTexture, softGlowTexture } from "../art/textures.ts";
@@ -12,6 +12,8 @@ import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
 import { Sfx } from "../audio/Sfx.ts";
+import { screenRect } from "../ui/wide.ts";
+import { tutorialGuide } from "../ui/tutorial.ts";
 import { elementBadges, elementName, elementTags, fishElementSet, formTag, type ElementSet } from "../ui/element.ts";
 
 
@@ -57,6 +59,26 @@ export class InventoryScene extends Phaser.Scene {
     // Kho Cá và Bộ Sưu Tập là 2 màn riêng (mở từ sảnh), dùng chung khung chi tiết cá
     new TopBar(this, { title: this.tab === "collection" ? "Bộ Sưu Tập" : "Kho Cá", onBack: () => goTo(this, this.back.scene, this.back.data) });
     this.render();
+    // hướng dẫn tân thủ: giới thiệu Kho Cá rồi về sảnh làm quen các mục chính
+    if (this.tab === "bag" && GameState.tutorial && ["to_bag", "bag"].includes(GameState.tutorial)) {
+      GameState.tutorialAdvance("to_bag");
+      window.setTimeout(() =>
+        this.scene.isActive() && tutorialGuide(this, {
+          title: "🐟 Kho Cá",
+          text: "Bấm vào cá để xem chỉ số. Bảng bên phải có:\n⬆ CƯỜNG HOÁ (vàng + đá) · 🔒 KHOÁ cá quý (không bị bán / mất khi thua)\n💰 BÁN lấy vàng · 🔷 PHÂN GIẢI lấy đá.\nKho chứa tối đa 200 con – ☑ Chọn nhiều để bán nhanh.",
+          target: { x: 1058, y: 399, w: 412, h: 614 },
+          lockTarget: true,
+          at: { x: 430, y: 420 },
+          next: {
+            label: "Về sảnh ▶",
+            onClick: () => {
+              GameState.tutorialAdvance("bag");
+              goTo(this, "Hub");
+            },
+          },
+        }),
+      );
+    }
   }
 
   private sortedFishes(): OwnedFish[] {
@@ -463,9 +485,9 @@ export class InventoryScene extends Phaser.Scene {
       d.add(dev);
     } else if (next.action === "form") {
       // BƯỚC 1: tiến hoá hệ (chọn 1 trong 5 hệ) – xong mới tới 4 giai đoạn trưởng thành
-      d.add(txt(this, 1058, 482, "Bước 1: Tiến hoá thành 1 dạng của 5 hệ · sau đó mới trưởng thành 4 giai", 15, { align: "center", color: COLORS.textGold, wrap: 380 }).setOrigin(0.5));
+      d.add(txt(this, 1058, 482, "Đột biến thành 1 dạng (giữ hệ gốc) · sau đó trưởng thành 4 giai theo hướng dạng đột biến", 15, { align: "center", color: COLORS.textGold, wrap: 380 }).setOrigin(0.5));
       d.add(
-        new Button(this, 1058, 524, 330, 54, "🧬 Tiến hoá hệ", {
+        new Button(this, 1058, 524, 330, 54, "🧬 Đột biến (Tiến hoá hệ)", {
           color: COLORS.purple,
           fontSize: 22,
           badge: Object.values(GameState.save.evoItems).some((n) => n > 0) ? "!" : undefined,
@@ -493,6 +515,17 @@ export class InventoryScene extends Phaser.Scene {
     });
     sell.on("disabled-click", () => toast(this, "Cá đang khóa. Mở khóa để bán."));
     d.add(sell);
+    // ĐỘT BIẾN (tiến hoá hệ) mở cho cá Huyền Thoại / Boss / Thần Thoại chưa đột biến ở MỌI cấp
+    if (canEvolveForm(f) && !o.form && next.action !== "form") {
+      d.add(
+        new Button(this, 1205, 600, 110, 54, "🧬 Đột biến", {
+          color: COLORS.purple,
+          fontSize: 16,
+          badge: Object.values(GameState.save.evoItems).some((n) => n > 0) ? "!" : undefined,
+          onClick: () => this.formDialog(o),
+        }),
+      );
+    }
     const dv = decomposeValue(f, o);
     const dec = new Button(this, 1058, 662, 330, 54, `Phân giải → 🔷${dv.stones}${dv.soul ? ` 🔮${dv.soul}` : ""}`, {
       color: COLORS.orange,
@@ -514,8 +547,8 @@ export class InventoryScene extends Phaser.Scene {
   /** Đột biến cá Boss: chọn vật phẩm → luôn thành công, ra ngẫu nhiên 1 dạng cùng hệ + chỉ số tăng ngẫu nhiên. */
   private formDialog(o: OwnedFish) {
     const f = FISH_BY_ID.get(o.fishId)!;
-    const m = modal(this, 1040, 600, `🧬 Tiến hoá hệ – ${f.name}`, () => this.render());
-    m.root.add(txt(this, m.x + m.w / 2, m.y + 74, "Chọn 1 trong 5 hệ: tiến hoá CHẮC CHẮN thành công, ra ngẫu nhiên 1 dạng của hệ đó (chỉ số tăng ngẫu nhiên – có thể VƯỢT BẬC). Tiến hoá xong KHÔNG đổi hệ được nữa – tiếp theo là 4 giai đoạn trưởng thành.", 16, { align: "center", weight: "700", color: COLORS.textDim, wrap: 960 }).setOrigin(0.5));
+    const m = modal(this, 1040, 600, `🧬 Đột biến – ${f.name}`, () => this.render());
+    m.root.add(txt(this, m.x + m.w / 2, m.y + 74, "Chọn 1 viên đá: đột biến CHẮC CHẮN thành công, ra ngẫu nhiên 1 dạng của viên đó (chỉ số tăng ngẫu nhiên – có thể VƯỢT BẬC). Cá GIỮ NGUYÊN hệ gốc; mỗi con chỉ đột biến 1 lần – sau đó 4 giai trưởng thành theo hướng dạng đột biến.", 16, { align: "center", weight: "700", color: COLORS.textDim, wrap: 960 }).setOrigin(0.5));
     EVO_ITEMS.filter((it) => (FORMS_BY_ITEM.get(it.id) ?? []).length > 0).forEach((it, i) => {
       const x = m.x + 20 + i * 202;
       const y = m.y + 104;
@@ -555,16 +588,84 @@ export class InventoryScene extends Phaser.Scene {
     const o = GameState.save.fishes.find((x) => x.uid === uid);
     if (!o) return;
     const f = FISH_BY_ID.get(o.fishId)!;
-    Sfx.catchFanfare(true);
+    // màn biến hình trước, xong mới hiện bảng kết quả
+    this.playMutation(o, f, form, () => this.showMutationResult(o, f, form, roll, surge));
+  }
+
+  /**
+   * Hiệu ứng biến hình: màn tối dần, cá cũ rung lên, vòng năng lượng màu dạng đột biến co vào thân cá
+   * → cá loé trắng → quầng sáng mềm + sóng xung kích toả ra (không phủ kín màn bằng 1 màu).
+   * Hẹn giờ theo giờ thật để máy yếu không bị kẹt.
+   */
+  private playMutation(o: OwnedFish, f: FishDef, form: FishFormDef, done: () => void) {
     const col = hexToInt(form.glow);
-    this.cameras.main.flash(700, (col >> 16) & 255, (col >> 8) & 255, col & 255);
+    const CX = 640;
+    const CY = 330;
+    const c = this.add.container(0, 0).setDepth(940);
+    const dim = screenRect(this, 0x050814, 0).setInteractive();
+    c.add(dim);
+    this.tweens.add({ targets: dim, fillAlpha: 0.82, duration: 350 });
+    const glow = this.add.image(CX, CY, softGlowTexture(this)).setTint(col).setDisplaySize(360, 300).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+    c.add(glow);
+    this.tweens.add({ targets: glow, alpha: 0.9, duration: 900 });
+    const k = Math.min(1.1, fishDisplayMult(f, o.stars));
+    const fish = this.add.image(CX, CY, fishTextureFor(this, f, null, o.stars, o.parents)).setDisplaySize(380 * k, 238 * k);
+    c.add(fish);
+    this.tweens.add({ targets: fish, x: { from: CX - 5, to: CX + 5 }, duration: 55, yoyo: true, repeat: 16 });
+    // vòng năng lượng co vào
+    for (let i = 0; i < 3; i++) {
+      const ring = this.add.graphics().setPosition(CX, CY).setBlendMode(Phaser.BlendModes.ADD);
+      ring.lineStyle(6, col, 0.9).strokeCircle(0, 0, 210);
+      ring.lineStyle(2, 0xffffff, 0.7).strokeCircle(0, 0, 204);
+      ring.setScale(1.6).setAlpha(0);
+      c.add(ring);
+      this.tweens.add({ targets: ring, scale: 0.15, alpha: { from: 0.95, to: 0.2 }, delay: i * 260, duration: 640, ease: "Quad.easeIn" });
+    }
+    c.add(this.add.particles(CX, CY, "p_spark", { emitZone: { type: "random", source: new Phaser.Geom.Circle(0, 0, 230), quantity: 1 } as never, moveToX: CX, moveToY: CY, lifespan: 700, scale: { start: 0.9, end: 0.2 }, tint: [col, 0xffffff], frequency: 25, duration: 1000, blendMode: Phaser.BlendModes.ADD }));
+    Sfx.bite();
+    window.setTimeout(() => {
+      if (!this.scene.isActive()) return;
+      // loé trắng rồi bùng nổ
+      fish.setTintFill(0xffffff);
+      this.tweens.add({ targets: fish, scale: fish.scale * 1.15, alpha: 0, duration: 280 });
+      const burst = this.add.image(CX, CY, softGlowTexture(this)).setTint(0xffffff).setDisplaySize(200, 200).setBlendMode(Phaser.BlendModes.ADD);
+      const burst2 = this.add.image(CX, CY, softGlowTexture(this)).setTint(col).setDisplaySize(260, 260).setBlendMode(Phaser.BlendModes.ADD);
+      c.add([burst2, burst]);
+      this.tweens.add({ targets: burst, displayWidth: 1100, displayHeight: 1100, alpha: 0, duration: 520, ease: "Cubic.easeOut" });
+      this.tweens.add({ targets: burst2, displayWidth: 1500, displayHeight: 1500, alpha: 0, duration: 760, ease: "Cubic.easeOut" });
+      const wave = this.add.graphics().setPosition(CX, CY).setBlendMode(Phaser.BlendModes.ADD);
+      wave.lineStyle(10, col, 1).strokeCircle(0, 0, 60);
+      wave.lineStyle(3, 0xffffff, 1).strokeCircle(0, 0, 54);
+      c.add(wave);
+      this.tweens.add({ targets: wave, scale: 9, alpha: 0, duration: 700, ease: "Cubic.easeOut" });
+      c.add(this.add.particles(CX, CY, "p_spark", { speed: { min: 260, max: 620 }, lifespan: 900, scale: { start: 1.3, end: 0 }, tint: [col, 0xffffff], quantity: 60, stopAfter: 60, blendMode: Phaser.BlendModes.ADD }));
+      Sfx.catchFanfare(true);
+      this.cameras.main.shake(220, 0.006);
+      window.setTimeout(() => {
+        if (!this.scene.isActive()) return;
+        this.tweens.add({ targets: c, alpha: 0, duration: 260, onComplete: () => c.destroy(true) });
+        done();
+      }, 520);
+    }, 1150);
+  }
+
+  private showMutationResult(o: OwnedFish, f: FishDef, form: FishFormDef, roll: FormRoll, surge: keyof FormRoll | null) {
+    const col = hexToInt(form.glow);
     const m = modal(this, 820, 600, `🧬 ĐỘT BIẾN THÀNH CÔNG!`, () => this.render());
     const cx = m.x + m.w / 2;
     const rays = this.add.container(cx, m.y + 220);
     for (let i = 0; i < 12; i++) rays.add(this.add.image(0, 0, "p_ray").setOrigin(0.5, 0).setAngle(i * 30).setTint(col).setAlpha(0.45).setBlendMode(Phaser.BlendModes.ADD).setScale(0.6));
     this.tweens.add({ targets: rays, angle: 360, duration: 9000, repeat: -1 });
-    const img = this.add.image(cx, m.y + 220, formFishTexture(this, f, form)).setDisplaySize(420, 262).setScale(0.1);
-    this.tweens.add({ targets: img, scaleX: 420 / 320, scaleY: 262 / 200, duration: 600, ease: "Back.easeOut" });
+    // hình đột biến đúng giai & dáng bố mẹ (cá lai) của chính con cá này
+    const halo = this.add.image(cx, m.y + 220, softGlowTexture(this)).setTint(col).setDisplaySize(470, 330).setAlpha(0.55).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: halo, alpha: 0.3, duration: 900, yoyo: true, repeat: -1 });
+    m.root.add(halo);
+    const km = Math.min(1.1, fishDisplayMult(f, o.stars));
+    const img = this.add.image(cx, m.y + 220, fishTextureFor(this, f, form.id, o.stars, o.parents)).setDisplaySize(500 * km, 312 * km);
+    const sx = img.scaleX;
+    const sy = img.scaleY;
+    img.setScale(sx * 0.2, sy * 0.2);
+    this.tweens.add({ targets: img, scaleX: sx, scaleY: sy, duration: 600, ease: "Back.easeOut" });
     m.root.add([rays, img]);
     m.root.add(this.add.particles(cx, m.y + 220, "p_spark", { speed: { min: 150, max: 450 }, lifespan: 1100, scale: { start: 1.4, end: 0 }, tint: [col, 0xffffff], quantity: 50, stopAfter: 50, blendMode: Phaser.BlendModes.ADD }));
     m.root.add(txt(this, cx, m.y + 372, `${f.name} → ${form.name}`, 30, { color: form.glow, align: "center" }).setOrigin(0.5));

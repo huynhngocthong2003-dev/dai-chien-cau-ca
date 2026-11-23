@@ -18,6 +18,7 @@ const step = (m) => console.log('• ' + m);
   const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
   p.on('pageerror', (e) => errs.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'));
   await p.evaluate(() => {
@@ -83,7 +84,7 @@ const step = (m) => console.log('• ' + m);
   let after = await save();
   if (after.fishes.length !== before.fishes.length - 3 || after.gold <= before.gold) errs.push(`Bán đã chọn sai: ${before.fishes.length}→${after.fishes.length} cá, ${before.gold}→${after.gold} vàng`);
   else step(`Bán 3 con đã chọn: ${before.gold} → ${after.gold} vàng`);
-  await p.mouse.click(1154, 344); // Chọn tất cả
+  await p.mouse.click(962, 300); // Chọn cả trang (ít cá – vừa 1 trang)
   await p.waitForTimeout(300);
   await p.mouse.click(1058, 600); // Phân giải
   await p.waitForTimeout(300);

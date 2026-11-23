@@ -13,6 +13,7 @@ const errs = [];
   const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
   p.on('pageerror', (e) => errs.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'));
   await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('dccc_save_v1')); s.eco.junk = { j_chai_nhua: 3, j_dep_le: 2 }; localStorage.setItem('dccc_save_v1', JSON.stringify(s)); });

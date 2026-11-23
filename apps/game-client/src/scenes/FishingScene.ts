@@ -48,6 +48,7 @@ import { Sfx } from "../audio/Sfx.ts";
 import { elementBadge } from "../ui/element.ts";
 import { FishingTogether } from "../ui/fishingTogether.ts";
 import { FishingChat } from "../ui/fishingChat.ts";
+import { tutorialGuide } from "../ui/tutorial.ts";
 
 type Mode = "idle" | "charging" | "flying" | "fishing" | "landing" | "result";
 
@@ -144,6 +145,8 @@ export class FishingScene extends Phaser.Scene {
     this.input.enabled = true;
     fadeIn(this);
     this.loadout = GameState.loadout();
+    this.tutC = undefined;
+    window.setTimeout(() => this.scene.isActive() && this.tutorialTick("enter"), 300);
     const s = GameState.save;
     const char = CHARACTER_BY_ID.get(s.selectedCharacterId)!;
 
@@ -554,7 +557,8 @@ export class FishingScene extends Phaser.Scene {
       }
     }
     this.eventLabel?.setText(this.castEvent ? `${CAST_EVENT_INFO[this.castEvent].name.replace("!", "")} · còn ${this.castEventLeft + 1} lần` : "");
-    this.junk = this.bossHunt ? null : rollJunk(rng, JUNK, FISHING.junkChance);
+    // hướng dẫn tân thủ: lần câu đầu luôn ra cá (không vớt rác)
+    this.junk = this.bossHunt || GameState.tutorial ? null : rollJunk(rng, JUNK, FISHING.junkChance);
     const fish = this.junk
       ? junkAsFish(this.junk)
       : this.bossHunt
@@ -564,6 +568,7 @@ export class FishingScene extends Phaser.Scene {
     this.weightKg = rollWeight(fish, rng);
     this.session = new FishingSession({ fish, loadout: this.loadout, seed: rng.int(1, 2 ** 31), zoneDifficulty: this.zone.difficulty });
     this.mode = "fishing";
+    this.tutorialTick("landed");
     this.together?.setState("waiting");
     this.nibbleAt = this.t + Phaser.Math.Between(700, 1500);
     this.hint.setText("Đang chờ cá cắn… Bấm khi phao chìm hẳn!");
@@ -707,6 +712,7 @@ export class FishingScene extends Phaser.Scene {
         this.endRound("missed");
         break;
       case "hooked": {
+        this.tutorialTick("hooked");
         Sfx.hook();
         if (!this.junk) this.together?.setState("reeling");
         this.bobber.setVisible(false);
@@ -947,6 +953,7 @@ export class FishingScene extends Phaser.Scene {
     this.bobber.setVisible(false);
     this.hint.setText("");
     if (kind !== "missed") GameState.recordFail(kind);
+    this.tutorialTick("fail");
     this.time.delayedCall(700, () => this.showResult(kind));
   }
 
@@ -1035,6 +1042,34 @@ export class FishingScene extends Phaser.Scene {
     c.setAlpha(0);
     this.tweens.add({ targets: c, alpha: 1, duration: 220 });
     this.bindAgainKeys();
+    if (kind === "caught") this.tutorialTick("caught", by);
+  }
+
+  // ---------------------------------------------------------------- hướng dẫn tân thủ
+  private tutC?: Phaser.GameObjects.Container;
+
+  /** Lời dẫn theo từng thao tác câu cá; câu hụt / cá thoát → quay lại bước quăng cần. */
+  private tutorialTick(ev: "enter" | "landed" | "hooked" | "fail" | "caught", resultBy?: number) {
+    if (!GameState.tutorial) return;
+    if (ev === "enter") GameState.tutorialAdvance(["go_fish", "pick_zone"], "cast");
+    else if (ev === "landed") GameState.tutorialAdvance("cast");
+    else if (ev === "hooked") GameState.tutorialAdvance("hook");
+    else if (ev === "fail") GameState.tutorialAdvance(["hook", "reel"], "cast");
+    else if (ev === "caught") GameState.tutorialAdvance("reel");
+    this.tutC?.destroy(true);
+    this.tutC = undefined;
+    const st = GameState.tutorial;
+    if (st === "to_bag" && resultBy !== undefined) {
+      this.tutC = tutorialGuide(this, { title: "🎉 Câu được rồi!", text: "Con cá đầu tiên đã vào Kho Cá.\nBấm XEM KHO CÁ để xem nhé!", target: { x: 760, y: resultBy, w: 210, h: 66 } });
+      return;
+    }
+    const T: Partial<Record<string, [string, string]>> = {
+      cast: ["Bước 2: Quăng cần", "GIỮ màn hình (hoặc phím Space) để lấy lực,\nTHẢ ra để quăng cần."],
+      hook: ["Bước 3: Giật cần", "Chờ phao CHÌM HẲN và hiện dấu ❗ rồi BẤM NGAY.\nBấm sớm hay chậm đều thu dây, mất lượt!"],
+      reel: ["Bước 4: Kéo cá", "GIỮ để kéo cá vào. Khi thanh lực căng chuyển ĐỎ\nthì THẢ tay cho dây chùng, rồi kéo tiếp."],
+    };
+    const t = st ? T[st] : undefined;
+    if (t) this.tutC = tutorialGuide(this, { title: t[0], text: t[1], passive: true, skip: false, at: { x: 500, y: 530 } });
   }
 
   /** Enter hoặc Space ở bảng kết quả = "Câu tiếp". */

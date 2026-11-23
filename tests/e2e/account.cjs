@@ -23,6 +23,7 @@ async function open(browser, url, setup) {
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('401') && !m.text().includes('400') && !m.text().includes('status of 500')) errs.push('console: ' + m.text()); });
   if (setup) await setup(p);
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
   await p.waitForTimeout(400);

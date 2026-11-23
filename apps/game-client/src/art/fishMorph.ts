@@ -89,7 +89,8 @@ const OVERRIDES: Record<string, Partial<FishMorph>> = {
   // Hắc Long Ngư Vực Thẳm – rồng đen cuộn chữ S, bờm bay, đuôi roi
   f_boss_hac_long: { aspect: 6.2, peak: 0.8, head: 1.2, hump: 1, bend: 0.1, wave: 0.55, coil: 1.2, tilt: 2, snout: "duck", mouth: "fangs", tail: "whip", tailSize: 1.2, dorsal: "crest", dorsalSize: 1.2, whiskers: true, eyeSize: 1.2, sig: { head: "horns", mane: true } },
   // Hỏa Ngục Bạo Ngư – cá mập đầu búa rực lửa, vây buồm
-  f_boss_hoa_nguc_bao_ngu: { aspect: 2.9, peak: 0.62, head: 0.95, hump: 1.1, bend: 0.22, tilt: 10, snout: "hammer", mouth: "fangs", tail: "lunate", tailSize: 1.25, dorsal: "sail", dorsalSize: 1.4, whiskers: false, lure: false, eyeSize: 1.3, sig: { head: "flame" } },
+  // Hỏa Ngục Bạo Ngư: bạo chúa lửa – đầu to hầm hố, hàm răng nanh, mào lửa + bờm lửa (không còn đầu búa)
+  f_boss_hoa_nguc_bao_ngu: { aspect: 2.2, peak: 0.66, head: 1.75, hump: 1.55, bend: 0.18, tilt: 12, snout: "upturned", mouth: "fangs", tail: "lunate", tailSize: 1.25, dorsal: "sail", dorsalSize: 1.4, whiskers: false, lure: false, eyeSize: 1.1, sig: { head: "flame", mane: true } },
   // Kim Long Đế – rồng vàng uốn lượn, gạc nai, râu rồng, đuôi quạt
   f_boss_kim_long_de: { aspect: 5.2, peak: 0.76, head: 1.25, hump: 1, bend: 0.14, wave: 0.42, tilt: 6, snout: "duck", mouth: "grin", tail: "fan", tailSize: 1.3, dorsal: "spiky", dorsalSize: 1.1, whiskers: true, eyeSize: 1.3, sig: { head: "antlers", clouds: true } },
   // Cá Kim Tiền Tí Hon – đồng xu tròn vo, vây đôi, vương miện vàng

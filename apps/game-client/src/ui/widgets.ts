@@ -260,7 +260,9 @@ export function modal(scene: Phaser.Scene, w: number, h: number, title: string, 
 export function goTo(scene: Phaser.Scene, key: string, data?: object) {
   scene.input.enabled = false;
   scene.cameras.main.fadeOut(220, 5, 20, 40);
-  scene.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => scene.scene.start(key, data));
+  // luôn truyền dữ liệu (rỗng nếu không có): Phaser giữ lại dữ liệu của lần mở trước nếu không truyền
+  // → VD vào Bộ Sưu Tập rồi bấm Kho Cá lại mở Bộ Sưu Tập
+  scene.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => scene.scene.start(key, data ?? {}));
 }
 
 export function fadeIn(scene: Phaser.Scene) {

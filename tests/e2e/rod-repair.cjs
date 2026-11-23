@@ -14,6 +14,7 @@ const errs = [];
   const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'));
   await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('dccc_save_v1')); s.rods.r_tre.wear = 59; s.gold = 1000; localStorage.setItem('dccc_save_v1', JSON.stringify(s)); });

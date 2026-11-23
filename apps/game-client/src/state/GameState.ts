@@ -2,6 +2,10 @@ import Phaser from "phaser";
 import type { AiLevel, CombatState } from "@dccc/shared";
 import { pvpCall, type PvpRoom } from "./pvp.ts";
 import {
+  advanceTutorial,
+  finishTutorial,
+  tutorialStep,
+  type TutorialStep,
   Rng,
   randomSeed,
   applyCatch,
@@ -88,6 +92,17 @@ import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts
 import * as Online from "./online.ts";
 import * as Social from "./social.ts";
 
+/** Bản lưu mới (có hướng dẫn tân thủ). Cờ `dccc_skip_tutorial` = bỏ qua hướng dẫn (như nút "Bỏ qua", không có quà) – dùng cho kiểm thử E2E. */
+function freshSave(playerId: string, now: number) {
+  const s = createNewSave(playerId, "Cần Thủ", CATALOG, now);
+  try {
+    if (localStorage.getItem("dccc_skip_tutorial") === "1") s.tutorial = { step: "done", done: true };
+  } catch {
+    /* không có localStorage */
+  }
+  return s;
+}
+
 function uid(prefix: string): string {
   const r = crypto.getRandomValues(new Uint32Array(2));
   return `${prefix}_${Date.now().toString(36)}_${r[0]!.toString(36)}${r[1]!.toString(36)}`;
@@ -165,7 +180,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
       console.warn("Dữ liệu lưu không hợp lệ, đã sao lưu bản cũ:", parsed.ok ? "tham chiếu dữ liệu không tồn tại" : parsed.error);
       this.loadWarning = "Không đọc được dữ liệu lưu cũ (đã cất bản sao lưu). Đã tạo tài khoản mới.";
     }
-    this._save = createNewSave(uid("p"), "Cần Thủ", CATALOG, Date.now());
+    this._save = freshSave(uid("p"), Date.now());
     await this.persist();
   }
 
@@ -225,6 +240,23 @@ class GameStateStore extends Phaser.Events.EventEmitter {
 
   catchJunk(j: JunkDef) {
     return this.run(applyJunkCatch(this._save, j, uid("j"), Date.now()));
+  }
+
+  // ------------------------------------------------------------ Hướng dẫn tân thủ
+  /** Bước hướng dẫn hiện tại; null = chơi tự do. */
+  get tutorial(): TutorialStep | null {
+    return tutorialStep(this._save);
+  }
+
+  tutorialAdvance(from: TutorialStep | readonly TutorialStep[], to?: TutorialStep) {
+    const next = advanceTutorial(this._save, from, to);
+    if (next !== this._save) this.commit(next);
+  }
+
+  tutorialFinish(skipped: boolean) {
+    const r = finishTutorial(this._save, uid("tut"), Date.now(), skipped);
+    if (r.ok) this.commit(r.save);
+    return r;
   }
 
   // ------------------------------------------------------------ Độ bền cần câu
@@ -743,7 +775,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
 
   async reset() {
     const now = Date.now();
-    this._save = { ...createNewSave(this._save.playerId, "Cần Thủ", CATALOG, now), resetAt: now };
+    this._save = { ...freshSave(this._save.playerId, now), resetAt: now };
     await this.persist();
     this.emit("changed", this._save);
   }

@@ -100,13 +100,16 @@ export function formFishTexture(scene: Phaser.Scene, fish: FishDef, form: FishFo
   if (BREED_LOOKS[fish.id]) {
     // cá lai (dáng chung theo loài) đã đột biến: dáng lai + màu & hiệu ứng của dạng, lớn dần theo giai
     const look = formBreedLook(evolveBreedLook(BREED_LOOKS[fish.id]!, stage), form);
+    const body = (c: CanvasRenderingContext2D) => {
+      c.save();
+      c.translate(FISH_W / 2 + 10, FISH_H / 2 + 6);
+      drawBreedFish(c, look, look.ring ? 0.72 : look.wings ? 0.8 : 0.9, 0.3, true);
+      c.restore();
+    };
     return canvasTexture(scene, `breedform_${fish.id}_${form.id}_s${stage}`, FISH_W, FISH_H, (ctx) => {
-      drawFormLayer(ctx, form, stage, "back");
-      ctx.save();
-      ctx.translate(FISH_W / 2 + 10, FISH_H / 2 + 6);
-      drawBreedFish(ctx, look, look.ring ? 0.72 : look.wings ? 0.8 : 0.9, 0.3, true);
-      ctx.restore();
-      drawFormLayer(ctx, form, stage, "front");
+      drawFormLayer(ctx, form, stage, "back", body);
+      body(ctx);
+      drawFormLayer(ctx, form, stage, "front", body);
       softEdges(ctx, FISH_W, FISH_H);
     }, 1.4);
   }
@@ -139,15 +142,16 @@ export function hybridTexture(scene: Phaser.Scene, fishId: string, parents: read
   const key = `hyb_${fishId}_${parents[0]}_${parents[1]}_s${stage}${form ? `_${form.id}` : ""}`;
   return canvasTexture(scene, key, FISH_W, FISH_H, (ctx) => {
     // đã đột biến: hiệu ứng của dạng sau & trước thân, thân mang bảng màu của dạng
-    if (form) drawFormLayer(ctx, form, Math.max(1, stage), "back");
     const look = form ? formBreedLook(BREED_LOOKS[fishId]!, form) : BREED_LOOKS[fishId]!;
     // thân cá lai vẽ từ dáng bố mẹ → tô lại bằng bảng màu của dạng đột biến (giữ nguyên dáng)
     const tint = (p: FishDef): FishDef =>
       form
         ? { ...p, appearance: { ...p.appearance, body: form.look.body, belly: form.look.belly, fin: form.look.fin, pattern: form.look.pattern, patternColor: shade(form.look.patternColor, -0.15), eye: "glow", eyeColor: form.look.eyeColor, glow: form.glow } }
         : p;
-    drawParentHybrid(ctx, tint(dad), tint(mom), look, TIER_IDX[breedTierOf(fishId)], Math.max(1, stage), `${parents[0]}x${parents[1]}#${fishId}`);
-    if (form) drawFormLayer(ctx, form, Math.max(1, stage), "front");
+    const body = (c: CanvasRenderingContext2D) => drawParentHybrid(c, tint(dad), tint(mom), look, TIER_IDX[breedTierOf(fishId)], Math.max(1, stage), `${parents[0]}x${parents[1]}#${fishId}`);
+    if (form) drawFormLayer(ctx, form, Math.max(1, stage), "back", body);
+    body(ctx);
+    if (form) drawFormLayer(ctx, form, Math.max(1, stage), "front", body);
     softEdges(ctx, FISH_W, FISH_H);
   }, 1.4);
 }

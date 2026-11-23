@@ -33,6 +33,7 @@ const auth = JSON.stringify({ access_token: 'tok', token_type: 'bearer', expires
     return json(404, {});
   });
   await p.addInitScript((a) => localStorage.setItem('dccc_auth', a), auth);
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
   await p.evaluate(() => {

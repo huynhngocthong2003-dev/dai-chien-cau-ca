@@ -10,6 +10,7 @@ const { chromium } = require('playwright');
   const out = process.argv[3] || 'test-results';
   const errs = [];
   p.on('pageerror', (e) => errs.push(e.message));
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(process.argv[2] || 'http://localhost:5173/', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'));
   await p.evaluate(() => {

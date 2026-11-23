@@ -158,6 +158,8 @@ export interface PlayerSave {
   checkin: { lastDay: string; streak: number; total: number };
   /** Danh hiệu đã đạt + danh hiệu đang đeo. */
   titles: { owned: string[]; equipped: string | null };
+  /** Hướng dẫn tân thủ: chỉ có ở tài khoản mới; không có = chơi tự do (bản lưu cũ). */
+  tutorial?: { step: string; done?: boolean };
   /** Câu tự động có hiệu lực đến thời điểm này (ms), 0 = chưa có. */
   autoFishUntil: number;
   ledger: LedgerEntry[];
@@ -196,6 +198,8 @@ export function createNewSave(playerId: string, name: string, catalog: GameCatal
     characters: Object.fromEntries(starterChars.map((c) => [c.id, newCharProgress()])),
     rods: Object.fromEntries(starterRods.map((r) => [r.id, newRodProgress()])),
     materials: { stones: 0, soul: 0, bossTickets: 3 },
+    // tài khoản mới: bắt đầu hướng dẫn tân thủ
+    tutorial: { step: "welcome" },
     wardrobe: {},
     redeemedCodes: [],
     eco: { points: 0, junk: {}, recycled: 0 },

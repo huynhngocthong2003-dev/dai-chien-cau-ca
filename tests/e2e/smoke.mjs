@@ -30,6 +30,7 @@ const waitScene = (key) => page.waitForFunction((k) => window.__game.scene.isAct
 const shot = (name) => page.screenshot({ path: `${outDir}/${name}.png` });
 const step = (msg) => console.log(`• ${msg}`);
 
+await page.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
 await page.goto(url);
 await page.waitForFunction(() => window.__ready === true, null, { timeout: 15000 });
 await waitScene("Hub");
@@ -197,6 +198,7 @@ step(`Săn Boss: cá ${huntFish}, vé ${ticketsBefore} → ${ticketsAfter}`);
 // Điện thoại (ngang)
 const phone = await browser.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
 phone.on("pageerror", (e) => errors.push(`phone pageerror: ${e.message}`));
+await phone.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
 await phone.goto(url);
 await phone.waitForFunction(() => window.__ready === true, null, { timeout: 15000 });
 await phone.waitForTimeout(800);

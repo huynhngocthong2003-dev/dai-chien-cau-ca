@@ -304,9 +304,9 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   const hammer =
     m.snout === "hammer"
       ? (() => {
-          const c0 = at(g, 0.94);
-          const half = g.bodyH * 0.58;
-          return { c: c0.p, n: c0.n, t: c0.t, half, w: g.bodyH * 0.24 };
+          const c0 = at(g, 0.93);
+          const half = g.bodyH * 0.52;
+          return { c: c0.p, n: c0.n, t: c0.t, half, w: g.bodyH * 0.3 };
         })()
       : null;
   if (hammer) extras.push([{ x: hammer.c.x + hammer.n.x * hammer.half, y: hammer.c.y + hammer.n.y * hammer.half }, { x: hammer.c.x - hammer.n.x * hammer.half, y: hammer.c.y - hammer.n.y * hammer.half }]);
@@ -528,16 +528,60 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   paintFin(ctx, pectoral, pecO, a, outline);
   // đầu búa (đè lên mõm)
   if (hammer) {
+    // ĐẦU BÚA kiểu cá mập búa thật: 2 thuỳ đầu bo tròn vươn lên / xuống, nối mềm vào cổ, mắt ở chóp thuỳ
     const f = frame(hammer.c, hammer.t, hammer.n);
-    const bar = smooth([f(-hammer.w, -hammer.half), f(hammer.w * 0.6, -hammer.half * 1.02), f(hammer.w * 1.1, -hammer.half * 0.5), f(hammer.w * 1.3, 0), f(hammer.w * 1.1, hammer.half * 0.5), f(hammer.w * 0.6, hammer.half * 1.02), f(-hammer.w, hammer.half)]);
-    const hgr = ctx.createLinearGradient(hammer.c.x + hammer.n.x * hammer.half, hammer.c.y + hammer.n.y * hammer.half, hammer.c.x - hammer.n.x * hammer.half, hammer.c.y - hammer.n.y * hammer.half);
-    hgr.addColorStop(0, shade(a.body, 0.25));
-    hgr.addColorStop(1, shade(a.body, -0.1));
+    const { w, half } = hammer;
+    const bar = smooth([
+      f(-w * 1.5, half * 0.18),
+      f(-w * 0.55, half * 0.62),
+      f(w * 0.05, half * 0.98),
+      f(w * 0.75, half * 1.02),
+      f(w * 1.12, half * 0.62),
+      f(w * 1.3, half * 0.12),
+      f(w * 1.22, -half * 0.42),
+      f(w * 0.72, -half * 0.86),
+      f(w * 0.02, -half * 0.82),
+      f(-w * 0.55, -half * 0.5),
+      f(-w * 1.5, -half * 0.18),
+    ]);
+    const hgr = ctx.createLinearGradient(hammer.c.x + hammer.n.x * half, hammer.c.y + hammer.n.y * half, hammer.c.x - hammer.n.x * half, hammer.c.y - hammer.n.y * half);
+    hgr.addColorStop(0, shade(a.body, 0.18));
+    hgr.addColorStop(0.55, a.body);
+    hgr.addColorStop(1, a.belly ?? shade(a.body, 0.4));
     ctx.fillStyle = hgr;
     ctx.fill(bar);
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3.5;
     ctx.strokeStyle = outline;
+    ctx.lineJoin = "round";
     ctx.stroke(bar);
+    // ánh sáng dọc mép trên thuỳ + rãnh mũi + khe mang
+    ctx.save();
+    ctx.clip(bar);
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx.lineWidth = 3;
+    const hl = f(w * 0.4, half * 0.78);
+    const hl2 = f(w * 1.05, half * 0.45);
+    ctx.beginPath();
+    ctx.moveTo(hl.x, hl.y);
+    ctx.quadraticCurveTo(f(w * 0.85, half * 0.8).x, f(w * 0.85, half * 0.8).y, hl2.x, hl2.y);
+    ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = shade(a.body, -0.35);
+    ctx.lineWidth = 2;
+    const n1 = f(w * 1.05, half * 0.28);
+    const n2 = f(w * 1.12, -half * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(n1.x, n1.y);
+    ctx.lineTo(n2.x, n2.y);
+    ctx.stroke();
+    for (let k = 0; k < 3; k++) {
+      const g1 = f(-w * (1.75 + k * 0.32), half * 0.32);
+      const g2 = f(-w * (1.9 + k * 0.32), -half * 0.22);
+      ctx.beginPath();
+      ctx.moveTo(g1.x, g1.y);
+      ctx.quadraticCurveTo(f(-w * (1.95 + k * 0.32), half * 0.05).x, f(-w * (1.95 + k * 0.32), half * 0.05).y, g2.x, g2.y);
+      ctx.stroke();
+    }
   }
 
 
@@ -773,13 +817,14 @@ function drawFace(ctx: CanvasRenderingContext2D, g: Geo, outline: string, hammer
   const eyes: Pt[] = [];
   const r = g.bodyH * 0.11 * m.eyeSize;
   if (hammer) {
-    eyes.push({ x: hammer.c.x + hammer.n.x * hammer.half * 0.78 + hammer.t.x * hammer.w * 0.2, y: hammer.c.y + hammer.n.y * hammer.half * 0.78 + hammer.t.y * hammer.w * 0.2 });
+    // mắt ở chóp thuỳ trên (thuỳ dưới khuất phía sau)
+    eyes.push({ x: hammer.c.x + hammer.n.x * hammer.half * 0.74 + hammer.t.x * hammer.w * 0.62, y: hammer.c.y + hammer.n.y * hammer.half * 0.74 + hammer.t.y * hammer.w * 0.62 });
   } else {
     const e = at(g, m.aspect > 6 ? 0.93 : 0.86);
     eyes.push({ x: e.p.x + e.n.x * e.up * 0.32 + e.t.x * 2, y: e.p.y + e.n.y * e.up * 0.32 + e.t.y * 2 });
   }
   for (const e of eyes) {
-    const rr = hammer ? r * 0.7 : r;
+    const rr = hammer ? r * 0.62 : r;
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
     ctx.arc(e.x, e.y, rr, 0, Math.PI * 2);

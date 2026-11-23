@@ -42,6 +42,7 @@ const db = { presence: new Map(), world: [], deletes: 0 };
     return json(404, {});
   });
   await p.addInitScript((uid) => localStorage.setItem('dccc_auth', JSON.stringify({ access_token: 'tok', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'r', user: { id: uid, aud: 'authenticated', role: 'authenticated', email: 'a@test', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } })), UID);
+  await p.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await p.goto(url, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
   await p.waitForTimeout(800);
@@ -121,6 +122,7 @@ const db = { presence: new Map(), world: [], deletes: 0 };
   // vào game bắt buộc đăng nhập → trang điện thoại cũng có phiên đăng nhập sẵn
   await m.route('https://fake.supabase.test/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: new URL(r.request().url()).pathname === '/auth/v1/user' ? JSON.stringify({ id: UID, email: 'a@test' }) : '[]' }));
   await m.addInitScript((uid) => localStorage.setItem('dccc_auth', JSON.stringify({ access_token: 'tok', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'r', user: { id: uid, aud: 'authenticated', role: 'authenticated', email: 'a@test', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } })), UID);
+  await m.addInitScript(() => localStorage.setItem('dccc_skip_tutorial', '1')); // bỏ qua hướng dẫn tân thủ (có E2E riêng)
   await m.goto(url, { waitUntil: 'domcontentloaded' });
   await m.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
   await m.evaluate(() => window.__game.scene.getScene('Hub').scene.start('Plaza'));
