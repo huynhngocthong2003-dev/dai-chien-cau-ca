@@ -25,7 +25,7 @@ import {
   type OwnedFish,
   type PlayerSave, formSeen, formSeenKey, buildPlayerTeam } from "@dccc/shared";
 import { FISHING } from "@dccc/game-config";
-import { CATALOG, EVO_ITEMS, EVO_ITEM_BY_ID, FISHES, FISH_BY_ID, FISH_FORMS, FORMS_BY_ITEM, FORM_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { CATALOG, DUAL_FORM_ITEM, EVO_ITEMS, EVO_ITEM_BY_ID, FISHES, FISH_BY_ID, FISH_FORMS, FORMS_BY_ITEM, FORM_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 
 function owned(id: string, fishId: string, level = 1, stars = 1, extra: Partial<OwnedFish> = {}): OwnedFish {
@@ -238,7 +238,8 @@ describe("Thể tiến hóa đột biến", () => {
     const gone = { ...s, fishes: [] };
     for (const id of seen) expect(formSeen(gone, boss.id, id)).toBe(true);
     expect(formSeen({ ...s, stats: { ...s.stats, formsSeen: [] }, fishes: [] }, boss.id, [...seen][0]!)).toBe(false);
-    expect(FISH_FORMS.length).toBe(24);
+    expect(FISH_FORMS.filter((f) => f.itemId !== DUAL_FORM_ITEM).length).toBe(24); // dạng theo viên đá
+    expect(FISH_FORMS.filter((f) => f.itemId === DUAL_FORM_ITEM).length).toBe(84); // Song Hệ: 21 cặp hệ × 4
     expect(parseSave(JSON.parse(JSON.stringify(s))).ok).toBe(true);
   });
 
@@ -285,7 +286,7 @@ describe("Thể tiến hóa đột biến", () => {
     const built = buildPlayerTeam(sv, ["h1", "h2", "h3"], FISH_BY_ID, FORM_BY_ID, ZONE_BY_ID);
     if ("error" in built) throw new Error(built.error);
     expect(built.team[0]!.element).toBe(boss.element);
-    expect(FISH_FORMS.every((f) => FORMS_BY_ITEM.get(f.itemId)!.length >= 2)).toBe(true);
+    expect(FISH_FORMS.filter((f) => f.itemId !== DUAL_FORM_ITEM).every((f) => FORMS_BY_ITEM.get(f.itemId)!.length >= 2)).toBe(true);
   });
 });
 

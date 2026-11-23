@@ -64,7 +64,7 @@ export const BREED_LOOKS: Record<string, BreedLook> = {
 // hệ của bố mẹ (7 hệ → 28 tổ hợp × 4 bậc = 112 dạng lai, mỗi dạng hình riêng).
 // =====================================================================================
 
-interface ElementStyle {
+export interface ElementStyle {
   word: string;
   title: string;
   body: string;
@@ -74,7 +74,7 @@ interface ElementStyle {
   eye: string;
   accent: string;
 }
-const EL: Record<Element, ElementStyle> = {
+export const EL: Record<Element, ElementStyle> = {
   metal: { word: "Thiết", title: "Kim", body: "#9aa8bd", dark: "#3f4c62", belly: "#e6ecf4", fin: "#cfd8dc", eye: "#ffca28", accent: "#ffd54f" },
   wood: { word: "Mộc", title: "Mộc", body: "#5cbf6a", dark: "#1b5e20", belly: "#dcedc8", fin: "#9ccc65", eye: "#fff176", accent: "#c6ff00" },
   water: { word: "Thủy", title: "Thủy", body: "#3fa7f5", dark: "#0d47a1", belly: "#e1f5fe", fin: "#4dd0e1", eye: "#e1f5fe", accent: "#18ffff" },
@@ -83,7 +83,7 @@ const EL: Record<Element, ElementStyle> = {
   dark: { word: "Ám", title: "Bóng Tối", body: "#5b3f9e", dark: "#1a0b3d", belly: "#b39ddb", fin: "#7c4dff", eye: "#ea80fc", accent: "#b388ff" },
   light: { word: "Quang", title: "Ánh Sáng", body: "#ffe082", dark: "#c79100", belly: "#fffde7", fin: "#fff176", eye: "#ffffff", accent: "#ffd740" },
 };
-const ORDER: Element[] = ["metal", "wood", "water", "fire", "earth", "dark", "light"];
+export const ORDER: Element[] = ["metal", "wood", "water", "fire", "earth", "dark", "light"];
 const TIERS4: BreedTier[] = ["hybrid", "super", "mythic", "recessive"];
 const TIER_MULT: Record<BreedTier, number> = { boss: 1, hybrid: 1, super: 1.15, mythic: 1.35, recessive: 1.6 };
 
@@ -221,8 +221,8 @@ ORDER.forEach((e1, i) => {
     const results = TIERS4.map((tier, k) => {
       const id = `f_lai_${key}_${k + 1}`;
       const look = genLook(e1, e2, tier);
-      // hệ của con: Boss Lai & Mythic theo hệ 1, Siêu Boss theo hệ 2, Gen Lặn: Ánh Sáng / Bóng Tối
-      const el: Element = tier === "super" ? e2 : tier === "recessive" ? (e1 === e2 ? e1 : e1 === "light" || e2 === "light" ? "light" : "dark") : e1;
+      // cá 2 hệ: HỆ ĐẦU là HỆ CHÍNH (hệ của loài), hệ thứ 2 là HỆ PHỤ – mọi bậc lai đều theo hệ chính
+      const el: Element = e1;
       GENERATED_HYBRIDS.push({
         id,
         name: NAME[tier as Exclude<BreedTier, "boss">](w),

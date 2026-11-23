@@ -7,7 +7,10 @@ import { COSMETICS, SHOP_ITEMS } from "./cosmetics.ts";
 import { GIFT_REWARDS } from "./giftcodes.ts";
 import { ECO_MESSAGE, JUNK } from "./junk.ts";
 import { EVENTS } from "./events.ts";
-import { EVO_ITEMS, FISH_FORMS } from "./forms.ts";
+import { EVO_ITEMS, FISH_FORMS as BASE_FORMS } from "./forms.ts";
+import { DUAL_FORMS } from "./dualForms.ts";
+/** Mọi dạng đột biến: theo viên đá (đơn hệ / thần) + Song Hệ (cá 2 hệ). */
+const FISH_FORMS = [...BASE_FORMS, ...DUAL_FORMS];
 import { CHECKIN_REWARDS, QUESTS, TITLES, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES } from "./meta.ts";
 
 export { CHARACTERS, RODS, FISHES, ZONES, COSMETICS, SHOP_ITEMS, GIFT_REWARDS, JUNK, ECO_MESSAGE, EVENTS, FISH_FORMS, EVO_ITEMS };
@@ -15,6 +18,7 @@ export { FORM_RANK_INFO } from "./forms.ts";
 export const FORM_BY_ID = new Map(FISH_FORMS.map((f) => [f.id, f]));
 export const EVO_ITEM_BY_ID = new Map(EVO_ITEMS.map((i) => [i.id, i]));
 /** Các dạng đột biến mà mỗi vật phẩm có thể tạo ra. */
+export { DUAL_FORMS, DUAL_FORM_ITEM, dualFormsOf } from "./dualForms.ts";
 export const FORMS_BY_ITEM = new Map(EVO_ITEMS.map((i) => [i.id, FISH_FORMS.filter((f) => f.itemId === i.id)]));
 export const JUNK_BY_ID = new Map(JUNK.map((j) => [j.id, j]));
 

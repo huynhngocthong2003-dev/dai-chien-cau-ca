@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.53.0] – 2026-11-23 – Cá 2 hệ: hệ chính / hệ phụ · Biến dị Song Hệ
+### Thay đổi
+- **Cá 2 hệ (84 loài cá lai theo dòng): hệ ĐẦU là HỆ CHÍNH, hệ thứ 2 là HỆ PHỤ.** Mọi bậc lai (Boss Lai, Chiến Vương, Thần Thú, Cổ Thú) nay đều mang hệ chính – trước đây Chiến Vương theo hệ 2 và Cổ Thú thành Ánh Sáng / Bóng Tối. Thông tin cá & Bộ Sưu Tập ghi rõ "Chính: … · Phụ: …".
+### Thêm
+- **Biến dị SONG HỆ** riêng cho cá 2 hệ – 21 cặp hệ × 4 dạng (84 dạng mới), hiếm dần:
+  - **SH-1 Song Linh** (45%, cân bằng) · **SH-2 Hộ Thể** (30%, chuyên Máu) · **SH-3 Cuồng Ngư** (18%, chuyên Công) · **SH-4 Thánh Tôn** (7%, toàn diện) – mạnh hơn dạng đơn hệ ~10%.
+  - Ngoại hình: thân màu hệ chính, vây / vân / mắt theo hệ phụ; hào quang SH-1 theo hệ chính, SH-2 theo hệ phụ, SH-3 rồng, SH-4 phượng hoàng. Cá **giữ hệ chính**.
+  - Đột biến tốn **1 Đá Tiến Hoá hệ chính + 1 viên hệ phụ** (thiếu thì dùng đá vạn năng, Đá Tiến Hoá Thần dùng sau cùng), luôn thành công.
+  - Màn Đột biến có thêm thẻ **☯ Song Hệ**; Bộ Sưu Tập có tab **☯ Song Hệ** (ẩn đến khi mở được dạng đó).
+
 ## [0.52.2] – 2026-11-23
 ### Thêm
 - **Vòng Quay có ô ✨ Đá TH Thần** (Đá Tiến Hoá Thần – mở 4 dạng đột biến THẦN, dùng thay đá mọi hệ): tỉ lệ **0,5%** mỗi lượt (quay x10 cao hơn ×1,6), trúng hiện màn TRÚNG ĐỘC ĐẮC. Bớt tương ứng từ ô 500 Vàng – tỉ lệ các ô khác không đổi.

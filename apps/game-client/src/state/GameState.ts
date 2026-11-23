@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { AiLevel, CombatState } from "@dccc/shared";
+import type { AiLevel, CombatState, Element } from "@dccc/shared";
 import { pvpCall, type PvpRoom } from "./pvp.ts";
 import {
   advanceTutorial,
@@ -26,6 +26,7 @@ import {
   applyRaceResult,
   type RaceLeague,
   applyForm,
+  applyDualForm,
   applyPvpOutcome,
   eatRoasted,
   grantEvoItem,
@@ -85,7 +86,7 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { BREEDING_RECIPES, breedTierOf, EVO_ITEMS, FISH_FORMS, CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { BREEDING_RECIPES, breedTierOf, dualFormsOf, EVO_ITEMS, FISH_FORMS, CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { ECONOMY } from "@dccc/game-config";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
@@ -404,6 +405,11 @@ class GameStateStore extends Phaser.Events.EventEmitter {
   /** Đột biến cá Boss bằng vật phẩm – luôn thành công, ra ngẫu nhiên 1 dạng + chỉ số tăng ngẫu nhiên. */
   applyForm(fishUid: string, item: EvoItemDef) {
     return this.run(applyForm(this._save, fishUid, item, FISH_FORMS, uid("fm"), Date.now(), FISH_BY_ID, new Rng(randomSeed())));
+  }
+
+  /** Đột biến SONG HỆ cho cá 2 hệ: tốn 1 đá hệ chính + 1 đá hệ phụ, ra 1 trong 4 dạng Song Hệ của cặp hệ. */
+  applyDualForm(fishUid: string, pair: [Element, Element]) {
+    return this.run(applyDualForm(this._save, fishUid, pair, dualFormsOf(pair[0], pair[1]), uid("fm"), Date.now(), FISH_BY_ID, new Rng(randomSeed())));
   }
 
   /** Áp kết quả một trận PvP vừa đấu (phía mình) rồi báo máy chủ. */
