@@ -22,3 +22,5 @@ export * from "./race.ts";
 export * from "./rodwear.ts";
 export * from "./mail.ts";
 export * from "./elements.ts";
+export * from "./combat.ts";
+export * from "./combatSetup.ts";

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.36.0] – 2026-11-23 – ĐẠI TU GĐ3: Chiến đấu 3vs3 theo lượt
+### Thêm
+- **Lõi trận 3vs3** (`packages/shared/src/combat.ts`, thuần & tất định – game và máy chủ dùng chung): 3 cá mỗi bên theo thứ tự xuất trận; cá NHANH hơn đi trước rồi luân phiên, cá mới vào sân so lại tốc độ (bằng nhau → tung đồng xu theo seed); hạ đủ 3 cá là thắng, không hồi sinh, không đổi đội giữa trận.
+- **Thanh canh lực thật**: kim chạy qua lại theo thời gian thực (tham số thanh mỗi lượt tính từ seed trận), vùng ĐỎ ×0.1 (ĐÒN HỤT) · VÀNG ×0.7 (ĐÁNH YẾU) · XANH ×1.25 (ĐÁNH MẠNH) · PERFECT giữa vùng xanh (thành tích); bấm nút / chạm thanh / phím Space; khoá sau lần bấm đầu.
+- **Sát thương = MAX(1, ATK × canh lực × nguyên tố × kỹ năng − DEF)** (chỉ số trận: DEF ×0.35, HP trận theo ATK để mỗi cá chịu ~4–5 đòn mạnh – mô phỏng cân bằng).
+- **Kỹ năng riêng mỗi cá** (tên theo loài, độ mạnh riêng 0.9–1.15, cơ chế theo hệ): Kim giảm sát thương · Mộc hồi máu · Thủy đòn ×1.6 · Hỏa tăng ATK · Thổ đánh + giảm DEF · Bóng tối hút máu · Ánh sáng thanh tẩy; hồi chiêu 3 lượt. **Phòng thủ** giảm 40% đòn kế tiếp (không cộng dồn, hết sau khi nhận đòn). **Combo** xanh liên tiếp chỉ hiển thị.
+- **Máy chủ làm trọng tài** – Edge Function `battle` + bảng `battles` (migration `20261207000001_battles`, RLS: chỉ đọc trận của mình, chỉ máy chủ ghi): đội đọc từ bản lưu trên máy chủ (kiểm quyền sở hữu, đủ 3, không trùng), 1 lệnh/lượt (cập nhật kèm điều kiện lượt – lệnh trùng bị từ chối 409), quá giờ lượt → tự PHÒNG THỦ, thời điểm bấm khai vượt thời gian thực máy chủ đã chờ → ĐÒN HỤT, giới hạn mở trận. Kết nối lại bằng `op: get`.
+- **Máy (AI)** biết khắc hệ, máu, kỹ năng, phòng thủ; canh lực theo độ khó.
+- Màn **Đấu Sinh Tử → tab ⚔ Đấu 3vs3** (luyện tập, không mất cá, dùng được cá đã khoá) và màn trận **Combat3Scene** (đấu trường nước, huy hiệu hệ, thanh máu + chỉ số, hiệu ứng KHẮC CHẾ!/BẤT LỢI!/ĐÁNH MẠNH/HỤT/COMBO, đồng hồ lượt, cá mới xuất trận, kết quả). Đăng nhập → trận chạy trên máy chủ; chơi không tài khoản → lõi trận chạy trên máy.
+- Cấp mở khu: 5 khu ngũ hành mở hết trước cấp 15 (Biển Lửa & Băng Giá cấp 15), Vực Sâu (Bóng Tối) cấp 35, Đại Dương Thần Thoại (Ánh Sáng) cấp 40.
+### Kiểm thử
+- 213 unit test (mới: thanh canh lực, công thức sát thương, vùng đỏ 10%, phòng thủ 40%, lượt & tốc độ, hạ gục/xuất trận/thắng, kỹ năng hồi chiêu, combo, AI, trọng tài máy chủ, dựng đội từ bản lưu); DB test bảng `battles`; `deno check` Edge Function; E2E `combat3.cjs` chơi thật cả trận bằng canh lực theo thời gian thực + toàn bộ E2E cũ.
+
 ## [0.35.0] – 2026-11-22 – ĐẠI TU GĐ2: Hệ thống 7 nguyên tố & khắc chế
 ### Thay đổi lớn
 - **7 nguyên tố**: Kim, Mộc, Thủy, Hỏa, Thổ, Bóng Tối, Ánh Sáng (thay hệ cũ; Băng gộp vào Thủy, Lôi → Kim). Bảng hiển thị chung `ELEMENT_INFO` (tên, màu) + **biểu tượng vẽ thủ tục duy nhất cho mỗi hệ** (`art/ElementArt.ts`).

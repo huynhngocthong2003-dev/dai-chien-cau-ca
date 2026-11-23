@@ -722,3 +722,21 @@ do $$ declare mid bigint; begin
   if (select claimed_at from public.system_mail where id = mid) is null then raise exception 'Chủ thư không đánh dấu nhận được'; end if;
 end $$;
 select 'DB MAIL REWARD TEST OK' as result;
+
+-- ================= Trận 3vs3 (máy chủ làm trọng tài) =================
+insert into public.battles (user_id, mode, ai_level, team, state) values ('22222222-2222-2222-2222-222222222222', 'practice', 'normal', array['a','b','c'], '{"turn":0}');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ declare n int; begin
+  select count(*) into n from public.battles; if n <> 0 then raise exception 'Đọc được trận của người khác'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false) \g /dev/null
+do $$ declare n int; begin
+  select count(*) into n from public.battles; if n <> 1 then raise exception 'Không đọc được trận của mình'; end if;
+  begin update public.battles set winner = 0; raise exception 'LỖI: người chơi tự sửa kết quả trận được';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.battles (user_id, mode, team, state) values ('22222222-2222-2222-2222-222222222222', 'practice', array['a','b','c'], '{}'); raise exception 'LỖI: người chơi tự tạo trận được';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'DB BATTLES TEST OK' as result;

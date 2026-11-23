@@ -13,6 +13,7 @@ import { Music, type MusicTheme } from "./audio/Music.ts";
 import { Sfx } from "./audio/Sfx.ts";
 import { DeathMatchScene } from "./scenes/DeathMatchScene.ts";
 import { BattleScene } from "./scenes/BattleScene.ts";
+import { Combat3Scene } from "./scenes/Combat3Scene.ts";
 import { ProfileScene } from "./scenes/ProfileScene.ts";
 import { QuestScene } from "./scenes/QuestScene.ts";
 import { WheelScene } from "./scenes/WheelScene.ts";
@@ -46,7 +47,7 @@ async function start() {
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
     fps: { target: 60 },
-    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, BattleScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
+    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, BattleScene, Combat3Scene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 

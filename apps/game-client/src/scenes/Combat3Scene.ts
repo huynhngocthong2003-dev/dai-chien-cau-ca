@@ -1,0 +1,400 @@
+import Phaser from "phaser";
+import { ELEMENT_INFO, FISH_RARITY_COLOR } from "@dccc/game-config";
+import { FISH_BY_ID } from "@dccc/game-data";
+import {
+  MATCHUP_LABEL,
+  TIMING_BANDS,
+  TIMING_LABEL,
+  TURN_TIME_MS,
+  needlePos,
+  timingZone,
+  type AiLevel,
+  type BarParams,
+  type CombatEvent,
+  type CombatFish,
+  type CombatState,
+  type TimingZone,
+} from "@dccc/shared";
+import { fishDisplayMult, fishTextureFor } from "../art/textures.ts";
+import { hexToInt } from "../art/color.ts";
+import { Bar, Button, fadeIn, goTo, toast, txt } from "../ui/widgets.ts";
+import { COLORS } from "../ui/theme.ts";
+import { elementBadge } from "../ui/element.ts";
+import { Sfx } from "../audio/Sfx.ts";
+import { makeDriver, type CombatDriver, type CombatView, type PlayerAction } from "../state/combatDriver.ts";
+
+/** Toạ độ thanh canh lực. */
+const BAR = { x: 330, y: 560, w: 620, h: 40 };
+const ZONE_COLOR: Record<TimingZone, number> = { red: 0xe53935, yellow: 0xfdd835, green: 0x43a047, perfect: 0xb2ff59 };
+const SIDE_X = [330, 950] as const;
+const FISH_Y = 330;
+
+interface SideUi {
+  img: Phaser.GameObjects.Image;
+  hp: Bar;
+  hpT: Phaser.GameObjects.Text;
+  name: Phaser.GameObjects.Text;
+  badge: Phaser.GameObjects.Image;
+  status: Phaser.GameObjects.Text;
+  dots: Phaser.GameObjects.Graphics;
+}
+
+/**
+ * TRẬN 3VS3 THEO LƯỢT: Tấn công (canh lực) · Kỹ năng · Phòng thủ.
+ * Mọi con số do trọng tài (máy chủ khi đăng nhập / lõi trận khi chơi không tài khoản) tính – màn này chỉ hiển thị.
+ */
+export class Combat3Scene extends Phaser.Scene {
+  private driver!: CombatDriver;
+  private team: string[] = [];
+  private level: AiLevel = "normal";
+  private view?: CombatView;
+  private ui: SideUi[] = [];
+  private needle?: Phaser.GameObjects.Graphics;
+  private barRoot?: Phaser.GameObjects.Container;
+  private bar: BarParams | null = null;
+  private barT0 = 0;
+  private myTurn = false;
+  private busy = false;
+  private turnT?: Phaser.GameObjects.Text;
+  private turnLeftMs = 0;
+  private btnAtk?: Button;
+  private btnSkill?: Button;
+  private btnDef?: Button;
+  private banner?: Phaser.GameObjects.Text;
+
+  constructor() {
+    super("Combat3");
+  }
+
+  init(data: { team: string[]; level?: AiLevel }) {
+    this.team = data.team;
+    this.level = data.level ?? "normal";
+    this.ui = [];
+    this.view = undefined;
+    this.myTurn = false;
+    this.busy = false;
+  }
+
+  create() {
+    fadeIn(this);
+    this.drawArena();
+    new Button(this, 76, 44, 128, 62, "← Thoát", { color: COLORS.blue, fontSize: 24, onClick: () => goTo(this, "DeathMatch", { mode: "arena" }) }).setDepth(60);
+    this.banner = txt(this, 640, 40, "Đang vào trận…", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5).setDepth(60);
+    this.turnT = txt(this, 640, 84, "", 22, { align: "center" }).setOrigin(0.5).setDepth(60);
+    this.driver = makeDriver();
+    this.input.keyboard?.on("keydown-SPACE", () => this.press("attack"));
+    void this.driver
+      .start(this.team, this.level)
+      .then((v) => this.onView(v, true))
+      .catch((e: Error) => {
+        toast(this, e.message, COLORS.red);
+        this.time.delayedCall(1500, () => goTo(this, "DeathMatch", { mode: "arena" }));
+      });
+  }
+
+  // ---------------------------------------------------------------- khung cảnh
+  private drawArena() {
+    const g = this.add.graphics();
+    g.fillGradientStyle(0x4fc3f7, 0x4fc3f7, 0x0d47a1, 0x0d47a1, 1).fillRect(0, 0, 1280, 720);
+    // cột đá & cờ hai phe
+    for (const [x, c] of [[120, 0x1e88e5], [1160, 0xe53935]] as const) {
+      g.fillStyle(0xcfd8dc, 1).fillRect(x - 34, 140, 68, 330);
+      g.lineStyle(4, 0x37474f).strokeRect(x - 34, 140, 68, 330);
+      g.fillStyle(c, 1).fillTriangle(x - 30, 160, x + 30, 160, x, 290);
+      g.fillRect(x - 30, 150, 60, 80);
+    }
+    // sàn đấu nước
+    g.fillStyle(0x0277bd, 0.9).fillEllipse(640, 430, 980, 190);
+    g.lineStyle(6, 0xb3e5fc, 0.8).strokeEllipse(640, 430, 980, 190);
+    g.lineStyle(3, 0xe1f5fe, 0.5).strokeEllipse(640, 430, 760, 130);
+    g.fillStyle(0x000000, 0.35).fillRect(0, 500, 1280, 220);
+    txt(this, 640, 300, "⚔", 90, { color: "#e1f5fe" }).setOrigin(0.5).setAlpha(0.18);
+  }
+
+  private buildSide(side: 0 | 1, f: CombatFish) {
+    const def = FISH_BY_ID.get(f.fishId)!;
+    const x = SIDE_X[side];
+    const m = fishDisplayMult(def, f.stars);
+    const img = this.add.image(x, FISH_Y, fishTextureFor(this, def, f.form, f.stars)).setDisplaySize(300 * m, 188 * m).setFlipX(side === 1).setDepth(10);
+    this.tweens.add({ targets: img, y: FISH_Y - 10, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: side * 400 });
+    const hp = new Bar(this, x - 150, 150, 300, 24, side === 0 ? 0x4caf50 : 0xe53935, "").setDepth(20);
+    const hpT = txt(this, x, 182, "", 16, { align: "center", weight: "700" }).setOrigin(0.5).setDepth(20);
+    const name = txt(this, x + 14, 128, "", 22, { align: "center" }).setOrigin(0.5).setDepth(20);
+    const badge = elementBadge(this, x - 150, 128, f.element, 34).setDepth(21);
+    const status = txt(this, x, 210, "", 16, { align: "center", color: "#fff59d", weight: "700" }).setOrigin(0.5).setDepth(20);
+    const dots = this.add.graphics().setDepth(20);
+    this.ui[side] = { img, hp, hpT, name, badge, status, dots };
+  }
+
+  private refreshSide(side: 0 | 1, s: CombatState) {
+    const sd = s.sides[side];
+    const f = sd.team[sd.active]!;
+    let u = this.ui[side];
+    if (!u || u.img.getData("uid") !== f.uid) {
+      if (u) {
+        u.img.destroy();
+        u.hp.destroy();
+        u.hpT.destroy();
+        u.name.destroy();
+        u.badge.destroy();
+        u.status.destroy();
+        u.dots.destroy();
+      }
+      this.buildSide(side, f);
+      u = this.ui[side]!;
+      u.img.setData("uid", f.uid);
+      u.img.x += side === 0 ? -400 : 400;
+      this.tweens.add({ targets: u.img, x: SIDE_X[side], duration: 450, ease: "Back.easeOut" });
+    }
+    const def = FISH_BY_ID.get(f.fishId)!;
+    u.name.setText(`${f.name}  Lv.${f.level}`).setColor(FISH_RARITY_COLOR[def.rarity]);
+    u.hp.set(f.hp / f.maxHp);
+    u.hpT.setText(`${f.hp} / ${f.maxHp}   ⚔${f.atk} 🛡${f.def} ⚡${f.spd}`);
+    const st: string[] = [];
+    if (f.defending) st.push("🛡 Phòng thủ");
+    if (f.atkUp) st.push(`🔥 ATK +${Math.round((f.atkUp[0] - 1) * 100)}%`);
+    if (f.dmgReduce) st.push(`💎 Giảm ST ${Math.round(f.dmgReduce[0] * 100)}%`);
+    if (f.defDown) st.push(`💥 DEF −${Math.round(f.defDown[0] * 100)}%`);
+    u.status.setText(st.join("  "));
+    // 3 chấm đội hình (sống / bị hạ)
+    u.dots.clear();
+    sd.team.forEach((t, i) => {
+      const cx = SIDE_X[side] - 30 + i * 30;
+      u!.dots.fillStyle(t.hp > 0 ? hexToInt(ELEMENT_INFO[t.element].color) : 0x455a64, 1).fillCircle(cx, 470, 10);
+      u!.dots.lineStyle(2, i === sd.active ? 0xffffff : 0x1b1530).strokeCircle(cx, 470, 10);
+    });
+  }
+
+  // ---------------------------------------------------------------- luồng trận
+  private async onView(v: CombatView, first = false) {
+    this.busy = true;
+    this.hideBar();
+    // dựng 2 cá ban đầu từ trạng thái lúc bắt đầu trận
+    if (first) {
+      const initial = JSON.parse(JSON.stringify(v.state)) as CombatState;
+      for (const sd of initial.sides) {
+        sd.active = 0;
+        for (const t of sd.team) {
+          t.hp = t.maxHp;
+          t.defending = false;
+          t.atkUp = t.dmgReduce = t.defDown = null;
+        }
+      }
+      this.refreshSide(0, initial);
+      this.refreshSide(1, initial);
+      const startEv = v.events.find((e) => e.t === "start");
+      if (startEv && startEv.t === "start") await this.say(startEv.first === 0 ? "Cá của bạn nhanh hơn – ĐI TRƯỚC!" : "Đối thủ nhanh hơn – đi trước!", 900);
+      this.view = { ...v, state: initial };
+    }
+    for (const e of v.events) if (e.t !== "start") await this.play(e, v.state);
+    this.view = v;
+    this.refreshSide(0, v.state);
+    this.refreshSide(1, v.state);
+    this.busy = false;
+    if (v.state.winner !== null) return this.finish(v.state.winner);
+    if (v.state.turnSide === 0) this.startMyTurn(v);
+  }
+
+  private say(text: string, ms = 700, color = COLORS.textGold) {
+    this.banner?.setText(text).setColor(color);
+    return new Promise<void>((r) => this.time.delayedCall(ms, r));
+  }
+
+  private float(x: number, y: number, s: string, color: string, size = 32) {
+    const t = txt(this, x, y, s, size, { color, align: "center" }).setOrigin(0.5).setDepth(50);
+    this.tweens.add({ targets: t, y: y - 70, alpha: 0, duration: 1000, onComplete: () => t.destroy() });
+  }
+
+  private wait(ms: number) {
+    return new Promise<void>((r) => this.time.delayedCall(ms, r));
+  }
+
+  private async play(e: CombatEvent, s: CombatState) {
+    const u = this.ui;
+    switch (e.t) {
+      case "attack": {
+        const me = u[e.side]!;
+        const foe = u[1 - e.side]!;
+        Sfx.hook();
+        this.tweens.add({ targets: me.img, x: me.img.x + (e.side === 0 ? 140 : -140), duration: 150, yoyo: true });
+        await this.wait(170);
+        foe.img.setTintFill(0xffffff);
+        this.time.delayedCall(90, () => foe.img.clearTint());
+        const big = e.zone === "green" || e.zone === "perfect";
+        this.cameras.main.shake(big ? 180 : 70, big ? 0.01 : 0.004);
+        this.float(foe.img.x, FISH_Y - 120, `-${e.dmg}`, e.zone === "red" ? "#b0bec5" : big ? "#ffeb3b" : "#ffffff", big ? 44 : 34);
+        this.float(foe.img.x, FISH_Y - 60, TIMING_LABEL[e.zone], e.zone === "red" ? "#ff8a80" : big ? "#b9f6ca" : "#fff59d", 22);
+        if (e.matchup !== "normal") this.float(foe.img.x, FISH_Y - 20, MATCHUP_LABEL[e.matchup], e.matchup === "strong" ? "#69f0ae" : "#ff8a80", 24);
+        if (e.defended) this.float(foe.img.x, FISH_Y + 20, "🛡 −40%", "#90caf9", 20);
+        if (e.combo >= 2) this.float(me.img.x, FISH_Y - 150, `COMBO x${e.combo}!`, "#ff4081", 30);
+        if (e.zone === "perfect") Sfx.crit();
+        const sd = s.sides[(1 - e.side) as 0 | 1];
+        const tgt = sd.team.find((t) => t.uid === foe.img.getData("uid"));
+        if (tgt) {
+          foe.hp.set(e.hp / tgt.maxHp);
+          foe.hpT.setText(`${e.hp} / ${tgt.maxHp}`);
+        }
+        await this.wait(520);
+        break;
+      }
+      case "skill": {
+        Sfx.skill();
+        const me = u[e.side]!;
+        const col = hexToInt(ELEMENT_INFO[s.sides[e.side].team.find((t) => t.uid === me.img.getData("uid"))?.element ?? "water"].color);
+        this.cameras.main.flash(160, (col >> 16) & 255, (col >> 8) & 255, col & 255);
+        this.add
+          .particles(me.img.x, me.img.y, "p_spark", { speed: { min: 120, max: 380 }, lifespan: 650, scale: { start: 1.4, end: 0 }, tint: col, quantity: 30, stopAfter: 30, blendMode: Phaser.BlendModes.ADD })
+          .setDepth(40);
+        await this.say(`✨ ${e.side === 0 ? "" : "Đối thủ: "}${e.name}!`, 650, "#fff59d");
+        break;
+      }
+      case "heal":
+        this.float(u[e.side]!.img.x, FISH_Y - 90, `+${e.amount} ❤`, "#69f0ae", 30);
+        await this.wait(350);
+        break;
+      case "defend":
+        this.float(u[e.side]!.img.x, FISH_Y - 90, "🛡 PHÒNG THỦ", "#90caf9", 28);
+        await this.wait(450);
+        break;
+      case "ko": {
+        Sfx.fail();
+        const f = u[e.side]!;
+        this.tweens.add({ targets: f.img, alpha: 0, y: f.img.y + 80, angle: e.side === 0 ? -40 : 40, duration: 600 });
+        await this.say(e.side === 0 ? "Cá của bạn bị hạ!" : "HẠ GỤC!", 800, e.side === 0 ? "#ff8a80" : "#69f0ae");
+        break;
+      }
+      case "enter": {
+        const st = JSON.parse(JSON.stringify(s)) as CombatState;
+        st.sides[e.side].active = e.index;
+        this.refreshSide(e.side, st);
+        await this.say(e.side === 0 ? "Cá tiếp theo xuất trận!" : "Đối thủ tung cá mới!", 700);
+        break;
+      }
+      case "end":
+        break;
+    }
+  }
+
+  // ---------------------------------------------------------------- lượt của người chơi
+  private startMyTurn(v: CombatView) {
+    this.myTurn = true;
+    this.bar = v.bar;
+    this.barT0 = performance.now();
+    this.turnLeftMs = TURN_TIME_MS - 3000;
+    const me = v.state.sides[0].team[v.state.sides[0].active]!;
+    void this.say("LƯỢT CỦA BẠN – canh lực rồi bấm TẤN CÔNG!", 0, "#b9f6ca");
+    this.showBar();
+    const ready = me.cd <= 0;
+    this.btnAtk = new Button(this, 640, 650, 260, 74, "⚔ TẤN CÔNG", { color: COLORS.red, fontSize: 30, sub: "Bấm / Space", onClick: () => this.press("attack") }).setDepth(60);
+    this.btnSkill = new Button(this, 360, 650, 250, 66, ready ? `✨ ${me.skill.name}` : `✨ Hồi ${me.cd} lượt`, {
+      color: COLORS.purple,
+      fontSize: 18,
+      disabled: !ready,
+      onClick: () => this.press("skill"),
+    }).setDepth(60);
+    this.btnSkill.on("disabled-click", () => toast(this, `${me.skill.description} – còn hồi ${me.cd} lượt`));
+    this.btnDef = new Button(this, 920, 650, 220, 66, "🛡 Phòng thủ", { color: COLORS.blue, fontSize: 22, onClick: () => this.press("defend") }).setDepth(60);
+  }
+
+  private showBar() {
+    this.hideBar();
+    const c = this.add.container(0, 0).setDepth(55);
+    const g = this.add.graphics();
+    g.fillStyle(0x0a1628, 0.9).fillRoundedRect(BAR.x - 14, BAR.y - 16, BAR.w + 28, BAR.h + 32, 14);
+    // vùng: đỏ (2 đầu) → vàng → xanh → PERFECT (giữa) – đúng ranh giới TIMING_BANDS của lõi trận
+    const seg = (d0: number, d1: number, col: number) => {
+      for (const sgn of [-1, 1]) {
+        const a = 0.5 + sgn * d0;
+        const b = 0.5 + sgn * d1;
+        const x0 = BAR.x + Math.min(a, b) * BAR.w;
+        g.fillStyle(col, 1).fillRect(x0, BAR.y, Math.abs(b - a) * BAR.w, BAR.h);
+      }
+    };
+    seg(TIMING_BANDS.yellow, 0.5, ZONE_COLOR.red);
+    seg(TIMING_BANDS.green, TIMING_BANDS.yellow, ZONE_COLOR.yellow);
+    seg(TIMING_BANDS.perfect, TIMING_BANDS.green, ZONE_COLOR.green);
+    seg(0, TIMING_BANDS.perfect, ZONE_COLOR.perfect);
+    g.lineStyle(4, 0x1b1530).strokeRect(BAR.x, BAR.y, BAR.w, BAR.h);
+    c.add(g);
+    c.add(txt(this, BAR.x + 30, BAR.y - 30, "HỤT", 14, { color: "#ff8a80" }).setOrigin(0.5));
+    c.add(txt(this, BAR.x + BAR.w / 2, BAR.y - 30, "ĐÁNH MẠNH ×1.25", 15, { color: "#b9f6ca" }).setOrigin(0.5));
+    c.add(txt(this, BAR.x + BAR.w - 30, BAR.y - 30, "HỤT", 14, { color: "#ff8a80" }).setOrigin(0.5));
+    this.needle = this.add.graphics().setDepth(56);
+    // bấm thẳng lên thanh cũng tính là tấn công
+    const hit = this.add.zone(BAR.x + BAR.w / 2, BAR.y + BAR.h / 2, BAR.w + 28, BAR.h + 40).setInteractive({ useHandCursor: true }).setDepth(57);
+    hit.on("pointerdown", () => this.press("attack"));
+    c.add(hit);
+    this.barRoot = c;
+  }
+
+  private hideBar() {
+    this.barRoot?.destroy(true);
+    this.barRoot = undefined;
+    this.needle?.destroy();
+    this.needle = undefined;
+    for (const b of [this.btnAtk, this.btnSkill, this.btnDef]) b?.destroy();
+    this.btnAtk = this.btnSkill = this.btnDef = undefined;
+  }
+
+  override update(_t: number, dt: number) {
+    if (!this.myTurn || !this.bar || !this.needle) return;
+    const ms = performance.now() - this.barT0;
+    const p = needlePos(this.bar, ms);
+    const x = BAR.x + p * BAR.w;
+    this.needle.clear();
+    this.needle.fillStyle(0xffffff, 1).fillRect(x - 4, BAR.y - 10, 8, BAR.h + 20);
+    this.needle.lineStyle(2, 0x1b1530).strokeRect(x - 4, BAR.y - 10, 8, BAR.h + 20);
+    this.needle.fillStyle(0xffffff, 1).fillTriangle(x - 10, BAR.y - 16, x + 10, BAR.y - 16, x, BAR.y - 4);
+    this.turnLeftMs -= dt;
+    this.turnT?.setText(`⏱ ${Math.max(0, Math.ceil(this.turnLeftMs / 1000))} giây`);
+    if (this.turnLeftMs <= 0) this.press("defend", true);
+  }
+
+  /** Một lượt chỉ nhận 1 lệnh (chống bấm nhiều lần). */
+  private press(kind: PlayerAction["kind"], timeout = false) {
+    if (!this.myTurn || this.busy || !this.view) return;
+    const me = this.view.state.sides[0].team[this.view.state.sides[0].active]!;
+    if (kind === "skill" && me.cd > 0) return;
+    this.myTurn = false;
+    this.busy = true;
+    const pressMs = Math.round(performance.now() - this.barT0);
+    const usesBar = kind === "attack" || (kind === "skill" && me.skill.attack);
+    if (usesBar && this.bar) {
+      // phản hồi tức thì: đóng băng kim + báo vùng dự kiến (máy chủ sẽ xác nhận)
+      const z = timingZone(needlePos(this.bar, pressMs));
+      this.banner?.setText(TIMING_LABEL[z]).setColor(z === "red" ? "#ff8a80" : z === "yellow" ? "#fff59d" : "#b9f6ca");
+      Sfx.click();
+    }
+    if (timeout) toast(this, "Hết giờ – tự động PHÒNG THỦ");
+    this.turnT?.setText("");
+    const action: PlayerAction = usesBar ? { kind, pressMs } : { kind };
+    this.time.delayedCall(250, () => {
+      this.hideBar();
+      void this.driver
+        .act(action)
+        .then((v) => this.onView(v))
+        .catch((e: Error) => {
+          toast(this, e.message, COLORS.red);
+          this.busy = false;
+          if (this.view) this.startMyTurn(this.view);
+        });
+    });
+  }
+
+  // ---------------------------------------------------------------- kết thúc
+  private finish(winner: 0 | 1) {
+    this.hideBar();
+    this.turnT?.setText("");
+    const won = winner === 0;
+    if (won) Sfx.levelUp();
+    else Sfx.fail();
+    void this.say(won ? "🏆 CHIẾN THẮNG!" : "THẤT BẠI", 0, won ? "#ffd54f" : "#ff8a80");
+    const g = this.add.graphics().setDepth(70);
+    g.fillStyle(0x000000, 0.55).fillRect(0, 0, 1280, 720);
+    const t = txt(this, 640, 300, won ? "🏆 CHIẾN THẮNG!" : "💀 THẤT BẠI", 72, { color: won ? "#ffd54f" : "#ff8a80", align: "center" }).setOrigin(0.5).setDepth(71).setScale(0.3);
+    this.tweens.add({ targets: t, scale: 1, duration: 450, ease: "Back.easeOut" });
+    txt(this, 640, 380, "Trận luyện tập – không mất cá, chưa có thưởng (thưởng ở Chiến dịch PvE)", 20, { align: "center", color: "#e1f5fe" }).setOrigin(0.5).setDepth(71);
+    new Button(this, 520, 470, 220, 66, "⚔ Đấu lại", { color: COLORS.red, fontSize: 24, onClick: () => this.scene.restart({ team: this.team, level: this.level }) }).setDepth(72);
+    new Button(this, 760, 470, 220, 66, "← Về", { color: COLORS.blue, fontSize: 24, onClick: () => goTo(this, "DeathMatch", { mode: "arena" }) }).setDepth(72);
+  }
+}
