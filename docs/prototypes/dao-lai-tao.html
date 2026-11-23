@@ -1,0 +1,1030 @@
+<title>Đảo Lai Tạo Cá Boss</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800&display=swap">
+<style>
+/* Bố cục: 1 bản đồ canvas 16:9 (bể nuôi trái · đài lai tạo phải trên · khu ấp trứng phải dưới), thanh tài nguyên trên, bảng nổi khi bấm công trình.
+   Một thế giới hình ảnh duy nhất (đại dương hoạt hình sáng) – cố ý không đổi theo giao diện tối. */
+:root {
+  --sea-deep: #0a3d7a;
+  --sea: #1e88e5;
+  --ink: #16223f;
+  --panel: #fff8e8;
+  --panel-edge: #16223f;
+  --gold: #ffc22e;
+  --gem: #3ad1c6;
+  --coral: #ff5d6c;
+  --leaf: #3cc36b;
+  --text: #16223f;
+  --muted: #5b6785;
+  --rare-hybrid: #4caf50;
+  --rare-super: #2196f3;
+  --rare-mythic: #ff9800;
+  --rare-recessive: #a855f7;
+  --font-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(120% 90% at 50% 0%, #2a7fd4 0%, var(--sea-deep) 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 20px;
+}
+.wrap { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.hud h1 {
+  margin: 0 auto 0 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(22px, 3.2vw, 34px);
+  color: #fff; letter-spacing: .5px; text-shadow: 0 3px 0 var(--ink), 0 0 14px rgba(255,255,255,.35); line-height: 1.1;
+  -webkit-text-stroke: 1.5px var(--ink); text-wrap: balance;
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 6px; border-radius: 999px;
+  background: var(--panel); border: 3px solid var(--ink); font-weight: 800; font-variant-numeric: tabular-nums;
+  box-shadow: 0 3px 0 var(--ink); font-size: 16px;
+}
+.chip i { width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; font-style: normal; border: 2px solid var(--ink); font-size: 13px; }
+.chip .g { background: var(--gold); } .chip .n { background: var(--gem); } .chip .f { background: var(--coral); color: #fff; }
+.map-box {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%;
+  border: 4px solid var(--ink); border-radius: 22px; overflow: hidden; box-shadow: 0 8px 0 var(--ink), 0 18px 40px rgba(0,0,0,.35);
+  background: var(--sea);
+}
+canvas#map { width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  font-family: var(--font-display); font-weight: 800; font-size: 17px; color: #fff; letter-spacing: .3px;
+  padding: 8px 16px 6px; border-radius: 14px; border: 3px solid var(--ink); cursor: pointer;
+  background: linear-gradient(#3fa9ff, #1976d2); box-shadow: 0 4px 0 var(--ink); text-shadow: 0 2px 0 rgba(0,0,0,.35);
+  transition: transform .08s;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.btn.green { background: linear-gradient(#6be38b, #2e9e4f); }
+.btn.orange { background: linear-gradient(#ffc04d, #f57c00); }
+.btn.purple { background: linear-gradient(#c084fc, #7e22ce); }
+.btn.red { background: linear-gradient(#ff8a8a, #d32f2f); }
+.btn[disabled] { filter: grayscale(.8) brightness(.9); cursor: not-allowed; }
+.btn.small { font-size: 14px; padding: 5px 10px 3px; border-radius: 11px; }
+.hint { color: #e3f2ff; font-weight: 700; font-size: 14px; margin: 0; max-width: 70ch; }
+
+/* bảng nổi */
+.sheet-back { position: fixed; inset: 0; background: rgba(8,18,40,.55); display: grid; place-items: center; z-index: 20;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.sheet {
+  width: min(720px, 100%); max-height: 100%; overflow: auto; background: var(--panel); border: 4px solid var(--ink);
+  border-radius: 22px; box-shadow: 0 8px 0 var(--ink); padding: 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.sheet-head { display: flex; align-items: center; gap: 10px; }
+.sheet-head h2 { margin: 0 auto 0 0; font-family: var(--font-display); font-size: 26px; line-height: 1.1; }
+.x { width: 40px; height: 40px; padding: 0; font-size: 20px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+.parent {
+  flex: 1 1 200px; min-width: 0; border: 3px solid var(--ink); border-radius: 16px; background: #e9f6ff; padding: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+}
+.parent canvas, .result canvas, .info canvas { max-width: 100%; }
+.parent select { width: 100%; font: 700 15px var(--font-body); padding: 6px; border-radius: 10px; border: 2px solid var(--ink); background: #fff; color: var(--text); }
+.plus { align-self: center; font: 800 34px var(--font-display); }
+.egg-box { flex: 1 1 180px; border: 3px dashed var(--ink); border-radius: 16px; background: #fff3d6; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.label { font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); }
+.name { font-family: var(--font-display); font-weight: 800; font-size: 18px; line-height: 1.1; }
+.results { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.result { border: 3px solid var(--ink); border-radius: 14px; padding: 8px; background: #fff; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; min-width: 0; }
+.tier { font-size: 12px; font-weight: 800; color: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 1px 8px; }
+.pct { font: 800 22px var(--font-display); font-variant-numeric: tabular-nums; }
+.bar { width: 100%; height: 8px; border-radius: 6px; background: #dfe6f3; border: 2px solid var(--ink); overflow: hidden; }
+.bar b { display: block; height: 100%; }
+.slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.slot { border: 3px solid var(--ink); border-radius: 16px; padding: 10px; background: #e9f6ff; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; min-width: 0; }
+.slot.locked { background: #d7dce8; }
+.timer { font: 800 26px var(--font-display); font-variant-numeric: tabular-nums; }
+.msg { font-weight: 800; color: var(--coral); min-height: 1.2em; margin: 0; }
+.info { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.info dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-weight: 700; flex: 1 1 220px; }
+.info dt { color: var(--muted); }
+.info dd { margin: 0; }
+.stock { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.stock button { all: unset; cursor: pointer; border: 3px solid var(--ink); border-radius: 14px; background: #fff; padding: 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.stock button:focus-visible { outline: 3px solid var(--sea); }
+
+/* ấp nở */
+.reveal { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: radial-gradient(circle, rgba(255,255,255,.15), rgba(4,10,30,.88) 60%); }
+.reveal canvas { width: min(520px, 92vw); height: auto; aspect-ratio: 1; }
+.reveal .card { position: absolute; bottom: max(24px, env(safe-area-inset-bottom, 0px)); left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding-inline: 16px; }
+.reveal .title { font: 800 clamp(24px, 4.5vw, 40px) var(--font-display); color: #fff; -webkit-text-stroke: 1.5px var(--ink); text-shadow: 0 3px 0 var(--ink); line-height: 1.1; text-wrap: balance; }
+.banner {
+  position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: min(92vw, 760px); text-align: center;
+  font: 800 clamp(20px, 4vw, 36px) var(--font-display); color: #fff8d6; padding: 10px 16px; border-radius: 16px;
+  background: linear-gradient(90deg, #4c1d95, #1e3a8a, #b45309); border: 4px solid #ffe08a; box-shadow: 0 0 40px #a855f7, 0 0 80px #fbbf24;
+  -webkit-text-stroke: 1px var(--ink); animation: pop .6s cubic-bezier(.2,1.6,.4,1) both;
+}
+@keyframes pop { from { transform: translateX(-50%) scale(.3); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+.shake { animation: shake .55s linear 2; }
+@keyframes shake { 0%,100% { transform: translate(0,0); } 20% { transform: translate(-7px,4px); } 40% { transform: translate(6px,-5px); } 60% { transform: translate(-5px,-3px); } 80% { transform: translate(5px,5px); } }
+.toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; background: var(--panel); border: 3px solid var(--ink); border-radius: 14px; padding: 8px 16px; font-weight: 800; box-shadow: 0 4px 0 var(--ink); max-width: calc(100vw - 32px); text-align: center; }
+@media (prefers-reduced-motion: reduce) { .shake, .banner { animation: none; } }
+@media (max-width: 560px) { .plus { width: 100%; text-align: center; } .chip { font-size: 14px; } }
+</style>
+
+<div class="wrap">
+  <div class="hud">
+    <h1>Đảo Lai Tạo Cá Boss</h1>
+    <span class="chip"><i class="g">🪙</i><span id="gold">0</span></span>
+    <span class="chip"><i class="n">💎</i><span id="gems">0</span> ngọc</span>
+    <span class="chip"><i class="f">🐟</i><span id="count">0</span> cá</span>
+  </div>
+  <div class="map-box" id="mapBox"><canvas id="map" width="1280" height="720" aria-label="Bản đồ: bể nuôi, đài lai tạo, khu ấp trứng"></canvas></div>
+  <div class="actions">
+    <button class="btn purple" id="openBreed">💞 Đài Lai Tạo</button>
+    <button class="btn orange" id="openHatch">🥚 Khu Ấp Trứng</button>
+    <button class="btn" id="openStock">🐟 Kho cá</button>
+    <button class="btn green" id="collectAll">🪙 Thu hoạch tất cả</button>
+  </div>
+  <p class="hint">Bấm vào cá đang bơi để xem thông tin hoặc đưa vào lai tạo. Bấm đài lai tạo / ổ trứng trên bản đồ để mở bảng. Biểu tượng 🪙 nổi trên đầu cá là tài nguyên đã đủ chu kỳ – bấm để thu.</p>
+</div>
+
+<div id="layer"></div>
+
+<script>
+"use strict";
+// ============================================================================
+// DỮ LIỆU – thêm loài / công thức mới chỉ cần nối vào 2 mảng dưới đây
+// ============================================================================
+
+/** Bậc hiếm: tên, màu nhãn, hệ số kích thước khi bơi, vàng mỗi chu kỳ thu hoạch. */
+const TIERS = {
+  boss:      { name: "Boss",                 color: "#e53935", scale: 1.0,  yield: 15 },
+  hybrid:    { name: "Boss Lai",             color: "#43a047", scale: 1.0,  yield: 20 },
+  super:     { name: "Siêu Boss",            color: "#1e88e5", scale: 1.15, yield: 35 },
+  mythic:    { name: "Đột Biến · Mythic",    color: "#fb8c00", scale: 1.3,  yield: 60 },
+  recessive: { name: "Gen Lặn Cổ Đại",       color: "#8e24aa", scale: 1.4,  yield: 100 },
+};
+/** Chỉ cá từ bậc Boss trở lên được lai. */
+const BREEDABLE = new Set(["boss", "hybrid", "super", "mythic", "recessive"]);
+
+/**
+ * Danh sách loài. `look` điều khiển hình vẽ thủ tục:
+ *  body/dark/belly/fin/eye: màu · shape: "fish" | "kraken" · horn: short|curved|crown · back: coral|blades|crystal|flame|spines
+ *  tent: số xúc tu · tentFire: màu vây lửa trên xúc tu · wings: {a,b,crystal} · skin: scales|plates|gold|cracked
+ *  crack: màu vết nứt phát sáng · aura: màu hào quang · ring: vòng cổ ngữ · plume: đuôi lông vũ · whisk: râu · eyeGlow
+ */
+const FISH = {
+  // ---- cá Boss gốc
+  lao_ngu:   { name: "Lão Ngư Sừng Sắt", tier: "boss", desc: "Cá già vảy thép, sừng sắt ngắn, râu dài.",
+    look: { shape: "fish", body: "#93a3b8", dark: "#4b5a72", belly: "#dfe7f1", fin: "#6c7d96", eye: "#ffb300", horn: "short", skin: "scales", whisk: true } },
+  bao_chua:  { name: "Bạo Chúa San Hô", tier: "boss", desc: "Hàm răng cưa, lưng mọc san hô đỏ.",
+    look: { shape: "fish", body: "#ff7064", dark: "#b3261e", belly: "#ffd6c9", fin: "#ff9f43", eye: "#fff176", back: "coral", skin: "scales" } },
+  kraken:    { name: "Thủy Quái Kraken", tier: "boss", desc: "Đầu tròn, 6 xúc tu cuộn sóng.",
+    look: { shape: "kraken", body: "#8e63d6", dark: "#4a2a8a", belly: "#d9c8ff", fin: "#7048c0", eye: "#ffe082", tent: 6 } },
+  phuong:    { name: "Phượng Hoàng Biển", tier: "boss", desc: "Vây cánh lửa, đuôi lông vũ dài.",
+    look: { shape: "fish", body: "#ffb52e", dark: "#d84315", belly: "#fff1c1", fin: "#ff7043", eye: "#4e342e", wings: { a: "#ff7043", b: "#ffd54f" }, plume: true } },
+
+  // ---- cặp 1: Lão Ngư Sừng Sắt + Bạo Chúa San Hô
+  thiet_ngu_san_ho: { name: "Thiết Ngư San Hô", tier: "hybrid", desc: "Vảy sắt chắc chắn, sừng thép ngắn trước trán, cụm san hô đỏ dọc sống lưng.",
+    look: { shape: "fish", body: "#8796ad", dark: "#3f4c62", belly: "#e3e9f2", fin: "#ff8a65", eye: "#ffca28", horn: "short", back: "coral", skin: "plates" } },
+  chien_giap: { name: "Chiến Giáp San Hô Vương", tier: "super", desc: "Cặp sừng sắt lớn cong về trước, vây và đuôi hóa lưỡi san hô sắc bén phát sáng.",
+    look: { shape: "fish", body: "#5f6f88", dark: "#28344a", belly: "#cfd9e6", fin: "#ff5252", eye: "#ff1744", eyeGlow: true, horn: "curved", back: "blades", skin: "plates", aura: "rgba(255,82,82,.35)" } },
+  than_thu_huyen_thiet: { name: "Thần Thú Huyền Thiết Hải Vương", tier: "mythic", desc: "Giáp hắc kim viền vàng rực, vương miện san hô rực lửa, hào quang năng lượng.",
+    look: { shape: "fish", body: "#2b2b36", dark: "#0d0d14", belly: "#4a4a5c", fin: "#ffb300", eye: "#ffea00", eyeGlow: true, horn: "crown", back: "flame", skin: "gold", aura: "rgba(255,193,7,.45)" } },
+  cu_thu_nguyen_thuy: { name: "Cự Thú Nguyên Thủy Thâm Uyên", tier: "recessive", desc: "Giáp cổ đại nứt rạn phát sáng xanh lam/tím thâm uyên, gai pha lê biển sâu phát quang, vòng hào quang cổ xưa.",
+    look: { shape: "fish", body: "#26314f", dark: "#0b1022", belly: "#3d4a72", fin: "#5ee7ff", eye: "#7df9ff", eyeGlow: true, horn: "curved", back: "crystal", skin: "cracked", crack: "#5ee7ff", crack2: "#c084fc", aura: "rgba(126,87,255,.5)", ring: true } },
+
+  // ---- cặp 2: Thủy Quái Kraken + Phượng Hoàng Biển
+  hoa_xuc_kraken: { name: "Hỏa Xúc Kraken", tier: "hybrid", desc: "Xúc tu bạch tuộc quấn vây lửa cam, mắt phát sáng đỏ rực.",
+    look: { shape: "kraken", body: "#a35bd1", dark: "#5b2386", belly: "#f3d0ff", fin: "#ff8f00", eye: "#ff1744", eyeGlow: true, tent: 6, tentFire: "#ff9800" } },
+  viem_vu_hai_quai: { name: "Viêm Vũ Hải Quái", tier: "super", desc: "Xúc tu lớn có lông/vây cánh phượng hoàng, sải vây rực lửa xanh-cam.",
+    look: { shape: "kraken", body: "#e0663a", dark: "#8a2b10", belly: "#ffe0c2", fin: "#29b6f6", eye: "#fff59d", eyeGlow: true, tent: 7, tentFire: "#29b6f6", wings: { a: "#29b6f6", b: "#ff9800" }, aura: "rgba(41,182,246,.3)" } },
+  bat_tu_hai_dieu: { name: "Bất Tử Hải Điểu Vương", tier: "mythic", desc: "Thân uy nghi kết hợp xúc tu uốn lượn và đôi cánh lửa thần thoại, hào quang rực rỡ.",
+    look: { shape: "kraken", body: "#ffb300", dark: "#c62828", belly: "#fff3c4", fin: "#ff3d00", eye: "#ffffff", eyeGlow: true, tent: 6, tentFire: "#ff3d00", wings: { a: "#ff3d00", b: "#ffee58" }, horn: "crown", aura: "rgba(255,111,0,.5)" } },
+  than_khai_hong_thuy: { name: "Thần Khải Hồng Thủy Phượng", tier: "recessive", desc: "Dáng thần thú cổ đại rực ánh tím/vàng kim nguyên thủy, vây cánh tinh thể lửa-nước phát sáng cực mạnh.",
+    look: { shape: "kraken", body: "#6d28d9", dark: "#2e1065", belly: "#f5d0fe", fin: "#fde047", eye: "#fef08a", eyeGlow: true, tent: 8, tentFire: "#38bdf8", wings: { a: "#38bdf8", b: "#fbbf24", crystal: true }, horn: "crown", skin: "cracked", crack: "#fde047", crack2: "#38bdf8", aura: "rgba(168,85,247,.55)", ring: true } },
+};
+
+/**
+ * Công thức lai: 2 loài bố mẹ (không phân biệt thứ tự) → trứng + thời gian ấp + bảng tỷ lệ (tổng 100).
+ * Thêm cặp mới: nối một phần tử vào mảng này (và khai báo 4 loài con ở FISH).
+ */
+const BREEDING_RECIPES = [
+  {
+    id: "thiet_san_ho",
+    parents: ["lao_ngu", "bao_chua"],
+    egg: { name: "Trứng Thiết San Hô", a: "#8796ad", b: "#ff6b5e", spot: "#ffd54f" },
+    hatchMinutes: 30,
+    results: [
+      { fish: "thiet_ngu_san_ho", pct: 58 },
+      { fish: "chien_giap", pct: 30 },
+      { fish: "than_thu_huyen_thiet", pct: 10 },
+      { fish: "cu_thu_nguyen_thuy", pct: 2 },
+    ],
+  },
+  {
+    id: "hoa_thuy_than_thu",
+    parents: ["kraken", "phuong"],
+    egg: { name: "Trứng Hỏa Thủy Thần Thú", a: "#8e63d6", b: "#ff9f1c", spot: "#4fc3f7" },
+    hatchMinutes: 45,
+    results: [
+      { fish: "hoa_xuc_kraken", pct: 58 },
+      { fish: "viem_vu_hai_quai", pct: 30 },
+      { fish: "bat_tu_hai_dieu", pct: 10 },
+      { fish: "than_khai_hong_thuy", pct: 2 },
+    ],
+  },
+];
+
+/** Cân bằng nguyên mẫu. */
+const CFG = {
+  harvestCycleMs: 45_000,          // cá đủ chu kỳ → hiện 🪙 trên đầu
+  slotUnlock: [null, { gold: 2000 }, { gems: 60 }], // ổ 1 mở sẵn
+  speedupGemsPerMin: 1 / 3,        // 1 ngọc / 3 phút còn lại (làm tròn lên)
+  start: { gold: 1500, gems: 120 },
+};
+
+// ============================================================================
+// LƯU TRỮ
+// ============================================================================
+const KEY = "dccc_dao_lai_tao_v1";
+let S;
+function freshState() {
+  const now = Date.now();
+  const mk = (fish, i) => ({ uid: "u" + i + "_" + Math.random().toString(36).slice(2, 7), fish, born: now, harvestAt: now + CFG.harvestCycleMs * (0.4 + i * 0.15) });
+  return {
+    gold: CFG.start.gold, gems: CFG.start.gems,
+    fishes: ["lao_ngu", "bao_chua", "kraken", "phuong"].map(mk),
+    slots: [{ open: true, egg: null }, { open: false, egg: null }, { open: false, egg: null }],
+    pick: [null, null],
+  };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s && Array.isArray(s.fishes) && Array.isArray(s.slots)) return s;
+    }
+  } catch (e) { /* bộ nhớ trình duyệt bị chặn → chơi không lưu */ }
+  return freshState();
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* bỏ qua */ } }
+S = load();
+S.fishes.forEach((f) => delete f.pending);
+// khởi tạo sẵn cặp mẫu 1 trên đài lai tạo
+if (!S.pick || (!S.pick[0] && !S.pick[1])) {
+  const a = S.fishes.find((f) => f.fish === "lao_ngu"), b = S.fishes.find((f) => f.fish === "bao_chua");
+  S.pick = [a ? a.uid : null, b ? b.uid : null];
+}
+
+// ============================================================================
+// TIỆN ÍCH
+// ============================================================================
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Math.round(n).toLocaleString("vi-VN");
+const recipeFor = (a, b) => BREEDING_RECIPES.find((r) => (r.parents[0] === a && r.parents[1] === b) || (r.parents[0] === b && r.parents[1] === a)) || null;
+const fishByUid = (uid) => S.fishes.find((f) => f.uid === uid) || null;
+const fmtTime = (ms) => {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0");
+};
+function rollResult(recipe) {
+  const r = (crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 100;
+  let acc = 0;
+  for (const x of recipe.results) { acc += x.pct; if (r < acc) return x.fish; }
+  return recipe.results[recipe.results.length - 1].fish;
+}
+function toast(text) {
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = text; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+function refreshHud() { $("gold").textContent = fmt(S.gold); $("gems").textContent = fmt(S.gems); $("count").textContent = S.fishes.length; }
+
+// ============================================================================
+// VẼ CÁ & TRỨNG (Canvas 2D – viền đậm, khối nổi, lấp lánh)
+// ============================================================================
+const INK = "#16223f";
+function shadeHex(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const f = (c) => Math.max(0, Math.min(255, Math.round(k >= 0 ? c + (255 - c) * k : c * (1 + k))));
+  return "#" + ((1 << 24) | (f(r) << 16) | (f(g) << 8) | f(b)).toString(16).slice(1);
+}
+function stroke(ctx, w = 4) { ctx.lineWidth = w; ctx.strokeStyle = INK; ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.stroke(); }
+
+/** Vẽ một con cá hướng sang phải, tâm (0,0), dài ~140 * s. t = thời gian (giây) cho chuyển động. */
+function drawFish(ctx, look, s, t) {
+  ctx.save();
+  ctx.scale(s, s);
+  const L = 70, H = look.shape === "kraken" ? 44 : 36;
+  const wag = Math.sin(t * 6) * 0.18;
+
+  // hào quang + vòng cổ ngữ
+  if (look.aura) {
+    const g = ctx.createRadialGradient(0, 0, 10, 0, 0, 120);
+    g.addColorStop(0, look.aura); g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 120 + Math.sin(t * 2) * 6, 0, Math.PI * 2); ctx.fill();
+  }
+  if (look.ring) {
+    ctx.save(); ctx.rotate(t * 0.6);
+    ctx.setLineDash([10, 8]); ctx.lineWidth = 4; ctx.strokeStyle = look.crack || "#fde047";
+    ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.ellipse(0, 0, 108, 92, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ctx.fillStyle = i % 2 ? (look.crack2 || "#fff") : (look.crack || "#fff"); ctx.beginPath(); ctx.arc(Math.cos(a) * 108, Math.sin(a) * 92, 4, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+
+  // cánh (sau thân)
+  if (look.wings) {
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.translate(-6, side * 4);
+      ctx.rotate(side * (0.25 + Math.sin(t * 3) * 0.12));
+      const p = new Path2D();
+      p.moveTo(0, 0);
+      p.bezierCurveTo(-20, side * -70, -80, side * -86, -96, side * -60);
+      p.lineTo(-70, side * -48); p.lineTo(-84, side * -30); p.lineTo(-56, side * -22); p.lineTo(-60, side * -6);
+      p.closePath();
+      const g = ctx.createLinearGradient(0, 0, -90, side * -80);
+      g.addColorStop(0, look.wings.b); g.addColorStop(1, look.wings.a);
+      ctx.fillStyle = g; ctx.fill(p); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.lineJoin = "round"; ctx.stroke(p);
+      if (look.wings.crystal) {
+        ctx.fillStyle = "rgba(255,255,255,.55)";
+        for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(-30 - i * 18, side * (-30 - i * 8)); ctx.lineTo(-38 - i * 18, side * (-48 - i * 8)); ctx.lineTo(-24 - i * 18, side * (-40 - i * 8)); ctx.closePath(); ctx.fill(); }
+      }
+      ctx.restore();
+    }
+  }
+
+  // xúc tu (kraken)
+  if (look.shape === "kraken" && look.tent) {
+    for (let i = 0; i < look.tent; i++) {
+      const y0 = -22 + (44 * i) / (look.tent - 1);
+      const ph = t * 4 + i;
+      ctx.beginPath();
+      ctx.moveTo(-30, y0);
+      ctx.bezierCurveTo(-60, y0 + Math.sin(ph) * 14, -86, y0 * 1.5 + Math.cos(ph) * 18, -112, y0 * 1.9 + Math.sin(ph + 1) * 16);
+      ctx.lineWidth = 15; ctx.strokeStyle = INK; ctx.lineCap = "round"; ctx.stroke();
+      ctx.lineWidth = 9; ctx.strokeStyle = i % 2 ? look.dark : look.body; ctx.stroke();
+      if (look.tentFire) {
+        const ex = -112, ey = y0 * 1.9 + Math.sin(ph + 1) * 16;
+        ctx.fillStyle = look.tentFire; ctx.beginPath();
+        ctx.moveTo(ex, ey); ctx.quadraticCurveTo(ex - 14, ey - 16 - Math.sin(ph * 2) * 6, ex - 22, ey - 4); ctx.quadraticCurveTo(ex - 12, ey + 2, ex, ey + 6); ctx.closePath();
+        ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+      }
+    }
+  }
+
+  // đuôi
+  if (look.shape === "fish") {
+    ctx.save(); ctx.translate(-L + 8, 0); ctx.rotate(wag);
+    const tail = new Path2D();
+    if (look.back === "blades" || look.back === "flame") {
+      tail.moveTo(0, 0); tail.lineTo(-34, -42); tail.lineTo(-24, -14); tail.lineTo(-50, -10); tail.lineTo(-30, 0); tail.lineTo(-50, 12); tail.lineTo(-24, 14); tail.lineTo(-34, 42); tail.closePath();
+    } else {
+      tail.moveTo(0, 0); tail.bezierCurveTo(-20, -10, -36, -40, -46, -38); tail.bezierCurveTo(-36, -12, -36, 12, -46, 38); tail.bezierCurveTo(-36, 40, -20, 10, 0, 0);
+    }
+    ctx.fillStyle = look.fin; ctx.fill(tail); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.lineJoin = "round"; ctx.stroke(tail);
+    if (look.plume) {
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath(); ctx.moveTo(-30, i * 8);
+        ctx.bezierCurveTo(-60, i * 20 + Math.sin(t * 4 + i) * 6, -80, i * 30, -104, i * 26 + Math.sin(t * 3 + i) * 10);
+        ctx.lineWidth = 9; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 5; ctx.strokeStyle = i ? "#ffd54f" : "#ff7043"; ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // gai / san hô / lửa trên lưng (sau thân)
+  const backY = -H + 6;
+  if (look.back === "coral") {
+    for (const [x, h] of [[-26, 22], [-6, 30], [16, 22]]) {
+      ctx.save(); ctx.translate(x, backY);
+      const c = new Path2D();
+      c.moveTo(-6, 6); c.lineTo(-4, -h * 0.5); c.lineTo(-12, -h * 0.8); c.lineTo(-6, -h * 0.85); c.lineTo(-1, -h * 0.55); c.lineTo(0, -h); c.lineTo(5, -h * 0.6); c.lineTo(11, -h * 0.75); c.lineTo(7, -h * 0.35); c.lineTo(6, 6); c.closePath();
+      ctx.fillStyle = "#ff3b4f"; ctx.fill(c); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(c);
+      ctx.restore();
+    }
+  } else if (look.back === "blades" || look.back === "flame" || look.back === "crystal" || look.back === "spines") {
+    const n = look.back === "crystal" ? 5 : 4;
+    for (let i = 0; i < n; i++) {
+      const x = -34 + i * (64 / (n - 1));
+      const h = (look.back === "crystal" ? 34 : 28) * (1 - Math.abs(i - (n - 1) / 2) / n) + 10;
+      ctx.save(); ctx.translate(x, backY + 2); ctx.rotate(-0.25);
+      const p = new Path2D(); p.moveTo(-8, 6); p.lineTo(0, -h); p.lineTo(8, 6); p.closePath();
+      let fill = look.back === "blades" ? "#ff5252" : look.back === "flame" ? "#ff9100" : "#7df9ff";
+      if (look.back === "crystal") { const g = ctx.createLinearGradient(0, -h, 0, 6); g.addColorStop(0, "#e0fbff"); g.addColorStop(0.5, "#5ee7ff"); g.addColorStop(1, "#a855f7"); fill = g; }
+      if (look.back === "flame") { const g = ctx.createLinearGradient(0, -h, 0, 6); g.addColorStop(0, "#ffee58"); g.addColorStop(1, "#ff3d00"); fill = g; }
+      ctx.fillStyle = fill; ctx.fill(p); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(p);
+      if (look.back !== "blades") { ctx.globalAlpha = 0.5 + Math.sin(t * 5 + i) * 0.3; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -h * 0.55, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+      ctx.restore();
+    }
+  }
+
+  // thân
+  const body = new Path2D();
+  if (look.shape === "kraken") {
+    body.ellipse(4, 0, L * 0.78, H, 0, 0, Math.PI * 2);
+  } else {
+    body.moveTo(L, 2);
+    body.bezierCurveTo(L - 6, -H, -L * 0.6, -H - 4, -L + 6, -4);
+    body.bezierCurveTo(-L * 0.6, H + 2, L - 10, H, L, 2);
+  }
+  const bg = ctx.createLinearGradient(0, -H, 0, H);
+  bg.addColorStop(0, shadeHex(look.body, 0.25)); bg.addColorStop(0.55, look.body); bg.addColorStop(1, look.dark);
+  ctx.fillStyle = bg; ctx.fill(body);
+  ctx.save(); ctx.clip(body);
+  // bụng
+  ctx.fillStyle = look.belly; ctx.globalAlpha = 0.85;
+  ctx.beginPath(); ctx.ellipse(6, H * 0.62, L * 0.75, H * 0.45, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+  // da / vảy / giáp
+  if (look.skin === "scales" || !look.skin) {
+    ctx.strokeStyle = "rgba(22,34,63,.28)"; ctx.lineWidth = 2;
+    for (let x = -40; x < 44; x += 14) for (let y = -22; y < 20; y += 13) { ctx.beginPath(); ctx.arc(x + ((y / 13) % 2 ? 7 : 0), y, 7, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); }
+  } else if (look.skin === "plates" || look.skin === "gold") {
+    ctx.lineWidth = look.skin === "gold" ? 3 : 2.5;
+    ctx.strokeStyle = look.skin === "gold" ? "#ffc107" : "rgba(22,34,63,.45)";
+    for (let x = -36; x < 44; x += 18) { ctx.beginPath(); ctx.moveTo(x, -H); ctx.quadraticCurveTo(x + 8, 0, x, H); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(-L, -6); ctx.quadraticCurveTo(0, -16, L, -4); ctx.stroke();
+    if (look.skin === "gold") { ctx.fillStyle = "#ffd54f"; for (let x = -30; x < 40; x += 18) { ctx.beginPath(); ctx.arc(x + 4, -10, 2.5, 0, Math.PI * 2); ctx.fill(); } }
+  } else if (look.skin === "cracked") {
+    const glow = 0.6 + Math.sin(t * 3) * 0.35;
+    ctx.globalAlpha = glow; ctx.lineWidth = 3;
+    const cracks = [[-40, -18, -24, -4, -30, 10], [-10, -26, 0, -8, -8, 14], [18, -20, 28, -2, 20, 18], [40, -10, 50, 4]];
+    cracks.forEach((c, i) => {
+      ctx.strokeStyle = i % 2 ? (look.crack2 || look.crack) : look.crack; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.moveTo(c[0], c[1]); for (let k = 2; k < c.length; k += 2) ctx.lineTo(c[k], c[k + 1]); ctx.stroke();
+    });
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+  }
+  // bóng sáng nổi khối
+  ctx.fillStyle = "rgba(255,255,255,.35)";
+  ctx.beginPath(); ctx.ellipse(10, -H * 0.5, L * 0.5, H * 0.18, -0.08, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.lineWidth = 4.5; ctx.strokeStyle = INK; ctx.lineJoin = "round"; ctx.stroke(body);
+
+  // vây ngực
+  ctx.save(); ctx.translate(-2, 10); ctx.rotate(0.5 + Math.sin(t * 5) * 0.25);
+  const pf = new Path2D(); pf.moveTo(0, 0); pf.quadraticCurveTo(-22, 8, -26, 24); pf.quadraticCurveTo(-8, 18, 6, 6); pf.closePath();
+  ctx.fillStyle = look.fin; ctx.fill(pf); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(pf);
+  ctx.restore();
+
+  // sừng / vương miện
+  const hx = look.shape === "kraken" ? 36 : 40, hy = -H + (look.shape === "kraken" ? 6 : 12);
+  if (look.horn === "short") {
+    const p = new Path2D(); p.moveTo(hx - 6, hy + 4); p.lineTo(hx + 14, hy - 16); p.lineTo(hx + 6, hy + 8); p.closePath();
+    ctx.fillStyle = "#cfd8dc"; ctx.fill(p); stroke(ctx, 3.5); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(p);
+  } else if (look.horn === "curved") {
+    for (const off of [-10, 6]) {
+      const p = new Path2D(); p.moveTo(hx + off - 6, hy + 6);
+      p.bezierCurveTo(hx + off - 4, hy - 26, hx + off + 26, hy - 34, hx + off + 34, hy - 12);
+      p.bezierCurveTo(hx + off + 20, hy - 20, hx + off + 8, hy - 10, hx + off + 6, hy + 8); p.closePath();
+      const g = ctx.createLinearGradient(hx, hy - 30, hx, hy + 6); g.addColorStop(0, "#eceff1"); g.addColorStop(1, "#78909c");
+      ctx.fillStyle = look.crack ? "#9be9ff" : g; ctx.fill(p); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(p);
+    }
+  } else if (look.horn === "crown") {
+    const p = new Path2D(); const cx = hx - 18, cy = hy - 2;
+    p.moveTo(cx - 18, cy + 8); p.lineTo(cx - 16, cy - 14); p.lineTo(cx - 8, cy - 2); p.lineTo(cx, cy - 22); p.lineTo(cx + 8, cy - 2); p.lineTo(cx + 16, cy - 14); p.lineTo(cx + 18, cy + 8); p.closePath();
+    const g = ctx.createLinearGradient(0, cy - 22, 0, cy + 8); g.addColorStop(0, "#fff59d"); g.addColorStop(1, look.fin === "#fde047" ? "#a855f7" : "#ff6d00");
+    ctx.fillStyle = g; ctx.fill(p); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(p);
+    ctx.fillStyle = "#ff1744"; ctx.beginPath(); ctx.arc(cx, cy - 2, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // râu
+  if (look.whisk) {
+    ctx.lineWidth = 3; ctx.strokeStyle = INK;
+    for (const k of [-1, 1]) { ctx.beginPath(); ctx.moveTo(L - 6, 8); ctx.bezierCurveTo(L + 10, 14 + k * 4, L + 6, 34 + k * 6, L + 18 + Math.sin(t * 3) * 3, 40 + k * 6); ctx.stroke(); }
+  }
+
+  // mắt
+  const ex = look.shape === "kraken" ? 34 : 42, ey = look.shape === "kraken" ? -8 : -8;
+  if (look.eyeGlow) { ctx.fillStyle = look.eye; ctx.shadowColor = look.eye; ctx.shadowBlur = 14; ctx.beginPath(); ctx.arc(ex, ey, 11, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ex, ey, 10, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke();
+  ctx.fillStyle = look.eyeGlow ? look.eye : INK; ctx.beginPath(); ctx.arc(ex + 3, ey, 5.5, 0, Math.PI * 2); ctx.fill();
+  if (look.eyeGlow) { ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(ex + 3, ey, 1.8, 5, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ex + 1, ey - 3, 2.2, 0, Math.PI * 2); ctx.fill();
+  // lông mày ngầu cho bậc cao
+  if (["super", "mythic", "recessive"].includes(look._tier)) { ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(ex - 12, ey - 14); ctx.lineTo(ex + 10, ey - 8); ctx.stroke(); }
+  // miệng / răng
+  if (look.shape === "fish") {
+    ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(L - 2, 6); ctx.quadraticCurveTo(L - 12, 12, L - 20, 8); ctx.stroke();
+    if (look.back === "coral" || look.back === "blades" || look.horn === "crown") { ctx.fillStyle = "#fff"; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(L - 6 - i * 5, 8); ctx.lineTo(L - 8 - i * 5, 13); ctx.lineTo(L - 10 - i * 5, 9); ctx.fill(); } }
+  }
+
+  // lấp lánh
+  const sp = (t * 1.3) % 1;
+  ctx.globalAlpha = Math.sin(sp * Math.PI);
+  ctx.fillStyle = "#fff";
+  const sx = -20 + sp * 60, sy = -H * 0.6;
+  ctx.beginPath(); ctx.moveTo(sx, sy - 7); ctx.lineTo(sx + 2, sy - 2); ctx.lineTo(sx + 7, sy); ctx.lineTo(sx + 2, sy + 2); ctx.lineTo(sx, sy + 7); ctx.lineTo(sx - 2, sy + 2); ctx.lineTo(sx - 7, sy); ctx.lineTo(sx - 2, sy - 2); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+Object.values(FISH).forEach((f) => (f.look._tier = f.tier));
+
+/** Vẽ trứng tâm (0,0), cao ~110 * s. crack 0..1 = mức nứt. */
+function drawEgg(ctx, egg, s, t, crack = 0, glow = 0) {
+  ctx.save(); ctx.scale(s, s);
+  if (glow > 0) { const g = ctx.createRadialGradient(0, 0, 10, 0, 0, 110); g.addColorStop(0, `rgba(255,255,200,${0.7 * glow})`); g.addColorStop(1, "rgba(255,255,200,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 110, 0, Math.PI * 2); ctx.fill(); }
+  const p = new Path2D();
+  p.moveTo(0, -55); p.bezierCurveTo(34, -55, 44, 10, 40, 26); p.bezierCurveTo(34, 52, -34, 52, -40, 26); p.bezierCurveTo(-44, 10, -34, -55, 0, -55);
+  const g = ctx.createLinearGradient(-40, -55, 40, 52); g.addColorStop(0, shadeHex(egg.a, 0.35)); g.addColorStop(0.5, egg.a); g.addColorStop(1, egg.b);
+  ctx.fillStyle = g; ctx.fill(p);
+  ctx.save(); ctx.clip(p);
+  ctx.fillStyle = egg.b; ctx.beginPath();
+  ctx.moveTo(-50, 4); for (let x = -50; x <= 50; x += 12) ctx.lineTo(x, 4 + ((x / 12) % 2 ? -8 : 6)); ctx.lineTo(50, 60); ctx.lineTo(-50, 60); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = egg.spot; for (const [x, y, r] of [[-14, -26, 7], [16, -12, 5], [-6, 22, 6], [22, 26, 4], [-24, 6, 4]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.beginPath(); ctx.ellipse(-14, -28, 9, 16, -0.4, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.lineWidth = 4.5; ctx.strokeStyle = INK; ctx.stroke(p);
+  if (crack > 0) {
+    ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.beginPath();
+    const pts = [[-30, -10], [-18, -2], [-10, -14], [0, -2], [10, -16], [20, -4], [32, -12]];
+    const n = Math.min(pts.length, Math.max(2, Math.ceil(pts.length * Math.min(1, crack))));
+    ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < n; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke();
+    if (crack > 0.6) { ctx.strokeStyle = "#fffde7"; ctx.lineWidth = 2; ctx.shadowColor = "#fff59d"; ctx.shadowBlur = 12; ctx.stroke(); ctx.shadowBlur = 0; }
+  }
+  const sp = (t * 0.9) % 1; ctx.globalAlpha = Math.sin(sp * Math.PI); ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(18, -34, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+/** Ảnh tĩnh nhỏ (cho bảng chọn / kho cá). */
+function fishThumb(fishId, w = 150, h = 100) {
+  const c = document.createElement("canvas"); const k = 2; c.width = w * k; c.height = h * k; c.style.width = w + "px"; c.style.height = h + "px";
+  const x = c.getContext("2d"); x.scale(k, k); x.translate(w / 2, h / 2 + 4);
+  const f = FISH[fishId]; const sc = Math.min(w / 260, h / 190) * (f.look.wings || f.look.ring || f.look.aura ? 0.95 : 1.15);
+  drawFish(x, f.look, sc, 0.3); return c;
+}
+function eggThumb(egg, w = 90, h = 100) {
+  const c = document.createElement("canvas"); const k = 2; c.width = w * k; c.height = h * k; c.style.width = w + "px"; c.style.height = h + "px";
+  const x = c.getContext("2d"); x.scale(k, k); x.translate(w / 2, h / 2 + 2); drawEgg(x, egg, Math.min(w, h) / 120, 0.4); return c;
+}
+
+// ============================================================================
+// BẢN ĐỒ
+// ============================================================================
+const cv = $("map"), ctx = cv.getContext("2d");
+const W = 1280, HH = 720;
+/** Bể nuôi: hình elip tâm (400, 400). */
+const POOL = { cx: 395, cy: 410, rx: 345, ry: 250 };
+const DEN = { x: 975, y: 210 };
+const NESTS = [{ x: 850, y: 560 }, { x: 1010, y: 590 }, { x: 1165, y: 545 }];
+const swim = new Map(); // uid → {x,y,tx,ty,vx,face,enter}
+function swimFor(f) {
+  let s = swim.get(f.uid);
+  if (!s) { const p = randomInPool(); s = { x: p.x, y: p.y, tx: p.x, ty: p.y, face: 1, enter: 0 }; swim.set(f.uid, s); }
+  return s;
+}
+function randomInPool() {
+  const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 0.72;
+  return { x: POOL.cx + Math.cos(a) * POOL.rx * r, y: POOL.cy + Math.sin(a) * POOL.ry * r };
+}
+const bubbles = Array.from({ length: 28 }, () => ({ x: POOL.cx + (Math.random() - 0.5) * POOL.rx * 1.6, y: POOL.cy + Math.random() * POOL.ry, r: 2 + Math.random() * 5, v: 12 + Math.random() * 22 }));
+
+function roundRect(x, y, w, h, r) { const p = new Path2D(); p.roundRect(x, y, w, h, r); return p; }
+function label(text, x, y, color = "#fff8e8") {
+  ctx.font = "800 22px 'Baloo 2', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const w = ctx.measureText(text).width + 30;
+  const p = roundRect(x - w / 2, y - 18, w, 36, 18);
+  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.fill(roundRect(x - w / 2, y - 14, w, 36, 18));
+  ctx.fillStyle = color; ctx.fill(p); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(p);
+  ctx.fillStyle = INK; ctx.fillText(text, x, y + 1);
+}
+
+function drawMap(t) {
+  // nền biển + gợn sáng
+  const g = ctx.createLinearGradient(0, 0, 0, HH); g.addColorStop(0, "#39a8f5"); g.addColorStop(1, "#1565c0");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, HH);
+  ctx.globalAlpha = 0.12; ctx.fillStyle = "#fff";
+  for (let i = 0; i < 9; i++) { const y = 40 + i * 80 + Math.sin(t + i) * 6; ctx.beginPath(); ctx.ellipse((i * 173 + t * 20) % (W + 200) - 100, y, 90, 8, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.globalAlpha = 1;
+
+  // đảo cát quanh bể + bãi phải
+  const sand = (path) => { ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.save(); ctx.translate(0, 10); ctx.fill(path); ctx.restore(); const sg = ctx.createLinearGradient(0, 100, 0, 700); sg.addColorStop(0, "#ffe7a3"); sg.addColorStop(1, "#f2c25e"); ctx.fillStyle = sg; ctx.fill(path); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke(path); };
+  const island = new Path2D(); island.ellipse(POOL.cx, POOL.cy + 6, POOL.rx + 40, POOL.ry + 36, 0, 0, Math.PI * 2); sand(island);
+  const right = new Path2D(); right.moveTo(790, 90); right.bezierCurveTo(900, 40, 1210, 50, 1250, 150); right.bezierCurveTo(1290, 330, 1260, 600, 1230, 650); right.bezierCurveTo(1100, 700, 860, 700, 790, 640); right.bezierCurveTo(760, 520, 820, 430, 800, 360); right.bezierCurveTo(780, 260, 760, 150, 790, 90); right.closePath(); sand(right);
+
+  // nước bể nuôi
+  const pool = new Path2D(); pool.ellipse(POOL.cx, POOL.cy, POOL.rx, POOL.ry, 0, 0, Math.PI * 2);
+  const pg = ctx.createRadialGradient(POOL.cx - 80, POOL.cy - 90, 30, POOL.cx, POOL.cy, POOL.rx); pg.addColorStop(0, "#7fe3ff"); pg.addColorStop(0.6, "#22a6e8"); pg.addColorStop(1, "#0e6fb8");
+  ctx.fillStyle = pg; ctx.fill(pool);
+  ctx.save(); ctx.clip(pool);
+  ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 3;
+  for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.ellipse(POOL.cx + Math.sin(t * 0.5 + i) * 60, POOL.cy - 160 + i * 64, 180 - i * 8, 10, 0, 0, Math.PI); ctx.stroke(); }
+  // cỏ biển & san hô đáy bể
+  for (let i = 0; i < 9; i++) {
+    const x = POOL.cx - 280 + i * 70, y = POOL.cy + POOL.ry - 30 - (i % 3) * 14;
+    ctx.beginPath(); ctx.moveTo(x, y + 30); ctx.quadraticCurveTo(x + Math.sin(t * 2 + i) * 14, y - 20, x + 4, y - 50 - (i % 2) * 14);
+    ctx.lineWidth = 10; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 6; ctx.strokeStyle = i % 3 ? "#3cc36b" : "#ff7aa2"; ctx.stroke();
+  }
+  // bong bóng
+  for (const b of bubbles) {
+    b.y -= b.v * (1 / 60); if (b.y < POOL.cy - POOL.ry) { b.y = POOL.cy + POOL.ry; b.x = POOL.cx + (Math.random() - 0.5) * POOL.rx * 1.6; }
+    ctx.globalAlpha = 0.7; ctx.lineWidth = 2; ctx.strokeStyle = "#e0f7ff"; ctx.beginPath(); ctx.arc(b.x + Math.sin(t * 2 + b.r) * 4, b.y, b.r, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  ctx.lineWidth = 6; ctx.strokeStyle = INK; ctx.stroke(pool);
+  // viền đá quanh bể
+  for (let i = 0; i < 26; i++) {
+    const a = (i / 26) * Math.PI * 2, x = POOL.cx + Math.cos(a) * (POOL.rx + 6), y = POOL.cy + Math.sin(a) * (POOL.ry + 6);
+    const r = 12 + (i % 3) * 4;
+    ctx.fillStyle = i % 2 ? "#9fb3c8" : "#c3d1df"; ctx.beginPath(); ctx.ellipse(x, y, r * 1.3, r, a, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke();
+  }
+  label("🐠 Bể Nuôi Thả", POOL.cx, 140);
+
+  // ĐÀI LAI TẠO: bệ san hô 2 tầng + 2 ô bố mẹ + trái tim
+  const den = (x, y) => {
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x, y + 92, 190, 44, 0, 0, Math.PI * 2); ctx.fill();
+    const base = new Path2D(); base.ellipse(x, y + 70, 180, 50, 0, 0, Math.PI * 2);
+    const bg2 = ctx.createLinearGradient(0, y + 20, 0, y + 120); bg2.addColorStop(0, "#ff9eb5"); bg2.addColorStop(1, "#d94873");
+    ctx.fillStyle = bg2; ctx.fill(base); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke(base);
+    const top = new Path2D(); top.ellipse(x, y + 46, 160, 40, 0, 0, Math.PI * 2);
+    const tg = ctx.createLinearGradient(0, y + 6, 0, y + 86); tg.addColorStop(0, "#fff0f5"); tg.addColorStop(1, "#ffb3c8");
+    ctx.fillStyle = tg; ctx.fill(top); ctx.lineWidth = 5; ctx.stroke(top);
+    // nhánh san hô hai bên
+    for (const k of [-1, 1]) {
+      ctx.save(); ctx.translate(x + k * 168, y + 40);
+      const c = new Path2D(); c.moveTo(-8, 30); c.lineTo(-6, -10); c.lineTo(-22, -30); c.lineTo(-12, -34); c.lineTo(-2, -20); c.lineTo(0, -52); c.lineTo(10, -24); c.lineTo(22, -40); c.lineTo(26, -30); c.lineTo(8, -6); c.lineTo(8, 30); c.closePath();
+      ctx.fillStyle = "#ff4f6d"; ctx.fill(c); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.stroke(c);
+      ctx.restore();
+    }
+    // 2 bệ bố mẹ
+    const a = fishByUid(S.pick[0]), b = fishByUid(S.pick[1]);
+    [[x - 78, a], [x + 78, b]].forEach(([px, f], i) => {
+      const ped = new Path2D(); ped.ellipse(px, y + 38, 58, 18, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "#7ee0ff"; ctx.fill(ped); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.stroke(ped);
+      if (f) { ctx.save(); ctx.translate(px, y - 6 + Math.sin(t * 2 + i) * 4); if (i === 1) ctx.scale(-1, 1); drawFish(ctx, FISH[f.fish].look, 0.46, t + i); ctx.restore(); }
+      else { ctx.font = "800 30px 'Baloo 2', sans-serif"; ctx.fillStyle = INK; ctx.textAlign = "center"; ctx.fillText("?", px, y + 10); }
+    });
+    // trái tim giữa
+    const hb = 1 + Math.sin(t * 4) * 0.08; ctx.save(); ctx.translate(x, y - 10); ctx.scale(hb, hb);
+    const h = new Path2D(); h.moveTo(0, 14); h.bezierCurveTo(-26, -4, -14, -26, 0, -12); h.bezierCurveTo(14, -26, 26, -4, 0, 14);
+    ctx.fillStyle = "#ff3d71"; ctx.fill(h); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(h); ctx.restore();
+  };
+  den(DEN.x, DEN.y);
+  label("💞 Đài Lai Tạo", DEN.x, 84);
+
+  // KHU ẤP TRỨNG: 3 ổ vỏ sò
+  NESTS.forEach((n, i) => {
+    const slot = S.slots[i];
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(n.x, n.y + 46, 76, 20, 0, 0, Math.PI * 2); ctx.fill();
+    const nest = new Path2D(); nest.ellipse(n.x, n.y + 28, 72, 30, 0, 0, Math.PI * 2);
+    ctx.fillStyle = slot.open ? "#c58b4e" : "#8d8d99"; ctx.fill(nest); ctx.lineWidth = 4.5; ctx.strokeStyle = INK; ctx.stroke(nest);
+    ctx.strokeStyle = slot.open ? "#8a5a2b" : "#5c5c66"; ctx.lineWidth = 3;
+    for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(n.x + k * 24 - 10, n.y + 18); ctx.lineTo(n.x + k * 24 + 10, n.y + 40); ctx.stroke(); }
+    if (!slot.open) {
+      ctx.font = "800 34px 'Baloo 2', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = INK; ctx.fillText("🔒", n.x, n.y + 8);
+      const c = CFG.slotUnlock[i]; ctx.font = "800 16px 'Nunito', sans-serif"; ctx.fillStyle = "#fff"; ctx.strokeStyle = INK; ctx.lineWidth = 4;
+      const s = c.gold ? fmt(c.gold) + " vàng" : c.gems + " ngọc"; ctx.strokeText(s, n.x, n.y + 74); ctx.fillText(s, n.x, n.y + 74);
+    } else if (slot.egg) {
+      const left = slot.egg.end - Date.now();
+      const ready = left <= 0;
+      ctx.save(); ctx.translate(n.x, n.y - 6 + (ready ? 0 : Math.sin(t * 2 + i) * 2)); ctx.rotate(ready ? Math.sin(t * 14) * 0.08 : 0);
+      drawEgg(ctx, slot.egg.egg, 0.62, t + i, 0, ready ? 0.8 : 0.2); ctx.restore();
+      const txt = ready ? "✨ ẤP NỞ!" : "⏱ " + fmtTime(left);
+      ctx.font = "800 19px 'Baloo 2', sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.fillStyle = ready ? "#fff59d" : "#fff";
+      ctx.strokeText(txt, n.x, n.y + 78); ctx.fillText(txt, n.x, n.y + 78);
+    } else {
+      ctx.font = "800 16px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.lineWidth = 4; ctx.strokeStyle = INK;
+      ctx.strokeText("Ổ trống", n.x, n.y + 6); ctx.fillText("Ổ trống", n.x, n.y + 6);
+    }
+  });
+  label("🥚 Khu Ấp Trứng", 1008, 452);
+
+  // CÁ trong bể (vẽ theo y để cá phía dưới đè lên)
+  const list = S.fishes.filter((f) => !f.pending).map((f) => ({ f, s: swimFor(f) })).sort((a, b) => a.s.y - b.s.y);
+  for (const { f, s } of list) {
+    const def = FISH[f.fish]; if (!def) continue;
+    // di chuyển tới đích, tới nơi thì chọn đích mới
+    const dx = s.tx - s.x, dy = s.ty - s.y, d = Math.hypot(dx, dy);
+    const speed = s.enter > 0 ? 3.2 : 0.7 + (TIERS[def.tier].scale - 1);
+    if (d < 6) { const p = randomInPool(); s.tx = p.x; s.ty = p.y; } else { s.x += (dx / d) * speed; s.y += (dy / d) * speed; if (Math.abs(dx) > 2) s.face = dx > 0 ? 1 : -1; }
+    if (s.enter > 0) s.enter -= 1 / 60;
+    const sc = 0.52 * TIERS[def.tier].scale;
+    ctx.save(); ctx.translate(s.x, s.y + Math.sin(t * 2 + s.x * 0.01) * 4); ctx.scale(s.face, 1);
+    drawFish(ctx, def.look, sc, t + s.x * 0.003); ctx.restore();
+    // biểu tượng thu hoạch
+    if (Date.now() >= f.harvestAt) {
+      const by = s.y - 58 * TIERS[def.tier].scale + Math.sin(t * 4 + s.x) * 4;
+      ctx.fillStyle = "#ffc22e"; ctx.beginPath(); ctx.arc(s.x, by, 17, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.font = "800 18px 'Baloo 2', sans-serif"; ctx.fillStyle = INK; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("$", s.x, by + 1);
+      s.coin = { x: s.x, y: by };
+    } else s.coin = null;
+  }
+}
+
+// vòng lặp vẽ (60 khung/giây, dừng khi tab ẩn)
+let t0 = performance.now();
+function frame(now) {
+  const t = (now - t0) / 1000;
+  drawMap(t);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// bấm trên bản đồ
+cv.addEventListener("click", (e) => {
+  const r = cv.getBoundingClientRect();
+  const x = ((e.clientX - r.left) / r.width) * W, y = ((e.clientY - r.top) / r.height) * HH;
+  // ưu tiên đồng xu thu hoạch
+  for (const f of S.fishes) { if (f.pending) continue; const s = swim.get(f.uid); if (s && s.coin && Math.hypot(x - s.coin.x, y - s.coin.y) < 26) return collect(f); }
+  // cá
+  let best = null, bd = 1e9;
+  for (const f of S.fishes) { const s = swim.get(f.uid); if (!s) continue; const d = Math.hypot(x - s.x, y - s.y); const lim = 50 * TIERS[FISH[f.fish].tier].scale; if (d < lim && d < bd) { bd = d; best = f; } }
+  if (best) return openInfo(best);
+  if (Math.hypot((x - DEN.x) / 200, (y - DEN.y - 30) / 110) < 1) return openBreed();
+  for (let i = 0; i < NESTS.length; i++) if (Math.hypot(x - NESTS[i].x, y - NESTS[i].y) < 80) return openHatch();
+});
+
+// ============================================================================
+// HÀNH ĐỘNG
+// ============================================================================
+function collect(f) {
+  const def = FISH[f.fish]; const g = TIERS[def.tier].yield;
+  S.gold += g; f.harvestAt = Date.now() + CFG.harvestCycleMs; save(); refreshHud();
+  toast(`+${g} vàng từ ${def.name}`);
+}
+$("collectAll").onclick = () => {
+  let sum = 0; const now = Date.now();
+  for (const f of S.fishes) if (now >= f.harvestAt) { sum += TIERS[FISH[f.fish].tier].yield; f.harvestAt = now + CFG.harvestCycleMs; }
+  if (!sum) return toast("Chưa có cá nào đủ chu kỳ thu hoạch");
+  S.gold += sum; save(); refreshHud(); toast(`Thu hoạch +${fmt(sum)} vàng`);
+};
+
+function sheet(title) {
+  const back = document.createElement("div"); back.className = "sheet-back";
+  const el = document.createElement("div"); el.className = "sheet"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", title);
+  el.innerHTML = `<div class="sheet-head"><h2></h2><button class="btn red x" aria-label="Đóng">✕</button></div>`;
+  el.querySelector("h2").textContent = title;
+  back.appendChild(el); $("layer").appendChild(back);
+  const close = () => { back.remove(); clearInterval(back._tick); };
+  el.querySelector(".x").onclick = close;
+  back.addEventListener("click", (e) => { if (e.target === back) close(); });
+  return { el, close, back };
+}
+function tierTag(tier) { const s = document.createElement("span"); s.className = "tier"; s.style.background = TIERS[tier].color; s.textContent = TIERS[tier].name; return s; }
+
+// ---- thông tin cá
+function openInfo(f) {
+  const def = FISH[f.fish];
+  const { el, close } = sheet(def.name);
+  const box = document.createElement("div"); box.className = "info";
+  box.appendChild(fishThumb(f.fish, 240, 160));
+  const dl = document.createElement("dl");
+  const age = Math.max(0, Date.now() - f.born);
+  const next = f.harvestAt - Date.now();
+  dl.innerHTML = `<dt>Bậc</dt><dd></dd><dt>Kích thước</dt><dd>×${TIERS[def.tier].scale.toFixed(2)}</dd><dt>Thu hoạch</dt><dd>${TIERS[def.tier].yield} vàng / ${CFG.harvestCycleMs / 1000}s ${next <= 0 ? "· <b>sẵn sàng</b>" : "· còn " + fmtTime(next)}</dd><dt>Tuổi</dt><dd>${fmtTime(age)}</dd><dt>Đặc điểm</dt><dd></dd>`;
+  dl.children[1].appendChild(tierTag(def.tier));
+  dl.children[9].textContent = def.desc;
+  box.appendChild(dl); el.appendChild(box);
+  const row = document.createElement("div"); row.className = "actions";
+  const can = BREEDABLE.has(def.tier);
+  ["Đặt làm Bố (ô 1)", "Đặt làm Mẹ (ô 2)"].forEach((txt, i) => {
+    const b = document.createElement("button"); b.className = "btn purple"; b.textContent = "💞 " + txt; b.disabled = !can;
+    b.onclick = () => { S.pick[i] = f.uid; if (S.pick[1 - i] === f.uid) S.pick[1 - i] = null; save(); close(); openBreed(); };
+    row.appendChild(b);
+  });
+  if (next <= 0) { const b = document.createElement("button"); b.className = "btn green"; b.textContent = "🪙 Thu hoạch"; b.onclick = () => { collect(f); close(); }; row.appendChild(b); }
+  el.appendChild(row);
+}
+
+// ---- đài lai tạo
+function openBreed() {
+  const { el, close } = sheet("💞 Đài Lai Tạo");
+  const render = () => {
+    [...el.children].slice(1).forEach((c) => c.remove());
+    const eligible = S.fishes.filter((f) => BREEDABLE.has(FISH[f.fish].tier));
+    // cặp mẫu
+    const quick = document.createElement("div"); quick.className = "actions";
+    BREEDING_RECIPES.forEach((r, i) => {
+      const b = document.createElement("button"); b.className = "btn small"; b.textContent = `Cặp mẫu ${i + 1}: ${FISH[r.parents[0]].name} + ${FISH[r.parents[1]].name}`;
+      b.onclick = () => {
+        const a = S.fishes.find((f) => f.fish === r.parents[0]), c = S.fishes.find((f) => f.fish === r.parents[1] && f !== a);
+        if (!a || !c) return toast("Bể nuôi không còn đủ cá cho cặp này");
+        S.pick = [a.uid, c.uid]; save(); render();
+      };
+      quick.appendChild(b);
+    });
+    el.appendChild(quick);
+    const row = document.createElement("div"); row.className = "row";
+    const parentBox = (i) => {
+      const box = document.createElement("div"); box.className = "parent";
+      const f = fishByUid(S.pick[i]);
+      box.innerHTML = `<span class="label">${i ? "Mẹ" : "Bố"}</span>`;
+      if (f) { box.appendChild(fishThumb(f.fish, 170, 110)); const n = document.createElement("div"); n.className = "name"; n.textContent = FISH[f.fish].name; box.appendChild(n); box.appendChild(tierTag(FISH[f.fish].tier)); }
+      else { const n = document.createElement("div"); n.className = "name"; n.textContent = "Chưa chọn"; box.appendChild(n); }
+      const sel = document.createElement("select"); sel.id = "pick" + i; sel.setAttribute("aria-label", i ? "Chọn cá mẹ" : "Chọn cá bố");
+      sel.innerHTML = `<option value="">— chọn cá Boss trở lên —</option>` + eligible.map((x) => `<option value="${x.uid}" ${x.uid === S.pick[i] ? "selected" : ""} ${x.uid === S.pick[1 - i] ? "disabled" : ""}>${FISH[x.fish].name} · ${TIERS[FISH[x.fish].tier].name}</option>`).join("");
+      sel.onchange = () => { S.pick[i] = sel.value || null; save(); render(); };
+      box.appendChild(sel);
+      return box;
+    };
+    row.appendChild(parentBox(0));
+    const plus = document.createElement("div"); plus.className = "plus"; plus.textContent = "+"; row.appendChild(plus);
+    row.appendChild(parentBox(1));
+    const a = fishByUid(S.pick[0]), b = fishByUid(S.pick[1]);
+    const recipe = a && b ? recipeFor(a.fish, b.fish) : null;
+    const eggBox = document.createElement("div"); eggBox.className = "egg-box";
+    eggBox.innerHTML = `<span class="label">Trứng sẽ tạo ra</span>`;
+    if (recipe) {
+      eggBox.appendChild(eggThumb(recipe.egg, 90, 100));
+      const n = document.createElement("div"); n.className = "name"; n.textContent = recipe.egg.name; eggBox.appendChild(n);
+      const tm = document.createElement("div"); tm.textContent = `⏱ Ấp ${recipe.hatchMinutes} phút`; tm.style.fontWeight = "800"; eggBox.appendChild(tm);
+    } else {
+      const n = document.createElement("div"); n.className = "name"; n.textContent = a && b ? "Cặp này chưa có công thức" : "Chọn đủ 2 cá"; eggBox.appendChild(n);
+    }
+    row.appendChild(eggBox);
+    el.appendChild(row);
+    if (recipe) {
+      const h = document.createElement("div"); h.className = "label"; h.textContent = "Xem trước kết quả (Possible Results)"; el.appendChild(h);
+      const grid = document.createElement("div"); grid.className = "results";
+      for (const r of recipe.results) {
+        const def = FISH[r.fish];
+        const c = document.createElement("div"); c.className = "result";
+        c.appendChild(fishThumb(r.fish, 150, 96));
+        const n = document.createElement("div"); n.className = "name"; n.style.fontSize = "15px"; n.textContent = def.name; c.appendChild(n);
+        c.appendChild(tierTag(def.tier));
+        const p = document.createElement("div"); p.className = "pct"; p.textContent = r.pct + "%"; c.appendChild(p);
+        const bar = document.createElement("div"); bar.className = "bar"; bar.innerHTML = `<b style="width:${r.pct}%;background:${TIERS[def.tier].color}"></b>`; c.appendChild(bar);
+        grid.appendChild(c);
+      }
+      el.appendChild(grid);
+    }
+    const msg = document.createElement("p"); msg.className = "msg"; el.appendChild(msg);
+    const go = document.createElement("button"); go.className = "btn green"; go.textContent = "💞 LAI TẠO"; go.style.fontSize = "22px";
+    const free = S.slots.findIndex((s) => s.open && !s.egg);
+    go.disabled = !recipe;
+    if (recipe && free < 0) msg.textContent = "Khu ấp trứng đã đầy – ấp nở hoặc mở thêm ổ.";
+    go.onclick = () => {
+      const slot = S.slots.findIndex((s) => s.open && !s.egg);
+      if (slot < 0) { msg.textContent = "Khu ấp trứng đã đầy – ấp nở hoặc mở thêm ổ."; return; }
+      const now = Date.now();
+      S.slots[slot].egg = { recipe: recipe.id, egg: recipe.egg, start: now, end: now + recipe.hatchMinutes * 60_000 };
+      save(); close(); toast(`🥚 ${recipe.egg.name} đã vào ổ ${slot + 1}`); openHatch();
+    };
+    el.appendChild(go);
+  };
+  render();
+}
+
+// ---- khu ấp trứng
+function openHatch() {
+  const { el, back } = sheet("🥚 Khu Ấp Trứng");
+  const grid = document.createElement("div"); grid.className = "slots"; el.appendChild(grid);
+  const render = () => {
+    grid.innerHTML = "";
+    S.slots.forEach((slot, i) => {
+      const c = document.createElement("div"); c.className = "slot" + (slot.open ? "" : " locked");
+      c.innerHTML = `<span class="label">Ổ ấp ${i + 1}</span>`;
+      if (!slot.open) {
+        const cost = CFG.slotUnlock[i];
+        const n = document.createElement("div"); n.className = "name"; n.textContent = "🔒 Đang khoá"; c.appendChild(n);
+        const b = document.createElement("button"); b.className = "btn orange"; b.textContent = `Mở khoá · ${cost.gold ? fmt(cost.gold) + " vàng" : cost.gems + " ngọc"}`;
+        b.onclick = () => {
+          if (cost.gold && S.gold < cost.gold) return toast("Không đủ vàng");
+          if (cost.gems && S.gems < cost.gems) return toast("Không đủ ngọc");
+          S.gold -= cost.gold || 0; S.gems -= cost.gems || 0; slot.open = true; save(); refreshHud(); render(); toast(`Đã mở ổ ấp ${i + 1}`);
+        };
+        c.appendChild(b);
+      } else if (!slot.egg) {
+        const n = document.createElement("div"); n.className = "name"; n.textContent = "Ổ trống"; c.appendChild(n);
+        const b = document.createElement("button"); b.className = "btn purple small"; b.textContent = "💞 Đi lai tạo"; b.onclick = () => { back.remove(); clearInterval(back._tick); openBreed(); }; c.appendChild(b);
+      } else {
+        const e = slot.egg; const left = e.end - Date.now();
+        c.appendChild(eggThumb(e.egg, 90, 100));
+        const n = document.createElement("div"); n.className = "name"; n.textContent = e.egg.name; c.appendChild(n);
+        const tm = document.createElement("div"); tm.className = "timer"; tm.dataset.slot = i; tm.textContent = left > 0 ? fmtTime(left) : "Đã sẵn sàng!"; c.appendChild(tm);
+        const bar = document.createElement("div"); bar.className = "bar"; const total = e.end - e.start;
+        bar.innerHTML = `<b data-bar="${i}" style="width:${Math.min(100, ((total - Math.max(0, left)) / total) * 100)}%;background:var(--gold)"></b>`; c.appendChild(bar);
+        const row = document.createElement("div"); row.className = "actions"; row.style.justifyContent = "center";
+        const cost = Math.max(1, Math.ceil((Math.max(0, left) / 60_000) * CFG.speedupGemsPerMin));
+        const sp = document.createElement("button"); sp.className = "btn orange small"; sp.dataset.speed = i; sp.textContent = `⚡ Tăng tốc · ${cost} ngọc`; sp.disabled = left <= 0;
+        sp.onclick = () => {
+          const l = e.end - Date.now(); const k = Math.max(1, Math.ceil((Math.max(0, l) / 60_000) * CFG.speedupGemsPerMin));
+          if (S.gems < k) return toast("Không đủ ngọc");
+          S.gems -= k; e.end = Date.now(); save(); refreshHud(); render();
+        };
+        const hb = document.createElement("button"); hb.className = "btn green small"; hb.dataset.hatch = i; hb.textContent = "✨ Ấp Nở"; hb.disabled = left > 0;
+        hb.onclick = () => { back.remove(); clearInterval(back._tick); hatch(i); };
+        row.append(sp, hb); c.appendChild(row);
+      }
+      grid.appendChild(c);
+    });
+  };
+  render();
+  // đồng hồ thời gian thực (theo mốc thời gian đã lưu)
+  back._tick = setInterval(() => {
+    let need = false;
+    S.slots.forEach((slot, i) => {
+      if (!slot.egg) return;
+      const left = slot.egg.end - Date.now();
+      const tm = grid.querySelector(`[data-slot="${i}"]`); if (tm) tm.textContent = left > 0 ? fmtTime(left) : "Đã sẵn sàng!";
+      const b = grid.querySelector(`[data-bar="${i}"]`); if (b) { const tot = slot.egg.end - slot.egg.start; b.style.width = Math.min(100, ((tot - Math.max(0, left)) / tot) * 100) + "%"; }
+      const sp = grid.querySelector(`[data-speed="${i}"]`); if (sp && left > 0) sp.textContent = `⚡ Tăng tốc · ${Math.max(1, Math.ceil((left / 60_000) * CFG.speedupGemsPerMin))} ngọc`;
+      const hb = grid.querySelector(`[data-hatch="${i}"]`); if (hb && hb.disabled && left <= 0) need = true;
+    });
+    if (need) render();
+  }, 500);
+}
+
+// ---- ấp nở: quay thưởng đúng tỷ lệ + hiệu ứng vỡ trứng
+function hatch(i) {
+  const slot = S.slots[i]; if (!slot.egg || slot.egg.end > Date.now()) return;
+  const recipe = BREEDING_RECIPES.find((r) => r.id === slot.egg.recipe); if (!recipe) return;
+  const fishId = rollResult(recipe);
+  const egg = slot.egg.egg;
+  // chốt kết quả ngay (tải lại trang giữa hiệu ứng cũng không mất cá)
+  const now = Date.now();
+  // pending: đang trong hiệu ứng nở, chưa thả vào bể (tải lại trang thì cá tự vào bể)
+  const nf = { uid: "h" + now.toString(36) + Math.random().toString(36).slice(2, 6), fish: fishId, born: now, harvestAt: now + CFG.harvestCycleMs, pending: true };
+  S.fishes.push(nf); slot.egg = null; save(); refreshHud();
+  const def = FISH[fishId]; const rare = def.tier === "recessive";
+
+  const wrap = document.createElement("div"); wrap.className = "reveal";
+  const c = document.createElement("canvas"); c.width = 1040; c.height = 1040; wrap.appendChild(c);
+  const card = document.createElement("div"); card.className = "card"; wrap.appendChild(card);
+  document.body.appendChild(wrap);
+  const x = c.getContext("2d");
+  const T0 = performance.now();
+  let phase = 0; // 0 rung, 1 nứt, 2 chớp, 3 hiện cá
+  const loop = (nowMs) => {
+    const tt = (nowMs - T0) / 1000;
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, 1040, 1040); x.translate(520, 540);
+    if (tt < 2.2) {
+      // trứng rung mạnh dần, nứt dần
+      const amp = Math.min(1, tt / 2) * 0.22;
+      x.save(); x.rotate(Math.sin(tt * 30) * amp); drawEgg(x, egg, 3.4, tt, Math.max(0, (tt - 0.6) / 1.4), Math.min(1, tt / 2)); x.restore();
+    } else if (tt < 2.7) {
+      if (phase < 2) { phase = 2; if (rare) document.body.classList.add("shake"); }
+      const k = (tt - 2.2) / 0.5;
+      const g = x.createRadialGradient(0, 0, 10, 0, 0, 520);
+      const col = rare ? (Math.floor(tt * 12) % 2 ? "rgba(168,85,247," : "rgba(251,191,36,") : "rgba(255,255,230,";
+      g.addColorStop(0, col + (1 - k * 0.3) + ")"); g.addColorStop(1, col + "0)");
+      x.fillStyle = g; x.beginPath(); x.arc(0, 0, 520, 0, Math.PI * 2); x.fill();
+      // mảnh vỏ bay ra
+      for (let p = 0; p < 10; p++) { const a = (p / 10) * Math.PI * 2; const r = k * 380; x.fillStyle = p % 2 ? egg.a : egg.b; x.beginPath(); x.ellipse(Math.cos(a) * r, Math.sin(a) * r, 26, 18, a, 0, Math.PI * 2); x.fill(); x.lineWidth = 5; x.strokeStyle = INK; x.stroke(); }
+    } else {
+      if (phase < 3) {
+        phase = 3; document.body.classList.remove("shake");
+        if (rare) { const bn = document.createElement("div"); bn.className = "banner"; bn.textContent = "⚡ THỨC TỈNH GEN LẶN CỔ ĐẠI! ⚡"; wrap.appendChild(bn); }
+        card.innerHTML = "";
+        const ttl = document.createElement("div"); ttl.className = "title"; ttl.textContent = def.name; card.appendChild(ttl);
+        card.appendChild(tierTag(def.tier));
+        const d = document.createElement("p"); d.style.cssText = "margin:0;color:#e3f2ff;font-weight:700;max-width:60ch"; d.textContent = def.desc; card.appendChild(d);
+        const b = document.createElement("button"); b.className = "btn green"; b.textContent = "🐠 Thả vào Bể Nuôi";
+        b.onclick = () => {
+          wrap.remove(); cancelAnimationFrame(raf); delete nf.pending; save();
+          // cá mới bơi thẳng từ ổ ấp vào bể
+          const n = NESTS[i]; swim.set(nf.uid, { x: n.x, y: n.y - 10, tx: POOL.cx + 120, ty: POOL.cy, face: -1, enter: 3 });
+          toast(`${def.name} đã vào Bể Nuôi Thả!`);
+        };
+        card.appendChild(b);
+        setTimeout(() => b.focus(), 50);
+      }
+      const k = Math.min(1, (tt - 2.7) / 0.6);
+      if (rare) {
+        x.save(); x.rotate(tt * 0.8);
+        for (let r = 0; r < 12; r++) { x.rotate(Math.PI / 6); x.fillStyle = r % 2 ? "rgba(168,85,247,.35)" : "rgba(251,191,36,.35)"; x.beginPath(); x.moveTo(0, 0); x.lineTo(-40, -520); x.lineTo(40, -520); x.closePath(); x.fill(); }
+        x.restore();
+      } else {
+        const g = x.createRadialGradient(0, 0, 20, 0, 0, 420); g.addColorStop(0, "rgba(255,255,220,.55)"); g.addColorStop(1, "rgba(255,255,220,0)"); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 420, 0, Math.PI * 2); x.fill();
+      }
+      x.save(); x.translate(0, -40); x.scale(0.4 + k * 0.6, 0.4 + k * 0.6);
+      drawFish(x, def.look, 2.4 * (def.look.wings || def.look.ring ? 0.85 : 1), tt); x.restore();
+    }
+    raf = requestAnimationFrame(loop);
+  };
+  let raf = requestAnimationFrame(loop);
+}
+
+$("openBreed").onclick = openBreed;
+$("openHatch").onclick = openHatch;
+$("openStock").onclick = () => {
+  const { el, close } = sheet(`🐟 Kho cá (${S.fishes.length})`);
+  const g = document.createElement("div"); g.className = "stock";
+  const order = { recessive: 0, mythic: 1, super: 2, hybrid: 3, boss: 4 };
+  [...S.fishes].sort((a, b) => order[FISH[a.fish].tier] - order[FISH[b.fish].tier]).forEach((f) => {
+    const b = document.createElement("button");
+    b.appendChild(fishThumb(f.fish, 130, 86));
+    const n = document.createElement("div"); n.className = "name"; n.style.fontSize = "14px"; n.textContent = FISH[f.fish].name; b.appendChild(n);
+    b.appendChild(tierTag(FISH[f.fish].tier));
+    b.onclick = () => { close(); openInfo(f); };
+    g.appendChild(b);
+  });
+  el.appendChild(g);
+  const reset = document.createElement("button"); reset.className = "btn red small"; reset.textContent = "Chơi lại từ đầu (xoá dữ liệu nguyên mẫu)";
+  let armed = false;
+  reset.onclick = () => {
+    if (!armed) { armed = true; reset.textContent = "Bấm lần nữa để xác nhận xoá"; return; }
+    S = freshState(); const a = S.fishes[0], b = S.fishes[1]; S.pick = [a.uid, b.uid]; swim.clear(); save(); refreshHud(); close(); toast("Đã chơi lại từ đầu");
+  };
+  el.appendChild(reset);
+};
+refreshHud();
+save();
+</script>
