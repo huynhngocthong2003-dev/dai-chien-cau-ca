@@ -38,13 +38,15 @@ describe("FishingSession", () => {
     expect(s.phase).toBe("missed");
   });
 
-  it("giật sớm làm cá cắn muộn hơn", () => {
+  it("giật sớm = thu dây, hết lượt quăng đó (như bấm hụt)", () => {
     const s = new FishingSession({ fish: FISH_BY_ID.get("f_ca_ro")!, loadout: starter(), seed: 7 });
-    const before = s.biteAt;
+    expect(s.phase).toBe("waiting");
     s.hook();
-    expect(s.biteAt).toBeGreaterThan(0);
     expect(s.drainEvents()).toContainEqual({ type: "too_early" });
-    expect(s.biteAt).not.toBe(before === 0 ? -1 : NaN);
+    expect(s.phase).toBe("missed");
+    expect(s.isOver).toBe(true);
+    s.hook(); // bấm thêm không đổi gì
+    expect(s.phase).toBe("missed");
   });
 
   it("kéo liên tục bất chấp lực căng sẽ làm đứt dây với cá khó", () => {

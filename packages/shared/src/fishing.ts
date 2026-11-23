@@ -295,8 +295,8 @@ export class FishingSession {
   /** Người chơi giật cần. */
   hook(): void {
     if (this.phase === "waiting") {
-      // giật sớm làm cá sợ: chờ thêm
-      this.biteAt = this.time + Math.round(this.rng.range(1200, 2400));
+      // giật sớm = THU DÂY luôn: hết lượt quăng này (lượt câu của cần đã tính khi quăng)
+      this.phase = "missed";
       this.events.push({ type: "too_early" });
     } else if (this.phase === "bite") {
       this.phase = "reeling";

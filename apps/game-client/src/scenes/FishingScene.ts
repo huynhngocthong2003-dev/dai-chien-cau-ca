@@ -64,6 +64,8 @@ export class FishingScene extends Phaser.Scene {
   private huntLabel?: Phaser.GameObjects.Text;
   private loadout!: Loadout;
   private mode: Mode = "idle";
+  /** Lượt này kết thúc vì giật sớm (thu dây). */
+  private earlyHook = false;
   private session: FishingSession | null = null;
   private fishDef: FishDef | null = null;
   /** Rác vớt nhầm (nếu lần này không phải cá). */
@@ -476,6 +478,7 @@ export class FishingScene extends Phaser.Scene {
       this.inventoryFullDialog();
       return;
     }
+    this.earlyHook = false;
     // mỗi lần quăng tốn 1 lượt câu của cần; hết lượt phải sửa
     const wear = GameState.wearRod(1);
     if (!wear.ok) {
@@ -686,8 +689,11 @@ export class FishingScene extends Phaser.Scene {
     const f = this.fishDef!;
     switch (e.type) {
       case "too_early":
-        toast(this, "Giật sớm quá! Cá giật mình bơi đi chỗ khác…");
+        // giật sớm = thu dây, mất lượt quăng này
+        Sfx.fail();
         this.splash(this.castX, HORIZON, 4);
+        this.earlyHook = true;
+        this.endRound("missed");
         break;
       case "bite":
         Sfx.bite();
@@ -1011,7 +1017,9 @@ export class FishingScene extends Phaser.Scene {
           ? ["ĐỨT DÂY!", "Dây quá căng quá lâu. Hãy thả tay khi thanh lực căng vào vùng đỏ."]
           : kind === "escaped"
             ? ["CÁ ĐÃ THOÁT!", "Cá bơi quá xa. Hãy kéo dây khi cá ngừng vùng vẫy."]
-            : ["LỠ MẤT CÁ!", "Phao chìm hẳn và có dấu ! thì bấm ngay để giật cần."];
+            : this.earlyHook
+              ? ["GIẬT SỚM – THU DÂY!", "Bấm khi cá chưa cắn: thu dây, mất 1 lượt câu. Chờ phao chìm hẳn và có dấu ! rồi mới bấm."]
+              : ["BẤM HỤT – THU DÂY!", "Cá đã nhả mồi: mất 1 lượt câu. Phao chìm hẳn và có dấu ! thì bấm ngay để giật cần."];
       c.add(panel(this, 390, 200, 500, 320, 0.95));
       c.add(txt(this, 640, 260, msg[0]!, 48, { color: "#ff8a80", align: "center" }).setOrigin(0.5));
       if (f && kind !== "missed") c.add(txt(this, 640, 320, `Đó là: ${f.name} (${FISH_RARITY_LABEL[f.rarity]})`, 22, { color: FISH_RARITY_COLOR[f.rarity], align: "center" }).setOrigin(0.5));

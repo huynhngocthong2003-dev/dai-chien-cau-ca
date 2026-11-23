@@ -60,6 +60,12 @@ export function applyWide(scene: Phaser.Scene) {
   }
 }
 
+/** Đang có ô nhập liệu được chọn (bàn phím ảo có thể đang mở). */
+export function isTyping(): boolean {
+  const el = document.activeElement as HTMLElement | null;
+  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+}
+
 /** Gắn vào game: mỗi scene khi tạo xong sẽ được áp dụng; xoay màn hình thì đổi bề rộng. */
 export function installWide(game: Phaser.Game) {
   const hook = () => {
@@ -73,6 +79,9 @@ export function installWide(game: Phaser.Game) {
   else game.events.once(Phaser.Core.Events.READY, () => setTimeout(hook, 0));
   let last = game.scale.gameSize.width;
   return () => {
+    // Đang gõ chữ (ô nhập tên, mã phòng…): bàn phím ảo Android làm cửa sổ co lại → KHÔNG dựng lại màn hình
+    // (dựng lại sẽ đóng hộp thoại / thoát ra sảnh). Bàn phím đóng thì kích thước trở về như cũ.
+    if (isTyping()) return;
     const w = targetWidth();
     if (w === last) return;
     last = w;

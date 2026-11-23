@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.43.0] – 2026-11-23 – Bộ Sưu Tập theo hệ, Kho Cá chia trang, sửa lỗi Android
+### Thay đổi
+- **Bộ Sưu Tập chia theo HỆ**: Tất cả · Kim · Mộc · Thủy · Hỏa · Thổ · Ánh Sáng · Bóng Tối (bỏ các mục theo cấp bậc). Trong mỗi hệ: khu cá 1 hệ, rồi từng khu cá lai 2 hệ có huy hiệu 2 hệ (VD tab Mộc có khu Mộc + Thủy, Mộc + Thổ…; cá 2 hệ hiện ở cả 2 hệ của nó, chưa lai được hiện bóng "???").
+- **Kho Cá và Bộ Sưu Tập là 2 màn riêng** (mở riêng từ sảnh).
+- **Kho Cá chia trang** (18 con / trang, nút ◀ ▶).
+- **Chọn nhiều theo bậc**: bật nhiều bậc cùng lúc (Thường, Hiếm, Quý, Sử Thi, Huyền Thoại, Thần Thoại, Boss) – bấm lại 1 bậc để bỏ cả bậc đó ra; vẫn chọn/bỏ từng con được.
+- **Câu cá: giật sớm = thu dây luôn**, mất lượt quăng đó (như bấm hụt) – không còn bấm sớm rồi chờ tiếp. Màn kết quả báo rõ "GIẬT SỚM – THU DÂY" / "BẤM HỤT – THU DÂY".
+### Sửa lỗi
+- **Android: bấm sửa tên bị thoát ra** – bàn phím ảo làm màn hình co lại khiến game dựng lại màn (đóng hộp thoại). Nay đang gõ chữ thì không dựng lại màn hình.
+
 ## [0.42.0] – 2026-11-23 – Lực chiến theo bậc
 ### Thay đổi
 - **Lực chiến gốc theo độ hiếm** (cá mới câu: cấp 1, Sơ Giai, chưa đột biến):

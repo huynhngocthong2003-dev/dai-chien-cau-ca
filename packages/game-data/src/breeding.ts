@@ -249,5 +249,12 @@ ORDER.forEach((e1, i) => {
   });
 });
 
+/** Hệ của LOÀI cá lai theo dòng (2 hệ bố mẹ; dòng cùng hệ = 1 hệ) – dùng để phân loại Bộ Sưu Tập. */
+export const HYBRID_SPECIES_ELEMENTS: Record<string, Element[]> = {};
+for (const r of ELEMENT_RECIPES) {
+  const [a, b] = r.elements!;
+  for (const x of r.results) HYBRID_SPECIES_ELEMENTS[x.fish] = a === b ? [a] : [a, b];
+}
+
 /** Công thức riêng theo loài (ưu tiên) + 28 dòng lai theo hệ. */
 export const BREEDING_RECIPES: BreedRecipe[] = [...SPECIAL_RECIPES, ...ELEMENT_RECIPES];

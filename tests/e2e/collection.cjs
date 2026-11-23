@@ -27,7 +27,7 @@ const errs = [];
   else console.log(`• Lăn chuột: cuộn ${Math.round(s1)}px`);
   await p.screenshot({ path: `${out}/collection-scrolled.png` });
   // kéo thanh cuộn xuống đáy
-  await p.mouse.move(836, 200);
+  await p.mouse.move(836, 250);
   await p.mouse.down();
   await p.mouse.move(836, 700, { steps: 6 });
   await p.mouse.up();
