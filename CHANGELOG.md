@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.38.1] – 2026-11-23 – Sửa "Hãy đồng bộ tài khoản trước khi đấu"
+### Sửa
+- Vào trận 3vs3 với máy (đã đăng nhập), tạo / vào phòng, chốt đội: game **đẩy bản lưu mới nhất lên máy chủ trước**; đồng bộ lỗi thì báo đúng lỗi (vd mất mạng, máy đang dùng bản cũ) thay vì để máy chủ từ chối.
+- Máy chủ (`battle`, `pvp`) báo rõ từng trường hợp: chưa có bản lưu trên máy chủ / bản lưu không hợp lệ (kèm mục dữ liệu bị lỗi, ghi nhật ký máy chủ) / lỗi đọc dữ liệu – thay cho một câu chung "Hãy đồng bộ tài khoản".
+- Test: bản lưu có dữ liệu Đảo Lai Tạo (trứng, cá 2 hệ, hệ ẩn) hợp lệ với bộ kiểm tra của máy chủ.
+
 ## [0.38.0] – 2026-11-23 – Đảo Lai Tạo
 ### Thêm
 - **Đảo Lai Tạo** (nút 🥚 Lai Tạo ở sảnh), chuyển từ bản đồ nguyên mẫu `docs/prototypes/dao-lai-tao.html` vào game:

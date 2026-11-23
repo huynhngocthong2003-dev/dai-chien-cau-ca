@@ -80,9 +80,13 @@ Deno.serve(async (req: Request) => {
       const { count } = await admin.from("battles").select("id", { count: "exact", head: true }).eq("user_id", me).gte("created_at", since);
       if ((count ?? 0) >= MAX_STARTS_PER_10MIN) return json(429, { error: "Bạn mở trận quá nhanh, hãy nghỉ một lát" });
       const { data: row, error } = await admin.from("player_saves").select("save").eq("user_id", me).maybeSingle();
-      if (error || !row) return json(400, { error: "Hãy đồng bộ tài khoản trước khi đấu" });
+      if (error) return json(500, { error: "Không đọc được bản lưu trên máy chủ, thử lại sau" });
+      if (!row) return json(400, { error: "Máy chủ chưa có bản lưu của bạn – vào Tài khoản bấm ☁ Đồng bộ rồi thử lại" });
       const p = parseSave(row.save);
-      if (!p.ok) return json(400, { error: "Dữ liệu người chơi không hợp lệ" });
+      if (!p.ok) {
+        console.error("parseSave lỗi", me, p.error.slice(0, 500));
+        return json(400, { error: `Bản lưu trên máy chủ không hợp lệ (${p.error.split(";")[0]!.slice(0, 80)}) – hãy báo Ban Quản Trị` });
+      }
       const built = buildPlayerTeam(p.save, body?.team, FISH_BY_ID, FORM_BY_ID, ZONE_BY_ID);
       if ("error" in built) return json(400, { error: built.error });
       // trận dang dở (thoát giữa chừng) → tính thua

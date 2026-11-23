@@ -124,11 +124,25 @@ Deno.serve(async (req: Request) => {
       const { data } = await admin.from("player_cards").select("display_name").eq("user_id", uid).maybeSingle();
       return (data?.display_name as string | undefined) ?? "Ngư thủ";
     };
+    /** Bản lưu trên máy chủ; lỗi thì ghi rõ lý do (chưa có bản lưu / bản lưu không hợp lệ). */
+    let saveError = "";
     const loadSave = async (uid: string) => {
-      const { data } = await admin.from("player_saves").select("save").eq("user_id", uid).maybeSingle();
-      if (!data) return null;
+      const { data, error } = await admin.from("player_saves").select("save").eq("user_id", uid).maybeSingle();
+      if (error) {
+        saveError = "Không đọc được bản lưu trên máy chủ, thử lại sau";
+        return null;
+      }
+      if (!data) {
+        saveError = uid === me ? "Máy chủ chưa có bản lưu của bạn – vào Tài khoản bấm ☁ Đồng bộ rồi thử lại" : "Bản lưu của đối thủ chưa có trên máy chủ";
+        return null;
+      }
       const p = parseSave(data.save);
-      return p.ok ? p.save : null;
+      if (!p.ok) {
+        console.error("parseSave lỗi", uid, p.error.slice(0, 500));
+        saveError = `Bản lưu ${uid === me ? "của bạn" : "của đối thủ"} không hợp lệ (${p.error.split(";")[0]!.slice(0, 80)}) – hãy báo Ban Quản Trị`;
+        return null;
+      }
+      return p.save;
     };
     /** Ghi phòng có điều kiện (chống 2 yêu cầu cùng lúc ghi đè nhau). */
     const write = async (r: Room, patch: Partial<Room>, guard: Partial<Room>) => {
@@ -182,7 +196,7 @@ Deno.serve(async (req: Request) => {
       const since = new Date(Date.now() - 600_000).toISOString();
       const { count } = await admin.from("pvp_rooms").select("id", { count: "exact", head: true }).eq("host", me).gte("created_at", since);
       if ((count ?? 0) >= MAX_ROOMS_PER_10MIN) return json(429, { error: "Bạn tạo phòng quá nhanh, hãy nghỉ một lát" });
-      if (!(await loadSave(me))) return json(400, { error: "Hãy đồng bộ tài khoản trước khi đấu" });
+      if (!(await loadSave(me))) return json(400, { error: saveError });
       // mỗi người chỉ giữ 1 phòng đang chờ
       await admin.from("pvp_rooms").update({ status: "cancelled", cancel_reason: "Chủ phòng tạo phòng mới", updated_at: now() }).eq("host", me).eq("status", "waiting");
       const host_name = await nameOf(me);
@@ -229,7 +243,7 @@ Deno.serve(async (req: Request) => {
       if (member) return json(200, view(r, me));
       if (r.status !== "waiting") return json(409, { error: r.status === "cancelled" ? r.cancel_reason ?? "Phòng đã huỷ" : "Phòng đã đủ người" });
       if (r.invitee && r.invitee !== me) return json(403, { error: "Phòng này chỉ dành cho người được mời" });
-      if (!(await loadSave(me))) return json(400, { error: "Hãy đồng bộ tài khoản trước khi đấu" });
+      if (!(await loadSave(me))) return json(400, { error: saveError });
       const guest_name = await nameOf(me);
       const upd = await write(
         r,
@@ -272,7 +286,7 @@ Deno.serve(async (req: Request) => {
       if (r.status !== "picking") return json(409, { error: r.status === "cancelled" ? r.cancel_reason ?? "Phòng đã huỷ" : "Không còn trong thời gian chọn đội" });
       if ((side === 0 ? r.host_team : r.guest_team) !== null) return json(409, { error: "Bạn đã chốt đội rồi" });
       const save = await loadSave(me);
-      if (!save) return json(400, { error: "Hãy đồng bộ tài khoản trước khi đấu" });
+      if (!save) return json(400, { error: saveError });
       const built = buildPlayerTeam(save, body?.team, FISH_BY_ID, FORM_BY_ID, ZONE_BY_ID);
       if ("error" in built) return json(400, { error: built.error });
       const uids = body!.team as string[];

@@ -110,7 +110,10 @@ export class ServerDriver implements CombatDriver {
     return { id: v.id, state: v.state, bar: v.bar, events: v.events ?? [], turn: v.turn };
   }
 
-  start(team: string[], level: AiLevel) {
+  async start(team: string[], level: AiLevel) {
+    // máy chủ dựng đội từ bản lưu trên máy chủ → đẩy bản lưu mới nhất lên trước
+    const err = await GameState.syncNow();
+    if (err) throw new Error(`Chưa đồng bộ được bản lưu: ${err}`);
     return this.call({ op: "start", mode: "practice", team, level });
   }
 

@@ -280,7 +280,8 @@ export class DeathMatchScene extends Phaser.Scene {
     if (this.busy) return;
     this.busy = true;
     try {
-      await GameState.syncNow(); // máy chủ đọc đội hình từ bản lưu mới nhất
+      const err = await GameState.syncNow(); // máy chủ đọc đội hình từ bản lưu mới nhất
+      if (err) throw new Error(`Chưa đồng bộ được bản lưu: ${err}`);
       const room = await pvpCall({ op: "create", stake: this.stake, invitee: invitee?.user_id ?? null });
       goTo(this, "PvpRoom", { room, inviteeName: invitee?.display_name ?? null });
     } catch (e) {
@@ -379,7 +380,8 @@ export class DeathMatchScene extends Phaser.Scene {
 /** Vào phòng (bằng mã hoặc nhận lời mời) rồi chuyển sang màn phòng. */
 export async function joinRoom(scene: Phaser.Scene, key: { code: string } | { id: string }) {
   try {
-    await GameState.syncNow();
+    const err = await GameState.syncNow();
+    if (err) throw new Error(`Chưa đồng bộ được bản lưu: ${err}`);
     const room = await pvpCall<PvpRoom>({ op: "join", ...key });
     goTo(scene, "PvpRoom", { room });
   } catch (e) {

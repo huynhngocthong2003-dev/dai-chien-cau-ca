@@ -217,7 +217,8 @@ export class PvpRoomScene extends Phaser.Scene {
     if (this.sending || this.team.length !== 3) return;
     this.sending = true;
     try {
-      await GameState.syncNow(); // máy chủ đọc cá từ bản lưu mới nhất
+      const err = await GameState.syncNow(); // máy chủ đọc cá từ bản lưu mới nhất
+      if (err) throw new Error(`Chưa đồng bộ được bản lưu: ${err}`);
       this.room = await pvpCall({ op: "pick", id: this.room.id, team: this.team });
       Sfx.click();
       this.render();
