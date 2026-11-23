@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.40.1] – 2026-11-23 – Vòng Quay may mắn
+### Thay đổi
+- Ô **Lông Phượng Thần → Đá Tiến Hoá Vạn Năng** (ra ngẫu nhiên U Minh / Thánh Quang / Địa Mạch Thạch – dùng thay đá của mọi hệ). 4 đá theo hệ ghi rõ: Đá TH Thủy · Hỏa · Băng · Lôi.
+- **Ghi rõ từng cần câu và nhân vật**: thay "Cần Câu Hiếm" / "Nhân Vật Hiếm" chung chung bằng từng ô riêng – Cần Long Cốt, Cần Phượng Hoàng, Cần Hải Thần; NV Ngao Thiên, Viêm Hỏa, Thủy Tổ, Lôi Vũ (tổng tỉ lệ vẫn rất thấp như cũ).
+- **Biểu tượng trong vòng quay vẽ thật**: hình cần câu, chân dung nhân vật, đá tiến hoá, đồng vàng, kim cương, vương miện, vé Boss, linh hồn – thay emoji.
+- **Biểu tượng Vòng Quay ở sảnh** vẽ lại: chân đế, viền vàng gắn bóng đèn, ô màu có sao/đồng xu, trục ngọc, kim chỉ có viên ngọc.
+
 ## [0.40.0] – 2026-11-23 – Mỗi khu 1 Thần Thoại, biểu tượng menu mới
 ### Thay đổi
 - **Phân bổ lại cá Thần Thoại: mỗi khu (ải) đúng 1 loài, cùng hệ khu** (trước đây 5/6 loài dồn ở Đại Dương Thần Thoại, 3 loài hệ Ánh Sáng):

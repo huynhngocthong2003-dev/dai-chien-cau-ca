@@ -18,7 +18,15 @@ export type MenuIcon =
   | "quest"
   | "event"
   | "trophy"
-  | "guild";
+  | "guild"
+  // biểu tượng phần quà (Vòng Quay)
+  | "coin"
+  | "coins"
+  | "diamond"
+  | "crown"
+  | "stone"
+  | "soul"
+  | "ticket";
 
 function ol(ctx: CanvasRenderingContext2D, p: Path2D, fill: string | CanvasGradient, w = 5) {
   ctx.fillStyle = fill;
@@ -84,7 +92,7 @@ function fish(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, bo
   ctx.restore();
 }
 
-const DRAW: Record<MenuIcon, (ctx: CanvasRenderingContext2D) => void> = {
+const DRAW: Partial<Record<MenuIcon, (ctx: CanvasRenderingContext2D) => void>> = {
   // KHO CÁ: giỏ mây đầy cá
   bag: (ctx) => {
     fish(ctx, 52, 50, 1.05, "#4fc3f7", "#0277bd");
@@ -332,41 +340,95 @@ const DRAW: Record<MenuIcon, (ctx: CanvasRenderingContext2D) => void> = {
     top.arc(64, 52, 9, 0, Math.PI * 2);
     ol(ctx, top, "#e1f5fe", 4);
   },
-  // VÒNG QUAY: bánh xe nhiều màu + kim
+  // VÒNG QUAY: chân đế, viền vàng gắn bóng đèn, ô màu có sao/đồng xu, trục ngọc, kim chỉ có viên ngọc
   wheel: (ctx) => {
+    const cx = 64;
+    const cy = 58;
+    // chân đế chữ A
+    const legs = new Path2D();
+    legs.moveTo(cx - 6, cy + 10);
+    legs.lineTo(cx - 34, 120);
+    legs.lineTo(cx - 22, 120);
+    legs.lineTo(cx, cy + 22);
+    legs.lineTo(cx + 22, 120);
+    legs.lineTo(cx + 34, 120);
+    legs.lineTo(cx + 6, cy + 10);
+    legs.closePath();
+    ol(ctx, legs, lg(ctx, cy, 120, "#ff8a65", "#bf360c"), 4);
+    const base = new Path2D();
+    base.roundRect(cx - 44, 114, 88, 10, 5);
+    ol(ctx, base, "#8d6e63", 4);
+    // viền vàng
+    const rim = new Path2D();
+    rim.arc(cx, cy, 50, 0, Math.PI * 2);
+    ol(ctx, rim, lg(ctx, cy - 50, cy + 50, "#fff59d", "#ff8f00"));
+    // các ô màu
     const cols = ["#ef5350", "#ffca28", "#66bb6a", "#29b6f6", "#ab47bc", "#ff7043", "#26c6da", "#ec407a"];
+    const R = 40;
     cols.forEach((c, i) => {
-      const a0 = (i / 8) * Math.PI * 2;
-      const a1 = ((i + 1) / 8) * Math.PI * 2;
-      ctx.fillStyle = c;
+      const a0 = (i / 8) * Math.PI * 2 - Math.PI / 2;
+      const a1 = ((i + 1) / 8) * Math.PI * 2 - Math.PI / 2;
+      const g = ctx.createRadialGradient(cx, cy, 4, cx, cy, R);
+      g.addColorStop(0, "#ffffff");
+      g.addColorStop(0.35, c);
+      g.addColorStop(1, c);
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.moveTo(64, 68);
-      ctx.arc(64, 68, 48, a0, a1);
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, R, a0, a1);
       ctx.closePath();
       ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "#fff8e1";
+      ctx.stroke();
+      // hình nhỏ trong ô: sao / đồng xu xen kẽ
+      const am = (a0 + a1) / 2;
+      const px = cx + Math.cos(am) * R * 0.66;
+      const py = cy + Math.sin(am) * R * 0.66;
+      if (i % 2) star(ctx, px, py, 6.5, "#fffde7");
+      else {
+        const coin = new Path2D();
+        coin.arc(px, py, 5.5, 0, Math.PI * 2);
+        ol(ctx, coin, "#ffd54f", 2);
+      }
     });
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 4;
     ctx.strokeStyle = INK;
     ctx.beginPath();
-    ctx.arc(64, 68, 48, 0, Math.PI * 2);
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
+    // bóng đèn quanh viền
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const bx = cx + Math.cos(a) * 45.5;
+      const by = cy + Math.sin(a) * 45.5;
+      ctx.fillStyle = i % 2 ? "#ffffff" : "#fff176";
       ctx.beginPath();
-      ctx.moveTo(64, 68);
-      ctx.lineTo(64 + Math.cos(a) * 48, 68 + Math.sin(a) * 48);
+      ctx.arc(bx, by, 3.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = "#e65100";
       ctx.stroke();
     }
+    // trục ngọc
     const hub = new Path2D();
-    hub.arc(64, 68, 11, 0, Math.PI * 2);
-    ol(ctx, hub, "#fff59d", 4);
+    hub.arc(cx, cy, 11, 0, Math.PI * 2);
+    ol(ctx, hub, lg(ctx, cy - 11, cy + 11, "#fff59d", "#ffa000"), 4);
+    const gem = new Path2D();
+    gem.arc(cx, cy, 5, 0, Math.PI * 2);
+    ol(ctx, gem, "#e040fb", 2);
+    shine(ctx, cx - 3, cy - 3, 2.5, 1.5);
+    // kim chỉ phía trên + viên ngọc
     const pin = new Path2D();
-    pin.moveTo(52, 8);
-    pin.lineTo(76, 8);
-    pin.lineTo(64, 30);
+    pin.moveTo(cx - 12, 2);
+    pin.lineTo(cx + 12, 2);
+    pin.lineTo(cx, 22);
     pin.closePath();
-    ol(ctx, pin, "#ff1744", 4);
+    ol(ctx, pin, lg(ctx, 2, 22, "#ff5252", "#b71c1c"), 4);
+    const pg = new Path2D();
+    pg.arc(cx, 7, 4, 0, Math.PI * 2);
+    ol(ctx, pg, "#80d8ff", 2);
+    shine(ctx, cx - 24, cy - 22, 10, 5);
   },
   // NHIỆM VỤ: cuộn giấy có dấu tick
   quest: (ctx) => {
@@ -475,7 +537,149 @@ const DRAW: Record<MenuIcon, (ctx: CanvasRenderingContext2D) => void> = {
   },
 };
 
+function coinAt(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  const c = new Path2D();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  ol(ctx, c, lg(ctx, y - r, y + r, "#fff59d", "#ffa000"), 4);
+  const in2 = new Path2D();
+  in2.arc(x, y, r * 0.68, 0, Math.PI * 2);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#e65100";
+  ctx.stroke(in2);
+  ctx.fillStyle = "#e65100";
+  ctx.font = `900 ${Math.round(r * 0.95)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("$", x, y + 1);
+  shine(ctx, x - r * 0.4, y - r * 0.45, r * 0.25, r * 0.12);
+}
+function gemAt(ctx: CanvasRenderingContext2D, x: number, y: number, k: number, a: string, b: string) {
+  const g = new Path2D();
+  g.moveTo(x - 30 * k, y - 10 * k);
+  g.lineTo(x - 16 * k, y - 28 * k);
+  g.lineTo(x + 16 * k, y - 28 * k);
+  g.lineTo(x + 30 * k, y - 10 * k);
+  g.lineTo(x, y + 30 * k);
+  g.closePath();
+  ol(ctx, g, lg(ctx, y - 28 * k, y + 30 * k, a, b));
+  ctx.strokeStyle = "rgba(255,255,255,.7)";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(x - 30 * k, y - 10 * k);
+  ctx.lineTo(x + 30 * k, y - 10 * k);
+  ctx.moveTo(x - 10 * k, y - 10 * k);
+  ctx.lineTo(x, y + 30 * k);
+  ctx.lineTo(x + 10 * k, y - 10 * k);
+  ctx.stroke();
+  shine(ctx, x - 12 * k, y - 18 * k, 7 * k, 3 * k, -0.3);
+}
+
+const PRIZE: Partial<Record<MenuIcon, (ctx: CanvasRenderingContext2D) => void>> = {
+  coin: (ctx) => coinAt(ctx, 64, 64, 40),
+  coins: (ctx) => {
+    coinAt(ctx, 44, 78, 28);
+    coinAt(ctx, 84, 78, 28);
+    coinAt(ctx, 64, 46, 30);
+  },
+  diamond: (ctx) => gemAt(ctx, 64, 62, 1.6, "#e1f5fe", "#0288d1"),
+  crown: (ctx) => {
+    const c = new Path2D();
+    c.moveTo(16, 96);
+    c.lineTo(20, 36);
+    c.lineTo(44, 62);
+    c.lineTo(64, 24);
+    c.lineTo(84, 62);
+    c.lineTo(108, 36);
+    c.lineTo(112, 96);
+    c.closePath();
+    ol(ctx, c, lg(ctx, 24, 96, "#fff59d", "#ff8f00"));
+    const band = new Path2D();
+    band.roundRect(14, 90, 100, 18, 6);
+    ol(ctx, band, "#ffb300");
+    for (const [x, col] of [[36, "#e040fb"], [64, "#29b6f6"], [92, "#ff1744"]] as const) {
+      const j = new Path2D();
+      j.arc(x, 99, 6, 0, Math.PI * 2);
+      ol(ctx, j, col, 2.5);
+    }
+    gemAt(ctx, 64, 60, 0.45, "#e1f5fe", "#00b0ff");
+  },
+  stone: (ctx) => {
+    const top = new Path2D();
+    top.moveTo(64, 20);
+    top.lineTo(104, 40);
+    top.lineTo(64, 60);
+    top.lineTo(24, 40);
+    top.closePath();
+    ol(ctx, top, "#90caf9");
+    const l = new Path2D();
+    l.moveTo(24, 40);
+    l.lineTo(64, 60);
+    l.lineTo(64, 108);
+    l.lineTo(24, 86);
+    l.closePath();
+    ol(ctx, l, "#1e88e5");
+    const r = new Path2D();
+    r.moveTo(104, 40);
+    r.lineTo(64, 60);
+    r.lineTo(64, 108);
+    r.lineTo(104, 86);
+    r.closePath();
+    ol(ctx, r, "#0d47a1");
+  },
+  soul: (ctx) => {
+    const orb = new Path2D();
+    orb.arc(64, 60, 38, 0, Math.PI * 2);
+    const g = ctx.createRadialGradient(54, 48, 4, 64, 60, 38);
+    g.addColorStop(0, "#f3e5f5");
+    g.addColorStop(0.5, "#ce93d8");
+    g.addColorStop(1, "#6a1b9a");
+    ol(ctx, orb, g);
+    ctx.strokeStyle = "rgba(255,255,255,.75)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(48, 72);
+    ctx.bezierCurveTo(56, 50, 72, 78, 80, 50);
+    ctx.stroke();
+    const stand = new Path2D();
+    stand.moveTo(40, 96);
+    stand.lineTo(88, 96);
+    stand.lineTo(80, 114);
+    stand.lineTo(48, 114);
+    stand.closePath();
+    ol(ctx, stand, "#8d6e63", 4);
+    shine(ctx, 50, 44, 9, 5);
+  },
+  ticket: (ctx) => {
+    ctx.save();
+    ctx.translate(64, 64);
+    ctx.rotate(-0.25);
+    const t = new Path2D();
+    t.moveTo(-48, -26);
+    t.lineTo(48, -26);
+    t.arc(48, 0, 9, -Math.PI / 2, Math.PI / 2, true);
+    t.lineTo(48, 26);
+    t.lineTo(-48, 26);
+    t.arc(-48, 0, 9, Math.PI / 2, -Math.PI / 2, true);
+    t.closePath();
+    ol(ctx, t, lg(ctx, -26, 26, "#ff8a80", "#d50000"));
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(22, -20);
+    ctx.lineTo(22, 20);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 20px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("BOSS", -14, 1);
+    ctx.restore();
+  },
+};
+
 export function drawMenuIcon(ctx: CanvasRenderingContext2D, kind: MenuIcon) {
-  DRAW[kind](ctx);
+  (PRIZE[kind] ?? (DRAW as Partial<Record<MenuIcon, (c: CanvasRenderingContext2D) => void>>)[kind])?.(ctx);
 }
 export const MENU_ICON_SIZE = S;

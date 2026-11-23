@@ -62,8 +62,10 @@ export function resolveReward(r: RewardDef, rng: Rng): RewardDef {
   const out: RewardDef = { ...r };
   if (r.characterPool?.length) out.characterId = r.characterPool[rng.int(0, r.characterPool.length - 1)];
   if (r.rodPool?.length) out.rodId = r.rodPool[rng.int(0, r.rodPool.length - 1)];
+  if (r.evoPool?.length) out.evoItem = r.evoPool[rng.int(0, r.evoPool.length - 1)];
   delete out.characterPool;
   delete out.rodPool;
+  delete out.evoPool;
   return out;
 }
 
@@ -79,6 +81,7 @@ export function rewardText(r: RewardDef, evoName?: (id: string) => string): stri
   if (r.rodId) parts.push(`Cần ${evoName ? evoName(r.rodId) : r.rodId}`);
   if (r.characterPool) parts.push("1 Nhân vật hiếm");
   if (r.rodPool) parts.push("1 Cần câu hiếm");
+  if (r.evoPool) parts.push("1 Đá Tiến Hoá vạn năng");
   return parts.join(" + ");
 }
 

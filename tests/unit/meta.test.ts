@@ -137,14 +137,17 @@ describe("Vòng Quay – nhân vật & cần câu hiếm", () => {
   it("tỉ lệ rất thấp; trúng thì mở khóa, trùng thì đổi nguyên liệu", async () => {
     const { grantReward, resolveReward, isDuplicate, DUPLICATE_CHAR_SOUL } = await import("@dccc/shared");
     const total = WHEEL_PRIZES.reduce((a, p) => a + p.weight, 0);
-    const ch = WHEEL_PRIZES.find((p) => p.id === "wh_nhan_vat_hiem")!;
-    const rod = WHEEL_PRIZES.find((p) => p.id === "wh_can_hiem")!;
-    expect(ch.weight / total).toBeLessThan(0.003);
-    expect(rod.weight / total).toBeLessThan(0.004);
+    // mỗi nhân vật / cần câu là 1 ô riêng ghi rõ tên, tổng tỉ lệ vẫn rất thấp
+    const chars = WHEEL_PRIZES.filter((p) => p.reward.characterId);
+    const rods = WHEEL_PRIZES.filter((p) => p.reward.rodId);
+    expect(chars.length).toBe(4);
+    expect(rods.length).toBe(3);
+    expect(chars.reduce((a, p) => a + p.weight, 0) / total).toBeLessThan(0.003);
+    expect(rods.reduce((a, p) => a + p.weight, 0) / total).toBeLessThan(0.004);
+    expect(rods.map((p) => p.label)).toEqual(["Cần Long Cốt", "Cần Phượng Hoàng", "Cần Hải Thần"]);
     const rng = new Rng(3);
-    const r = resolveReward(ch.reward, rng);
-    expect(r.characterId).toBeTruthy();
-    expect(ch.reward.characterPool).toContain(r.characterId);
+    const r = resolveReward(chars[0]!.reward, rng);
+    expect(r.characterId).toBe("c_long_vuong_tu");
     const s = fresh();
     expect(isDuplicate(s, r)).toBe(false);
     grantReward(s, r, "w1", "wheel:test", T0);
@@ -153,9 +156,15 @@ describe("Vòng Quay – nhân vật & cần câu hiếm", () => {
     const soul = s.materials.soul;
     grantReward(s, r, "w2", "wheel:test", T0);
     expect(s.materials.soul).toBe(soul + DUPLICATE_CHAR_SOUL);
-    const rr = resolveReward(rod.reward, rng);
+    const rr = resolveReward(rods[2]!.reward, rng);
     grantReward(s, rr, "w3", "wheel:test", T0);
     expect(s.rods[rr.rodId!]).toEqual({ level: 1, stars: 1 });
+    // Lông Phượng Thần → Đá Tiến Hoá vạn năng (bốc 1 trong 3)
+    const evo = WHEEL_PRIZES.find((p) => p.id === "wh_phuong_than")!;
+    expect(evo.label).toBe("Đá TH Vạn Năng");
+    const re = resolveReward(evo.reward, rng);
+    expect(["e_u_minh_thach", "e_thanh_quang_thach", "e_dia_mach_thach"]).toContain(re.evoItem);
+    expect(WHEEL_PRIZES.some((p) => p.reward.evoItem === "e_long_phuong_than")).toBe(false);
     valid(s);
   });
 

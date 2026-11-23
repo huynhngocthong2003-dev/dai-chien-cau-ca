@@ -332,6 +332,8 @@ export interface RewardDef {
   /** Bốc ngẫu nhiên 1 nhân vật / cần câu trong nhóm (dùng cho Vòng Quay). */
   characterPool?: string[];
   rodPool?: string[];
+  /** Bốc ngẫu nhiên 1 Đá Tiến Hoá trong nhóm (vd 3 đá vạn năng). */
+  evoPool?: string[];
 }
 
 /** Chỉ số dùng để tính nhiệm vụ / danh hiệu. */

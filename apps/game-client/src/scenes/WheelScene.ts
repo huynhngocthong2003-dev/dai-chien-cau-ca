@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { CHARACTER_BY_ID, EVO_ITEM_BY_ID, ROD_BY_ID, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES } from "@dccc/game-data";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
-import { characterTexture, rodIconTexture } from "../art/textures.ts";
+import { characterHeadTexture, characterTexture, evoItemTexture, menuIconTexture, rodIconTexture } from "../art/textures.ts";
 
 const nameOf = (id: string) => EVO_ITEM_BY_ID.get(id)?.name ?? CHARACTER_BY_ID.get(id)?.name ?? ROD_BY_ID.get(id)?.name ?? id;
 import { DUPLICATE_CHAR_SOUL, DUPLICATE_ROD_STONES, WHEEL_COST_10, WHEEL_COST_DIAMONDS, WHEEL_X10_GOOD_BOOST, rewardText, type RewardDef } from "@dccc/shared";
@@ -62,6 +62,21 @@ const CY = 410;
 const R = 270;
 
 /** Vòng Quay May Mắn: 1 lượt miễn phí mỗi ngày, sau đó 30 kim cương. */
+/** Hình phần quà trên vòng quay. */
+function prizeIcon(scene: Phaser.Scene, p: (typeof WHEEL_PRIZES)[number]): string {
+  const r = p.reward;
+  if (r.rodId && ROD_BY_ID.get(r.rodId)) return rodIconTexture(scene, ROD_BY_ID.get(r.rodId)!);
+  if (r.characterId && CHARACTER_BY_ID.get(r.characterId)) return characterHeadTexture(scene, CHARACTER_BY_ID.get(r.characterId)!);
+  if (r.evoItem) return evoItemTexture(scene, r.evoItem);
+  if (r.evoPool?.length) return evoItemTexture(scene, r.evoPool[0]!);
+  if (r.diamonds) return menuIconTexture(scene, r.diamonds >= 500 ? "crown" : "diamond");
+  if (r.gold) return menuIconTexture(scene, r.gold >= 3000 ? "coins" : "coin");
+  if (r.stones) return menuIconTexture(scene, "stone");
+  if (r.soul) return menuIconTexture(scene, "soul");
+  if (r.bossTickets) return menuIconTexture(scene, "ticket");
+  return menuIconTexture(scene, "wheel");
+}
+
 export class WheelScene extends Phaser.Scene {
   private wheel!: Phaser.GameObjects.Container;
   private spinning = false;
@@ -94,7 +109,9 @@ export class WheelScene extends Phaser.Scene {
     this.wheel.add(g);
     DISPLAY.map((pi) => WHEEL_PRIZES[pi]!).forEach((p, i) => {
       const a = -Math.PI / 2 + i * seg;
-      const ic = this.add.text(Math.cos(a) * R * 0.8, Math.sin(a) * R * 0.8, p.icon, { fontSize: "30px", padding: { top: 8 } }).setOrigin(0.5).setRotation(a + Math.PI / 2);
+      // biểu tượng vẽ thật của phần quà (cần câu, nhân vật, đá, vàng, kim cương…)
+      const ic = this.add.image(Math.cos(a) * R * 0.8, Math.sin(a) * R * 0.8, prizeIcon(this, p)).setRotation(a + Math.PI / 2);
+      ic.setScale(40 / Math.max(ic.width, ic.height));
       // chữ chạy dọc theo bán kính cho vừa ô hẹp
       const t = txt(this, Math.cos(a) * R * 0.48, Math.sin(a) * R * 0.48, p.label, 13, { align: "center" }).setOrigin(0.5).setRotation(a);
       this.wheel.add([ic, t]);
@@ -115,7 +132,7 @@ export class WheelScene extends Phaser.Scene {
 
     panel(this, 820, 120, 440, 586, 0.92);
     txt(this, 1040, 160, "🎡 Thử vận may!", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5);
-    txt(this, 1040, 250, `Mỗi ngày 1 lượt MIỄN PHÍ · thêm lượt ${WHEEL_COST_DIAMONDS} 💎\nQuay x10: ${WHEEL_COST_10} 💎 – tỉ lệ ra đồ ngon CAO HƠN!\n\nGiải lớn: 👑 500 KC · 🪶 Lông Phượng Thần\n🐉🌋❄️⚡ vật phẩm đột biến`, 17, { align: "center", weight: "700", wrap: 410 }).setOrigin(0.5);
+    txt(this, 1040, 250, `Mỗi ngày 1 lượt MIỄN PHÍ · thêm lượt ${WHEEL_COST_DIAMONDS} 💎\nQuay x10: ${WHEEL_COST_10} 💎 – tỉ lệ ra đồ ngon CAO HƠN!\n\nGiải lớn: 👑 500 KC · 💎 Đá Tiến Hoá Vạn Năng\nCần Long Cốt · Phượng Hoàng · Hải Thần\nNhân vật Ngao Thiên · Viêm Hỏa · Thủy Tổ · Lôi Vũ\nĐá Tiến Hoá Thủy · Hỏa · Băng · Lôi`, 17, { align: "center", weight: "700", wrap: 410 }).setOrigin(0.5);
     this.info = txt(this, 1040, 372, "", 18, { align: "center", color: "#b9f6ca", wrap: 400 }).setOrigin(0.5);
     new Button(this, 1040, 430, 230, 46, "📊 Tỉ lệ rơi", { color: COLORS.blue, fontSize: 19, onClick: () => this.showRates() });
     this.btn = new Button(this, 1040, 500, 340, 70, "", { color: COLORS.orange, fontSize: 26, onClick: () => this.spin() });

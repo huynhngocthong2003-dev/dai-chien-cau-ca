@@ -35,14 +35,23 @@ export const WHEEL_PRIZES: WheelPrizeDef[] = [
   { id: "wh_ve_boss_3", label: "3 Vé Boss", icon: "🎟️", color: "#d50000", weight: 3, reward: { bossTickets: 3 } },
   { id: "wh_kc_lon", label: "150 KC", icon: "💎", color: "#00e5ff", weight: 2.5, reward: { diamonds: 150 } },
   { id: "wh_linh_hon_lon", label: "15 Linh Hồn", icon: "👻", color: "#aa00ff", weight: 2, reward: { soul: 15 } },
-  { id: "wh_dot_bien", label: "Ngọc Long Hồn", icon: "🐉", color: "#00b0ff", weight: 0.8, reward: { evoItem: "e_ngoc_long_hon" } },
-  { id: "wh_dung_nham", label: "Lõi Dung Nham", icon: "🌋", color: "#ff3d00", weight: 0.8, reward: { evoItem: "e_loi_dung_nham" } },
-  { id: "wh_bang_ha", label: "Tinh Thể Băng Hà", icon: "❄️", color: "#80d8ff", weight: 0.8, reward: { evoItem: "e_tinh_the_bang_ha" } },
-  { id: "wh_sam_thach", label: "Sấm Thạch", icon: "⚡", color: "#ffee58", weight: 0.8, reward: { evoItem: "e_sam_thach" } },
+  // ĐÁ TIẾN HOÁ theo hệ (tiến hoá hệ + trưởng thành Boss/Thần Thoại)
+  { id: "wh_dot_bien", label: "Đá TH Thủy", icon: "🐉", color: "#00b0ff", weight: 0.8, reward: { evoItem: "e_ngoc_long_hon" } },
+  { id: "wh_dung_nham", label: "Đá TH Hỏa", icon: "🌋", color: "#ff3d00", weight: 0.8, reward: { evoItem: "e_loi_dung_nham" } },
+  { id: "wh_bang_ha", label: "Đá TH Băng", icon: "❄️", color: "#80d8ff", weight: 0.8, reward: { evoItem: "e_tinh_the_bang_ha" } },
+  { id: "wh_sam_thach", label: "Đá TH Lôi", icon: "⚡", color: "#ffee58", weight: 0.8, reward: { evoItem: "e_sam_thach" } },
   { id: "wh_jackpot", label: "500 KC", icon: "👑", color: "#ff4081", weight: 0.5, reward: { diamonds: 500 } },
-  { id: "wh_can_hiem", label: "Cần Câu Hiếm", icon: "🎣", color: "#00bfa5", weight: 0.3, reward: { rodPool: ["r_long_cot", "r_phuong_hoang", "r_long_cot", "r_phuong_hoang", "r_hai_than"] } },
-  { id: "wh_nhan_vat_hiem", label: "Nhân Vật Hiếm", icon: "🌟", color: "#e040fb", weight: 0.2, reward: { characterPool: ["c_long_vuong_tu", "c_hoa_than", "c_long_vuong_tu", "c_hoa_than", "c_hai_vuong", "c_than_sam"] } },
-  { id: "wh_phuong_than", label: "Lông Phượng Thần", icon: "🪶", color: "#ff6d00", weight: 0.12, reward: { evoItem: "e_long_phuong_than" } },
+  // CẦN CÂU: ghi rõ từng cần
+  { id: "wh_can_long_cot", label: "Cần Long Cốt", icon: "🎣", color: "#00bfa5", weight: 0.12, reward: { rodId: "r_long_cot" } },
+  { id: "wh_can_phuong_hoang", label: "Cần Phượng Hoàng", icon: "🎣", color: "#ff7043", weight: 0.12, reward: { rodId: "r_phuong_hoang" } },
+  { id: "wh_can_hai_than", label: "Cần Hải Thần", icon: "🔱", color: "#2979ff", weight: 0.06, reward: { rodId: "r_hai_than" } },
+  // NHÂN VẬT (trang phục): ghi rõ từng nhân vật
+  { id: "wh_nv_ngao_thien", label: "NV Ngao Thiên", icon: "🐲", color: "#e040fb", weight: 0.06, reward: { characterId: "c_long_vuong_tu" } },
+  { id: "wh_nv_viem_hoa", label: "NV Viêm Hỏa", icon: "🔥", color: "#ff5722", weight: 0.06, reward: { characterId: "c_hoa_than" } },
+  { id: "wh_nv_thuy_to", label: "NV Thủy Tổ", icon: "🌊", color: "#00b8d4", weight: 0.04, reward: { characterId: "c_hai_vuong" } },
+  { id: "wh_nv_loi_vu", label: "NV Lôi Vũ", icon: "⚡", color: "#ffd600", weight: 0.04, reward: { characterId: "c_than_sam" } },
+  // ĐÁ TIẾN HOÁ VẠN NĂNG (thay Lông Phượng Thần): dùng thay đá của MỌI hệ
+  { id: "wh_phuong_than", label: "Đá TH Vạn Năng", icon: "💎", color: "#ff6d00", weight: 0.12, reward: { evoPool: ["e_u_minh_thach", "e_thanh_quang_thach", "e_dia_mach_thach"] } },
 ];
 
 /** Món "ngon" (trọng số ≤ 5): quay x10 được tăng tỉ lệ ra. */
