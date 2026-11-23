@@ -168,7 +168,8 @@ describe("Đảo Lai Tạo – hệ của cá lai", () => {
     expect(multiMatchup(["metal"], ["wood", "fire"]).mult).toBe(1.125); // khắc Mộc ×1.5 nhưng bị Hỏa khắc ×0.75
     expect(multiMatchup(["water"], ["metal", "fire"]).mult).toBe(1.5); // không vượt trần
     expect(multiMatchup(["water"], ["fire", "earth"]).mult).toBe(1.125);
-    expect(multiMatchup(["wood"], ["water", "light"]).kind).toBe("normal");
+    expect(multiMatchup(["wood"], ["water", "light"]).kind).toBe("weak"); // Ánh sáng áp chế hệ tự nhiên
+    expect(multiMatchup(["wood", "dark"], ["water", "light"]).mult).toBe(1.5); // hệ Bóng tối: áp chế Thủy & khắc Ánh sáng (trần ×1.5)
     expect(allElements({ element: "fire", elements: ["fire", "water"], hidden: "dark" })).toEqual(["fire", "water", "dark"]);
   });
 });

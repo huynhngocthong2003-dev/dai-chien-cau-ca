@@ -1,5 +1,5 @@
 /**
- * BẢNG CHÚ THÍCH KHẮC HỆ (đấu cá): nút "?" nhỏ → bảng gồm sơ đồ vòng khắc 5 hệ + Bóng Tối ⇄ Ánh Sáng,
+ * BẢNG CHÚ THÍCH KHẮC HỆ (đấu cá): nút "?" nhỏ → bảng gồm sơ đồ vòng khắc 5 hệ + Bóng Tối ⇄ Ánh Sáng (áp chế 5 hệ tự nhiên),
  * bảng hệ số 7×7 (hàng = cá đánh, cột = cá bị đánh) và cách tính cho cá song hệ. Dữ liệu lấy từ shared/elements.
  */
 import Phaser from "phaser";
@@ -75,6 +75,10 @@ export function openElementChart(scene: Phaser.Scene) {
   m.root.add(txt(scene, cx - 90, dy + 44, ELEMENT_INFO.dark.name, 16, { color: ELEMENT_INFO.dark.color, align: "center" }).setOrigin(0.5));
   m.root.add(txt(scene, cx + 90, dy + 44, ELEMENT_INFO.light.name, 16, { color: ELEMENT_INFO.light.color, align: "center" }).setOrigin(0.5));
   m.root.add(txt(scene, cx, dy - 34, "khắc lẫn nhau", 15, { align: "center", weight: "700", color: "#ea80fc" }).setOrigin(0.5));
+  // áp chế 5 hệ tự nhiên: mũi tên vàng từ Bóng Tối & Ánh Sáng lên vòng khắc
+  arrow(cx - 90, dy, cx - 30, cy + 40, 0xffd740);
+  arrow(cx + 90, dy, cx + 30, cy + 40, 0xffd740);
+  m.root.add(txt(scene, cx, cy + 58, "⚡ ÁP CHẾ cả 5 hệ\ntự nhiên ×1,5", 14, { align: "center", weight: "700", color: "#ffd740" }).setOrigin(0.5));
 
   // ---- bảng hệ số 7×7 (phải): hàng = cá ĐÁNH, cột = cá BỊ ĐÁNH
   const tx = X + 470;
@@ -105,6 +109,7 @@ export function openElementChart(scene: Phaser.Scene) {
       tx,
       ny,
       `🟩 Khắc chế: sát thương ${fmt(ELEMENT_STRONG)}   🟥 Bị khắc: ${fmt(ELEMENT_WEAK)}   ⬛ Bình thường: ×1\n` +
+        "⚡ Bóng Tối & Ánh Sáng ÁP CHẾ 5 hệ tự nhiên: đánh ×1,5, bị đánh chỉ ×0,75.\n" +
         "☯ Cá SONG HỆ: nhân hệ số với TỪNG hệ của đối thủ, lấy hệ có lợi nhất (giới hạn ×0,75 … ×1,5).\n" +
         "💡 Chọn cá khắc hệ đối thủ để thắng dễ hơn!",
       15,

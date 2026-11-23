@@ -82,7 +82,8 @@ describe("Chiêu boss gây sát thương lên người chơi", () => {
     // Kim khắc Mộc → boss Kim đánh đội Mộc mạnh; boss Thổ bị Mộc khắc → đánh nhẹ
     expect(wbSkillPct("metal", team)).toBe(WB_SKILL.pct.strong);
     expect(wbSkillPct("earth", team)).toBe(WB_SKILL.pct.weak);
-    expect(wbSkillPct("light", team)).toBe(WB_SKILL.pct.normal);
+    expect(wbSkillPct("light", team)).toBe(WB_SKILL.pct.strong); // Ánh sáng áp chế hệ tự nhiên
+    expect(wbSkillPct("water", team)).toBe(WB_SKILL.pct.normal);
     expect(wbPlayerHp(1000, 0.25, 0)).toBe(1000);
     expect(wbPlayerHp(1000, 0.25, 6000)).toBe(750);
     expect(wbPlayerHp(1000, 0.25, 30000)).toBe(0); // chiêu thứ 4 (giây 30) hạ gục

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.57.0] – 2026-11-23 – Bóng Tối & Ánh Sáng áp chế hệ tự nhiên
+### Thay đổi
+- **Bóng Tối & Ánh Sáng ÁP CHẾ 5 hệ tự nhiên** (Kim, Mộc, Thủy, Hỏa, Thổ): đánh hệ tự nhiên **×1,5**, bị hệ tự nhiên đánh chỉ **×0,75**. Bóng Tối ⇄ Ánh Sáng vẫn khắc lẫn nhau; vòng khắc Kim → Mộc → Thổ → Thủy → Hỏa → Kim giữ nguyên.
+- Áp dụng mọi nơi tính khắc hệ: Đấu Sinh Tử, đấu cá, PvP, Boss Thế Giới (Khế Tinh – Ánh Sáng & Măng Cụt – Bóng Tối đánh đội hệ tự nhiên mạnh hơn: chiêu trừ 35% máu).
+- Bảng khắc hệ (nút "?") cập nhật: mũi tên vàng "ÁP CHẾ cả 5 hệ tự nhiên".
+
 ## [0.56.0] – 2026-11-23 – Bảng chú thích khắc hệ
 ### Thêm
 - **Nút "?" bảng khắc hệ** trong đấu cá (góc phải trên khi đang đánh, và ở màn chọn đội Đấu Sinh Tử). Bấm để xem:

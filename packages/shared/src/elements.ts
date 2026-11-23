@@ -1,6 +1,7 @@
 /**
  * HỆ THỐNG 7 NGUYÊN TỐ – nguồn sự thật duy nhất cho khắc chế (game & máy chủ dùng chung).
  *  Kim khắc Mộc · Mộc khắc Thổ · Thổ khắc Thủy · Thủy khắc Hỏa · Hỏa khắc Kim · Bóng tối ⇄ Ánh sáng.
+ *  BÓNG TỐI & ÁNH SÁNG ÁP CHẾ 5 HỆ TỰ NHIÊN (Kim, Mộc, Thủy, Hỏa, Thổ): đánh hệ tự nhiên ×1.5, bị hệ tự nhiên đánh ×0.75.
  *  Khắc chế ×1.5 · Bình thường ×1.0 · Bị khắc ×0.75.
  */
 import type { Element, FishDef, ZoneDef } from "./types.ts";
@@ -15,8 +16,9 @@ export const ELEMENT_BEATS: Record<Element, Element[]> = {
   earth: ["water"],
   water: ["fire"],
   fire: ["metal"],
-  dark: ["light"],
-  light: ["dark"],
+  // Bóng tối & Ánh sáng: khắc lẫn nhau + áp chế mọi hệ tự nhiên
+  dark: ["light", "metal", "wood", "water", "fire", "earth"],
+  light: ["dark", "metal", "wood", "water", "fire", "earth"],
 };
 
 export const ELEMENT_STRONG = 1.5;

@@ -12,6 +12,8 @@ describe("7 nguyên tố & khắc chế", () => {
     ["fire", "metal"],
     ["dark", "light"],
     ["light", "dark"],
+    // Bóng tối & Ánh sáng áp chế 5 hệ tự nhiên
+    ...(["metal", "wood", "water", "fire", "earth"] as Element[]).flatMap((n): [Element, Element][] => [["dark", n], ["light", n]]),
   ];
   it("đủ 7 hệ, mỗi hệ có tên + màu hiển thị", () => {
     expect(ELEMENT_IDS).toHaveLength(7);
@@ -32,6 +34,13 @@ describe("7 nguyên tố & khắc chế", () => {
     expect(elementMatchup("water", "water").mult).toBe(1);
     expect(elementMatchup("dark", "light").mult).toBe(1.5);
     expect(elementMatchup("light", "dark").mult).toBe(1.5);
+    // áp chế hệ tự nhiên: Bóng tối / Ánh sáng đánh ×1.5, bị hệ tự nhiên đánh ×0.75
+    for (const n of ["metal", "wood", "water", "fire", "earth"] as const) {
+      expect(elementMatchup("dark", n).mult).toBe(1.5);
+      expect(elementMatchup("light", n).mult).toBe(1.5);
+      expect(elementMatchup(n, "dark").mult).toBe(0.75);
+      expect(elementMatchup(n, "light").mult).toBe(0.75);
+    }
   });
 });
 
