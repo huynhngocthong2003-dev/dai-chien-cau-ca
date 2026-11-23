@@ -262,9 +262,10 @@ function bounds(g: Geo, extra: Pt[][]): { x0: number; y0: number; x1: number; y1
   return { x0, y0, x1, y1 };
 }
 
-export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">, stage = 1) {
+export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef, "id" | "appearance">, stage = 1, morph?: FishMorph) {
   const a = fish.appearance;
-  const base = fishMorph(fish.id, a);
+  // cá lai: dáng ghép từ "gen hình" của cá bố & mẹ (BreedArt.hybridMorph)
+  const base = morph ?? fishMorph(fish.id, a);
   // TRƯỞNG THÀNH: giữ DÁNG GỐC của chính loài đó, lớn & dữ dần + bộ chi tiết tiến hoá riêng (evoFeatures)
   const k = Math.max(0, stage - 1);
   const fx = evoFeatures(fish.id, a);
