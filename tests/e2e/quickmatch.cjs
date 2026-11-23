@@ -53,7 +53,7 @@ async function run(b, mode) {
   await p.evaluate(async () => {
     // tài khoản mới chưa có cá → thêm 3 con để chọn đội
     const { GameState } = await import('/src/state/GameState.ts');
-    const s = structuredClone(GameState.save);
+    const s = JSON.parse(JSON.stringify(GameState.save));
     const mk = (uid, fishId, level) => ({ uid, fishId, level, stars: 1, weightKg: 2, zoneId: 'z_ben_tan_thu', caughtAt: Date.now(), locked: false });
     s.fishes = [mk('q1', 'f_ca_chep', 9), mk('q2', 'f_ca_ro', 8), mk('q3', 'f_ca_tre', 7)];
     GameState.commit(s);
