@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.49.1] – 2026-11-23 – Sửa May Mắn & Mùa Cá Lớn
+### Sửa lỗi
+- **May mắn giờ giảm tỉ lệ vớt rác**: trước đây rác cố định 12% mỗi lần quăng bất kể may mắn → nâng may mắn vẫn ra rác. Nay: may mắn thấp ~9%, +50 may mắn ~6%, +150 may mắn ~3,5% (tối thiểu 2% để còn nhiệm vụ Sinh Thái). "Đàn cá quý" (+60 may mắn) cũng giảm rác.
+- **Mùa Cá Lớn câu ra cá lớn thật**: trước đây chỉ nhân cân nặng +35% lúc kéo lên (loài cá & cân nặng vẫn như thường). Nay trong 3 lần quăng: **loài cá to dễ cắn hơn**, cân nặng **luôn ở nửa trên** khoảng của loài rồi **+35%**, cá hiện **to hơn** trên mặt nước, báo "🐋 CÁ KHỔNG LỒ: … kg!". Trung bình nặng gấp ~4–8 lần bình thường.
+
 ## [0.49.0] – 2026-11-23 – Câu Boss bằng nhân vật · Phòng boss chung · Nhạc nền mới
 ### Thêm
 - **Đánh Boss Thế Giới bằng NHÂN VẬT của bạn**: nhân vật cầm cần câu đứng bên trái, mỗi đòn canh kim là **quăng dây móc vào miệng boss rồi GIẬT mạnh** (cần cong, boss bị kéo lệch; đòn mạnh giật mạnh hơn). Boss to gấp ~10 lần nhân vật.

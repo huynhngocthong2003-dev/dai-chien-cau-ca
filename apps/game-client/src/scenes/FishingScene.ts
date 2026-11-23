@@ -16,6 +16,8 @@ import {
   type CastEventKind,
   Rng,
   chooseFish,
+  junkChanceFor,
+  luckFactor,
   chooseHuntFish,
   huntBoss,
   junkAsFish,
@@ -558,14 +560,17 @@ export class FishingScene extends Phaser.Scene {
     }
     this.eventLabel?.setText(this.castEvent ? `${CAST_EVENT_INFO[this.castEvent].name.replace("!", "")} · còn ${this.castEventLeft + 1} lần` : "");
     // hướng dẫn tân thủ: lần câu đầu luôn ra cá (không vớt rác)
-    this.junk = this.bossHunt || GameState.tutorial ? null : rollJunk(rng, JUNK, FISHING.junkChance);
+    // may mắn càng cao càng ít vớt rác
+    const lo = applyCastEvent(this.loadout, this.castEvent);
+    const giant = this.castEvent === "giant";
+    this.junk = this.bossHunt || GameState.tutorial ? null : rollJunk(rng, JUNK, junkChanceFor(FISHING.junkChance, luckFactor(lo, power)));
     const fish = this.junk
       ? junkAsFish(this.junk)
       : this.bossHunt
         ? this.pickHunt(rng)
-        : chooseFish(this.zone, FISH_BY_ID, applyCastEvent(this.loadout, this.castEvent), power, rng);
+        : chooseFish(this.zone, FISH_BY_ID, lo, power, rng, { giant }); // mùa cá lớn: ưu tiên loài to
     this.fishDef = fish;
-    this.weightKg = rollWeight(fish, rng);
+    this.weightKg = rollWeight(fish, rng, giant && !this.junk);
     this.session = new FishingSession({ fish, loadout: this.loadout, seed: rng.int(1, 2 ** 31), zoneDifficulty: this.zone.difficulty });
     this.mode = "fishing";
     this.tutorialTick("landed");
@@ -573,7 +578,8 @@ export class FishingScene extends Phaser.Scene {
     this.nibbleAt = this.t + Phaser.Math.Between(700, 1500);
     this.hint.setText("Đang chờ cá cắn… Bấm khi phao chìm hẳn!");
     this.fishImg.setTexture(this.junk ? junkTexture(this, this.junk) : fishTexture(this, fish));
-    const dw = 150 * fish.appearance.scale;
+    // mùa cá lớn: cá hiện TO hơn hẳn
+    const dw = 150 * fish.appearance.scale * (giant && !this.junk ? 1.35 : 1);
     this.fishImg.setDisplaySize(dw, dw * 0.625).setVisible(false);
   }
 
@@ -882,7 +888,8 @@ export class FishingScene extends Phaser.Scene {
       const mul = (1 + this.session.weightBonus) * castEventWeightMul(this.castEvent);
       if (mul > 1) {
         this.weightKg = Math.round(this.weightKg * mul * 100) / 100;
-        if (this.session.weightBonus > 0) toast(this, `Combo x${this.session.maxCombo}: cá nặng thêm ${Math.round(this.session.weightBonus * 100)}%!`, COLORS.gold);
+        if (this.castEvent === "giant") toast(this, `🐋 CÁ KHỔNG LỒ: ${this.weightKg} kg!`, COLORS.gold);
+        else if (this.session.weightBonus > 0) toast(this, `Combo x${this.session.maxCombo}: cá nặng thêm ${Math.round(this.session.weightBonus * 100)}%!`, COLORS.gold);
       }
     }
     const res = this.junk ? GameState.catchJunk(this.junk) : GameState.catchFish(FISH_BY_ID.get(f.id)!, this.weightKg, this.zone.id, this.bossHunt);

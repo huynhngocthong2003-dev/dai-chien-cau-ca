@@ -22,6 +22,21 @@ export function spawnWeights(zone: ZoneDef, fishById: Map<string, FishDef>, lf: 
   });
 }
 
+/**
+ * Tỉ lệ vớt RÁC giảm theo may mắn: không may mắn = tỉ lệ gốc; may mắn càng cao càng ít rác (tối thiểu 2%).
+ * (Trước đây rác cố định 12% bất kể may mắn → nâng may mắn mà vẫn ra rác.)
+ */
+export function junkChanceFor(base: number, lf: number): number {
+  return Math.max(0.02, base / (1 + 1.5 * Math.max(0, lf)));
+}
+
+/** MÙA CÁ LỚN: ưu tiên loài to (trọng số nhân theo cân nặng trung bình của loài so với khu). */
+export function giantSpawnBias(fish: FishDef, zoneAvgKg: number): number {
+  const avg = (fish.weightKg[0] + fish.weightKg[1]) / 2;
+  // giới hạn ×0,4 … ×3 để không lệch hẳn sang cá hiếm (giữ cân bằng kinh tế)
+  return Math.min(3, Math.max(0.4, Math.pow(avg / Math.max(0.01, zoneAvgKg), 0.6)));
+}
+
 export function bossChance(lf: number): number {
   return Math.min(0.004, FISHING.bossBaseChance * (1 + lf * 0.4));
 }
@@ -72,6 +87,7 @@ export function chooseFish(
   loadout: Loadout,
   castPower: number,
   rng: Rng,
+  opts: { giant?: boolean } = {},
 ): FishDef {
   const lf = luckFactor(loadout, castPower);
   // Boss phụ siêu hiếm: cực kỳ khó gặp
@@ -83,12 +99,19 @@ export function chooseFish(
     const boss = pickZoneBoss(zone, fishById, rng);
     if (boss) return boss;
   }
-  return rng.pickWeighted(spawnWeights(zone, fishById, lf), (w) => w.weight).fish;
+  const ws = spawnWeights(zone, fishById, lf);
+  if (opts.giant) {
+    // cân nặng TRUNG BÌNH CÓ TRỌNG SỐ của khu (theo tỉ lệ xuất hiện) làm mốc "cá to"
+    const tw = ws.reduce((n, w) => n + w.weight, 0) || 1;
+    const avg = ws.reduce((n, w) => n + w.weight * ((w.fish.weightKg[0] + w.fish.weightKg[1]) / 2), 0) / tw;
+    return rng.pickWeighted(ws, (w) => w.weight * giantSpawnBias(w.fish, avg)).fish;
+  }
+  return rng.pickWeighted(ws, (w) => w.weight).fish;
 }
 
-/** Cân nặng nghiêng về phía nhẹ, cá lớn hiếm hơn. */
-export function rollWeight(fish: FishDef, rng: Rng): number {
+/** Cân nặng nghiêng về phía nhẹ, cá lớn hiếm hơn. MÙA CÁ LỚN: luôn ở nửa trên khoảng cân nặng, nghiêng về phía nặng. */
+export function rollWeight(fish: FishDef, rng: Rng, giant = false): number {
   const [min, max] = fish.weightKg;
-  const t = Math.pow(rng.next(), 1.8);
+  const t = giant ? 0.55 + 0.45 * Math.pow(rng.next(), 0.6) : Math.pow(rng.next(), 1.8);
   return +(min + (max - min) * t).toFixed(2);
 }
