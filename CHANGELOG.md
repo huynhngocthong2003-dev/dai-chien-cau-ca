@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.51.0] – 2026-11-23 – Boss tung chiêu
+### Thêm
+- **Boss Thế Giới tung chiêu thức** mỗi 7–11 giây khi đang xuất hiện: gồng sức (năng lượng hút về miệng, ngửa ra sau, dải tên chiêu "⚠ …!") rồi phóng vào người chơi – nhân vật trúng chiêu bị hất lùi, chớp đỏ, rung màn hình. Mỗi boss 2 chiêu riêng theo hệ:
+  - 🐉 Thanh Long: **Bão Lá Thanh Long**, **Roi Dây Leo Thần**
+  - 🌶 Ớt Hỏa: **Mưa Cầu Lửa Ớt**, **Long Hoả Phun Thiêu**
+  - 🍉 Dưa Hấu: **Pháo Nước Dưa Hấu**, **Sóng Thần Hải Quái**
+  - 🍍 Dứa Giáp: **Mưa Mảnh Vàng**, **Trận Gai Kim Cương**
+  - 🥥 Sầu Riêng: **Đá Gai Lăn Lóc**, **Địa Chấn Sầu Riêng**
+  - ⭐ Khế Tinh: **Tinh Quang Xạ Tuyến**, **Thánh Quang Giáng Thế**
+  - 🟣 Măng Cụt: **Mực Đen Vực Thẳm**, **Xúc Tu Bóng Tối**
+- Chiêu thức chỉ là hiệu ứng – không trừ máu, không đổi sát thương của người chơi.
+
 ## [0.50.1] – 2026-11-23 – Boss: cầm đúng cần câu · chuyển động mượt
 ### Thay đổi
 - **Đánh Boss Thế Giới bằng đúng cần câu đang dùng khi câu cá**: thân cần đúng màu, quấn chỉ, tay cầm, máy câu, vật trang trí đầu cần, hào quang / vân sét của cần xịn, dây câu đúng màu khi quăng móc boss. Người chơi khác trong phòng cũng cầm đúng cần của họ.

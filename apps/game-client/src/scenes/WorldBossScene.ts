@@ -7,6 +7,7 @@ import { wbCall, type WbEnter, type WbHit, type WbStatus } from "../state/worldB
 import { characterTexture, worldBossArenaTexture, worldBossTexture } from "../art/textures.ts";
 import { safeEquip } from "../ui/playerProfile.ts";
 import { HeldRod } from "../ui/heldRod.ts";
+import { BOSS_SKILLS, castBossSkill, chargeUp, skillBanner } from "../ui/bossSkills.ts";
 import { ARENA_FX, ARENA_H, ARENA_W } from "../art/WorldBossArena.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
@@ -67,6 +68,10 @@ export class WorldBossScene extends Phaser.Scene {
   private hudT?: Phaser.GameObjects.Text;
   /** Khoá nội dung sảnh chờ – chỉ vẽ lại cả màn khi thứ gì đó thật sự đổi (không phải mỗi 4 giây). */
   private lobbyKey = "";
+  /** Chiêu thức boss: thời điểm tung chiêu kế tiếp (đồng hồ thật) & chiêu kế. */
+  private nextSkillAt = 0;
+  private skillIdx = 0;
+  private roomBodies: { body: Phaser.GameObjects.Image; x: number; y: number }[] = [];
   private lineG?: Phaser.GameObjects.Graphics;
   private meBody?: Phaser.GameObjects.Image;
   /** Lần ra đòn gần nhất đã thấy của từng người trong phòng (để phát hoạt cảnh giật cần). */
@@ -105,6 +110,11 @@ export class WorldBossScene extends Phaser.Scene {
     this.fight = null;
     this.status = null;
     this.lobbyKey = "";
+    this.nextSkillAt = Date.now() + 3500;
+    this.skillIdx = 0;
+    // boss tung chiêu định kỳ (giờ thật) khi đang xuất hiện
+    const skillTimer = window.setInterval(() => this.scene.isActive() && this.maybeCastSkill(), 500);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.clearInterval(skillTimer));
     fadeIn(this);
     menuBackdrop(this);
     new TopBar(this, { title: "Boss Thế Giới", onBack: () => goTo(this, "Hub") });
@@ -322,6 +332,7 @@ export class WorldBossScene extends Phaser.Scene {
     const rc = this.roomC;
     if (!rc) return;
     rc.removeAll(true);
+    this.roomBodies = [];
     const others = (this.status?.room ?? []).filter((r) => !r.me).slice(0, ROOM_SPOTS.length);
     others.forEach((r, i) => {
       const spot = ROOM_SPOTS[i]!;
@@ -332,6 +343,7 @@ export class WorldBossScene extends Phaser.Scene {
       const rod = new HeldRod(this, r.look?.rod, { x: ROD_HAND.x * k, y: ROD_HAND.y * k }, { x: ROD_TIP.x * k, y: ROD_TIP.y * k }, ROD_K * k).setPosition(spot.x, spot.y);
       const name = txt(this, spot.x, spot.y - CHAR_VIEW.h * k - 12, r.name, 11, { weight: "700", color: "#ffffff", align: "center" }).setOrigin(0.5);
       rc.add([this.add.ellipse(spot.x, spot.y + 2, 60 * k, 12 * k, 0x000000, 0.25), rod, body, name]);
+      this.roomBodies.push({ body, x: spot.x, y: spot.y });
       const prev = this.roomSeen.get(r.name);
       this.roomSeen.set(r.name, r.at);
       if (prev && prev !== r.at) window.setTimeout(() => this.scene.isActive() && body.active && this.hookAndYank({ x: spot.x + rod.tip.x, y: spot.y + rod.tip.y }, body, false, false, rod.lineColor), 200 + i * 260);
@@ -437,6 +449,39 @@ export class WorldBossScene extends Phaser.Scene {
     // chạm vào boss cũng là đánh
     this.bossImg?.setInteractive({ useHandCursor: true }).on("pointerdown", () => this.hit());
     this.needle = this.add.graphics().setDepth(5);
+  }
+
+  /** Boss gồng sức → báo tên chiêu → phóng chiêu vào người chơi (bản thân + người trong phòng). */
+  private maybeCastSkill() {
+    const boss = this.bossImg;
+    if (!boss?.active || this.bossBase.dead || Date.now() < this.nextSkillAt) return;
+    const live = this.status?.slot.live ?? worldBossSlot(Date.now()).live;
+    if (!live) return;
+    const skills = BOSS_SKILLS[this.bossInfo().id];
+    if (!skills?.length) return;
+    const skill = skills[this.skillIdx++ % skills.length]!;
+    this.nextSkillAt = Date.now() + Phaser.Math.Between(7000, 11000);
+    // gồng sức: ngửa ra sau, rực sáng
+    skillBanner(this, skill, this.cx(), 300);
+    chargeUp(this, skill, { x: this.hookX(), y: HOOK_Y - 10 }, 750);
+    Sfx.skill();
+    this.tweens.killTweensOf(this.yank);
+    this.tweens.add({ targets: this.yank, x: 40, a: 6, duration: 600, ease: "Sine.easeInOut" });
+    window.setTimeout(() => {
+      if (!this.scene.isActive() || !boss.active) return;
+      this.cameras.main.shake(220, 0.006);
+      this.tweens.add({ targets: this.yank, x: -30, a: -4, duration: 140, ease: "Quad.easeOut", onComplete: () => this.tweens.add({ targets: this.yank, x: 0, a: 0, duration: 700, ease: "Sine.easeOut" }) });
+      const targets = [{ x: ME_POS.x, y: ME_POS.y, body: this.meBody ?? null }, ...this.roomBodies.map((r) => ({ x: r.x, y: r.y, body: r.body as Phaser.GameObjects.Image | null }))];
+      castBossSkill(this, skill, { x: this.hookX() + this.yank.x, y: HOOK_Y - 10 }, targets, (i) => {
+        const b = targets[i]?.body;
+        if (!b?.active) return;
+        // trúng chiêu: hất lùi + chớp đỏ
+        this.tweens.add({ targets: b, x: b.x - 16, duration: 90, yoyo: true, ease: "Quad.easeOut" });
+        b.setTint(0xff8a80);
+        window.setTimeout(() => b.active && b.clearTint(), 220);
+        if (i === 0) Sfx.hook();
+      });
+    }, 750);
   }
 
   /** Tư thế boss theo thời gian thật: nhấp nhô, lắc thân, thở phồng, trôi nhẹ + độ lệch khi bị giật. */

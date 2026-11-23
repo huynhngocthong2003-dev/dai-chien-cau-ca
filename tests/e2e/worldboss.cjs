@@ -96,8 +96,14 @@ const status = () => ({
   const rods = await p.evaluate(() => { const sc = window.__game.scene.getScene('WorldBoss'); return { mine: sc.myRod?.rod.id, others: sc.roomC.list.filter((o) => o.rod).map((o) => o.rod.id) }; });
   if (rods.mine !== 'r_huyet_ma_long' || !rods.others.includes('r_huyet_ma_long') || !rods.others.includes('r_tre')) errs.push('Cần câu trong phòng boss không đúng cần đang dùng: ' + JSON.stringify(rods));
   else console.log('• Nhân vật cầm đúng cần câu đang dùng (' + rods.mine + '); người khác cầm cần của họ');
+  // boss tung chiêu: báo tên chiêu rồi phóng vào người chơi (không lỗi)
+  await p.evaluate(() => { window.__game.scene.getScene('WorldBoss').nextSkillAt = 0; });
+  const banner = await p.waitForFunction(() => window.__game.scene.getScene('WorldBoss').children.list.some((o) => o.text && /⚠ .*(Thanh Long|Dây Leo)/.test(o.text)), null, { timeout: 4000 }).then(() => true).catch(() => false);
+  await p.waitForTimeout(2500);
+  if (!banner) errs.push('Boss không tung chiêu');
+  else console.log('• Boss tung chiêu (báo tên chiêu → phóng vào người chơi)');
   // độ mượt: lấy mẫu vị trí boss mỗi khung hình trong ~6 giây (qua lần cập nhật trạng thái 4 giây) – không được nhảy cóc
-  const jump = await p.evaluate(() => new Promise((res) => { const sc = window.__game.scene.getScene('WorldBoss'); let last = null; let max = 0; let n = 0; const t0 = window.performance.now(); const tick = () => { const b = sc.bossImg; if (b) { const q = { x: b.x, y: b.y, a: b.angle }; if (last) max = Math.max(max, Math.hypot(q.x - last.x, q.y - last.y)); last = q; n++; } if (window.performance.now() - t0 < 6000) window.requestAnimationFrame(tick); else res({ max, n }); }; tick(); }));
+  const jump = await p.evaluate(() => new Promise((res) => { const sc = window.__game.scene.getScene('WorldBoss'); sc.nextSkillAt = Date.now() + 60000; let last = null; let max = 0; let n = 0; const t0 = window.performance.now(); const tick = () => { const b = sc.bossImg; if (b) { const q = { x: b.x, y: b.y, a: b.angle }; if (last) max = Math.max(max, Math.hypot(q.x - last.x, q.y - last.y)); last = q; n++; } if (window.performance.now() - t0 < 6000) window.requestAnimationFrame(tick); else res({ max, n }); }; tick(); }));
   if (jump.max > 12) errs.push('Boss chuyển động giật (nhảy ' + jump.max.toFixed(1) + 'px giữa 2 khung hình)');
   else console.log('• Boss bơi mượt: dịch chuyển tối đa ' + jump.max.toFixed(1) + 'px/khung hình qua ' + jump.n + ' khung (kể cả lúc cập nhật)');
   // vào đánh
