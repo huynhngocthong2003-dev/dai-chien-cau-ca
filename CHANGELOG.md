@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.42.0] – 2026-11-23 – Lực chiến theo bậc
+### Thay đổi
+- **Lực chiến gốc theo độ hiếm** (cá mới câu: cấp 1, Sơ Giai, chưa đột biến):
+  Thường **100–500** · Hiếm **501–1.000** · Quý **1.001–1.500** · Sử Thi **1.501–2.000** · Huyền Thoại **2.001–2.500** · Boss & Boss siêu hiếm **2.501–3.000** · Thần Thoại **3.001–3.500**.
+  Trong cùng bậc, loài mạnh hơn vẫn đứng cao hơn. Lên cấp, tiến hoá (sao / giai) và đột biến **cộng thêm** trên nền này (VD Boss 2.501 → cấp 15: 5.255 → Thánh Giai cấp 50: 17.581).
+- Chỉ đổi chỉ số **chiến đấu** (máu/công/thủ khi đấu): độ khó lúc **câu** cá giữ nguyên.
+- Đội máy, Bảng Xếp Hạng Chiến Lực và máy chủ trận đấu dùng thang mới (đã triển khai lại `battle`, `pvp`).
+
 ## [0.41.0] – 2026-11-23 – Rank Đấu Sinh Tử, Tìm Trận, giảm vàng nâng cấp cá
 ### Thêm
 - **Rank Đấu Sinh Tử** (mùa mới – mọi người bắt đầu từ 0): mỗi trận THẮNG sinh tử +10 điểm · 100 điểm = 1 ⭐ · đủ 5 ⭐ lên bậc · 5 bậc mỗi hạng. Thua không trừ điểm, giao hữu không tính.

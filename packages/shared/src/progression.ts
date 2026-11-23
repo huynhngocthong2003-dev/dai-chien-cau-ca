@@ -148,7 +148,7 @@ export function decomposeValue(f: FishDef, o: Pick<OwnedFish, "level" | "stars">
 
 /** Chỉ số cá theo cấp (+8%/cấp), sao (+15%/sao) và thể tiến hóa (nếu có). */
 export function fishStats(f: FishDef, level = 1, stars = 1, form?: FishFormDef | null, roll?: FormRoll | null) {
-  const m = (1 + 0.08 * (level - 1)) * (1 + 0.15 * (stars - 1));
+  const m = (1 + 0.08 * (level - 1)) * (1 + 0.15 * (stars - 1)) * (f.combatScale ?? 1);
   // phần tăng của thể đột biến nhân với hệ số ngẫu nhiên của lần đột biến
   const fm = (k: "hp" | "atk" | "def") => (form ? 1 + (form.mult[k] - 1) * (roll?.[k] ?? 1) : 1);
   return {
@@ -158,6 +158,34 @@ export function fishStats(f: FishDef, level = 1, stars = 1, form?: FishFormDef |
     spd: f.spd + (stars - 1) * 2 + (form?.spdBonus ?? 0),
     element: f.element, // hệ theo loài / khu câu – thể đột biến không đổi hệ
   };
+}
+
+/** Lực chiến gốc theo chỉ số loài (cấp 1, 1 sao, không đột biến, chưa áp combatScale). */
+function rawBasePower(f: FishDef): number {
+  return f.hp / 10 + f.atk * 2 + f.def * 1.5;
+}
+
+/**
+ * Gán combatScale cho từng loài để lực chiến gốc rơi vào khung độ hiếm (giữ thứ tự mạnh/yếu trong cùng độ hiếm):
+ * loài yếu nhất của độ hiếm → đầu khung, mạnh nhất → cuối khung, ở giữa nội suy tuyến tính.
+ */
+export function withPowerBands<T extends FishDef>(fishes: T[], bands: Record<FishDef["rarity"], [number, number]>): T[] {
+  const byRarity = new Map<string, number[]>();
+  for (const f of fishes) {
+    const arr = byRarity.get(f.rarity) ?? [];
+    arr.push(rawBasePower(f) + f.spd);
+    byRarity.set(f.rarity, arr);
+  }
+  return fishes.map((f) => {
+    const all = byRarity.get(f.rarity)!;
+    const lo = Math.min(...all);
+    const hi = Math.max(...all);
+    const [a, b] = bands[f.rarity];
+    const t = hi > lo ? (rawBasePower(f) + f.spd - lo) / (hi - lo) : 0.5;
+    const target = a + 1 + t * (b - a - 2); // chừa 1 điểm mỗi đầu cho phép làm tròn
+    // lực chiến = (máu/10 + công×2 + thủ×1,5)×k + tốc → k để ra đúng target
+    return { ...f, combatScale: Math.max(0.05, (target - f.spd) / rawBasePower(f)) };
+  });
 }
 
 export function ownedFishPower(f: FishDef, o: Pick<OwnedFish, "level" | "stars" | "formRoll">, form?: FishFormDef | null): number {

@@ -1,4 +1,5 @@
-import type { Element, FishAppearance, FishDef, FishRarity } from "@dccc/shared";
+import { withPowerBands, type Element, type FishAppearance, type FishDef, type FishRarity } from "@dccc/shared";
+import { FISH_POWER_BAND } from "@dccc/game-config";
 import { ZONES } from "./zones.ts";
 import { GENERATED_HYBRIDS } from "./breeding.ts";
 
@@ -378,11 +379,14 @@ const FIXED_ELEMENT: Record<string, Element> = {
 const ZONE_ELEMENT = new Map(ZONES.map((z) => [z.id, z.element]));
 
 const GEN_ELEMENT = new Map(GENERATED_HYBRIDS.map((g) => [g.id, g.element]));
-export const FISHES: FishDef[] = RAW_FISHES.map((f) => {
+const ELEMENTED: FishDef[] = RAW_FISHES.map((f) => {
   const fixed = FIXED_ELEMENT[f.id] ?? GEN_ELEMENT.get(f.id);
   if (fixed) return { ...f, element: fixed, elementFixed: true };
   const home = ZONE_ELEMENT.get(f.zones[0]!) ?? f.element;
   // loài sống ở NHIỀU khu: chỉ 1 hệ duy nhất = hệ khu chính (khu đầu tiên), câu ở khu nào cũng vậy
   return f.zones.length > 1 ? { ...f, element: home, elementFixed: true } : { ...f, element: home };
 });
+
+/** Lực chiến gốc theo khung độ hiếm (Thường 100–500 … Thần Thoại 3001–3500), tiến hoá/đột biến cộng thêm. */
+export const FISHES: FishDef[] = withPowerBands(ELEMENTED, FISH_POWER_BAND);
 

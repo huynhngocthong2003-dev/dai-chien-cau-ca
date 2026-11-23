@@ -106,3 +106,21 @@ describe("Thần Thoại theo khu", () => {
     }
   });
 });
+
+describe("lực chiến gốc theo độ hiếm", () => {
+  it("cá mới câu (cấp 1, Sơ Giai, chưa đột biến) nằm đúng khung; tiến hoá & đột biến cộng thêm", async () => {
+    const { FISH_POWER_BAND } = await import("@dccc/game-config");
+    const { ownedFishPower } = await import("@dccc/shared");
+    const { FISHES, FISH_FORMS } = await import("@dccc/game-data");
+    for (const f of FISHES) {
+      const p = ownedFishPower(f, { level: 1, stars: 1 });
+      const [lo, hi] = FISH_POWER_BAND[f.rarity];
+      expect(p, `${f.id} (${f.rarity}) = ${p}`).toBeGreaterThanOrEqual(lo);
+      expect(p, `${f.id} (${f.rarity}) = ${p}`).toBeLessThanOrEqual(hi);
+      expect(ownedFishPower(f, { level: 1, stars: 2 })).toBeGreaterThan(p);
+      expect(ownedFishPower(f, { level: 10, stars: 1 })).toBeGreaterThan(p);
+    }
+    const boss = FISHES.find((f) => f.rarity === "boss")!;
+    expect(ownedFishPower(boss, { level: 1, stars: 1 }, FISH_FORMS[0])).toBeGreaterThan(ownedFishPower(boss, { level: 1, stars: 1 }));
+  });
+});

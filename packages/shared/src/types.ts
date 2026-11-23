@@ -280,6 +280,8 @@ export interface FishDef {
   atk: number;
   def: number;
   spd: number;
+  /** Hệ số chỉ số CHIẾN ĐẤU (máu/công/thủ) để lực chiến gốc nằm đúng khung độ hiếm; không ảnh hưởng lúc câu. */
+  combatScale?: number;
   skill: { id: string; name: string; description: string };
   /** true: hệ cố định theo loài (Boss / cá đặc biệt), không theo khu câu. */
   elementFixed?: boolean;

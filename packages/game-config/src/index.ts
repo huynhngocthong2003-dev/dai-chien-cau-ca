@@ -162,3 +162,17 @@ export const DM_RANK_TIERS = [
   { id: "huyen_thoai", name: "Huyền Thoại", stage: "Vòng bán kết / Top đầu", color: "#c07bff" },
   { id: "than_thoai", name: "Vô Địch / Thần Thoại", stage: "Quán quân / Đỉnh bảng", color: "#ff5a5f" },
 ] as const;
+
+/**
+ * KHUNG LỰC CHIẾN GỐC theo độ hiếm – cá mới câu (cấp 1, Sơ Giai / 1 sao, chưa đột biến).
+ * Lên cấp, tiến hoá (sao / giai), đột biến đều CỘNG THÊM trên nền này.
+ */
+export const FISH_POWER_BAND: Record<(typeof RARITY_ORDER)[number], [number, number]> = {
+  common: [100, 500],
+  rare: [501, 1000],
+  precious: [1001, 1500],
+  epic: [1501, 2000],
+  legendary: [2001, 2500],
+  boss: [2501, 3000],
+  mythic: [3001, 3500],
+};

@@ -97,9 +97,9 @@ describe("Cơ chế trận đấu", () => {
 
   it("đội máy có lực chiến gần mục tiêu theo độ khó", () => {
     const pool = FISHES.filter((f) => f.zones.includes("z_ben_tan_thu"));
-    const t = aiTeam(new Rng(1), pool, 300, "hard");
+    const t = aiTeam(new Rng(1), pool, 1200, "hard");
     const avg = t.reduce((s, f) => s + f.power, 0) / 3;
-    expect(avg).toBeGreaterThan(300);
+    expect(avg).toBeGreaterThan(1200);
   });
 });
 

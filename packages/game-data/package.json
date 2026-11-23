@@ -5,5 +5,5 @@
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "scripts": { "typecheck": "tsc -p tsconfig.json" },
-  "dependencies": { "@dccc/shared": "workspace:*" }
+  "dependencies": { "@dccc/game-config": "workspace:*", "@dccc/shared": "workspace:*" }
 }

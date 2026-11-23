@@ -71,6 +71,9 @@ importers:
 
   packages/game-data:
     dependencies:
+      '@dccc/game-config':
+        specifier: workspace:*
+        version: link:../game-config
       '@dccc/shared':
         specifier: workspace:*
         version: link:../shared

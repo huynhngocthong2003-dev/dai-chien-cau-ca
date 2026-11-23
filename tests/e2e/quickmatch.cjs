@@ -52,7 +52,9 @@ async function run(b, mode) {
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
   await p.evaluate(async () => {
     // tài khoản mới chưa có cá → thêm 3 con để chọn đội
-    const { GameState } = await import('/src/state/GameState.ts');
+    // dùng đúng bản module game đang chạy (Vite có thể gắn ?t=… sau khi sửa mã)
+    const src = window.performance.getEntriesByType('resource').map((e) => e.name).find((n) => /\/src\/state\/GameState\.ts/.test(n)) ?? '/src/state/GameState.ts';
+    const { GameState } = await import(src);
     const s = JSON.parse(JSON.stringify(GameState.save));
     const mk = (uid, fishId, level) => ({ uid, fishId, level, stars: 1, weightKg: 2, zoneId: 'z_ben_tan_thu', caughtAt: Date.now(), locked: false });
     s.fishes = [mk('q1', 'f_ca_chep', 9), mk('q2', 'f_ca_ro', 8), mk('q3', 'f_ca_tre', 7)];
