@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.43.1] – 2026-11-23 – Bộ Sưu Tập: dạng đột biến ẩn đến khi mở
+### Thay đổi
+- **Bộ Sưu Tập → 🧬 Các dạng đột biến**: hiện đủ các dạng loài đó có thể đột biến, nhưng dạng **chưa mở** chỉ hiện bóng "???", mã ĐB và tỉ lệ (ẩn tên, hình, chỉ số). Đột biến ra dạng nào thì dạng đó được mở vĩnh viễn trong Bộ Sưu Tập (bán / mất cá vẫn giữ). Tiêu đề và từng viên đá có đếm "đã mở x/y". Cá đã đột biến từ trước được tính là đã mở.
+- **Lông Phượng Thần → Đá Tiến Hoá Thần** ở mọi nơi (tên, hình vẽ viên đá thần hồng–vàng có hào quang); vẫn mở 4 dạng đột biến Thần và dùng thay đá mọi hệ. Đồ đang có giữ nguyên.
+
 ## [0.43.0] – 2026-11-23 – Bộ Sưu Tập theo hệ, Kho Cá chia trang, sửa lỗi Android
 ### Thay đổi
 - **Bộ Sưu Tập chia theo HỆ**: Tất cả · Kim · Mộc · Thủy · Hỏa · Thổ · Ánh Sáng · Bóng Tối (bỏ các mục theo cấp bậc). Trong mỗi hệ: khu cá 1 hệ, rồi từng khu cá lai 2 hệ có huy hiệu 2 hệ (VD tab Mộc có khu Mộc + Thủy, Mộc + Thổ…; cá 2 hệ hiện ở cả 2 hệ của nó, chưa lai được hiện bóng "???").

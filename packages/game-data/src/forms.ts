@@ -9,7 +9,7 @@ export const EVO_ITEMS: EvoItemDef[] = [
   { id: "e_u_minh_thach", name: "U Minh Thạch", icon: "🌑", glow: "#b388ff", dropWeight: 0, divine: false, element: "dark", description: "Đá vạn năng – dùng thay Đá Tiến Hoá của mọi hệ." },
   { id: "e_thanh_quang_thach", name: "Thánh Quang Thạch", icon: "🌟", glow: "#fff59d", dropWeight: 0, divine: false, element: "light", description: "Đá vạn năng – dùng thay Đá Tiến Hoá của mọi hệ." },
   { id: "e_dia_mach_thach", name: "Địa Mạch Thạch", icon: "🪨", glow: "#bcaaa4", dropWeight: 0, divine: false, element: "earth", description: "Đá vạn năng – dùng thay Đá Tiến Hoá của mọi hệ." },
-  { id: "e_long_phuong_than", name: "Lông Phượng Thần", icon: "🪶", glow: "#ff4081", dropWeight: 0, divine: true, description: "Thần vật cực hiếm – dùng thay Đá Tiến Hoá của MỌI hệ." },
+  { id: "e_long_phuong_than", name: "Đá Tiến Hoá Thần", icon: "✨", glow: "#ff4081", dropWeight: 0, divine: true, description: "Đá thần cực hiếm – mở 4 dạng đột biến THẦN, dùng thay Đá Tiến Hoá của MỌI hệ." },
 ];
 
 const L = (body: string, belly: string, fin: string, eyeColor: string, aura: FishFormDef["look"]["aura"], o: Partial<FishFormDef["look"]> = {}): FishFormDef["look"] => ({
@@ -62,7 +62,7 @@ const RAW_FORMS: FishFormDef[] = [
     look: L("#4e0000", "#ff8a80", "#ff1744", "#ffea00", "lightning", { pattern: "stripes", patternColor: "#ff5252", palette: ["#ff1744", "#ff1744", "#ff1744"] }), description: "Sét máu đỏ rực. Công ×1,85 · Tốc +21 · hệ Lửa." },
   { id: "loi_bang", name: "Băng Lôi", itemId: "e_sam_thach", mult: { hp: 1.45, atk: 1.6, def: 1.4 }, spdBonus: 20, element: "water", glow: "#00e5ff",
     look: L("#01579b", "#e1f5fe", "#00e5ff", "#ffffff", "storm", { horns: true, spikes: true, palette: ["#00e5ff", "#00e5ff", "#00e5ff"] }), description: "Bão sét băng giá. Thủ ×1,4 · Tốc +20 · hệ Băng." },
-  // ——— Lông Phượng Thần (thần vật)
+  // ——— Đá Tiến Hoá Thần (id cũ e_long_phuong_than – giữ để không mất đồ)
   { id: "than", name: "Phượng Hoàng Thần", itemId: "e_long_phuong_than", mult: { hp: 2.2, atk: 2.3, def: 2.0 }, spdBonus: 16, element: "fire", glow: "#ff6d00",
     look: L("#ff5722", "#ffe0b2", "#ffd54f", "#ffffff", "phoenix", { horns: true }), description: "Cánh lửa phượng hoàng, bất tử tái sinh. Mọi chỉ số ×2+ · hệ Lửa." },
   { id: "than_thien", name: "Thiên Thần Ngư", itemId: "e_long_phuong_than", mult: { hp: 2.35, atk: 2.1, def: 2.25 }, spdBonus: 16, element: "light", glow: "#fff59d",
@@ -76,7 +76,7 @@ const RAW_FORMS: FishFormDef[] = [
 // =====================================================================================
 // BIẾN DỊ THEO HỆ CÓ CẤP BẬC: mỗi viên đá ra 5 dạng cùng hệ viên đá, hiếm dần, mỗi dạng
 // CHUYÊN TĂNG một chỉ số (vd Lõi Dung Nham: Hỏa Viêm cân bằng · Lục Hỏa máu · Lam Hỏa thủ ·
-// Hắc Hỏa công · Kim Hỏa toàn diện). Lông Phượng Thần: 4 dạng thần, mạnh hơn hẳn.
+// Hắc Hỏa công · Kim Hỏa toàn diện). Đá Tiến Hoá Thần: 4 dạng thần, mạnh hơn hẳn.
 // =====================================================================================
 type Focus = NonNullable<FishFormDef["focus"]>;
 type Rank = NonNullable<FishFormDef["rank"]>;
@@ -122,7 +122,7 @@ const SPEC: [string, string | null, Rank, number, Focus | "legend"][] = [
   ["loi_bang", "Băng Lôi", "rare", 15, "def"],
   ["loi_huyet", "Huyết Lôi", "epic", 10, "atk"],
   ["loi_tu", "Tử Lôi Thần", "legend", 3, "legend"],
-  // Lông Phượng Thần (thần vật)
+  // Đá Tiến Hoá Thần (thần vật)
   ["than_hai", "Hải Thần Ngư", "rare", 35, "hp"],
   ["than_thien", "Thiên Thần Ngư", "rare", 30, "def"],
   ["than_ma", "Ma Thần Ngư", "epic", 25, "atk"],

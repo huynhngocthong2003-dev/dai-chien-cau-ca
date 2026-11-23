@@ -138,6 +138,8 @@ export interface PlayerSave {
     species: Record<string, number>;
     dmWins?: number;
     dmLosses?: number;
+    /** Dạng đột biến đã mở theo loài ("loài|dạng") – Bộ Sưu Tập. */
+    formsSeen?: string[];
     /** Điểm rank Đấu Sinh Tử (mùa hiện tại). */
     rankPoints?: number;
     /** Số rác đã vớt được. */

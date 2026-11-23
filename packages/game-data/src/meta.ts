@@ -50,7 +50,7 @@ export const WHEEL_PRIZES: WheelPrizeDef[] = [
   { id: "wh_nv_viem_hoa", label: "NV Viêm Hỏa", icon: "🔥", color: "#ff5722", weight: 0.06, reward: { characterId: "c_hoa_than" } },
   { id: "wh_nv_thuy_to", label: "NV Thủy Tổ", icon: "🌊", color: "#00b8d4", weight: 0.04, reward: { characterId: "c_hai_vuong" } },
   { id: "wh_nv_loi_vu", label: "NV Lôi Vũ", icon: "⚡", color: "#ffd600", weight: 0.04, reward: { characterId: "c_than_sam" } },
-  // ĐÁ TIẾN HOÁ VẠN NĂNG (thay Lông Phượng Thần): dùng thay đá của MỌI hệ
+  // ĐÁ TIẾN HOÁ VẠN NĂNG: dùng thay đá của MỌI hệ
   { id: "wh_phuong_than", label: "Đá TH Vạn Năng", icon: "💎", color: "#ff6d00", weight: 0.12, reward: { evoPool: ["e_u_minh_thach", "e_thanh_quang_thach", "e_dia_mach_thach"] } },
 ];
 

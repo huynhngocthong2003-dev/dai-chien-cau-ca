@@ -23,8 +23,7 @@ import {
   validateTeam,
   winRate,
   type OwnedFish,
-  type PlayerSave,
-} from "@dccc/shared";
+  type PlayerSave, formSeen, formSeenKey } from "@dccc/shared";
 import { FISHING } from "@dccc/game-config";
 import { CATALOG, EVO_ITEMS, EVO_ITEM_BY_ID, FISHES, FISH_BY_ID, FISH_FORMS, FORMS_BY_ITEM, FORM_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
@@ -234,6 +233,11 @@ describe("Thể tiến hóa đột biến", () => {
       expect(applyForm(s, uidI, item, FISH_FORMS, `x${i}`, 1, FISH_BY_ID, new Rng(9)).ok).toBe(false);
     }
     expect(seen.size).toBe(variants.length);
+    // Bộ Sưu Tập: mọi dạng đã ra đều được ghi là đã mở (kể cả khi bán / mất cá sau đó)
+    expect(new Set(s.stats.formsSeen)).toEqual(new Set([...seen].map((id) => formSeenKey(boss.id, id))));
+    const gone = { ...s, fishes: [] };
+    for (const id of seen) expect(formSeen(gone, boss.id, id)).toBe(true);
+    expect(formSeen({ ...s, stats: { ...s.stats, formsSeen: [] }, fishes: [] }, boss.id, [...seen][0]!)).toBe(false);
     expect(FISH_FORMS.length).toBe(24);
     expect(parseSave(JSON.parse(JSON.stringify(s))).ok).toBe(true);
   });

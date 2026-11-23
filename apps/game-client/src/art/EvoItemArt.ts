@@ -201,59 +201,43 @@ function thunderStone(ctx: CanvasRenderingContext2D) {
   ctx.shadowBlur = 0;
 }
 
-function phoenixFeather(ctx: CanvasRenderingContext2D) {
-  glowBack(ctx, "#ff4081");
-  ctx.save();
-  ctx.translate(C, C);
-  ctx.rotate(-0.6);
-  const vane = new Path2D();
-  vane.moveTo(0, 44);
-  vane.bezierCurveTo(-26, 20, -22, -30, 0, -46);
-  vane.bezierCurveTo(22, -30, 26, 20, 0, 44);
-  const g = ctx.createLinearGradient(0, -46, 0, 44);
-  g.addColorStop(0, "#fff59d");
-  g.addColorStop(0.35, "#ff9100");
-  g.addColorStop(0.75, "#ff1744");
-  g.addColorStop(1, "#880e4f");
-  ctx.fillStyle = g;
-  ctx.fill(vane);
-  ctx.strokeStyle = "#4a0d1f";
-  ctx.lineWidth = 3;
-  ctx.stroke(vane);
-  // mắt lông
-  ctx.fillStyle = "#1de9b6";
-  ctx.beginPath();
-  ctx.ellipse(0, -18, 8, 11, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#304ffe";
-  ctx.beginPath();
-  ctx.ellipse(0, -18, 4, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#fff8e1";
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(0, 54);
-  ctx.lineTo(0, -40);
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(255,255,255,0.45)";
-  ctx.lineWidth = 1.2;
-  for (let i = -30; i < 36; i += 8) {
-    ctx.beginPath();
-    ctx.moveTo(0, i);
-    ctx.lineTo(-16, i - 10);
-    ctx.moveTo(0, i);
-    ctx.lineTo(16, i - 10);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
 const DRAW: Record<string, (ctx: CanvasRenderingContext2D) => void> = {
   e_ngoc_long_hon: dragonOrb,
   e_loi_dung_nham: lavaCore,
   e_tinh_the_bang_ha: iceCrystal,
   e_sam_thach: thunderStone,
-  e_long_phuong_than: phoenixFeather,
+  // Đá Tiến Hoá Thần (id cũ e_long_phuong_than): viên đá thần hồng–vàng, hào quang 8 tia + 4 sao lấp lánh
+  e_long_phuong_than: (ctx) => {
+    glowBack(ctx, "#ff4081", 66);
+    ctx.save();
+    ctx.translate(C, C);
+    ctx.fillStyle = "rgba(255,215,64,.55)";
+    for (let i = 0; i < 8; i++) {
+      ctx.rotate(Math.PI / 4);
+      ctx.beginPath();
+      ctx.moveTo(-5, -30);
+      ctx.lineTo(0, -58);
+      ctx.lineTo(5, -30);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    facetGem(ctx, "#ffd1e8", "#ff4081", "#9c1458", "#3d0020");
+    ctx.fillStyle = "#fff8c4";
+    for (const [x, y, r] of [[C - 30, C - 30, 6], [C + 32, C - 24, 5], [C + 26, C + 30, 4], [C - 28, C + 26, 4]] as const) {
+      ctx.beginPath();
+      ctx.moveTo(x, y - r * 2);
+      ctx.lineTo(x + r * 0.5, y - r * 0.5);
+      ctx.lineTo(x + r * 2, y);
+      ctx.lineTo(x + r * 0.5, y + r * 0.5);
+      ctx.lineTo(x, y + r * 2);
+      ctx.lineTo(x - r * 0.5, y + r * 0.5);
+      ctx.lineTo(x - r * 2, y);
+      ctx.lineTo(x - r * 0.5, y - r * 0.5);
+      ctx.closePath();
+      ctx.fill();
+    }
+  },
   e_u_minh_thach: (ctx) => {
     glowBack(ctx, "#b388ff");
     facetGem(ctx, "#b388ff", "#6a1b9a", "#311b92", "#12002e");

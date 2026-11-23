@@ -80,7 +80,20 @@ export function applyForm(
   const t = s.fishes.find((f) => f.uid === uid)!;
   t.form = form.id;
   t.formRoll = roll;
+  // Bộ Sưu Tập: mở khoá dạng đột biến này của loài
+  const key = formSeenKey(t.fishId, form.id);
+  s.stats.formsSeen = [...new Set([...(s.stats.formsSeen ?? []), key])];
   markTx(s, txId);
   s.updatedAt = now;
   return { ok: true, save: s, form, roll, surge };
+}
+
+/** Khoá "loài|dạng" trong danh sách dạng đột biến đã mở (Bộ Sưu Tập). */
+export function formSeenKey(fishId: string, formId: string): string {
+  return `${fishId}|${formId}`;
+}
+
+/** Dạng đột biến đã mở của loài: đã ghi nhận khi đột biến, hoặc đang có cá mang dạng đó (bản lưu cũ). */
+export function formSeen(save: Pick<PlayerSave, "stats" | "fishes">, fishId: string, formId: string): boolean {
+  return (save.stats.formsSeen ?? []).includes(formSeenKey(fishId, formId)) || save.fishes.some((o) => o.fishId === fishId && o.form === formId);
 }

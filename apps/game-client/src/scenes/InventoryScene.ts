@@ -3,7 +3,7 @@ import { makeScrollArea } from "../ui/scrollArea.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { ECONOMY, ELEMENT_INFO, FISH_RARITY_COLOR, FISH_RARITY_LABEL, RARITY_ORDER } from "@dccc/game-config";
 import { EVO_ITEMS, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, FORM_RANK_INFO, ZONE_BY_ID, speciesElements } from "@dccc/game-data";
-import { STAGE_NAMES, canAfford, decomposeValue, fishGender, isBreedable, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type Element, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
+import { STAGE_NAMES, canAfford, formSeen, decomposeValue, fishGender, isBreedable, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type Element, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
 import { costText } from "./GearScene.ts";
 import { GameState } from "../state/GameState.ts";
 import { evoItemTexture, fishDisplayMult, fishSilhouetteTexture, fishTextureFor, formFishTexture, softGlowTexture } from "../art/textures.ts";
@@ -620,11 +620,14 @@ export class InventoryScene extends Phaser.Scene {
 
   /** Các dạng đột biến của loài theo từng viên đá: cấp bậc, tỉ lệ, chỉ số chuyên tăng. */
   private showForms(f: FishDef, itemId: string) {
-    const m = modal(this, 1200, 620, `🧬 ${f.name} – các dạng đột biến`);
+    const save = GameState.save;
     const items = EVO_ITEMS.filter((it) => (FORMS_BY_ITEM.get(it.id) ?? []).length > 0);
+    const all = items.flatMap((it) => FORMS_BY_ITEM.get(it.id) ?? []);
+    const opened = all.filter((fm) => formSeen(save, f.id, fm.id)).length;
+    const m = modal(this, 1200, 620, `🧬 ${f.name} – đột biến đã mở ${opened}/${all.length}`);
     items.forEach((it, i) =>
       m.root.add(
-        new Button(this, m.x + 120 + i * 196, m.y + 92, 186, 44, `${it.icon} ${it.name}`, {
+        new Button(this, m.x + 120 + i * 196, m.y + 92, 186, 44, `${it.icon} ${it.name} ${(FORMS_BY_ITEM.get(it.id) ?? []).filter((fm) => formSeen(save, f.id, fm.id)).length}/${(FORMS_BY_ITEM.get(it.id) ?? []).length}`, {
           color: it.id === itemId ? COLORS.orange : COLORS.blue,
           fontSize: 14,
           onClick: () => {
@@ -635,6 +638,7 @@ export class InventoryScene extends Phaser.Scene {
       ),
     );
     const variants = FORMS_BY_ITEM.get(itemId) ?? [];
+    const it0 = EVO_ITEMS.find((it) => it.id === itemId)!;
     const w = Math.min(226, (1140 - (variants.length - 1) * 10) / variants.length);
     variants.forEach((fm, i) => {
       const x = m.x + 30 + i * (w + 10);
@@ -643,6 +647,16 @@ export class InventoryScene extends Phaser.Scene {
       const g = this.add.graphics();
       g.fillStyle(0x10294a, 0.95).fillRoundedRect(x, y, w, 456, 14).lineStyle(3, 0x5fb3ff, 0.8).strokeRoundedRect(x, y, w, 456, 14);
       m.root.add(g);
+      // chưa mở dạng này (chưa từng đột biến loài này ra dạng đó) → ẩn hình, tên, chỉ số
+      const open = formSeen(save, f.id, fm.id);
+      if (!open) {
+        m.root.add(this.add.image(x + w / 2, y + 96, fishSilhouetteTexture(this, f)).setDisplaySize(w - 12, (w - 12) * 0.625).setAlpha(0.8));
+        m.root.add(txt(this, x + w / 2, y + 96, "?", 60, { align: "center", color: "#90a4ae" }).setOrigin(0.5));
+        m.root.add(txt(this, x + w / 2, y + 196, "???", 21, { align: "center", color: COLORS.textDim }).setOrigin(0.5));
+        if (rk) m.root.add(txt(this, x + w / 2, y + 228, `${fm.code ?? ""} · ${fm.weight}%`, 20, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
+        m.root.add(txt(this, x + w / 2, y + 330, `🔒 Chưa mở\n\nĐột biến ${f.name}\nbằng ${it0.name}\nđể mở dạng này`, 15, { align: "center", weight: "700", color: COLORS.textDim, wrap: w - 16 }).setOrigin(0.5));
+        return;
+      }
       m.root.add(this.add.image(x + w / 2, y + 96, formFishTexture(this, f, fm, 0)).setDisplaySize(w - 12, (w - 12) * 0.625));
       m.root.add(txt(this, x + w / 2, y + 196, fm.name, 21, { align: "center", color: fm.glow }).setOrigin(0.5));
       if (rk) m.root.add(txt(this, x + w / 2, y + 228, `${fm.code ?? ""} · ${fm.weight}%`, 20, { align: "center", color: COLORS.textGold }).setOrigin(0.5));

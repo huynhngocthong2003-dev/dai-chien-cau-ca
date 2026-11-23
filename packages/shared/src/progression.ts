@@ -47,7 +47,7 @@ export function fishStage(stars: number): number {
 export function stageName(stars: number): string {
   return STAGE_NAMES[fishStage(stars) - 1]!;
 }
-/** Đá Tiến Hoá theo hệ: id vật phẩm (khớp game-data EVO_ITEMS). Lông Phượng Thần dùng thay cho mọi hệ. */
+/** Đá Tiến Hoá theo hệ: id vật phẩm (khớp game-data EVO_ITEMS). Đá Tiến Hoá Thần (id cũ e_long_phuong_than) dùng thay cho mọi hệ. */
 export const ELEMENT_EVO_ITEM: Record<Element, string> = {
   water: "e_ngoc_long_hon",
   fire: "e_loi_dung_nham",
@@ -58,7 +58,7 @@ export const ELEMENT_EVO_ITEM: Record<Element, string> = {
   earth: "e_dia_mach_thach",
 };
 export const DIVINE_EVO_ITEM = "e_long_phuong_than";
-/** Đá dùng thay cho Đá Tiến Hoá của MỌI hệ (Lông Phượng Thần + 3 đá cũ U Minh / Thánh Quang / Địa Mạch). */
+/** Đá dùng thay cho Đá Tiến Hoá của MỌI hệ (Đá Tiến Hoá Thần + 3 đá cũ U Minh / Thánh Quang / Địa Mạch). */
 export const WILDCARD_EVO_ITEMS = [DIVINE_EVO_ITEM, "e_u_minh_thach", "e_thanh_quang_thach", "e_dia_mach_thach"];
 /** Số Đá Tiến Hoá đúng hệ để lên giai tiếp theo (theo giai hiện tại): Trung 1, Cao 2, Thánh 3. */
 export const STAGE_EVO_STONES = [0, 1, 2, 3];
@@ -210,7 +210,7 @@ function pay(s: PlayerSave, c: Cost, txId: string, reason: string, now: number) 
   if (c.stones) addLedger(s, txId, "stones", -c.stones, reason, now);
   if (c.soul) addLedger(s, txId, "soul", -c.soul, reason, now);
   if (c.evo) {
-    // dùng đá đúng hệ trước, thiếu thì dùng Lông Phượng Thần
+    // dùng đá đúng hệ trước, thiếu thì dùng đá vạn năng / Đá Tiến Hoá Thần
     let n = c.evo.n;
     for (const id of [c.evo.item, ...WILDCARD_EVO_ITEMS.filter((w) => w !== c.evo!.item)]) {
       const take = Math.min(n, s.evoItems[id] ?? 0);

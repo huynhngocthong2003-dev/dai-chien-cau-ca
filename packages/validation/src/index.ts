@@ -69,6 +69,7 @@ export const playerSaveSchema = z.object({
     species: z.record(id, nonNegInt),
     dmWins: nonNegInt.optional(),
     rankPoints: nonNegInt.optional(),
+    formsSeen: z.array(z.string().regex(/^[a-z0-9_]{1,64}\|[a-z0-9_]{1,64}$/)).max(5000).optional(),
     dmLosses: nonNegInt.optional(),
     junkCaught: nonNegInt.optional(),
     roastedEaten: nonNegInt.optional(),
