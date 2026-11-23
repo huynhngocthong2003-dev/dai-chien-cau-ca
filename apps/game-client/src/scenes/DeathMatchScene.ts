@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { elementChartButton } from "../ui/elementChart.ts";
 import { CHAR_RARITY_COLOR, DM_RANK, DM_RANK_TIERS } from "@dccc/game-config";
 import { CHARACTERS, FISH_BY_ID } from "@dccc/game-data";
 import { AI_LEVEL_LABEL, DIFFICULTY, charMaxLevel, dmAiLevel, dmAiPowerScale, dmRankLabel, dmRankOf, dmRankPoints, charXpToNext, roastedXp, type OwnedFish } from "@dccc/shared";
@@ -53,6 +54,8 @@ export class DeathMatchScene extends Phaser.Scene {
     fadeIn(this);
     menuBackdrop(this);
     new TopBar(this, { title: "Đấu Cá", onBack: () => goTo(this, "Hub") });
+    // nút "?" – bảng chú thích khắc hệ
+    elementChartButton(this, 1244, 112, 40);
     const defs: [Mode, string][] = [
       ["arena", "⚔ Đấu Sinh Tử"],
       ["pvp", "👥 Phòng / Mời bạn"],

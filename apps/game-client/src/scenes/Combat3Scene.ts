@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { elementChartButton } from "../ui/elementChart.ts";
 import { ELEMENT_INFO, FISH_RARITY_COLOR } from "@dccc/game-config";
 import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import {
@@ -107,6 +108,8 @@ export class Combat3Scene extends Phaser.Scene {
     new Button(this, 76, 44, 128, 62, "← Thoát", { color: COLORS.blue, fontSize: 24, onClick: () => this.confirmExit() }).setDepth(60);
     const foeLabel = this.pvp ? `👤 ${this.pvp.oppName} · ${this.pvp.stake === "friendly" ? "Giao hữu" : "Sinh tử"}` : `🤖 Máy · ${AI_LEVEL_LABEL[this.level]}`;
     txt(this, 1180, 44, foeLabel, 18, { align: "right", weight: "700" }).setOrigin(1, 0.5).setDepth(60);
+    // nút "?" – bảng chú thích khắc hệ
+    elementChartButton(this, 1240, 44);
     this.banner = txt(this, 640, 40, "Đang vào trận…", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5).setDepth(60);
     this.turnT = txt(this, 640, 84, "", 22, { align: "center" }).setOrigin(0.5).setDepth(60);
     this.driver = this.pvp ? new PvpDriver(this.pvp.id) : makeDriver();

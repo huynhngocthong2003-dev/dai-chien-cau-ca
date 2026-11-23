@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.0] – 2026-11-23 – Bảng chú thích khắc hệ
+### Thêm
+- **Nút "?" bảng khắc hệ** trong đấu cá (góc phải trên khi đang đánh, và ở màn chọn đội Đấu Sinh Tử). Bấm để xem:
+  - Sơ đồ vòng khắc: **Kim → Mộc → Thổ → Thủy → Hỏa → Kim**, **Bóng Tối ⇄ Ánh Sáng** khắc lẫn nhau.
+  - Bảng hệ số 7×7 (hàng = cá đánh, cột = cá bị đánh): 🟩 khắc chế ×1,5 · 🟥 bị khắc ×0,75 · ×1 bình thường.
+  - Cách tính cho cá song hệ (lấy hệ có lợi nhất, giới hạn ×0,75 … ×1,5).
+
 ## [0.55.0] – 2026-11-23 – Biến dị cá song hệ theo từng Đá Tiến Hoá
 ### Thay đổi
 - **Cá song hệ đột biến bằng 5 loại Đá Tiến Hoá như mọi cá** (Ngọc Long Hồn · Lõi Dung Nham · Tinh Thể Băng Hà · Sấm Thạch · Đá Tiến Hoá Thần) – mỗi viên ra **bộ dạng SONG HỆ riêng** của cặp hệ đó, ví dụ cá Kim–Mộc dùng Lõi Dung Nham → Hỏa Viêm / Lục Hỏa / Lam Hỏa / Hắc Hỏa / Kim Hỏa **Thiết-Mộc**.
