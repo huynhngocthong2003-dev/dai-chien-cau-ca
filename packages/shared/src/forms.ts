@@ -2,8 +2,7 @@
  * Thể tiến hóa đột biến: vật phẩm cực hiếm rơi khi bắt cá, dùng để biến cá sang thể mới.
  */
 import { FISHING } from "@dccc/game-config";
-import type { Element, EvoItemDef, FishDef, FishFormDef } from "./types.ts";
-import { DIVINE_EVO_ITEM, ELEMENT_EVO_ITEM, WILDCARD_EVO_ITEMS } from "./progression.ts";
+import type { EvoItemDef, FishDef, FishFormDef } from "./types.ts";
 import type { Rng } from "./rng.ts";
 import { clone, markTx, type ActionResult, type FormRoll, type PlayerSave } from "./save.ts";
 
@@ -70,6 +69,7 @@ export function applyForm(
   if (!canEvolveForm(fishById.get(o.fishId))) return { ok: false, error: "Chỉ cá Huyền Thoại, Thần Thoại và Boss mới đột biến được" };
   if (o.form) return { ok: false, error: "Cá đã tiến hoá hệ – không đổi sang dạng khác được nữa. Hãy cho cá trưởng thành theo giai" };
   if ((save.evoItems[item.id] ?? 0) < 1) return { ok: false, error: `Cần 1 ${item.name} – vật phẩm cực hiếm khi câu cá` };
+  // variants: các dạng của LOÀI cá này (cá song hệ có bộ dạng riêng theo từng viên đá)
   const own = variants.filter((v) => v.itemId === item.id);
   if (!own.length) return { ok: false, error: "Vật phẩm này chưa có dạng đột biến" };
   // dạng hiếm hơn có trọng số thấp hơn (Thường 45% … Thần Thoại 3%)
@@ -97,61 +97,4 @@ export function formSeenKey(fishId: string, formId: string): string {
 /** Dạng đột biến đã mở của loài: đã ghi nhận khi đột biến, hoặc đang có cá mang dạng đó (bản lưu cũ). */
 export function formSeen(save: Pick<PlayerSave, "stats" | "fishes">, fishId: string, formId: string): boolean {
   return (save.stats.formsSeen ?? []).includes(formSeenKey(fishId, formId)) || save.fishes.some((o) => o.fishId === fishId && o.form === formId);
-}
-
-/**
- * ĐỘT BIẾN SONG HỆ (cá 2 hệ): tốn 1 Đá Tiến Hoá HỆ CHÍNH + 1 viên HỆ PHỤ (thiếu thì dùng đá vạn năng,
- * Đá Tiến Hoá Thần dùng sau cùng). Trả về danh sách đá sẽ tiêu, hoặc null nếu không đủ.
- */
-export function dualStoneCost(evoItems: Record<string, number>, primary: Element, secondary: Element): string[] | null {
-  const left = { ...evoItems };
-  const take = (el: Element): string | null => {
-    const own = ELEMENT_EVO_ITEM[el];
-    const order = [own, ...WILDCARD_EVO_ITEMS.filter((w) => w !== DIVINE_EVO_ITEM && w !== own), DIVINE_EVO_ITEM];
-    for (const id of order) {
-      if ((left[id] ?? 0) > 0) {
-        left[id]! -= 1;
-        return id;
-      }
-    }
-    return null;
-  };
-  const a = take(primary);
-  const b = a ? take(secondary) : null;
-  return a && b ? [a, b] : null;
-}
-
-/** Đột biến cá 2 hệ thành 1 trong 4 dạng Song Hệ của cặp hệ (luôn thành công, giữ HỆ CHÍNH). */
-export function applyDualForm(
-  save: PlayerSave,
-  uid: string,
-  pair: [Element, Element],
-  variants: FishFormDef[],
-  txId: string,
-  now: number,
-  fishById: Map<string, FishDef>,
-  rng: Rng,
-): ActionResult & { form?: FishFormDef; roll?: FormRoll; surge?: keyof FormRoll | null; spent?: string[] } {
-  if (save.appliedTx.includes(txId)) return { ok: false, error: "Giao dịch trùng lặp" };
-  const o = save.fishes.find((f) => f.uid === uid);
-  if (!o) return { ok: false, error: "Không tìm thấy cá" };
-  if (!canEvolveForm(fishById.get(o.fishId))) return { ok: false, error: "Chỉ cá Huyền Thoại, Thần Thoại và Boss mới đột biến được" };
-  if (o.form) return { ok: false, error: "Cá đã đột biến – không đổi sang dạng khác được nữa" };
-  if (pair[0] === pair[1] || !variants.length) return { ok: false, error: "Chỉ cá 2 hệ mới đột biến Song Hệ được" };
-  const spent = dualStoneCost(save.evoItems, pair[0], pair[1]);
-  if (!spent) return { ok: false, error: "Cần 1 Đá Tiến Hoá hệ chính + 1 viên hệ phụ (hoặc đá vạn năng)" };
-  const form = rng.pickWeighted(variants, (v) => v.weight ?? 1);
-  const { roll, surge } = rollFormBoost(rng);
-  const s = clone(save);
-  for (const id of spent) {
-    s.evoItems[id]! -= 1;
-    if (s.evoItems[id] === 0) delete s.evoItems[id];
-  }
-  const t = s.fishes.find((f) => f.uid === uid)!;
-  t.form = form.id;
-  t.formRoll = roll;
-  s.stats.formsSeen = [...new Set([...(s.stats.formsSeen ?? []), formSeenKey(t.fishId, form.id)])];
-  markTx(s, txId);
-  s.updatedAt = now;
-  return { ok: true, save: s, form, roll, surge, spent };
 }

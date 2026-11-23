@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.55.0] – 2026-11-23 – Biến dị cá song hệ theo từng Đá Tiến Hoá
+### Thay đổi
+- **Cá song hệ đột biến bằng 5 loại Đá Tiến Hoá như mọi cá** (Ngọc Long Hồn · Lõi Dung Nham · Tinh Thể Băng Hà · Sấm Thạch · Đá Tiến Hoá Thần) – mỗi viên ra **bộ dạng SONG HỆ riêng** của cặp hệ đó, ví dụ cá Kim–Mộc dùng Lõi Dung Nham → Hỏa Viêm / Lục Hỏa / Lam Hỏa / Hắc Hỏa / Kim Hỏa **Thiết-Mộc**.
+  - 21 cặp hệ × 24 dạng = **504 dạng** song hệ, cùng cấp bậc & tỉ lệ ra như dạng gốc, **mạnh hơn ~10%**, cá giữ hệ chính.
+  - Vẽ trên **chính dáng của từng loài cá lai hai hệ** (thân, đầu, sừng, gai, giáp giữ nguyên) + màu & hiệu ứng của viên đá, vây / vân / mắt màu hệ phụ, sắc hào quang hai hệ.
+  - Bộ Sưu Tập: các tab theo viên đá hiện đúng dạng song hệ của loài (ẩn đến khi mở).
+- Bỏ thẻ "☯ Song Hệ" riêng (tốn 2 đá) của bản 0.53; cá đã mang dạng Song Hệ cũ vẫn giữ nguyên dạng.
+
 ## [0.54.0] – 2026-11-23 – Tân Thủ x2 KN · Cần câu không giới hạn cấp
 ### Thêm
 - **Tân Thủ bắt kịp: người chơi DƯỚI cấp 30 nhận ×2 kinh nghiệm khi câu cá** (cả cá lẫn rác vớt được); đạt cấp 30 tự về bình thường. Màn câu cá hiện "⭐ x2 KN Tân Thủ (đến cấp 30)", kết quả câu ghi "+… KN (x2 Tân Thủ)".

@@ -2,8 +2,8 @@ import Phaser from "phaser";
 import { makeScrollArea } from "../ui/scrollArea.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { ECONOMY, ELEMENT_INFO, FISH_RARITY_COLOR, FISH_RARITY_LABEL, RARITY_ORDER } from "@dccc/game-config";
-import { DUAL_FORM_ITEM, EVO_ITEMS, EVO_ITEM_BY_ID, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, FORM_RANK_INFO, ZONE_BY_ID, dualFormsOf, speciesElements } from "@dccc/game-data";
-import { ELEMENT_EVO_ITEM, STAGE_NAMES, canAfford, canEvolveForm, dualStoneCost, formSeen, decomposeValue, fishGender, isBreedable, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type Element, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
+import { EVO_ITEMS, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, FORM_RANK_INFO, ZONE_BY_ID, formsForFish, speciesElements } from "@dccc/game-data";
+import { STAGE_NAMES, canAfford, canEvolveForm, formSeen, decomposeValue, fishGender, isBreedable, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type Element, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
 import { costText } from "./GearScene.ts";
 import { GameState } from "../state/GameState.ts";
 import { evoItemTexture, fishDisplayMult, fishSilhouetteTexture, fishTextureFor, formFishTexture, softGlowTexture } from "../art/textures.ts";
@@ -555,13 +555,14 @@ export class InventoryScene extends Phaser.Scene {
     const f = FISH_BY_ID.get(o.fishId)!;
     const pair = speciesElements(f);
     const dual = pair.length === 2;
-    const m = modal(this, dual ? 1240 : 1040, 600, `🧬 Đột biến – ${f.name}`, () => this.render());
+    const m = modal(this, 1040, 600, `🧬 Đột biến – ${f.name}`, () => this.render());
     m.root.add(txt(this, m.x + m.w / 2, m.y + 74, "Chọn 1 viên đá: đột biến CHẮC CHẮN thành công, ra ngẫu nhiên 1 dạng của viên đó (chỉ số tăng ngẫu nhiên – có thể VƯỢT BẬC). Cá GIỮ NGUYÊN hệ gốc; mỗi con chỉ đột biến 1 lần – sau đó 4 giai trưởng thành theo hướng dạng đột biến.", 16, { align: "center", weight: "700", color: COLORS.textDim, wrap: 960 }).setOrigin(0.5));
     EVO_ITEMS.filter((it) => (FORMS_BY_ITEM.get(it.id) ?? []).length > 0).forEach((it, i) => {
       const x = m.x + 20 + i * 202;
       const y = m.y + 104;
       const have = GameState.save.evoItems[it.id] ?? 0;
-      const variants = FORMS_BY_ITEM.get(it.id) ?? [];
+      // cá song hệ: mỗi viên đá ra bộ dạng SONG HỆ riêng của cặp hệ
+      const variants = formsForFish(f.id, it.id);
       const g = this.add.graphics();
       g.fillGradientStyle(0x1a1040, 0x1a1040, 0x0a0a1e, 0x0a0a1e, 1).fillRoundedRect(x, y, 192, 420, 16);
       g.lineStyle(3, hexToInt(it.glow), 0.9).strokeRoundedRect(x, y, 192, 420, 16);
@@ -572,7 +573,7 @@ export class InventoryScene extends Phaser.Scene {
       m.root.add(txt(this, x + 96, y + 156, "Có thể hóa thành:", 13, { align: "center", weight: "700", color: COLORS.textDim }).setOrigin(0.5));
       variants.forEach((v, k) => {
         m.root.add(this.add.image(x + 40, y + 186 + k * 34, formFishTexture(this, f, v)).setDisplaySize(52, 32));
-        m.root.add(txt(this, x + 72, y + 186 + k * 34, v.name, 14, { color: v.glow }).setOrigin(0, 0.5));
+        m.root.add(txt(this, x + 72, y + 186 + k * 34, dual ? v.name.replace(/ (\S+-\S+)$/, "\n$1") : v.name, dual ? 12 : 14, { color: v.glow }).setOrigin(0, 0.5).setLineSpacing(-2));
       });
       m.root.add(txt(this, x + 96, y + 362, `Có: ${have}`, 17, { align: "center", color: have ? "#b9f6ca" : "#ff8a80" }).setOrigin(0.5));
       const b = new Button(this, x + 96, y + 396, 170, 44, "Tiến hoá 100%", {
@@ -589,43 +590,7 @@ export class InventoryScene extends Phaser.Scene {
       b.on("disabled-click", () => toast(this, `Cần 1 ${it.name} – rơi cực hiếm khi câu cá (Boss ×3)`));
       m.root.add(b);
     });
-    if (dual) this.dualFormCard(m, o, f, pair as [Element, Element]);
-  }
-
-  /** Thẻ ĐỘT BIẾN SONG HỆ (cá 2 hệ): hệ chính + hệ phụ → 4 dạng Song Hệ, tốn 1 đá hệ chính + 1 đá hệ phụ. */
-  private dualFormCard(m: ReturnType<typeof modal>, o: OwnedFish, f: FishDef, pair: [Element, Element]) {
-    const [a, b] = pair;
-    const x = m.x + 20 + 5 * 202;
-    const y = m.y + 104;
-    const variants = dualFormsOf(a, b);
-    const g = this.add.graphics();
-    g.fillGradientStyle(0x2a0f3a, 0x2a0f3a, 0x0a0a1e, 0x0a0a1e, 1).fillRoundedRect(x, y, 192, 420, 16);
-    g.lineStyle(3, hexToInt(ELEMENT_INFO[a].color), 1).strokeRoundedRect(x, y, 192, 420, 16);
-    g.lineStyle(2, hexToInt(ELEMENT_INFO[b].color), 0.9).strokeRoundedRect(x + 5, y + 5, 182, 410, 13);
-    m.root.add(g);
-    m.root.add(elementBadges(this, x + 96, y + 52, { els: [a, b] }, 52));
-    m.root.add(txt(this, x + 96, y + 104, "☯ SONG HỆ", 20, { color: "#ea80fc", align: "center" }).setOrigin(0.5));
-    m.root.add(txt(this, x + 96, y + 130, `Chính ${ELEMENT_INFO[a].name} · Phụ ${ELEMENT_INFO[b].name}`, 13, { align: "center", weight: "700", color: COLORS.textDim, wrap: 180 }).setOrigin(0.5));
-    variants.forEach((v, k) => {
-      m.root.add(this.add.image(x + 40, y + 172 + k * 36, formFishTexture(this, f, v)).setDisplaySize(52, 32));
-      m.root.add(txt(this, x + 72, y + 172 + k * 36, `${v.name}\n${v.code} · ${v.weight}%`, 12, { color: v.glow }).setOrigin(0, 0.5));
-    });
-    const cost = dualStoneCost(GameState.save.evoItems, a, b);
-    const need = `${EVO_ITEM_BY_ID.get(ELEMENT_EVO_ITEM[a])?.name ?? "Đá hệ chính"} + ${EVO_ITEM_BY_ID.get(ELEMENT_EVO_ITEM[b])?.name ?? "Đá hệ phụ"}`;
-    m.root.add(txt(this, x + 96, y + 336, `Cần: ${need}\n(thiếu dùng đá vạn năng)`, 12, { align: "center", weight: "700", color: cost ? "#b9f6ca" : "#ff8a80", wrap: 180 }).setOrigin(0.5));
-    const btn = new Button(this, x + 96, y + 396, 170, 44, "Song Hệ 100%", {
-      color: COLORS.purple,
-      fontSize: 17,
-      disabled: !cost,
-      onClick: () => {
-        const r = GameState.applyDualForm(o.uid, pair);
-        if (!r.ok) return toast(this, r.error, COLORS.red);
-        m.close();
-        this.time.delayedCall(180, () => this.revealForm(o.uid, r.form!, r.roll!, r.surge ?? null));
-      },
-    });
-    btn.on("disabled-click", () => toast(this, `Cần 1 ${need} (thiếu thì dùng đá vạn năng / Đá Tiến Hoá Thần)`));
-    m.root.add(btn);
+    if (dual) m.root.add(txt(this, m.x + m.w / 2, m.y + 560, `☯ Cá SONG HỆ (chính ${ELEMENT_INFO[pair[0]!].name} · phụ ${ELEMENT_INFO[pair[1]!].name}): mỗi viên đá ra dạng song hệ riêng, mạnh hơn ~10%`, 15, { align: "center", weight: "700", color: "#ea80fc" }).setOrigin(0.5));
   }
 
   /** Màn khoe dạng đột biến mới + hệ số tăng từng chỉ số. */
@@ -767,20 +732,15 @@ export class InventoryScene extends Phaser.Scene {
   /** Các dạng đột biến của loài theo từng viên đá: cấp bậc, tỉ lệ, chỉ số chuyên tăng. */
   private showForms(f: FishDef, itemId: string) {
     const save = GameState.save;
-    const pair = speciesElements(f);
-    const dualForms = pair.length === 2 ? dualFormsOf(pair[0]!, pair[1]!) : [];
-    // tab Song Hệ (cá 2 hệ) như một "viên đá" ảo
-    const items = [
-      ...EVO_ITEMS.filter((it) => (FORMS_BY_ITEM.get(it.id) ?? []).length > 0),
-      ...(dualForms.length ? [{ id: DUAL_FORM_ITEM, name: "Song Hệ", icon: "☯", glow: "#ea80fc" } as (typeof EVO_ITEMS)[number]] : []),
-    ];
-    const formsOf = (id: string) => (id === DUAL_FORM_ITEM ? dualForms : (FORMS_BY_ITEM.get(id) ?? []));
+    const items = EVO_ITEMS.filter((it) => (FORMS_BY_ITEM.get(it.id) ?? []).length > 0);
+    // cá song hệ: bộ dạng song hệ riêng của từng viên đá
+    const formsOf = (id: string) => formsForFish(f.id, id);
     const all = items.flatMap((it) => formsOf(it.id));
     const opened = all.filter((fm) => formSeen(save, f.id, fm.id)).length;
     const m = modal(this, 1200, 620, `🧬 ${f.name} – đột biến đã mở ${opened}/${all.length}`);
     items.forEach((it, i) =>
       m.root.add(
-        new Button(this, m.x + 110 + i * (items.length > 5 ? 178 : 196), m.y + 92, items.length > 5 ? 170 : 186, 44, `${it.icon} ${it.name} ${formsOf(it.id).filter((fm) => formSeen(save, f.id, fm.id)).length}/${formsOf(it.id).length}`, {
+        new Button(this, m.x + 120 + i * 196, m.y + 92, 186, 44, `${it.icon} ${it.name} ${formsOf(it.id).filter((fm) => formSeen(save, f.id, fm.id)).length}/${formsOf(it.id).length}`, {
           color: it.id === itemId ? COLORS.orange : COLORS.blue,
           fontSize: 14,
           onClick: () => {

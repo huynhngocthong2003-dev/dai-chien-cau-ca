@@ -1,10 +1,10 @@
 import type { Element, FishFormDef, FormAura } from "@dccc/shared";
-import { EL, ORDER } from "./breeding.ts";
+import { EL, HYBRID_SPECIES_ELEMENTS, ORDER } from "./breeding.ts";
+import { FISH_FORMS as BASE_FORMS } from "./forms.ts";
 
 /**
- * BIẾN DỊ SONG HỆ – riêng cho cá 2 hệ (cá lai theo dòng): HỆ ĐẦU là HỆ CHÍNH, hệ thứ 2 là HỆ PHỤ.
- * Mỗi cặp hệ có 4 dạng hiếm dần (Thường 45% · Hiếm 30% · Cực Hiếm 18% · Thần Thoại 7%): thân màu hệ chính,
- * vây / vân / mắt / hào quang theo hệ phụ; cá GIỮ HỆ CHÍNH. Đột biến tốn 1 Đá Tiến Hoá hệ chính + 1 viên hệ phụ.
+ * DẠNG SONG HỆ CŨ (bản 0.53) – không còn đột biến ra được nữa, chỉ GIỮ LẠI để cá đã mang dạng này không mất dạng.
+ * Cá song hệ nay đột biến bằng 5 loại Đá Tiến Hoá như mọi cá, ra DẠNG SONG HỆ RIÊNG của từng viên (xem DUAL_STONE_FORMS).
  */
 export const DUAL_FORM_ITEM = "song_he";
 
@@ -49,7 +49,7 @@ const fmt = (x: number) => `×${x.toFixed(2).replace(/0$/, "").replace(".", ",")
 /** Khoá cặp hệ theo thứ tự dòng lai (hệ chính trước). */
 export const dualKey = (a: Element, b: Element) => `${a}_${b}`;
 
-export const DUAL_FORMS: FishFormDef[] = [];
+export const LEGACY_DUAL_FORMS: FishFormDef[] = [];
 ORDER.forEach((a, i) =>
   ORDER.slice(i + 1).forEach((b) => {
     const A = EL[a];
@@ -57,7 +57,7 @@ ORDER.forEach((a, i) =>
     for (const sp of SPECS) {
       const m = MULT[sp.focus];
       const what = sp.focus === "legend" ? "Toàn diện" : sp.focus === "all" ? "Cân bằng" : sp.focus === "hp" ? "Chuyên MÁU" : "Chuyên CÔNG";
-      DUAL_FORMS.push({
+      LEGACY_DUAL_FORMS.push({
         id: `sh_${dualKey(a, b)}_${sp.n}`,
         name: `${A.word} ${B.word} ${sp.suffix}`,
         itemId: DUAL_FORM_ITEM,
@@ -89,7 +89,61 @@ ORDER.forEach((a, i) =>
   }),
 );
 
-/** 4 dạng Song Hệ của cặp hệ (hệ chính, hệ phụ). */
-export function dualFormsOf(a: Element, b: Element): FishFormDef[] {
-  return DUAL_FORMS.filter((f) => f.id.startsWith(`sh_${dualKey(a, b)}_`));
+/**
+ * BIẾN DỊ CÁ SONG HỆ THEO TỪNG VIÊN ĐÁ: cá 2 hệ (hệ đầu = CHÍNH, hệ 2 = PHỤ) vẫn dùng 5 loại Đá Tiến Hoá
+ * (Ngọc Long Hồn · Lõi Dung Nham · Tinh Thể Băng Hà · Sấm Thạch · Đá Tiến Hoá Thần), nhưng mỗi viên ra BỘ DẠNG RIÊNG
+ * của cặp hệ đó: giữ phong cách & hiệu ứng của viên đá, thêm vây / vân / mắt màu hệ phụ, sắc hào quang hai hệ,
+ * mạnh hơn dạng 1 hệ ~10%. Cùng cấp bậc & tỉ lệ ra như dạng gốc. Cá GIỮ HỆ CHÍNH.
+ */
+export const DUAL_STONE_FORMS: FishFormDef[] = [];
+const r2 = (x: number) => Math.round(x * 100) / 100;
+ORDER.forEach((a, i) =>
+  ORDER.slice(i + 1).forEach((b) => {
+    const A = EL[a];
+    const B = EL[b];
+    for (const base of BASE_FORMS) {
+      const mult = { hp: r2(base.mult.hp * 1.1), atk: r2(base.mult.atk * 1.1), def: r2(base.mult.def * 1.1) };
+      const spdBonus = base.spdBonus + 2;
+      DUAL_STONE_FORMS.push({
+        ...base,
+        id: `${base.id}__${dualKey(a, b)}`,
+        name: `${base.name} ${A.word}-${B.word}`,
+        pair: dualKey(a, b),
+        mult,
+        spdBonus,
+        element: a,
+        look: {
+          ...base.look,
+          fin: B.fin,
+          pattern: base.look.pattern === "none" ? "stripes" : base.look.pattern,
+          patternColor: B.accent,
+          eyeColor: B.eye,
+          palette: [A.accent, B.accent, base.glow],
+        },
+        description: `【${base.code ?? ""} · ${base.weight ?? 0}%】 ${base.description.replace(/^【[^】]*】\s*/, "").split(".")[0]} – song hệ ${A.title} (chính) · ${B.title} (phụ). Máu ×${String(mult.hp).replace(".", ",")} · Công ×${String(mult.atk).replace(".", ",")} · Thủ ×${String(mult.def).replace(".", ",")} · Tốc +${spdBonus}.`,
+      });
+    }
+  }),
+);
+
+/** Cặp hệ (chính, phụ) của loài cá song hệ; null = cá 1 hệ. */
+export function dualPairOf(fishId: string): [Element, Element] | null {
+  const e = HYBRID_SPECIES_ELEMENTS[fishId];
+  return e && e.length === 2 ? [e[0]!, e[1]!] : null;
+}
+
+/** Các dạng đột biến một LOÀI cá có thể ra với viên đá itemId (cá song hệ → bộ dạng song hệ riêng). */
+export function formsForFish(fishId: string, itemId: string): FishFormDef[] {
+  const pair = dualPairOf(fishId);
+  if (!pair) return BASE_FORMS.filter((f) => f.itemId === itemId);
+  const k = dualKey(pair[0], pair[1]);
+  return DUAL_STONE_FORMS.filter((f) => f.pair === k && f.itemId === itemId);
+}
+
+/** Mọi dạng đột biến (theo mọi viên đá) của một loài cá. */
+export function formListForFish(fishId: string): FishFormDef[] {
+  const pair = dualPairOf(fishId);
+  if (!pair) return BASE_FORMS;
+  const k = dualKey(pair[0], pair[1]);
+  return DUAL_STONE_FORMS.filter((f) => f.pair === k);
 }

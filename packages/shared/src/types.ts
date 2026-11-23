@@ -158,6 +158,8 @@ export interface FishFormDef {
   focus?: "hp" | "atk" | "def" | "all";
   /** Ký hiệu cấp đột biến theo độ hiếm trong cùng viên đá: "ĐB-1" (phổ biến) … "ĐB-5" (hiếm nhất). */
   code?: string;
+  /** Dạng riêng của cá SONG HỆ: cặp hệ "chính_phụ" (vd "metal_wood"). Không có = dạng của cá 1 hệ. */
+  pair?: string;
 }
 
 export type FormRank = "common" | "rare" | "epic" | "legend";
