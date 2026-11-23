@@ -5,7 +5,8 @@ import { CHARACTER_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
 import type { PlayerSave } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { OnlineSaveStorage } from "../state/online.ts";
-import { characterHeadTexture } from "../art/textures.ts";
+import { characterHeadTexture, menuIconTexture } from "../art/textures.ts";
+import type { MenuIcon } from "../art/MenuIcons.ts";
 import { Bar, Button, formatNum, goTo, toast, txt } from "./widgets.ts";
 import { isFullscreen, toggleFullscreen } from "./fullscreen.ts";
 import { COLORS } from "./theme.ts";
@@ -69,25 +70,26 @@ export class TopBar extends Phaser.GameObjects.Container {
     }
     // tiền tệ + nguyên liệu
     const CW = 128;
-    const chip = (cx: number, icon: string, color: number) => {
+    // biểu tượng vẽ (cùng bộ với menu): đồng vàng, kim cương, đá nâng cấp, linh hồn
+    const chip = (cx: number, icon: MenuIcon, color: number) => {
       const cg = scene.add.graphics();
       cg.fillStyle(0x0a1628, 0.9).fillRoundedRect(cx, 18, CW, 40, 20);
       cg.lineStyle(2.5, color).strokeRoundedRect(cx, 18, CW, 40, 20);
-      const it = scene.add.text(cx + 6, 38, icon, { fontSize: "22px", padding: { top: 4 } }).setOrigin(0, 0.5);
+      const it = scene.add.image(cx + 20, 38, menuIconTexture(scene, icon)).setDisplaySize(32, 32);
       const t = txt(scene, cx + CW - 12, 38, "0", 20).setOrigin(1, 0.5);
       this.add([cg, it, t]);
       return t;
     };
     const x0 = W - 16 - safe - 4 * CW - 3 * 8;
-    this.goldT = chip(x0, "🪙", COLORS.gold);
-    this.gemT = chip(x0 + (CW + 8), "💎", COLORS.diamond);
+    this.goldT = chip(x0, "coin", COLORS.gold);
+    this.gemT = chip(x0 + (CW + 8), "diamond", COLORS.diamond);
     // bấm ô kim cương để nạp
     const gemHit = scene.add.zone(x0 + (CW + 8), 18, CW, 40).setOrigin(0).setInteractive({ useHandCursor: true });
     gemHit.on("pointerup", () => scene.scene.key !== "Topup" && goTo(scene, "Topup"));
-    const plus = txt(scene, x0 + (CW + 8) + 34, 38, "+", 22, { color: "#69f0ae" }).setOrigin(0.5);
+    const plus = txt(scene, x0 + (CW + 8) + 40, 38, "+", 22, { color: "#69f0ae" }).setOrigin(0.5);
     this.add([gemHit, plus]);
-    this.stoneT = chip(x0 + 2 * (CW + 8), "🔷", 0x7c4dff);
-    this.soulT = chip(x0 + 3 * (CW + 8), "🔮", 0xea80fc);
+    this.stoneT = chip(x0 + 2 * (CW + 8), "stone", 0x7c4dff);
+    this.soulT = chip(x0 + 3 * (CW + 8), "soul", 0xea80fc);
     // nút toàn màn hình
     const fsBtn = new Button(scene, x0 - 32, 38, 52, 48, isFullscreen() ? "🗗" : "⛶", {
       color: COLORS.blue,

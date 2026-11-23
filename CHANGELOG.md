@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.40.2] – 2026-11-23 – Biểu tượng tiền tệ vẽ mới
+### Thay đổi
+- Thanh tài nguyên trên cùng: **đồng vàng, kim cương, đá nâng cấp, linh hồn** dùng biểu tượng vẽ (cùng bộ với menu & Vòng Quay) thay emoji.
+
 ## [0.40.1] – 2026-11-23 – Vòng Quay may mắn
 ### Thay đổi
 - Ô **Lông Phượng Thần → Đá Tiến Hoá Vạn Năng** (ra ngẫu nhiên U Minh / Thánh Quang / Địa Mạch Thạch – dùng thay đá của mọi hệ). 4 đá theo hệ ghi rõ: Đá TH Thủy · Hỏa · Băng · Lôi.

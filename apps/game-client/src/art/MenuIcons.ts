@@ -575,7 +575,7 @@ function gemAt(ctx: CanvasRenderingContext2D, x: number, y: number, k: number, a
 }
 
 const PRIZE: Partial<Record<MenuIcon, (ctx: CanvasRenderingContext2D) => void>> = {
-  coin: (ctx) => coinAt(ctx, 64, 64, 40),
+  coin: (ctx) => coinAt(ctx, 64, 64, 52),
   coins: (ctx) => {
     coinAt(ctx, 44, 78, 28);
     coinAt(ctx, 84, 78, 28);
