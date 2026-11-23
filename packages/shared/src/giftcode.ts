@@ -64,6 +64,12 @@ export function redeemGiftCode(
       s.gold += reward.gold;
       addLedger(s, tx, "gold", reward.gold, `gift_code:${reward.id}`, now);
     }
+    // Đá Tiến Hoá tặng kèm (vd 5 Đá Tiến Hoá Thần)
+    for (const [id, n] of Object.entries(reward.evoItems ?? {})) {
+      if (!(n > 0)) continue;
+      s.evoItems[id] = (s.evoItems[id] ?? 0) + n;
+      addLedger(s, tx, "diamonds", 0, `gift_code:${reward.id}:${id}x${n}`, now);
+    }
     s.updatedAt = now;
     return { ok: true, save: s, reward };
   }

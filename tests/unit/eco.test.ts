@@ -174,3 +174,19 @@ describe("Cần câu không giới hạn cấp", () => {
     for (const r of RODS.filter((x) => x.unlock.kind === "gold")) expect(canUnlock(s, r.unlock).ok, r.id).toBe(true);
   });
 });
+
+describe("Mã quà tặng Đá Tiến Hoá", () => {
+  it("mã tặng Đá Tiến Hoá: cộng đúng số đá, mỗi tài khoản dùng 1 lần", async () => {
+    const { CATALOG, GIFT_REWARDS } = await import("@dccc/game-data");
+    const { createNewSave, hashGiftCode, redeemGiftCode } = await import("@dccc/shared");
+    const real = GIFT_REWARDS.find((g) => g.id === "g_da_than_5")!;
+    expect(real.evoItems).toEqual({ e_long_phuong_than: 5 });
+    // mã thử (không phải mã thật) cùng phần quà
+    const rewards = [{ ...real, codeHash: hashGiftCode("ma-thu-nghiem-1") }];
+    const s0 = createNewSave("p", "T", CATALOG, 1);
+    const r = redeemGiftCode(s0, "MA-THU-NGHIEM-1", { characters: CATALOG.characters, rods: CATALOG.rods, rewards }, 2);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.save.evoItems.e_long_phuong_than).toBe(5);
+    expect(redeemGiftCode(r.save, "ma-thu-nghiem-1", { characters: CATALOG.characters, rods: CATALOG.rods, rewards }, 3).ok).toBe(false);
+  });
+});

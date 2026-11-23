@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.57.1] – 2026-11-23
+### Thêm
+- **Mã quà tặng 5 Đá Tiến Hoá Thần** (Cài Đặt → 🎁 Mã quà; mỗi tài khoản dùng 1 lần). Mã quà tặng nay tặng được cả Đá Tiến Hoá; nhận xong hiện màn CHÚC MỪNG với phần quà.
+
 ## [0.57.0] – 2026-11-23 – Bóng Tối & Ánh Sáng áp chế hệ tự nhiên
 ### Thay đổi
 - **Bóng Tối & Ánh Sáng ÁP CHẾ 5 hệ tự nhiên** (Kim, Mộc, Thủy, Hỏa, Thổ): đánh hệ tự nhiên **×1,5**, bị hệ tự nhiên đánh chỉ **×0,75**. Bóng Tối ⇄ Ánh Sáng vẫn khắc lẫn nhau; vòng khắc Kim → Mộc → Thổ → Thủy → Hỏa → Kim giữ nguyên.

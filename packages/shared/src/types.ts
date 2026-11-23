@@ -189,6 +189,8 @@ export interface GiftRewardDef {
   label: string;
   diamonds?: number;
   gold?: number;
+  /** Đá Tiến Hoá tặng kèm: id vật phẩm → số lượng. */
+  evoItems?: Record<string, number>;
 }
 
 export interface ShopItemDef {

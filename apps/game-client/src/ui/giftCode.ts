@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { celebrateReward } from "./rewardCelebration.ts";
 import { screenRect } from "./wide.ts";
 import { RAINBOW, rainbowFrame, rainbowText } from "./rainbow.ts";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
@@ -50,6 +51,13 @@ export function openGiftCode(scene: Phaser.Scene, onDone?: () => void) {
           blendMode: Phaser.BlendModes.ADD,
         })
         .setDepth(960);
+      // quà có Đá Tiến Hoá → màn chúc mừng hiện từng món
+      if (r.reward.evoItems && Object.keys(r.reward.evoItems).length) {
+        // làm mới màn SAU khi đóng màn chúc mừng (làm mới ngay sẽ xoá mất màn chúc mừng)
+        const root = celebrateReward(scene, { diamonds: r.reward.diamonds, gold: r.reward.gold, evoItems: r.reward.evoItems }, "🎉 CHÚC MỪNG! 🎉", `Mã quà: ${r.reward.label}`);
+        root.once(Phaser.GameObjects.Events.DESTROY, () => onDone?.());
+        return;
+      }
       toast(scene, `🎁 Nhận ${r.reward.label}! 💎`, COLORS.green);
       onDone?.();
     }
