@@ -361,7 +361,7 @@ export class PlazaScene extends Phaser.Scene {
       const x = m.x + 130 + (i % 4) * 214;
       const y = m.y + 150 + Math.floor(i / 4) * 140;
       const b = new Button(this, x, y, 200, 128, "", { color: COLORS.panelLight, onClick: () => pick() });
-      const img = this.add.image(x, y - 20, fishTextureFor(this, fish, o.form ?? null, o.stars)).setDisplaySize(120, 75);
+      const img = this.add.image(x, y - 20, fishTextureFor(this, fish, o.form ?? null, o.stars, o.parents)).setDisplaySize(120, 75);
       const t = txt(this, x, y + 30, `${form ? `${form.name} ` : ""}${fish.name}\n${o.weightKg.toFixed(1)}kg · Lv.${o.level}`, 13, { align: "center", weight: "700" }).setOrigin(0.5);
       m.root.add([b, img, t]);
       const pick = () => {

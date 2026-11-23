@@ -26,7 +26,7 @@ const errs = [];
   await p.reload({ waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'));
   await p.waitForTimeout(600);
-  await p.mouse.click(92, 250);
+  await p.evaluate(() => window.__game.scene.getScene('Hub').scene.start('Race')); // Đua Cá nay nằm trong bảng menu
   await p.waitForFunction(() => window.__game.scene.isActive('Race'), null, { timeout: 8000 });
   await p.waitForTimeout(900);
   await p.screenshot({ path: `${out}/race-select.png` });

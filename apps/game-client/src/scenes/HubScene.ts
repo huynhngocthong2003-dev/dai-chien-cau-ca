@@ -128,6 +128,8 @@ export class HubScene extends Phaser.Scene {
       { icon: "⚙️", label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
       { icon: "⚔️", label: "Đấu Cá", color: COLORS.red, act: () => goTo(this, "DeathMatch") },
       { icon: "🥚", label: "Lai Tạo", color: COLORS.orange, act: () => goTo(this, "Breeding"), badge: breedBadge },
+      { icon: "🏁", label: "Đua Cá", color: COLORS.green, act: () => goTo(this, "Race") },
+      { icon: "🏙", label: "Quảng Trường", color: COLORS.orange, act: () => goTo(this, "Plaza") },
       { icon: "🎡", label: "Vòng Quay", color: COLORS.purple, act: () => goTo(this, "Wheel"), badge: s.daily.freeSpinUsed && s.daily.day === dayKey(Date.now()) ? undefined : "FREE" },
       { icon: "📜", label: "Nhiệm Vụ", color: COLORS.purple, act: () => goTo(this, "Quests"), badge: questBadge },
       { icon: "🎉", label: "Sự Kiện", color: COLORS.orange, act: () => this.openEvents(), badge: eventsLeft ? "!" : undefined },
@@ -138,8 +140,8 @@ export class HubScene extends Phaser.Scene {
       const col = i % 3;
       const row = Math.floor(i / 3);
       const bx = 914 + col * 136;
-      const by = 156 + row * 114;
-      const b = new Button(this, bx, by, 126, 104, it.label, {
+      const by = 150 + row * 110;
+      const b = new Button(this, bx, by, 126, 100, it.label, {
         color: it.color,
         icon: it.icon,
         iconKey: it.iconKey,
@@ -162,7 +164,7 @@ export class HubScene extends Phaser.Scene {
     wc.setDepth(20);
     // Hòm Thư hệ thống (thư đền bù / thông báo) – có thư chưa đọc thì tự mở 1 lần
     if (GameState.online) {
-      const mb = new Button(this, 92 - extraX(this) + safeX(this), 310, 150, 50, "📬 Hòm Thư", { color: COLORS.purple, fontSize: 18, onClick: () => void openMail(false) });
+      const mb = new Button(this, 92 - extraX(this) + safeX(this), 190, 150, 50, "📬 Hòm Thư", { color: COLORS.purple, fontSize: 18, onClick: () => void openMail(false) });
       mb.setDepth(20);
       const pending = (mails: Social.SystemMail[]) =>
         mails.filter((x) => !x.read_at || (x.rewards && !mailRewardEmpty(x.rewards) && !x.claimed_at && !mailRewardClaimed(GameState.save, x.rewards))).length;
@@ -182,11 +184,7 @@ export class HubScene extends Phaser.Scene {
       };
       void openMail(true);
     }
-    // Quảng Trường: gặp gỡ, trò chuyện, khoe cá
-    const pz = new Button(this, 92 - extraX(this) + safeX(this), 190, 150, 50, "🏙 Quảng Trường", { color: COLORS.orange, fontSize: 17, onClick: () => goTo(this, "Plaza") });
-    pz.setDepth(20);
-    const rc = new Button(this, 92 - extraX(this) + safeX(this), 250, 150, 50, "🏁 Đua Cá", { color: COLORS.green, fontSize: 18, onClick: () => goTo(this, "Race") });
-    rc.setDepth(20);
+    // Quảng Trường & Đua Cá: đã đưa vào bảng menu bên phải
     if (GameState.online && !HubScene.socialSynced) {
       HubScene.socialSynced = true;
       void GameState.claimTopups()
@@ -350,6 +348,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.38.2 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.39.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

@@ -17,7 +17,8 @@ import {
   type OwnedFish,
 } from "@dccc/shared";
 
-const o = (uid: string, fishId: string): OwnedFish => ({ uid, fishId, weightKg: 100, zoneId: "z_ben_tan_thu", caughtAt: 1, level: 10, stars: 1, locked: false });
+const GENDER: Record<string, "m" | "f"> = { lao: "m", bao: "f", kra: "m", phu: "f", hac: "f", ro: "m" };
+const o = (uid: string, fishId: string): OwnedFish => ({ uid, fishId, weightKg: 100, zoneId: "z_ben_tan_thu", caughtAt: 1, level: 10, stars: 1, locked: false, gender: GENDER[uid] });
 const mkSave = () => {
   const s = createNewSave("p", "A", CATALOG, 1);
   s.fishes = [o("lao", "f_boss_lao_ngu"), o("bao", "f_boss_bao_chua_san_ho"), o("kra", "f_boss_thuy_quai_kraken"), o("phu", "f_phuong_hoang_bien"), o("ro", "f_ca_ro")];
@@ -68,9 +69,15 @@ describe("Đảo Lai Tạo – luồng chơi", () => {
     const s = mkSave();
     expect(startBreeding(s, { txId: "e1", parentUids: ["lao", "lao"], now: 0, seed: 1 }, BREEDING_RECIPES, FISH_BY_ID).ok).toBe(false);
     expect(startBreeding(s, { txId: "e1", parentUids: ["lao", "ro"], now: 0, seed: 1 }, BREEDING_RECIPES, FISH_BY_ID).ok).toBe(false);
+    // cùng giới tính (2 con cái) → không lai được
+    const same = startBreeding(s, { txId: "e1", parentUids: ["bao", "phu"], now: 0, seed: 1 }, BREEDING_RECIPES, FISH_BY_ID);
+    expect(!same.ok && same.error).toMatch(/đực/);
     const r = startBreeding(s, { txId: "e1", parentUids: ["bao", "lao"], now: 1000, seed: 7 }, BREEDING_RECIPES, FISH_BY_ID);
     if (!r.ok) throw new Error(r.error);
     expect(r.slot).toBe(0);
+    // chọn mẹ trước vẫn đúng: bố = con đực
+    expect(r.egg.parents).toEqual(["lao", "bao"]);
+    expect(r.egg.parentSpecies).toEqual(["f_boss_lao_ngu", "f_boss_bao_chua_san_ho"]);
     expect(r.egg.end - r.egg.start).toBe(30 * 60_000);
     expect(r.save.fishes).toHaveLength(5);
     // ổ 2, 3 còn khoá → hang đầy
@@ -107,6 +114,8 @@ describe("Đảo Lai Tạo – luồng chơi", () => {
     if (!h.ok) throw new Error(h.error);
     expect(h.fish.fishId).toBe(rollHatch(BREEDING_RECIPES[0]!, 99));
     expect(h.save.fishes).toHaveLength(6);
+    expect(h.fish.parents).toEqual(["f_boss_lao_ngu", "f_boss_bao_chua_san_ho"]);
+    expect(["m", "f"]).toContain(h.fish.gender);
     expect(breedingOf(h.save).slots[0]!.egg).toBeNull();
     // nở 2 lần không được
     expect(hatchEgg(h.save, { slot: 0, now: 70_000 }, BREEDING_RECIPES, FISH_BY_ID).ok).toBe(false);

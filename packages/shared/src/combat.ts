@@ -128,6 +128,8 @@ export interface CombatFish {
   elements?: Element[];
   /** Cá Gen Lặn: hệ ẩn (vẫn tính khắc chế; đối thủ chỉ thấy "?"). */
   hidden?: Element;
+  /** Cá lai: loài [bố, mẹ] (chỉ để vẽ). */
+  parents?: [string, string];
   level: number;
   stars: number;
   form: string | null;
@@ -193,6 +195,7 @@ export interface CombatFishInput {
   element: Element;
   elements?: Element[];
   hidden?: Element;
+  parents?: [string, string];
   form?: FishFormDef | null;
   formRoll?: FormRoll | null;
 }
@@ -208,6 +211,7 @@ export function makeCombatFish(i: CombatFishInput): CombatFish {
     element: i.element,
     ...(i.elements && i.elements.length > 1 ? { elements: [...i.elements] } : {}),
     ...(i.hidden ? { hidden: i.hidden } : {}),
+    ...(i.parents ? { parents: [...i.parents] as [string, string] } : {}),
     level: i.level,
     stars: i.stars,
     form: i.form?.id ?? null,

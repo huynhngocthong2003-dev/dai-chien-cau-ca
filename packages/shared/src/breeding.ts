@@ -77,7 +77,10 @@ export interface BreedRecipe {
 export interface EggState {
   id: string;
   recipeId: string;
+  /** [uid cá BỐ ♂, uid cá MẸ ♀]. */
   parents: [string, string];
+  /** Loài của [bố, mẹ] lúc đặt trứng (bố mẹ có bán đi vẫn vẽ được con). */
+  parentSpecies?: [string, string];
   /** Màu trứng phối từ cá bố (nửa trên) và cá mẹ (nửa dưới). */
   colors?: { a: string; b: string; spot: string };
   start: number;
@@ -103,6 +106,14 @@ export const SLOT_UNLOCK: ({ gold: number } | { diamonds: number } | null)[] = [
 export const SPEEDUP_MINUTES_PER_DIAMOND = 3;
 /** Chu kỳ thu hoạch của cá trong bể. */
 export const HARVEST_CYCLE_MS = 30 * 60_000;
+
+/** Giới tính của cá: lưu sẵn thì dùng, không thì suy CỐ ĐỊNH theo uid (mỗi con luôn 1 giới tính). */
+export function fishGender(o: { uid: string; gender?: "m" | "f" }): "m" | "f" {
+  if (o.gender === "m" || o.gender === "f") return o.gender;
+  let h = 2166136261;
+  for (let i = 0; i < o.uid.length; i++) h = Math.imul(h ^ o.uid.charCodeAt(i), 16777619);
+  return (h >>> 0) % 2 === 0 ? "m" : "f";
+}
 
 /** Cá được ở bể nuôi & được lai: từ Boss trở lên (Boss, Thần Thoại). */
 export const isBreedable = (def: FishDef | undefined): boolean => !!def && (def.rarity === "boss" || def.rarity === "mythic");
@@ -176,6 +187,9 @@ export function startBreeding(
   const b = save.fishes.find((f) => f.uid === ub);
   if (!a || !b) return { ok: false, error: "Cá bố mẹ không còn trong túi" };
   if (!isBreedable(fishById.get(a.fishId)) || !isBreedable(fishById.get(b.fishId))) return { ok: false, error: "Chỉ cá từ bậc Boss trở lên mới lai tạo được" };
+  if (fishGender(a) === fishGender(b)) return { ok: false, error: "Cần 1 cá đực ♂ (bố) và 1 cá cái ♀ (mẹ)" };
+  // bố = con đực, mẹ = con cái (thứ tự chọn không quan trọng)
+  const [dad, mom] = fishGender(a) === "m" ? [a, b] : [b, a];
   const recipe = recipeFor(a.fishId, b.fishId, recipes, fishById);
   if (!recipe) return { ok: false, error: "Cặp cá này chưa có công thức lai" };
   const st = breedingOf(save);
@@ -184,8 +198,9 @@ export function startBreeding(
   const egg: EggState = {
     id: input.txId,
     recipeId: recipe.id,
-    parents: [ua, ub],
-    colors: eggColorsFor(fishById.get(a.fishId), fishById.get(b.fishId), recipe.egg),
+    parents: [dad.uid, mom.uid],
+    parentSpecies: [dad.fishId, mom.fishId],
+    colors: eggColorsFor(fishById.get(dad.fishId), fishById.get(mom.fishId), recipe.egg),
     start: input.now,
     end: input.now + recipe.hatchMinutes * 60_000,
     seed: input.seed >>> 0,
@@ -274,6 +289,8 @@ export function hatchEgg(
     element: els[0]!,
     elements: els,
     ...(hidden ? { hiddenElement: hidden } : {}),
+    gender: rng.next() < 0.5 ? "m" : "f",
+    ...(egg.parentSpecies ? { parents: [...egg.parentSpecies] as [string, string] } : {}),
     weightKg: Math.round(rng.range(def.weightKg[0], def.weightKg[1]) * 100) / 100,
     zoneId: "z_dao_lai_tao",
     caughtAt: input.now,

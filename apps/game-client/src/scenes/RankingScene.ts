@@ -1,3 +1,4 @@
+import { makeScrollArea } from "../ui/scrollArea.ts";
 import Phaser from "phaser";
 import { CHARACTER_BY_ID, FISH_BY_ID, FORM_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
 import { rankTitle, teamPower, type RankCategory } from "@dccc/shared";
@@ -88,44 +89,42 @@ export class RankingScene extends Phaser.Scene {
     const c = this.frame();
     const unit = TABS.find((t) => t[0] === cat)![2];
     if (!rows.length) c.add(txt(this, 640, 400, "Chưa có ai trên bảng này. Hãy là người đầu tiên!", 22, { align: "center" }).setOrigin(0.5));
-    const per = 7;
-    const pages = Math.max(1, Math.ceil(rows.length / per));
-    rows.slice(this.page * per, this.page * per + per).forEach((r, i) => {
+    // danh sách cuộn được (thanh trượt / lăn chuột / vuốt)
+    const lc = this.add.container(0, 0);
+    c.add(lc);
+    let area: { dragged: () => boolean } | null = null;
+    rows.forEach((r, i) => {
       const y = 170 + i * 66;
       const me = r.user_id === GameState.online?.id;
       const g = this.add.graphics();
       g.fillStyle(me ? 0x2a5a8a : r.rank <= 3 ? 0x3a2f10 : 0x0a1628, 0.95).fillRoundedRect(40, y, 1200, 60, 12);
       g.lineStyle(2, me ? 0xffeb3b : 0x5fb3ff, 0.7).strokeRoundedRect(40, y, 1200, 60, 12);
-      c.add(g);
-      this.badge(c, 80, y + 30, r.rank);
+      lc.add(g);
+      this.badge(lc, 80, y + 30, r.rank);
       const ch = CHARACTER_BY_ID.get(r.avatar) ?? CHARACTER_BY_ID.get("c_be_tom")!;
-      c.add(this.add.image(140, y + 30, characterHeadTexture(this, ch, {})).setDisplaySize(48, 58));
-      c.add(txt(this, 176, y + 18, `${r.display_name}${r.guild_tag ? ` [${r.guild_tag}]` : ""}  · Lv.${r.level}`, 19).setOrigin(0, 0.5));
+      lc.add(this.add.image(140, y + 30, characterHeadTexture(this, ch, {})).setDisplaySize(48, 58));
+      lc.add(txt(this, 176, y + 18, `${r.display_name}${r.guild_tag ? ` [${r.guild_tag}]` : ""}  · Lv.${r.level}`, 19).setOrigin(0, 0.5));
       const t = r.title ? TITLE_BY_ID.get(r.title) : null;
-      if (t) c.add(txt(this, 176, y + 44, `${t.icon} ${t.name}`, 14, { weight: "700", color: t.color }).setOrigin(0, 0.5));
+      if (t) lc.add(txt(this, 176, y + 44, `${t.icon} ${t.name}`, 14, { weight: "700", color: t.color }).setOrigin(0, 0.5));
       const rt = rankTitle(cat, r.rank);
       if (rt) {
         const tt = txt(this, 760, y + 30, `${rt.icon} ${rt.name}`, 18, { color: rt.color, align: "center" }).setOrigin(0.5);
-        c.add(tt);
+        lc.add(tt);
         if (r.rank === 1) this.tweens.add({ targets: tt, scale: 1.08, duration: 600, yoyo: true, repeat: -1 });
       }
-      c.add(txt(this, 1210, y + 30, `${formatNum(r.score)} ${unit}`, 22, { color: COLORS.textGold }).setOrigin(1, 0.5));
+      lc.add(txt(this, 1210, y + 30, `${formatNum(r.score)} ${unit}`, 22, { color: COLORS.textGold }).setOrigin(1, 0.5));
       // bấm vào dòng để xem trang cá nhân
       const z = this.add.zone(640, y + 30, 1200, 60).setInteractive({ useHandCursor: true });
-      z.on("pointerup", () => void openPlayerProfile(this, r.user_id, `Hạng #${r.rank} ${TABS.find((t) => t[0] === cat)![1]}`));
-      c.add(z);
+      z.on("pointerup", () => !area?.dragged() && void openPlayerProfile(this, r.user_id, `Hạng #${r.rank} ${TABS.find((t) => t[0] === cat)![1]}`));
+      lc.add(z);
     });
+    area = makeScrollArea(this, c, lc, { left: 36, right: 1262, top: 166, bottom: 660, trackX: 1256, contentH: rows.length * 66 + 10, scroll: 0, onScroll: () => undefined });
     c.add(txt(this, 640, 160, "👆 Bấm vào người chơi để xem trang cá nhân", 13, { weight: "700", color: COLORS.textDim, align: "center" }).setOrigin(0.5));
     const myT = mine ? rankTitle(cat, mine) : null;
     const myTeam = cat === "teamPower" ? ` · Đội hình của bạn ⚔ ${formatNum(teamPower(GameState.save, FISH_BY_ID, FORM_BY_ID))}` : "";
     c.add(
       txt(this, 60, 682, mine ? `Hạng của bạn: #${mine}${myT ? ` – ${myT.icon} ${myT.name}` : " – lọt Top 10 để nhận danh hiệu!"}${myTeam}` : `Bạn chưa có điểm ở bảng này${myTeam}`, 17, { color: "#80d8ff" }).setOrigin(0, 0.5),
     );
-    if (pages > 1) {
-      c.add(new Button(this, 1060, 682, 60, 40, "◀", { color: COLORS.blue, disabled: this.page === 0, onClick: () => ((this.page -= 1), this.renderRows(cat, rows, mine)) }));
-      c.add(txt(this, 1130, 682, `${this.page + 1}/${pages}`, 18, { align: "center" }).setOrigin(0.5));
-      c.add(new Button(this, 1200, 682, 60, 40, "▶", { color: COLORS.blue, disabled: this.page >= pages - 1, onClick: () => ((this.page += 1), this.renderRows(cat, rows, mine)) }));
-    }
   }
 
   private renderGuilds(list: Social.GuildRow[]) {

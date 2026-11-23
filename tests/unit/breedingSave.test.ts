@@ -5,7 +5,7 @@ import { parseSave } from "@dccc/validation";
 
 describe("Bản lưu có dữ liệu Đảo Lai Tạo vẫn hợp lệ với máy chủ (parseSave)", () => {
   it("sau lai / tăng tốc / nở / thu hoạch: parseSave OK và giữ nguyên trứng, 2 hệ, hệ ẩn", () => {
-    const o = (uid: string, fishId: string, zoneId: string): OwnedFish => ({ uid, fishId, weightKg: 100, zoneId, caughtAt: 1, level: 10, stars: 1, locked: false });
+    const o = (uid: string, fishId: string, zoneId: string): OwnedFish => ({ uid, fishId, weightKg: 100, zoneId, caughtAt: 1, level: 10, stars: 1, locked: false, gender: uid === "lao" ? "m" : "f" });
     let s = createNewSave("p", "A", CATALOG, 1);
     s.fishes = [o("lao", "f_boss_lao_ngu", "z_ben_tan_thu"), o("bao", "f_boss_bao_chua_san_ho", "z_bien_nhiet_doi"), o("hac", "f_boss_hac_long", "z_vuc_sau")];
     s.diamonds = 500;

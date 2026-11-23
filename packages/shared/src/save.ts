@@ -23,6 +23,10 @@ export interface OwnedFish {
   elements?: Element[];
   /** Cá Gen Lặn: thêm 1 hệ ẩn (đối thủ chỉ thấy "?"). */
   hiddenElement?: Element;
+  /** Giới tính: ♂ "m" / ♀ "f". Thiếu → suy cố định theo uid (fishGender). */
+  gender?: "m" | "f";
+  /** Cá lai: loài của [cá bố, cá mẹ] – để vẽ dáng con theo bố mẹ. */
+  parents?: [string, string];
   weightKg: number;
   zoneId: string;
   caughtAt: number;

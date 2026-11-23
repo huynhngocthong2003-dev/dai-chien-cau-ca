@@ -1,3 +1,4 @@
+import { makeScrollArea } from "../ui/scrollArea.ts";
 import Phaser from "phaser";
 import { CHECKIN_REWARDS, EVO_ITEM_BY_ID, QUESTS, TITLES } from "@dccc/game-data";
 import { checkinState, questProgress, rewardText, titleProgress, type RewardDef } from "@dccc/shared";
@@ -143,14 +144,14 @@ export class QuestScene extends Phaser.Scene {
       const k = (t: (typeof TITLES)[number]) => (s.titles.owned.includes(t.id) ? 1 : titleProgress(s, t) >= t.target ? 0 : 2);
       return k(a) - k(b);
     });
-    const per = 7;
-    const pages = Math.ceil(list.length / per);
-    this.page = Math.min(this.page, pages - 1);
-    list.slice(this.page * per, this.page * per + per).forEach((t, i) => {
+    // danh sách danh hiệu cuộn được (thanh trượt / lăn chuột / vuốt)
+    const lc = this.add.container(0, 0);
+    c.add(lc);
+    list.forEach((t, i) => {
       const owned = s.titles.owned.includes(t.id);
       const p = titleProgress(s, t);
       const y = 214 + i * 66;
-      this.row(c, y, t.icon, t.name, `${t.description} · Quà: ${rw(t.reward)}`, p, t.target, owned ? "done" : p >= t.target ? "claim" : "todo", () => {
+      this.row(lc, y, t.icon, t.name, `${t.description} · Quà: ${rw(t.reward)}`, p, t.target, owned ? "done" : p >= t.target ? "claim" : "todo", () => {
         const r = GameState.claimTitle(t);
         if (!r.ok) return toast(this, r.error, COLORS.red);
         Sfx.catchFanfare(true);
@@ -160,13 +161,9 @@ export class QuestScene extends Phaser.Scene {
       }, hexToInt(t.color));
       if (owned) {
         const on = s.titles.equipped === t.id;
-        c.add(new Button(this, 1120, y + 32, 190, 48, on ? "Đang đeo ✓" : "Đeo danh hiệu", { color: on ? COLORS.orange : COLORS.purple, fontSize: 18, onClick: () => (GameState.equipTitle(t.id), this.render()) }));
+        lc.add(new Button(this, 1120, y + 32, 190, 48, on ? "Đang đeo ✓" : "Đeo danh hiệu", { color: on ? COLORS.orange : COLORS.purple, fontSize: 18, onClick: () => (GameState.equipTitle(t.id), this.render()) }));
       }
     });
-    if (pages > 1) {
-      c.add(new Button(this, 1060, 186, 60, 40, "◀", { color: COLORS.blue, disabled: this.page === 0, onClick: () => ((this.page -= 1), this.render()) }));
-      c.add(txt(this, 1130, 186, `${this.page + 1}/${pages}`, 18, { align: "center" }).setOrigin(0.5));
-      c.add(new Button(this, 1200, 186, 60, 40, "▶", { color: COLORS.blue, disabled: this.page >= pages - 1, onClick: () => ((this.page += 1), this.render()) }));
-    }
+    makeScrollArea(this, c, lc, { left: 36, right: 1262, top: 210, bottom: 706, trackX: 1256, contentH: list.length * 66 + 10, scroll: 0, onScroll: () => undefined });
   }
 }

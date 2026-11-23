@@ -210,7 +210,8 @@ function finRays(ctx: CanvasRenderingContext2D, base: Pt, pts: Pt[], color: stri
  * Vị trí đầu / mõm của con cá vừa vẽ (toạ độ thiết bị của canvas) – để lớp trang trí thể đột biến
  * (vương miện, vầng hào quang, râu rồng) bám đúng đầu cá theo dáng riêng của từng loài.
  */
-export let lastFishAnchors: { head: DOMPoint; nose: DOMPoint } | null = null;
+/** Điểm bám của con cá vừa vẽ (toạ độ khung): đầu, mõm, các điểm dọc sống lưng (kèm góc pháp tuyến ra ngoài), đuôi. */
+export let lastFishAnchors: { head: DOMPoint; nose: DOMPoint; back: { p: DOMPoint; ang: number }[]; tail: DOMPoint; bodyH: number } | null = null;
 export function resetFishAnchors() {
   lastFishAnchors = null;
 }
@@ -341,7 +342,23 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   {
     const tf = ctx.getTransform();
     const hp = topAt(g, 0.82);
-    lastFishAnchors = { head: tf.transformPoint(new DOMPoint(hp.x, hp.y)), nose: tf.transformPoint(new DOMPoint(g.nose.x, g.nose.y)) };
+    // các điểm dọc sống lưng (đuôi → gáy) + hướng ra ngoài thân, để gai / lửa của dạng đột biến mọc ĐÚNG theo dáng cá
+    const back = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.78].map((t) => {
+      const q = topAt(g, t, 0.92);
+      const s = at(g, t);
+      const p = tf.transformPoint(new DOMPoint(q.x, q.y));
+      const p2 = tf.transformPoint(new DOMPoint(q.x + s.n.x * 10, q.y + s.n.y * 10));
+      return { p, ang: Math.atan2(p2.y - p.y, p2.x - p.x) };
+    });
+    const t0 = g.spine[0]!.p;
+    const sc0 = Math.hypot(tf.a, tf.b);
+    lastFishAnchors = {
+      head: tf.transformPoint(new DOMPoint(hp.x, hp.y)),
+      nose: tf.transformPoint(new DOMPoint(g.nose.x, g.nose.y)),
+      back,
+      tail: tf.transformPoint(new DOMPoint(t0.x, t0.y)),
+      bodyH: g.bodyH * sc0,
+    };
   }
 
   const body = smooth(g.outline);

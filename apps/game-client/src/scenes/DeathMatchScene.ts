@@ -6,7 +6,7 @@ import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
 import { pvpCall, type PvpRoom, type PvpStake } from "../state/pvp.ts";
 import { characterHeadTexture, roastedFishTexture } from "../art/textures.ts";
-import { fishPickCard } from "../ui/fishPickCard.ts";
+import { fishPickCard, fishPickGrid } from "../ui/fishPickCard.ts";
 import { htmlOverlay } from "../ui/htmlOverlay.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
@@ -25,7 +25,7 @@ type Mode = "arena" | "pvp" | "roasted";
 export class DeathMatchScene extends Phaser.Scene {
   private mode: Mode = "arena";
   private team: string[] = [];
-  private page = 0;
+  private pickScroll = 0;
   private opponent: Social.PlayerCard | null = null;
   private stake: PvpStake = "death";
   private friends: Social.PlayerCard[] | null = null;
@@ -94,29 +94,29 @@ export class DeathMatchScene extends Phaser.Scene {
 
   private renderPicker(c: Phaser.GameObjects.Container) {
     const list = this.candidates();
-    const per = 12;
-    const pages = Math.max(1, Math.ceil(list.length / per));
-    this.page = Math.min(this.page, pages - 1);
     c.add(txt(this, 20, 152, `Chọn 3 cá theo thứ tự ra sân (${list.length} cá – cá khoá 🔒 được bảo vệ)`, 15, { weight: "700", color: COLORS.textDim }));
     if (list.length < 3) {
       c.add(txt(this, 420, 300, "Cần ít nhất 3 con cá không khoá.\nHãy đi câu thêm!", 26, { align: "center" }).setOrigin(0.5));
       return;
     }
-    list.slice(this.page * per, this.page * per + per).forEach((o, i) => {
-      const x = 20 + (i % 6) * 136;
-      const y = 178 + Math.floor(i / 6) * 150;
-      const idx = this.team.indexOf(o.uid);
-      this.fishCard(c, x, y, 128, 142, o, () => {
+    fishPickGrid(this, c, list, {
+      left: 20,
+      right: 842,
+      top: 172,
+      bottom: 480,
+      cardW: 128,
+      cardH: 142,
+      scroll: this.pickScroll,
+      onScroll: (v) => (this.pickScroll = v),
+      badge: (o) => (this.team.includes(o.uid) ? String(this.team.indexOf(o.uid) + 1) : undefined),
+      onPick: (o) => {
+        const idx = this.team.indexOf(o.uid);
         if (idx >= 0) this.team.splice(idx, 1);
         else if (this.team.length < 3) this.team.push(o.uid);
         else return toast(this, "Đã đủ 3 con. Bấm vào ô bên dưới để bỏ bớt.");
         this.render();
-      }, idx >= 0 ? String(idx + 1) : undefined);
+      },
     });
-    if (pages > 1) {
-      c.add(new Button(this, 700, 152, 56, 32, "◀", { color: COLORS.blue, fontSize: 16, disabled: this.page === 0, onClick: () => ((this.page -= 1), this.render()) }));
-      c.add(new Button(this, 770, 152, 56, 32, "▶", { color: COLORS.blue, fontSize: 16, disabled: this.page >= pages - 1, onClick: () => ((this.page += 1), this.render()) }));
-    }
   }
 
   private renderSlots(c: Phaser.GameObjects.Container) {

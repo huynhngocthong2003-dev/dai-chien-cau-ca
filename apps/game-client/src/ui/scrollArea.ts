@@ -27,7 +27,9 @@ export function makeScrollArea(scene: Phaser.Scene, parent: Phaser.GameObjects.C
   maskG.fillStyle(0xffffff).fillRect(o.left, o.top, o.right - o.left, viewH);
   content.setMask(maskG.createGeometryMask());
   parent.once(Phaser.GameObjects.Events.DESTROY, () => maskG.destroy());
-  const zones = () => content.list.filter((x): x is Phaser.GameObjects.Zone => x instanceof Phaser.GameObjects.Zone);
+  // mọi thứ bấm được trong danh sách (ô, nút): che khuất thì không bấm được
+  const zones = () =>
+    content.list.filter((x) => !!(x as unknown as { input?: unknown }).input) as unknown as { y: number; height: number; input: { enabled: boolean } | null }[];
   const track = scene.add.graphics();
   const thumb = scene.add.graphics();
   parent.add([track, thumb]);

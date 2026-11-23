@@ -203,7 +203,14 @@ describe("Thể tiến hóa đột biến", () => {
     const boss = FISHES.find((f) => f.rarity === "boss")!;
     const item = EVO_ITEM_BY_ID.get("e_loi_dung_nham")!;
     const variants = FORMS_BY_ITEM.get(item.id)!;
-    expect(variants.map((v) => v.name)).toEqual(["Hỏa Viêm", "Hắc Viêm", "Lam Viêm", "Kim Viêm", "Lục Quỷ Hỏa"]);
+    expect(variants.map((v) => v.name)).toEqual(["Hỏa Viêm", "Lục Hỏa", "Lam Hỏa", "Hắc Hỏa", "Kim Hỏa"]);
+    // cấp bậc hiếm dần, mỗi dạng chuyên một chỉ số, cùng hệ viên đá
+    expect(variants.map((v) => v.rank)).toEqual(["common", "rare", "rare", "epic", "legend"]);
+    expect(variants.map((v) => v.weight)).toEqual([45, 27, 15, 10, 3]);
+    expect(variants.find((v) => v.name === "Lục Hỏa")!.mult.hp).toBeGreaterThan(2);
+    expect(variants.find((v) => v.name === "Lam Hỏa")!.mult.def).toBeGreaterThan(2);
+    expect(variants.find((v) => v.name === "Hắc Hỏa")!.mult.atk).toBeGreaterThan(2);
+    expect(variants.every((v) => v.element === "fire")).toBe(true);
     let s = saveWith([owned("a", boss.id, 5), owned("n", "f_ca_loc", 5)]);
     expect(applyForm(s, "a", item, FISH_FORMS, "t0", 1, FISH_BY_ID, new Rng(1)).ok).toBe(false); // chưa có vật phẩm
     for (let i = 0; i < 80; i++) {
@@ -255,7 +262,7 @@ describe("Thể tiến hóa đột biến", () => {
       expect(low).toBeGreaterThan(base * 1.15);
     }
     // vượt bậc: cùng dạng nhưng công ×2,4 phần tăng → mạnh hơn hẳn
-    const hoa = FORM_BY_ID.get("hoa")!;
+    const hoa = FORM_BY_ID.get("hoa_hac")!; // Hắc Hỏa – chuyên Công
     const avg = fishStats(boss, 5, 1, hoa, { hp: 1, atk: 1, def: 1 });
     const surge = fishStats(boss, 5, 1, hoa, { hp: 1, atk: 2.4, def: 1 });
     expect(surge.atk).toBeGreaterThan(avg.atk * 1.5);
@@ -312,5 +319,21 @@ describe("Đảo góc nhìn trận (bên bị thách đấu)", () => {
     expect(f0.side).toBe(1 - e0.side);
     if (e0.t === "attack" && f0.t === "attack") expect(f0.hp).toEqual([e0.hp[1], e0.hp[0]]);
     expect(flipMatch(f)).toEqual(m);
+  });
+});
+
+describe("Biến dị có cấp bậc", () => {
+  it("tỷ lệ ra đúng trọng số (Thường ~45% … Thần Thoại ~3%)", async () => {
+    const { FISH_FORMS: FF, EVO_ITEMS: EI } = await import("@dccc/game-data");
+    const { Rng: R } = await import("@dccc/shared");
+    const item = EI.find((i) => i.id === "e_loi_dung_nham")!;
+    const own = FF.filter((v) => v.itemId === item.id);
+    const r = new R(77);
+    const n: Record<string, number> = {};
+    for (let i = 0; i < 20000; i++) {
+      const f = r.pickWeighted(own, (v) => v.weight ?? 1);
+      n[f.id] = (n[f.id] ?? 0) + 1;
+    }
+    for (const v of own) expect(Math.abs((n[v.id] ?? 0) / 200 - v.weight!)).toBeLessThan(1.5);
   });
 });

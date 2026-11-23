@@ -7,7 +7,7 @@ import { Button, fadeIn, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
-import { fishPickCard, fishPower } from "../ui/fishPickCard.ts";
+import { fishPickCard, fishPickGrid, fishPower } from "../ui/fishPickCard.ts";
 import { Sfx } from "../audio/Sfx.ts";
 
 const POLL_MS = 1000;
@@ -20,7 +20,7 @@ export class PvpRoomScene extends Phaser.Scene {
   private room!: PvpRoom;
   private inviteeName: string | null = null;
   private team: string[] = [];
-  private page = 0;
+  private pickScroll = 0;
   private body?: Phaser.GameObjects.Container;
   private clock?: Phaser.GameObjects.Text;
   private oppT?: Phaser.GameObjects.Text;
@@ -37,7 +37,7 @@ export class PvpRoomScene extends Phaser.Scene {
     this.room = data.room;
     this.inviteeName = data.inviteeName ?? null;
     this.team = [];
-    this.page = 0;
+    this.pickScroll = 0;
     this.lastKey = "";
     this.polling = false;
     this.sending = false;
@@ -88,7 +88,7 @@ export class PvpRoomScene extends Phaser.Scene {
   private render() {
     const r = this.room;
     // chỉ vẽ lại khi trạng thái hiển thị đổi (tránh nhấp nháy mỗi giây)
-    const key = `${r.status}|${r.oppName}|${r.oppPicked}|${r.myTeam?.join(",")}|${this.team.join(",")}|${this.page}`;
+    const key = `${r.status}|${r.oppName}|${r.oppPicked}|${r.myTeam?.join(",")}|${this.team.join(",")}|${this.pickScroll}`;
     if (key === this.lastKey) return;
     this.lastKey = key;
     if (r.status === "fighting" || r.status === "done") {
@@ -179,26 +179,28 @@ export class PvpRoomScene extends Phaser.Scene {
 
   private renderPicker(c: Phaser.GameObjects.Container) {
     const list = this.candidates();
-    const per = 12;
-    const pages = Math.max(1, Math.ceil(list.length / per));
-    this.page = Math.min(this.page, pages - 1);
     if (list.length < 3) {
       c.add(txt(this, 420, 300, "Cần ít nhất 3 con cá không khoá.", 26, { align: "center" }).setOrigin(0.5));
       return;
     }
-    list.slice(this.page * per, this.page * per + per).forEach((o, i) => {
-      const idx = this.team.indexOf(o.uid);
-      fishPickCard(this, c, 20 + (i % 6) * 136, 130 + Math.floor(i / 6) * 150, 128, 142, o, () => {
+    fishPickGrid(this, c, list, {
+      left: 20,
+      right: 842,
+      top: 124,
+      bottom: 462,
+      cardW: 128,
+      cardH: 142,
+      scroll: this.pickScroll,
+      onScroll: (v) => (this.pickScroll = v),
+      badge: (o) => (this.team.includes(o.uid) ? String(this.team.indexOf(o.uid) + 1) : undefined),
+      onPick: (o) => {
+        const idx = this.team.indexOf(o.uid);
         if (idx >= 0) this.team.splice(idx, 1);
         else if (this.team.length < 3) this.team.push(o.uid);
         else return toast(this, "Đã đủ 3 con. Bấm lại để bỏ bớt.");
         this.render();
-      }, idx >= 0 ? String(idx + 1) : undefined);
+      },
     });
-    if (pages > 1) {
-      c.add(new Button(this, 700, 450, 56, 36, "◀", { color: COLORS.blue, fontSize: 16, disabled: this.page === 0, onClick: () => ((this.page -= 1), this.render()) }));
-      c.add(new Button(this, 770, 450, 56, 36, "▶", { color: COLORS.blue, fontSize: 16, disabled: this.page >= pages - 1, onClick: () => ((this.page += 1), this.render()) }));
-    }
     c.add(txt(this, 20, 470, "Đội hình (thứ tự xuất trận)", 18, { color: COLORS.textGold }));
     for (let i = 0; i < 3; i++) {
       const o = this.team[i] ? GameState.save.fishes.find((f) => f.uid === this.team[i]) : undefined;

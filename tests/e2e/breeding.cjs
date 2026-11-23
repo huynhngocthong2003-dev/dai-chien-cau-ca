@@ -19,7 +19,7 @@ const errs = [];
   await p.waitForFunction(() => window.__ready && window.__game.scene.isActive('Hub'), null, { timeout: 30000 });
   await p.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('dccc_save_v1'));
-    const mk = (uid, fishId, level, zoneId = 'z_ben_tan_thu') => ({ uid, fishId, weightKg: 500, zoneId, caughtAt: 1, level, stars: 1, locked: false });
+    const mk = (uid, fishId, level, zoneId = 'z_ben_tan_thu') => ({ uid, fishId, weightKg: 500, zoneId, caughtAt: 1, level, stars: 1, locked: false, gender: uid === 'lao' ? 'm' : 'f' });
     s.level = 40; s.diamonds = 200; s.gold = 10000;
     s.fishes = [mk('lao', 'f_boss_lao_ngu', 30), mk('bao', 'f_boss_bao_chua_san_ho', 30, 'z_bien_nhiet_doi'), mk('hac', 'f_boss_hac_long', 28, 'z_vuc_sau'), mk('ro', 'f_ca_ro', 5)];
     delete s.breeding;

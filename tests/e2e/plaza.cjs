@@ -38,6 +38,7 @@ const db = { presence: new Map(), world: [], deletes: 0 };
     }
     if (path.startsWith('/rest/v1/rpc/')) return json(200, path.endsWith('unread_counts') || path.endsWith('claim_topups') ? [] : null);
     if (path.startsWith('/rest/v1/')) return json(200, []);
+    if (path === '/functions/v1/pvp') return json(200, { rooms: [] }); // kết toán trận 3vs3 khi vào game
     return json(404, {});
   });
   await p.addInitScript((uid) => localStorage.setItem('dccc_auth', JSON.stringify({ access_token: 'tok', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'r', user: { id: uid, aud: 'authenticated', role: 'authenticated', email: 'a@test', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } })), UID);
@@ -50,7 +51,7 @@ const db = { presence: new Map(), world: [], deletes: 0 };
     void gs;
   });
   // nút 🏙 Quảng Trường ở sảnh
-  await p.mouse.click(92, 190);
+  await p.evaluate(() => window.__game.scene.getScene('Hub').scene.start('Plaza')); // Quảng Trường nay nằm trong bảng menu
   await p.waitForFunction(() => window.__game.scene.isActive('Plaza'), null, { timeout: 8000 });
   await p.waitForTimeout(3500);
   const sc = () => p.evaluate(() => {

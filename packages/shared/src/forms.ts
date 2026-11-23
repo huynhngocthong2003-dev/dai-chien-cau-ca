@@ -71,8 +71,8 @@ export function applyForm(
   if ((save.evoItems[item.id] ?? 0) < 1) return { ok: false, error: `Cần 1 ${item.name} – vật phẩm cực hiếm khi câu cá` };
   const own = variants.filter((v) => v.itemId === item.id);
   if (!own.length) return { ok: false, error: "Vật phẩm này chưa có dạng đột biến" };
-  const pool = own;
-  const form = pool[rng.int(0, pool.length - 1)]!;
+  // dạng hiếm hơn có trọng số thấp hơn (Thường 45% … Thần Thoại 3%)
+  const form = own.some((v) => v.weight) ? rng.pickWeighted(own, (v) => v.weight ?? 1) : own[rng.int(0, own.length - 1)]!;
   const { roll, surge } = rollFormBoost(rng);
   const s = clone(save);
   s.evoItems[item.id]! -= 1;

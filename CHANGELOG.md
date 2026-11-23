@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.39.0] – 2026-11-23 – Hình cá Boss mới, cá lai theo bố mẹ, giới tính, biến dị có cấp bậc
+### Thêm / Thay đổi
+- **21 loài Boss & Thần Thoại mỗi loài một kiểu dáng riêng** (cá trê già, cá mập đầu búa, rồng cuộn, kỳ lân biển mõm kiếm, rắn biển, cá vây tay cổ đại, cá voi, cá nóc bông…) + **nét nhận diện luôn hiện** (gạc, vương miện pha lê, mào lửa, bờm, mây, vây cánh), lớn & đẹp dần theo giai.
+- **Cá lai mang dáng của chính bố & mẹ**: đầu/mõm/mắt/râu/nét đầu theo BỐ, đuôi/vây/bờm/mây theo MẸ, tỉ lệ thân mới, thân pha màu 2 bên; con của Kraken có xúc tu; bậc lai cao dùng bộ tiến hoá (Siêu Boss ~ Trung Giai … Gen Lặn ~ Thánh Giai). Hiện đúng ở Kho Cá, thẻ chọn, Đảo Lai Tạo, trận 3vs3, Quảng Trường.
+- **Giới tính ♂ / ♀**: mỗi con cá 1 giới tính cố định (cá cũ gán theo mã cá, không đổi). Lai tạo cần **1 đực (bố) + 1 cái (mẹ)**; ô Bố ♂ / Mẹ ♀ tự xếp theo giới tính. Cá nở ra có giới tính ngẫu nhiên.
+- **Biến dị theo hệ có cấp bậc** (giữ hệ viên đá): mỗi viên đá 5 dạng – Thường 45% (cân bằng) · Hiếm 27% (chuyên MÁU) · Hiếm 15% (chuyên THỦ) · Cực Hiếm 10% (chuyên CÔNG) · Thần Thoại 3% (toàn diện + tốc). Ví dụ Lõi Dung Nham: Hỏa Viêm · Lục Hỏa · Lam Hỏa · Hắc Hỏa · Kim Hỏa. Lông Phượng Thần: 4 dạng thần mạnh hơn. *Cá đã đột biến đổi chỉ số theo bảng mới.*
+- **Gai / lửa biến dị mọc theo sống lưng thật của từng loài**, to dần theo giai (Sơ ×0,85 → Thánh ×1,3).
+- **Bộ Sưu Tập**: phân nhóm theo cấp bậc (Boss → Thường, kèm số đã khám phá); cá Boss/Thần Thoại/Huyền Thoại có nút **🌱 Các giai tiến hoá** (4 giai) và **🧬 Các dạng đột biến** (theo từng viên đá: cấp bậc, tỉ lệ, chỉ số).
+- **Đua Cá** và **Quảng Trường** vào bảng menu ở sảnh.
+- **Danh sách có thanh trượt** (thay lật trang): Kho Cá, chọn đội Đấu Cá, phòng đấu người, Lai Tạo, Bảng Xếp Hạng, Danh Hiệu.
+### Kiểm thử
+- 229 unit test (mới: giới tính khi lai, loài bố mẹ lưu ở cá con, biến dị có cấp bậc & tỷ lệ 45/27/15/10/3 trên 20.000 lần); E2E Đảo Lai Tạo, 3vs3, Đấu Cá, Bộ Sưu Tập, Kho Cá chọn nhiều, Đua Cá, Tài khoản, câu cá. E2E Quảng Trường chập chờn từ trước (lỗi cả ở bản cũ) – theo dõi riêng.
+
 ## [0.38.2] – 2026-11-23 – Sửa lỗi hiệu ứng cá đột biến / trưởng thành
 ### Sửa
 - Cá đã **Tiến hoá hệ (đột biến)** và cá **trưởng thành** (Trung/Cao/Thánh Giai): hào quang, tia sét, mây vẽ tràn khung hình bị cắt thành **vệt màu vuông** trong ô Kho Cá / chọn đội → nay mép hình mờ dần tròn mềm.

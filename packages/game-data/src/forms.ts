@@ -17,7 +17,7 @@ const L = (body: string, belly: string, fin: string, eyeColor: string, aura: Fis
 });
 
 /** Mỗi vật phẩm → 2–3 dạng cùng hệ, ra ngẫu nhiên; dạng nào cũng mạnh hơn hẳn cá thường. */
-export const FISH_FORMS: FishFormDef[] = [
+const RAW_FORMS: FishFormDef[] = [
   // ——— Ngọc Long Hồn
   { id: "long", name: "Thanh Long", itemId: "e_ngoc_long_hon", mult: { hp: 1.65, atk: 1.55, def: 1.35 }, spdBonus: 6, element: "water", glow: "#1de9b6",
     look: L("#00897b", "#b2dfdb", "#26c6da", "#ffeb3b", "dragon", { horns: true, spikes: true }), description: "Rồng xanh thủy cung: râu rồng, sừng ngọc, vảy phát sáng. HP ×1,65 · Công ×1,55." },
@@ -72,3 +72,88 @@ export const FISH_FORMS: FishFormDef[] = [
   { id: "than_hai", name: "Hải Thần Ngư", itemId: "e_long_phuong_than", mult: { hp: 2.4, atk: 2.05, def: 2.2 }, spdBonus: 16, element: "water", glow: "#00b0ff",
     look: L("#0d47a1", "#e3f2fd", "#40c4ff", "#ffd600", "angel", { pattern: "scales", palette: ["#e1f5fe", "#40c4ff", "#ffd600"] }), description: "Thần biển với đôi cánh sóng và vương miện vàng. HP ×2,4 · hệ Nước." },
 ];
+
+// =====================================================================================
+// BIẾN DỊ THEO HỆ CÓ CẤP BẬC: mỗi viên đá ra 5 dạng cùng hệ viên đá, hiếm dần, mỗi dạng
+// CHUYÊN TĂNG một chỉ số (vd Lõi Dung Nham: Hỏa Viêm cân bằng · Lục Hỏa máu · Lam Hỏa thủ ·
+// Hắc Hỏa công · Kim Hỏa toàn diện). Lông Phượng Thần: 4 dạng thần, mạnh hơn hẳn.
+// =====================================================================================
+type Focus = NonNullable<FishFormDef["focus"]>;
+type Rank = NonNullable<FishFormDef["rank"]>;
+
+/** Hệ số theo chỉ số chuyên tăng (phần thường) – thần vật ×1,3. */
+const FOCUS_MULT: Record<Focus, { hp: number; atk: number; def: number; spd: number }> = {
+  all: { hp: 1.5, atk: 1.5, def: 1.5, spd: 6 },
+  hp: { hp: 2.2, atk: 1.5, def: 1.45, spd: 4 },
+  def: { hp: 1.45, atk: 1.45, def: 2.1, spd: 4 },
+  atk: { hp: 1.35, atk: 2.15, def: 1.25, spd: 8 },
+};
+const LEGEND_MULT = { hp: 1.85, atk: 1.85, def: 1.85, spd: 16 };
+export const FORM_RANK_INFO: Record<Rank, { name: string; color: string }> = {
+  common: { name: "Thường", color: "#b0bec5" },
+  rare: { name: "Hiếm", color: "#40c4ff" },
+  epic: { name: "Cực Hiếm", color: "#e040fb" },
+  legend: { name: "Thần Thoại", color: "#ffd740" },
+};
+
+/** [id, tên mới, cấp bậc, trọng số, chuyên tăng] – thứ tự hiếm dần. */
+const SPEC: [string, string | null, Rank, number, Focus | "legend"][] = [
+  // Ngọc Long Hồn (Thủy)
+  ["long", "Thanh Long", "common", 45, "all"],
+  ["long_bich", "Bích Long", "rare", 27, "hp"],
+  ["long_kim", "Kim Giáp Long", "rare", 15, "def"],
+  ["long_hac", "Hắc Long", "epic", 10, "atk"],
+  ["long_huyet", "Huyết Long Thần", "legend", 3, "legend"],
+  // Lõi Dung Nham (Hỏa)
+  ["hoa", "Hỏa Viêm", "common", 45, "all"],
+  ["hoa_luc", "Lục Hỏa", "rare", 27, "hp"],
+  ["hoa_lam", "Lam Hỏa", "rare", 15, "def"],
+  ["hoa_hac", "Hắc Hỏa", "epic", 10, "atk"],
+  ["hoa_kim", "Kim Hỏa", "legend", 3, "legend"],
+  // Tinh Thể Băng Hà (Băng)
+  ["bang", "Băng Tinh", "common", 45, "all"],
+  ["bang_tuyet", "Tuyết Ma", "rare", 27, "hp"],
+  ["bang_huyen", "Huyền Băng", "rare", 15, "def"],
+  ["bang_han", "Hàn Ngục", "epic", 10, "atk"],
+  ["bang_tinh_van", "Tinh Vân Băng", "legend", 3, "legend"],
+  // Sấm Thạch (Lôi)
+  ["loi", "Lôi Quang", "common", 45, "all"],
+  ["loi_bao", "Bạo Lôi Long", "rare", 27, "hp"],
+  ["loi_bang", "Băng Lôi", "rare", 15, "def"],
+  ["loi_huyet", "Huyết Lôi", "epic", 10, "atk"],
+  ["loi_tu", "Tử Lôi Thần", "legend", 3, "legend"],
+  // Lông Phượng Thần (thần vật)
+  ["than_hai", "Hải Thần Ngư", "rare", 35, "hp"],
+  ["than_thien", "Thiên Thần Ngư", "rare", 30, "def"],
+  ["than_ma", "Ma Thần Ngư", "epic", 25, "atk"],
+  ["than", "Phượng Hoàng Thần", "legend", 10, "legend"],
+];
+
+const STAT_NAME = { hp: "Máu", atk: "Công", def: "Thủ" } as const;
+const ITEM_EL = new Map(EVO_ITEMS.map((i) => [i.id, i]));
+const pct = (x: number) => `×${x.toFixed(2).replace(/0$/, "").replace(".", ",")}`;
+
+export const FISH_FORMS: FishFormDef[] = SPEC.map(([id, name, rank, weight, focus]) => {
+  const raw = RAW_FORMS.find((f) => f.id === id)!;
+  const item = ITEM_EL.get(raw.itemId);
+  const divine = !!item?.divine;
+  const base = focus === "legend" ? LEGEND_MULT : FOCUS_MULT[focus];
+  const k = divine ? 1.3 : 1;
+  const mult = { hp: Math.round(base.hp * k * 100) / 100, atk: Math.round(base.atk * k * 100) / 100, def: Math.round(base.def * k * 100) / 100 };
+  const spdBonus = Math.round(base.spd * k);
+  const flavor = raw.description.split(".")[0]!;
+  const what = focus === "legend" || focus === "all" ? (focus === "legend" ? "TOÀN DIỆN" : "cân bằng") : `chuyên ${STAT_NAME[focus].toUpperCase()}`;
+  const stats = `Máu ${pct(mult.hp)} · Công ${pct(mult.atk)} · Thủ ${pct(mult.def)} · Tốc +${spdBonus}`;
+  return {
+    ...raw,
+    name: name ?? raw.name,
+    rank,
+    weight,
+    focus: focus === "legend" ? "all" : focus,
+    mult,
+    spdBonus,
+    // biến dị giữ HỆ của viên đá (thần vật giữ hệ riêng của dạng)
+    element: divine ? raw.element : item?.element ?? raw.element,
+    description: `【${FORM_RANK_INFO[rank].name} · ${weight}%】 ${flavor}. ${what[0]!.toUpperCase()}${what.slice(1)}: ${stats}.`,
+  };
+});

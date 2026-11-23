@@ -2,8 +2,8 @@ import Phaser from "phaser";
 import { makeScrollArea } from "../ui/scrollArea.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { ECONOMY, FISH_RARITY_COLOR, FISH_RARITY_LABEL, RARITY_ORDER } from "@dccc/game-config";
-import { EVO_ITEMS, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
-import { canAfford, decomposeValue, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
+import { EVO_ITEMS, FISHES, FISH_BY_ID, FORMS_BY_ITEM, FORM_BY_ID, FORM_RANK_INFO, ZONE_BY_ID } from "@dccc/game-data";
+import { STAGE_NAMES, canAfford, decomposeValue, fishGender, isBreedable, evolveFodder, fishMaxLevel, isGrowthFish, stageName, evoStonesFor, fishPower, fishSellPrice, fishStats, nextFishAction, ownedFishPower, type FishDef, type FishFormDef, type FormRoll, type OwnedFish } from "@dccc/shared";
 import { costText } from "./GearScene.ts";
 import { GameState } from "../state/GameState.ts";
 import { evoItemTexture, fishDisplayMult, fishSilhouetteTexture, fishTextureFor, formFishTexture, softGlowTexture } from "../art/textures.ts";
@@ -20,6 +20,7 @@ export class InventoryScene extends Phaser.Scene {
   private page = 0;
   /** Vị trí cuộn của Bộ Sưu Tập (giữ nguyên khi chọn loài khác). */
   private colScroll = 0;
+  private bagScroll = 0;
   private gridC?: Phaser.GameObjects.Container;
   private detailC?: Phaser.GameObjects.Container;
   private selectedUid: string | null = null;
@@ -101,6 +102,7 @@ export class InventoryScene extends Phaser.Scene {
     formId?: string,
     stars?: number,
     element?: ElementSet,
+    parents?: [string, string],
   ) {
     const g = this.add.graphics();
     const col = hexToInt(FISH_RARITY_COLOR[f.rarity]);
@@ -115,7 +117,7 @@ export class InventoryScene extends Phaser.Scene {
       if (check !== "off") c.add(txt(this, x + 20, y + 21, check === "on" ? "✓" : "🔒", check === "on" ? 22 : 14, { align: "center" }).setOrigin(0.5));
     }
     const gm = Math.min(1.12, fishDisplayMult(f, stars));
-    c.add(this.add.image(x + w / 2, y + h * 0.42, seen ? fishTextureFor(this, f, formId, stars) : fishSilhouetteTexture(this, f)).setDisplaySize(w * 0.9 * gm, w * 0.56 * gm));
+    c.add(this.add.image(x + w / 2, y + h * 0.42, seen ? fishTextureFor(this, f, formId, stars, parents) : fishSilhouetteTexture(this, f)).setDisplaySize(w * 0.9 * gm, w * 0.56 * gm));
     // huy hiệu nguyên tố (góc phải trên)
     if (seen) c.add(elementBadges(this, x + w - 17, y + 17, element ?? { els: [f.element] }, Math.min(28, w * 0.24)));
     c.add(txt(this, x + w / 2, y + h - 14, label, 13, { align: "center", weight: "700", color: seen ? FISH_RARITY_COLOR[f.rarity] : COLORS.textDim }).setOrigin(0.5));
@@ -129,9 +131,6 @@ export class InventoryScene extends Phaser.Scene {
 
   private renderBag(c: Phaser.GameObjects.Container) {
     const list = this.sortedFishes();
-    const per = 18;
-    const pages = Math.max(1, Math.ceil(list.length / per));
-    this.page = Math.min(this.page, pages - 1);
     this.tabBtns[0]!.setText(`🐟 Kho Cá ${list.length}/${ECONOMY.inventoryLimit}`);
     for (const uid of [...this.picked]) if (!list.some((o) => o.uid === uid && !o.locked)) this.picked.delete(uid);
     if (list.length === 0) {
@@ -140,33 +139,45 @@ export class InventoryScene extends Phaser.Scene {
       this.renderDetail(null);
       return;
     }
-    if (!this.selectedUid || !list.some((f) => f.uid === this.selectedUid)) this.selectedUid = list[this.page * per]?.uid ?? null;
-    list.slice(this.page * per, this.page * per + per).forEach((o, i) => {
+    if (!this.selectedUid || !list.some((f) => f.uid === this.selectedUid)) this.selectedUid = list[0]?.uid ?? null;
+    // lưới cuộn được (thanh trượt / lăn chuột / vuốt) thay cho lật trang
+    const grid = this.add.container(0, 0);
+    c.add(grid);
+    let area: { dragged: () => boolean } | null = null;
+    list.forEach((o, i) => {
       const f = FISH_BY_ID.get(o.fishId)!;
-      const x = 24 + (i % 6) * 136;
+      const x = 24 + (i % 6) * 134;
       const y = 152 + Math.floor(i / 6) * 160;
-      const label = `${o.locked ? "🔒" : ""}${f.name}\nLv.${o.level} ${isGrowthFish(f) ? `· ${stageName(o.stars)}` : "★".repeat(o.stars)}`;
+      const sex = isBreedable(f) ? (fishGender(o) === "m" ? "♂ " : "♀ ") : "";
+      const label = `${o.locked ? "🔒" : ""}${f.name}\n${sex}Lv.${o.level} ${isGrowthFish(f) ? `· ${stageName(o.stars)}` : "★".repeat(o.stars)}`;
       if (this.selectMode) {
         const check = o.locked ? "locked" : this.picked.has(o.uid) ? "on" : "off";
-        this.cell(c, x, y, 128, 150, f, true, false, label, () => {
+        this.cell(grid, x, y, 128, 150, f, true, false, label, () => {
+          if (area?.dragged()) return;
           if (o.locked) return toast(this, "Cá đang khóa – mở khóa để chọn bán");
           if (this.picked.has(o.uid)) this.picked.delete(o.uid);
           else this.picked.add(o.uid);
           this.confirmArmed = null;
           this.render();
-        }, check, o.form, o.stars, fishElementSet(o, f));
+        }, check, o.form, o.stars, fishElementSet(o, f), o.parents);
       } else {
-        this.cell(c, x, y, 128, 150, f, true, o.uid === this.selectedUid, label, () => {
+        this.cell(grid, x, y, 128, 150, f, true, o.uid === this.selectedUid, label, () => {
+          if (area?.dragged()) return;
           this.selectedUid = o.uid;
           this.render();
-        }, undefined, o.form, o.stars, fishElementSet(o, f));
+        }, undefined, o.form, o.stars, fishElementSet(o, f), o.parents);
       }
     });
-    if (pages > 1) {
-      c.add(new Button(this, 300, 680, 120, 48, "◀", { color: COLORS.blue, disabled: this.page === 0, onClick: () => ((this.page -= 1), this.render()) }));
-      c.add(txt(this, 430, 680, `Trang ${this.page + 1}/${pages}`, 22).setOrigin(0.5));
-      c.add(new Button(this, 560, 680, 120, 48, "▶", { color: COLORS.blue, disabled: this.page >= pages - 1, onClick: () => ((this.page += 1), this.render()) }));
-    }
+    area = makeScrollArea(this, c, grid, {
+      left: 16,
+      right: 838,
+      top: 146,
+      bottom: 712,
+      trackX: 832,
+      contentH: Math.ceil(list.length / 6) * 160 + 16,
+      scroll: this.bagScroll,
+      onScroll: (v) => (this.bagScroll = v),
+    });
     c.add(
       new Button(this, 560, 116, 190, 50, this.selectMode ? "✕ Thoát chọn" : "☑ Chọn nhiều", {
         color: this.selectMode ? COLORS.red : COLORS.purple,
@@ -180,7 +191,7 @@ export class InventoryScene extends Phaser.Scene {
       }),
     );
     if (this.selectMode) {
-      this.renderPickPanel(list, list.slice(this.page * per, this.page * per + per));
+      this.renderPickPanel(list, list);
       return;
     }
     const commons = list.filter((o) => FISH_BY_ID.get(o.fishId)!.rarity === "common" && !o.locked && o.level === 1 && o.stars === 1);
@@ -299,23 +310,36 @@ export class InventoryScene extends Phaser.Scene {
     const grid = this.add.container(0, 0);
     c.add(grid);
     let area: { dragged: () => boolean } | null = null;
-    LIST.forEach((f, i) => {
-      const x = 16 + (i % 8) * 103;
-      const y = 148 + Math.floor(i / 8) * 80;
-      const seen = (species[f.id] ?? 0) > 0;
-      this.cell(grid, x, y, 97, 74, f, seen, f.id === sel, seen ? `×${species[f.id]}` : "???", () => {
-        if (area?.dragged()) return;
-        this.selectedUid = f.id;
-        this.render();
+    // PHÂN NHÓM THEO CẤP BẬC (hiếm nhất trước), mỗi nhóm một tiêu đề
+    let y0 = 148;
+    for (const rar of [...RARITY_ORDER].reverse()) {
+      const group = LIST.filter((f) => f.rarity === rar);
+      if (!group.length) continue;
+      const seenN = group.filter((f) => (species[f.id] ?? 0) > 0).length;
+      grid.add(txt(this, 20, y0 + 12, `${FISH_RARITY_LABEL[rar]} · ${seenN}/${group.length}`, 18, { color: FISH_RARITY_COLOR[rar] }).setOrigin(0, 0.5));
+      const gl = this.add.graphics();
+      gl.lineStyle(2, hexToInt(FISH_RARITY_COLOR[rar]), 0.6).lineBetween(200, y0 + 12, 826, y0 + 12);
+      grid.add(gl);
+      y0 += 28;
+      group.forEach((f, i) => {
+        const x = 16 + (i % 8) * 103;
+        const y = y0 + Math.floor(i / 8) * 80;
+        const seen = (species[f.id] ?? 0) > 0;
+        this.cell(grid, x, y, 97, 74, f, seen, f.id === sel, seen ? `×${species[f.id]}` : "???", () => {
+          if (area?.dragged()) return;
+          this.selectedUid = f.id;
+          this.render();
+        });
       });
-    });
+      y0 += Math.ceil(group.length / 8) * 80 + 8;
+    }
     area = makeScrollArea(this, c, grid, {
       left: 8,
       right: 848,
       top: 142,
       bottom: 706,
       trackX: 836,
-      contentH: Math.ceil(LIST.length / 8) * 80 + 12,
+      contentH: y0 - 148 + 12,
       scroll: this.colScroll,
       onScroll: (v) => (this.colScroll = v),
     });
@@ -342,13 +366,13 @@ export class InventoryScene extends Phaser.Scene {
     d.add(txt(this, 876, y, lines.join("\n"), 17, { weight: "700", wrap: 366, color: COLORS.text }).setLineSpacing(4));
   }
 
-  private header(d: Phaser.GameObjects.Container, f: FishDef, seen: boolean, formId?: string, stars?: number, element?: ElementSet) {
+  private header(d: Phaser.GameObjects.Container, f: FishDef, seen: boolean, formId?: string, stars?: number, element?: ElementSet, parents?: [string, string]) {
     const col = FISH_RARITY_COLOR[f.rarity];
     const glow = this.add.image(1058, 210, softGlowTexture(this)).setTint(hexToInt(col)).setDisplaySize(380, 260).setAlpha(seen ? 0.3 : 0);
     d.add(glow);
     // cá trưởng thành: Sơ Giai nhỏ → Thánh Giai lớn nhất (kèm hào quang)
     const dm = fishDisplayMult(f, stars) * (stars && fishDisplayMult(f, stars) !== 1 ? 0.88 : 1);
-    d.add(this.add.image(1058, 210, seen ? fishTextureFor(this, f, formId, stars) : fishSilhouetteTexture(this, f)).setDisplaySize(330 * dm, 206 * dm));
+    d.add(this.add.image(1058, 210, seen ? fishTextureFor(this, f, formId, stars, parents) : fishSilhouetteTexture(this, f)).setDisplaySize(330 * dm, 206 * dm));
     d.add(txt(this, 1058, 330, seen ? f.name : "???", 30, { color: col, align: "center" }).setOrigin(0.5));
     d.add(txt(this, 1058, 364, FISH_RARITY_LABEL[f.rarity], 20, { color: col, align: "center" }).setOrigin(0.5));
     // nguyên tố – huy hiệu lớn góc trái trên khung chi tiết
@@ -359,7 +383,7 @@ export class InventoryScene extends Phaser.Scene {
     const d = this.detailPanel();
     if (!o) return;
     const f = FISH_BY_ID.get(o.fishId)!;
-    this.header(d, f, true, o.form, o.stars, fishElementSet(o, f));
+    this.header(d, f, true, o.form, o.stars, fishElementSet(o, f), o.parents);
     const form = o.form ? FORM_BY_ID.get(o.form) ?? null : null;
     const st = fishStats(f, o.level, o.stars, form, o.formRoll);
     const growth = isGrowthFish(f);
@@ -535,5 +559,61 @@ export class InventoryScene extends Phaser.Scene {
     }
     d.add(txt(this, 876, 392, f.description, 16, { weight: "500", wrap: 366, color: COLORS.textDim }));
     this.statLines(d, f, 446);
+    // cá Boss / Thần Thoại / Huyền Thoại: xem các giai tiến hoá & các dạng đột biến
+    if (isGrowthFish(f)) {
+      d.add(new Button(this, 958, 668, 196, 52, "🌱 Các giai tiến hoá", { color: COLORS.green, fontSize: 16, onClick: () => this.showStages(f) }));
+      d.add(new Button(this, 1162, 668, 196, 52, "🧬 Các dạng đột biến", { color: COLORS.purple, fontSize: 16, onClick: () => this.showForms(f, EVO_ITEMS[0]!.id) }));
+    }
+  }
+
+  /** 4 giai trưởng thành của loài: Sơ → Trung → Cao → Thánh. */
+  private showStages(f: FishDef) {
+    const m = modal(this, 1160, 470, `🌱 ${f.name} – các giai tiến hoá`);
+    STAGE_NAMES.forEach((name, i) => {
+      const x = m.x + 30 + i * 278;
+      const y = m.y + 80;
+      const g = this.add.graphics();
+      g.fillStyle(0x10294a, 0.95).fillRoundedRect(x, y, 266, 340, 14).lineStyle(3, hexToInt(FISH_RARITY_COLOR[f.rarity])).strokeRoundedRect(x, y, 266, 340, 14);
+      m.root.add(g);
+      const k = Math.min(1.15, fishDisplayMult(f, i + 1));
+      m.root.add(this.add.image(x + 133, y + 140, fishTextureFor(this, f, null, i + 1)).setDisplaySize(250 * k, 156 * k));
+      m.root.add(txt(this, x + 133, y + 278, name, 24, { color: ["#b9f6ca", "#80d8ff", "#ea80fc", "#ffd740"][i], align: "center" }).setOrigin(0.5));
+      m.root.add(txt(this, x + 133, y + 312, ["Dáng gốc", "Mắt sáng, sừng, gai lưng", "Cánh, giáp, hào quang", "Vương miện, cánh pha lê, ngân hà"][i]!, 14, { align: "center", weight: "700", color: COLORS.textDim }).setOrigin(0.5));
+    });
+  }
+
+  /** Các dạng đột biến của loài theo từng viên đá: cấp bậc, tỉ lệ, chỉ số chuyên tăng. */
+  private showForms(f: FishDef, itemId: string) {
+    const m = modal(this, 1200, 620, `🧬 ${f.name} – các dạng đột biến`);
+    const items = EVO_ITEMS.filter((it) => (FORMS_BY_ITEM.get(it.id) ?? []).length > 0);
+    items.forEach((it, i) =>
+      m.root.add(
+        new Button(this, m.x + 120 + i * 196, m.y + 92, 186, 44, `${it.icon} ${it.name}`, {
+          color: it.id === itemId ? COLORS.orange : COLORS.blue,
+          fontSize: 14,
+          onClick: () => {
+            m.close();
+            this.showForms(f, it.id);
+          },
+        }),
+      ),
+    );
+    const variants = FORMS_BY_ITEM.get(itemId) ?? [];
+    const w = Math.min(226, (1140 - (variants.length - 1) * 10) / variants.length);
+    variants.forEach((fm, i) => {
+      const x = m.x + 30 + i * (w + 10);
+      const y = m.y + 130;
+      const rk = fm.rank ? FORM_RANK_INFO[fm.rank] : null;
+      const g = this.add.graphics();
+      g.fillStyle(0x10294a, 0.95).fillRoundedRect(x, y, w, 456, 14).lineStyle(3, hexToInt(rk?.color ?? fm.glow)).strokeRoundedRect(x, y, w, 456, 14);
+      m.root.add(g);
+      m.root.add(this.add.image(x + w / 2, y + 96, formFishTexture(this, f, fm, 0)).setDisplaySize(w - 12, (w - 12) * 0.625));
+      m.root.add(txt(this, x + w / 2, y + 196, fm.name, 21, { align: "center", color: fm.glow }).setOrigin(0.5));
+      if (rk) m.root.add(txt(this, x + w / 2, y + 226, `${rk.name} · ${fm.weight}%`, 16, { align: "center", color: rk.color }).setOrigin(0.5));
+      const focus = fm.rank === "legend" ? "Toàn diện" : { hp: "Chuyên MÁU", atk: "Chuyên CÔNG", def: "Chuyên THỦ", all: "Cân bằng" }[fm.focus ?? "all"];
+      m.root.add(
+        txt(this, x + w / 2, y + 330, `${focus}\n\nMáu ×${fm.mult.hp}\nCông ×${fm.mult.atk}\nThủ ×${fm.mult.def}\nTốc +${fm.spdBonus}`, 16, { align: "center", weight: "700" }).setOrigin(0.5),
+      );
+    });
   }
 }

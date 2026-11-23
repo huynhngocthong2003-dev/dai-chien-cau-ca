@@ -150,7 +150,15 @@ export interface FishFormDef {
   /** Ngoại hình sau đột biến: đổi màu thân/vây/mắt + hiệu ứng riêng. */
   look: { body: string; belly: string; fin: string; pattern: "none" | "stripes" | "spots" | "scales"; patternColor: string; eyeColor: string; horns: boolean; spikes: boolean; teeth: boolean; aura: FormAura; palette?: [string, string, string] };
   description: string;
+  /** Cấp bậc biến dị (độ hiếm khi đột biến). */
+  rank?: FormRank;
+  /** Trọng số ra khi đột biến (cùng viên đá). */
+  weight?: number;
+  /** Chỉ số chuyên tăng. */
+  focus?: "hp" | "atk" | "def" | "all";
 }
+
+export type FormRank = "common" | "rare" | "epic" | "legend";
 
 /** Rác câu nhầm – tái chế thành Điểm Môi Trường. */
 export interface JunkDef {

@@ -28,9 +28,28 @@ function flameTongue(ctx: CanvasRenderingContext2D, x: number, y: number, h: num
   ctx.fill();
 }
 
+/** Hệ số kích cỡ hiệu ứng theo giai trưởng thành (Sơ 0,85 → Thánh 1,3). */
+let SK = 1;
+/** Điểm dọc sống lưng THẬT của con cá (đo trước khi vẽ) – gai / lửa mọc theo đúng dáng. */
+let backPts: { x: number; y: number; ang: number }[] | null = null;
+let tailAt: { x: number; y: number } | null = null;
+
+/** Vẽ hình mọc từ điểm (x,y) theo hướng pháp tuyến `ang` (hình gốc vẽ hướng lên trên). */
+function along(ctx: CanvasRenderingContext2D, x: number, y: number, ang: number, draw: () => void) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang + Math.PI / 2);
+  draw();
+  ctx.restore();
+}
+
 function flames(ctx: CanvasRenderingContext2D, pal: [string, string, string], back: boolean) {
   const [a, b, c] = pal;
-  if (back) {
+  if (back && backPts) {
+    backPts.forEach((q, i) => along(ctx, q.x, q.y, q.ang, () => flameTongue(ctx, 0, 4, (30 + (i % 3) * 12) * SK, 11 * SK, -8, a, b, c)));
+    const t = tailAt ?? P(34, 100);
+    for (const [dy, h] of [[-22, 46], [0, 60], [22, 46]] as const) flameTongue(ctx, t.x + 6, t.y + dy * SK, h * SK, 13 * SK, -48 * SK, a, b, c);
+  } else if (back) {
     // ngọn lửa dọc sống lưng + đuôi
     for (let i = 0; i < 7; i++) {
       const p = P(95 + i * 24, 66 + Math.abs(i - 3) * 4);
@@ -77,6 +96,14 @@ function crystals(ctx: CanvasRenderingContext2D, col: string, edge: string, dark
     ctx.stroke();
     ctx.restore();
   };
+  if (backPts) {
+    // gai pha lê mọc dọc sống lưng thật, to dần theo giai
+    backPts.forEach((q, i) => shard(q.x, q.y, (26 + ((i * 7) % 3) * 11) * SK, 8.5 * SK, q.ang + Math.PI / 2 + (i - 3) * 0.04));
+    const t = tailAt ?? P(40, 100);
+    shard(t.x, t.y - 6, 30 * SK, 8 * SK, -1.9);
+    shard(t.x, t.y + 6, 30 * SK, 8 * SK, -1.25);
+    return;
+  }
   for (let i = 0; i < 6; i++) {
     const p = P(100 + i * 22, 70 + Math.abs(i - 2.5) * 4);
     shard(p.x, p.y, 30 + ((i * 7) % 3) * 12, 9, -0.35 + i * 0.12);
@@ -383,6 +410,29 @@ function tierFront(ctx: CanvasRenderingContext2D, rarity: FishDef["rarity"], for
 
 export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form: FishFormDef, stage = 0) {
   const look = form.look;
+  SK = stage <= 1 ? 0.85 : stage === 2 ? 1 : stage === 3 ? 1.15 : 1.3;
+  // đo trước dáng cá thật (vẽ nháp) để gai / lửa phía sau mọc đúng sống lưng
+  {
+    const probe = document.createElement("canvas").getContext("2d")!;
+    probe.setTransform(ctx.getTransform());
+    probe.translate(CX - (FISH_W / 2) * K, CY - (FISH_H / 2) * K);
+    probe.scale(K, K);
+    setLastAnchorsNull();
+    drawFish(probe, { id: fish.id, appearance: fish.appearance }, stage);
+    const a0 = lastFishAnchors;
+    if (a0 && a0.back?.length) {
+      const inv0 = ctx.getTransform().inverse();
+      backPts = a0.back.map((q) => {
+        const p = inv0.transformPoint(q.p);
+        return { x: p.x, y: p.y, ang: q.ang };
+      });
+      const tp = inv0.transformPoint(a0.tail);
+      tailAt = { x: tp.x, y: tp.y };
+    } else {
+      backPts = null;
+      tailAt = null;
+    }
+  }
   tierBack(ctx, fish.rarity, form);
   backGlow(ctx, form.glow);
   AURA[look.aura].back?.(ctx, form);

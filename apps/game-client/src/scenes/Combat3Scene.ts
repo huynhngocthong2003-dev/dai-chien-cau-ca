@@ -134,7 +134,7 @@ export class Combat3Scene extends Phaser.Scene {
     const def = FISH_BY_ID.get(f.fishId)!;
     const x = SIDE_X[side];
     const m = fishDisplayMult(def, f.stars);
-    const img = this.add.image(x, FISH_Y, fishTextureFor(this, def, f.form, f.stars)).setDisplaySize(300 * m, 188 * m).setFlipX(side === 1).setDepth(10);
+    const img = this.add.image(x, FISH_Y, fishTextureFor(this, def, f.form, f.stars, f.parents)).setDisplaySize(300 * m, 188 * m).setFlipX(side === 1).setDepth(10);
     this.tweens.add({ targets: img, y: FISH_Y - 10, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: side * 400 });
     const hp = new Bar(this, x - 150, 150, 300, 24, side === 0 ? 0x4caf50 : 0xe53935, "").setDepth(20);
     const hpT = txt(this, x, 182, "", 16, { align: "center", weight: "700" }).setOrigin(0.5).setDepth(20);

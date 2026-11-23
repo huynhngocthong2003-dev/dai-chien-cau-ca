@@ -6,6 +6,7 @@ import {
   SLOT_UNLOCK,
   breedingOf,
   eggColorsFor,
+  fishGender,
   eggLookOf,
   habitatFishes,
   isBreedable,
@@ -22,7 +23,7 @@ import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
-import { fishPickCard, fishPower } from "../ui/fishPickCard.ts";
+import { fishPickCard, fishPickGrid, fishPower } from "../ui/fishPickCard.ts";
 import { Sfx } from "../audio/Sfx.ts";
 import { elementTags, fishElementSet } from "../ui/element.ts";
 
@@ -60,7 +61,7 @@ const fmtTime = (ms: number) => {
 export class BreedingScene extends Phaser.Scene {
   private mode: Mode = "map";
   private pick: [string | null, string | null] = [null, null];
-  private page = 0;
+  private pickScroll = 0;
   private body?: Phaser.GameObjects.Container;
   private tabs: Button[] = [];
   private swimmers: Swimmer[] = [];
@@ -78,7 +79,7 @@ export class BreedingScene extends Phaser.Scene {
   init(data: { mode?: Mode; pick?: [string | null, string | null] }) {
     this.mode = data.mode ?? "map";
     if (data.pick) this.pick = data.pick;
-    this.page = 0;
+    this.pickScroll = 0;
     this.swimmers = [];
     this.caveEggs = [];
     this.hatchModal = null;
@@ -114,16 +115,18 @@ export class BreedingScene extends Phaser.Scene {
     this.render();
   }
 
+  /** Cặp mặc định: [bố ♂, mẹ ♀] – ưu tiên công thức đặc biệt, không có thì đực & cái mạnh nhất. */
   private firstOwnedPair(): [string | null, string | null] {
+    const breedable = GameState.save.fishes.filter((f) => isBreedable(FISH_BY_ID.get(f.fishId))).sort((a, b) => fishPower(b) - fishPower(a));
     for (const r of BREEDING_RECIPES) {
       if (!r.parents) continue;
-      const a = GameState.save.fishes.find((f) => f.fishId === r.parents![0]);
-      const b = GameState.save.fishes.find((f) => f.fishId === r.parents![1] && f !== a);
-      if (a && b) return [a.uid, b.uid];
+      for (const [sa, sb] of [r.parents, [r.parents[1], r.parents[0]]] as const) {
+        const dad = breedable.find((f) => f.fishId === sa && fishGender(f) === "m");
+        const mom = breedable.find((f) => f.fishId === sb && fishGender(f) === "f");
+        if (dad && mom) return [dad.uid, mom.uid];
+      }
     }
-    // không có cặp đặc biệt: 2 cá Boss mạnh nhất (lai theo hệ)
-    const top = GameState.save.fishes.filter((f) => isBreedable(FISH_BY_ID.get(f.fishId))).sort((a, b) => fishPower(b) - fishPower(a));
-    return [top[0]?.uid ?? null, top[1]?.uid ?? null];
+    return [breedable.find((f) => fishGender(f) === "m")?.uid ?? null, breedable.find((f) => fishGender(f) === "f")?.uid ?? null];
   }
 
   private render() {
@@ -200,7 +203,7 @@ export class BreedingScene extends Phaser.Scene {
     const tier = BREED_TIERS[breedTierOf(o.fishId)];
     const p = from ?? this.randomInPool();
     const k = tier.scale * Math.min(1.15, fishDisplayMult(def, o.stars));
-    const img = this.add.image(p.x, p.y, fishTextureFor(this, def, o.form, o.stars)).setDisplaySize(190 * k, 119 * k);
+    const img = this.add.image(p.x, p.y, fishTextureFor(this, def, o.form, o.stars, o.parents)).setDisplaySize(190 * k, 119 * k);
     img.setInteractive({ useHandCursor: true, pixelPerfect: false });
     img.on("pointerup", () => this.openInfo(o));
     const cg = this.add.graphics();
@@ -284,7 +287,7 @@ export class BreedingScene extends Phaser.Scene {
     const tierId = breedTierOf(o.fishId);
     const tier = BREED_TIERS[tierId];
     const m = modal(this, 860, 440, def.name);
-    m.root.add(this.add.image(m.x + 220, m.y + 200, fishTextureFor(this, def, o.form, o.stars)).setDisplaySize(380, 238));
+    m.root.add(this.add.image(m.x + 220, m.y + 200, fishTextureFor(this, def, o.form, o.stars, o.parents)).setDisplaySize(380, 238));
     m.root.add(this.tierTag(m.x + 220, m.y + 340, tierId));
     m.root.add(elementTags(this, m.x + 440, m.y + 60, fishElementSet(o, def), 30, 17));
     const next = (breedingOf(GameState.save).harvestAt[o.uid] ?? Date.now() + HARVEST_CYCLE_MS) - Date.now();
@@ -297,14 +300,15 @@ export class BreedingScene extends Phaser.Scene {
       def.description,
     ];
     m.root.add(txt(this, m.x + 440, m.y + 92, lines.join("\n"), 18, { weight: "700", wrap: 390 }).setLineSpacing(5));
-    (["Đặt làm Bố", "Đặt làm Mẹ"] as const).forEach((label, i) =>
+    // đực → làm Bố (ô 1), cái → làm Mẹ (ô 2)
+    const i = fishGender(o) === "m" ? 0 : 1;
+    [i].forEach(() =>
       m.root.add(
-        new Button(this, m.x + 540 + i * 210, m.y + 384, 196, 56, `💞 ${label}`, {
+        new Button(this, m.x + 640, m.y + 384, 300, 56, i === 0 ? "💞 Chọn làm Bố ♂" : "💞 Chọn làm Mẹ ♀", {
           color: COLORS.purple,
           fontSize: 19,
           onClick: () => {
             this.pick[i] = o.uid;
-            if (this.pick[1 - i] === o.uid) this.pick[1 - i] = null;
             m.close();
             this.setMode("breed");
           },
@@ -345,36 +349,37 @@ export class BreedingScene extends Phaser.Scene {
     });
     // chọn bố mẹ từ cá Boss trở lên
     const list = GameState.save.fishes.filter((f) => isBreedable(FISH_BY_ID.get(f.fishId))).sort((a, b) => fishPower(b) - fishPower(a));
-    const per = 6;
-    const pages = Math.max(1, Math.ceil(list.length / per));
-    this.page = Math.min(this.page, pages - 1);
     c.add(txt(this, 40, 240, `Chọn cá bố mẹ – chỉ cá từ bậc Boss trở lên (${list.length} con)`, 15, { weight: "700", color: COLORS.textDim }));
     if (!list.length) c.add(txt(this, 430, 330, "Chưa có cá Boss nào. Hãy săn Boss ở các khu câu!", 20, { align: "center" }).setOrigin(0.5));
-    list.slice(this.page * per, this.page * per + per).forEach((o, i) => {
-      const idx = this.pick.indexOf(o.uid);
-      fishPickCard(this, c, 40 + i * 132, 264, 124, 138, o, () => {
+    fishPickGrid(this, c, list, {
+      left: 40,
+      right: 836,
+      top: 258,
+      bottom: 410,
+      cardW: 124,
+      cardH: 138,
+      scroll: this.pickScroll,
+      onScroll: (v) => (this.pickScroll = v),
+      badge: (o) => (this.pick[0] === o.uid ? "B" : this.pick[1] === o.uid ? "M" : undefined),
+      onPick: (o) => {
+        // ô theo giới tính: đực → Bố, cái → Mẹ
+        const idx = this.pick.indexOf(o.uid);
         if (idx >= 0) this.pick[idx] = null;
-        else if (!this.pick[0]) this.pick[0] = o.uid;
-        else if (!this.pick[1]) this.pick[1] = o.uid;
-        else this.pick[1] = o.uid;
+        else this.pick[fishGender(o) === "m" ? 0 : 1] = o.uid;
         this.render();
-      }, idx === 0 ? "B" : idx === 1 ? "M" : undefined);
+      },
     });
-    if (pages > 1) {
-      c.add(new Button(this, 720, 240, 50, 30, "◀", { color: COLORS.blue, fontSize: 15, disabled: this.page === 0, onClick: () => ((this.page -= 1), this.render()) }));
-      c.add(new Button(this, 780, 240, 50, 30, "▶", { color: COLORS.blue, fontSize: 15, disabled: this.page >= pages - 1, onClick: () => ((this.page += 1), this.render()) }));
-    }
     // 2 ô bố mẹ
     for (let i = 0; i < 2; i++) {
       const x = 40 + i * 300;
       const o = this.pick[i] ? GameState.save.fishes.find((f) => f.uid === this.pick[i]) : undefined;
-      c.add(txt(this, x + 140, 424, i ? "MẸ" : "BỐ", 16, { align: "center", color: COLORS.textDim }).setOrigin(0.5));
+      c.add(txt(this, x + 140, 424, i ? "MẸ ♀ (cá cái)" : "BỐ ♂ (cá đực)", 16, { align: "center", color: i ? "#f48fb1" : "#81d4fa" }).setOrigin(0.5));
       if (o) fishPickCard(this, c, x, 440, 280, 250, o, () => ((this.pick[i] = null), this.render()), i ? "M" : "B");
       else {
         const g = this.add.graphics();
         g.fillStyle(0x0a1628, 0.7).fillRoundedRect(x, 440, 280, 250, 14).lineStyle(3, 0x5fb3ff, 0.6).strokeRoundedRect(x, 440, 280, 250, 14);
         c.add(g);
-        c.add(txt(this, x + 140, 565, "Chạm cá ở trên để chọn", 17, { align: "center", color: COLORS.textDim }).setOrigin(0.5));
+        c.add(txt(this, x + 140, 565, i ? "Chạm 1 cá CÁI ♀ ở trên" : "Chạm 1 cá ĐỰC ♂ ở trên", 17, { align: "center", color: COLORS.textDim }).setOrigin(0.5));
       }
     }
     c.add(txt(this, 330, 565, "+", 44, { align: "center" }).setOrigin(0.5));
@@ -400,7 +405,7 @@ export class BreedingScene extends Phaser.Scene {
         const g = this.add.graphics();
         g.fillStyle(0x0a1628, 0.9).fillRoundedRect(868, y, 380, 88, 12).lineStyle(3, hexToInt(BREED_TIERS[tierId].color)).strokeRoundedRect(868, y, 380, 88, 12);
         c.add(g);
-        c.add(this.add.image(930, y + 44, fishTextureFor(this, def, null, 1)).setDisplaySize(118, 74));
+        c.add(this.add.image(930, y + 44, fishTextureFor(this, def, null, 1, this.pickSpecies())).setDisplaySize(118, 74));
         c.add(txt(this, 996, y + 18, def.name, 15, { weight: "800", wrap: 190 }));
         c.add(this.tierTag(1050, y + 66, tierId));
         c.add(txt(this, 1236, y + 44, `${r.pct}%`, 26, { align: "right", color: COLORS.textGold }).setOrigin(1, 0.5));
@@ -421,6 +426,14 @@ export class BreedingScene extends Phaser.Scene {
     });
     c.add(go);
     if (recipe && free < 0) c.add(txt(this, 1058, 600, "Hang ấp trứng đã đầy", 16, { align: "center", color: "#ff8a80" }).setOrigin(0.5));
+  }
+
+  /** Loài [bố ♂, mẹ ♀] của cặp đang chọn (để xem trước đúng dáng con). */
+  private pickSpecies(): [string, string] | null {
+    const a = this.pick[0] ? GameState.save.fishes.find((f) => f.uid === this.pick[0]) : undefined;
+    const b = this.pick[1] ? GameState.save.fishes.find((f) => f.uid === this.pick[1]) : undefined;
+    if (!a || !b) return null;
+    return fishGender(a) === "m" ? [a.fishId, b.fishId] : [b.fishId, a.fishId];
   }
 
   // ======================================================================== HANG ẤP TRỨNG
@@ -587,7 +600,7 @@ export class BreedingScene extends Phaser.Scene {
         }
       };
       const spin = this.time.addEvent({ delay: 30, loop: true, callback: () => ray(this.time.now / 1500) });
-      const fishImg = this.add.image(640, 320, fishTextureFor(this, def, null, 1)).setDisplaySize(520, 325).setScale(0.1);
+      const fishImg = this.add.image(640, 320, fishTextureFor(this, def, null, 1, r.fish.parents)).setDisplaySize(520, 325).setScale(0.1);
       root.add(fishImg);
       this.tweens.add({ targets: fishImg, scaleX: 520 / fishImg.width, scaleY: 325 / fishImg.height, duration: 600, ease: "Back.easeOut" });
       if (rare) {

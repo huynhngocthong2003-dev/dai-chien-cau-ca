@@ -2,8 +2,8 @@ import Phaser from "phaser";
 import type { AccessoryKind, CharacterDef, Element, FishFormDef, SkinKind, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, JunkDef, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
 import { TIER_COLOR, TIER_ORDER } from "@dccc/game-config";
 import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
-import { BREED_LOOKS, COSMETIC_BY_ID, FORM_BY_ID, breedTierOf } from "@dccc/game-data";
-import { HABITAT, drawBreedEgg, drawBreedFish, drawHabitatMap, evolveBreedLook } from "./BreedArt.ts";
+import { BREED_LOOKS, COSMETIC_BY_ID, FISH_BY_ID, FORM_BY_ID, breedTierOf } from "@dccc/game-data";
+import { HABITAT, drawBreedEgg, drawBreedFish, drawHabitatMap, drawParentHybrid, evolveBreedLook } from "./BreedArt.ts";
 import type { EggLook } from "@dccc/shared";
 import { drawFormFish } from "./FormArt.ts";
 import { drawEvoItem } from "./EvoItemArt.ts";
@@ -98,6 +98,20 @@ export function breedFishTexture(scene: Phaser.Scene, fishId: string, stage = 0,
   }, 1.4);
 }
 
+const TIER_IDX = { boss: 0, hybrid: 0, super: 1, mythic: 2, recessive: 3 } as const;
+
+/** Cá lai theo bố mẹ: đầu theo bố, đuôi/vây theo mẹ, bậc lai thêm cánh/hào quang; lớn & dữ dần theo giai. */
+export function hybridTexture(scene: Phaser.Scene, fishId: string, parents: readonly [string, string], stage = 0): string {
+  const dad = FISH_BY_ID.get(parents[0]);
+  const mom = FISH_BY_ID.get(parents[1]);
+  if (!dad || !mom || !BREED_LOOKS[fishId]) return breedFishTexture(scene, fishId, stage);
+  const key = `hyb_${fishId}_${parents[0]}_${parents[1]}_s${stage}`;
+  return canvasTexture(scene, key, FISH_W, FISH_H, (ctx) => {
+    drawParentHybrid(ctx, dad, mom, BREED_LOOKS[fishId]!, TIER_IDX[breedTierOf(fishId)], Math.max(1, stage), `${parents[0]}x${parents[1]}#${fishId}`);
+    softEdges(ctx, FISH_W, FISH_H);
+  }, 1.4);
+}
+
 /** Trứng lai (crack 0..1 = mức nứt; glow 0..1 = toả sáng). */
 export function breedEggTexture(scene: Phaser.Scene, egg: EggLook, crack = 0, glow = 0): string {
   const key = `breedegg_${egg.a}${egg.b}${egg.spot}_${Math.round(crack * 10)}_${Math.round(glow * 10)}`;
@@ -118,7 +132,9 @@ function displayStage(fish: FishDef, stars?: number | null): number {
 }
 
 /** Texture cá theo dạng đột biến + giai trưởng thành (truyền `stars` của cá đang sở hữu). */
-export function fishTextureFor(scene: Phaser.Scene, fish: FishDef, formId?: string | null, stars?: number | null): string {
+export function fishTextureFor(scene: Phaser.Scene, fish: FishDef, formId?: string | null, stars?: number | null, parents?: readonly [string, string] | null): string {
+  // cá lai: vẽ theo dáng của chính cá bố & mẹ đã sinh ra nó
+  if (parents && BREED_LOOKS[fish.id]) return hybridTexture(scene, fish.id, parents, displayStage(fish, stars));
   const form = formId ? FORM_BY_ID.get(formId) : null;
   const st = displayStage(fish, stars);
   return form ? formFishTexture(scene, fish, form, st) : fishTexture(scene, fish, st);

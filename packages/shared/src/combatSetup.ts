@@ -36,6 +36,7 @@ export function buildPlayerTeam(
         element: ownedElement(o, def, zoneById),
         elements: ownedElements(o, def, zoneById),
         hidden: o.hiddenElement,
+        parents: o.parents,
         form: o.form ? formById.get(o.form) ?? null : null,
         formRoll: o.formRoll ?? null,
       }),
