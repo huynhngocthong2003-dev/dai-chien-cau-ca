@@ -382,7 +382,7 @@ export interface WheelPrizeDef {
   reward: RewardDef;
 }
 
-export type RankCategory = "level" | "caught" | "bosses" | "dmWins" | "junk" | "teamPower";
+export type RankCategory = "level" | "caught" | "bosses" | "dmWins" | "dmRank" | "junk" | "teamPower";
 
 export interface TopupPackageDef {
   id: "kc100" | "kc300" | "auto2d";

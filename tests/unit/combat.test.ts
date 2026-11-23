@@ -269,17 +269,21 @@ describe("Kết quả trận 3vs3: THUA mất cá lực chiến THẤP NHẤT", 
     expect(r.save.ledger.some((l) => l.txId === "cb_2" && l.currency === "gold")).toBe(true);
     expect(r.roasted?.fishId).toBe("f_ca_tre");
     expect(r.save.fishes).toHaveLength(4);
+    expect(r.save.stats.rankPoints).toBe(10); // rank sinh tử +10
   });
   it("đấu người: giao hữu không mất gì; sinh tử thua mất con máy chủ chốt, thắng chỉ nhận cá nướng (không sinh vàng)", () => {
     const s = mkSave();
     const fr = applyCombatOutcome(s, { txId: "pv_1", teamUids: team3, won: false, level: null, stake: "friendly", foe: [], now: 5 }, FISH_BY_ID, FORM_BY_ID);
     expect(fr.ok && fr.save.fishes.length).toBe(4);
+    expect(fr.ok && (fr.save.stats.rankPoints ?? 0)).toBe(0); // giao hữu không cộng rank
     const lose = applyCombatOutcome(s, { txId: "pv_2", teamUids: team3, won: false, level: null, loseUid: "vua", foe: [], now: 5 }, FISH_BY_ID, FORM_BY_ID);
     expect(lose.ok && lose.lostUid).toBe("vua");
     const win = applyCombatOutcome(s, { txId: "pv_3", teamUids: team3, won: true, level: null, foe: [{ fishId: "f_ca_tre", level: 4, stars: 1 }], now: 5 }, FISH_BY_ID, FORM_BY_ID);
     if (!win.ok) throw new Error(win.error);
     expect(win.save.gold).toBe(s.gold);
     expect(win.roasted?.fishId).toBe("f_ca_tre");
+    expect(win.save.stats.rankPoints).toBe(10);
+    expect(lose.ok && (lose.save.stats.rankPoints ?? 0)).toBe(0); // thua không trừ điểm
   });
   it("góc nhìn bên 1 được đảo thành bên 0", () => {
     const st = createCombat(team("a"), team("b"), 33);

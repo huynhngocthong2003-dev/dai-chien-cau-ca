@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.41.0] – 2026-11-23 – Rank Đấu Sinh Tử, Tìm Trận, giảm vàng nâng cấp cá
+### Thêm
+- **Rank Đấu Sinh Tử** (mùa mới – mọi người bắt đầu từ 0): mỗi trận THẮNG sinh tử +10 điểm · 100 điểm = 1 ⭐ · đủ 5 ⭐ lên bậc · 5 bậc mỗi hạng. Thua không trừ điểm, giao hữu không tính.
+  - 5 hạng, mỗi hạng một huy hiệu vẽ riêng (ruy băng có số ngọc = bậc): **Tân Binh** (Khởi động / Vòng loại) · **Chiến Binh** (Vòng bảng / Tích lũy điểm) · **Tinh Anh** (Vòng tứ kết / Nhóm bứt phá) · **Huyền Thoại** (Vòng bán kết / Top đầu) · **Vô Địch / Thần Thoại** (Quán quân / Đỉnh bảng).
+  - Nút huy hiệu ở màn Đấu Cá → bảng **Thang Rank**: hạng của bạn, sao, điểm tới sao kế, và thang chú thích đủ 5 hạng với mốc điểm.
+  - Thắng trận hiện "+10 điểm rank", báo lên sao / lên bậc / lên hạng. Hồ sơ người chơi hiện hạng rank.
+- **Tìm Trận sinh tử ưu tiên ghép NGƯỜI**: tìm người đang tìm trận (gần rank nhất) trong 20 giây, tự chốt đội đã chọn; không có ai mới đấu MÁY.
+- **Đấu máy: rank càng cao càng khó** – Tân Binh Dễ · Chiến Binh Thường · Tinh Anh Khó · Huyền Thoại/Thần Thoại Trùm, lực chiến đội máy +2% mỗi bậc (tối đa ×1,48). Máy chủ tự tính theo rank trên bản lưu (bỏ nút chọn độ khó).
+### Thay đổi
+- **Bảng Xếp Hạng Sinh Tử reset**: xếp theo **hạng rank** (điểm rank mùa mới) thay cho số trận thắng; mỗi dòng hiện huy hiệu, hạng · bậc, sao.
+- **Giảm mạnh vàng nâng cấp cá**: tính theo độ hiếm thay vì giá trị cá. Boss: cấp 10 ≈ 1,8K (trước 124K), trọn cấp 1→50 ≈ 220K (trước 15,2M); tiến hoá giai Boss ≈ 13K–103K (trước 170K–1,5M).
+- **Biểu tượng đồng bộ**: mọi chữ có 🪙 💎 🔷 🔮 🎫 (giá, phần thưởng, nút, thông báo) tự vẽ bằng biểu tượng mới giống thanh tài nguyên.
+- **Bảng Tỉ lệ rơi Vòng Quay** có thanh trượt (kéo / lăn chuột / vuốt) và dùng hình vẽ từng món.
+### Máy chủ
+- Migration `20261210000001_pvp_quick_match.sql` (phòng tìm trận công khai + hạng mục xếp hạng `dmRank`) – đã áp. Triển khai lại `battle`, `pvp`.
+
 ## [0.40.3] – 2026-11-23 – Sửa lỗi không đấu cá được
 ### Sửa lỗi
 - **Đấu Cá (với máy và với người) không mở được trận**: máy chủ trận đấu bị thiếu quyền đọc bản lưu ("permission denied for table player_saves") nên mọi lần bấm đấu đều lỗi. Đã cấp lại quyền cho tài khoản máy chủ (migration `20261209000001_service_role_grants.sql`, đã áp lên máy chủ thật).

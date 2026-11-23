@@ -2,10 +2,16 @@ import Phaser from "phaser";
 import { ELEMENT_INFO, FISH_RARITY_COLOR } from "@dccc/game-config";
 import { FISH_BY_ID } from "@dccc/game-data";
 import {
+  AI_LEVEL_LABEL,
   MATCHUP_LABEL,
   TIMING_BANDS,
   TIMING_LABEL,
   TURN_TIME_MS,
+  dmAiLevel,
+  dmRankChange,
+  dmRankLabel,
+  dmRankOf,
+  dmRankPoints,
   needlePos,
   timingZone,
   type AiLevel,
@@ -80,7 +86,8 @@ export class Combat3Scene extends Phaser.Scene {
 
   init(data: { team: string[]; level?: AiLevel; pvp?: PvpMatchInfo }) {
     this.team = data.team;
-    this.level = data.level ?? "normal";
+    // đấu sinh tử với máy: độ khó theo rank (không tự chọn)
+    this.level = data.pvp ? (data.level ?? "normal") : dmAiLevel(dmRankPoints(GameState.save.stats));
     this.pvp = data.pvp ?? null;
     this.finished = false;
     this.ui = [];
@@ -93,7 +100,7 @@ export class Combat3Scene extends Phaser.Scene {
     fadeIn(this);
     this.drawArena();
     new Button(this, 76, 44, 128, 62, "← Thoát", { color: COLORS.blue, fontSize: 24, onClick: () => this.confirmExit() }).setDepth(60);
-    const foeLabel = this.pvp ? `👤 ${this.pvp.oppName} · ${this.pvp.stake === "friendly" ? "Giao hữu" : "Sinh tử"}` : `🤖 Máy · ${{ easy: "Dễ", normal: "Thường", hard: "Khó", boss: "Boss" }[this.level]}`;
+    const foeLabel = this.pvp ? `👤 ${this.pvp.oppName} · ${this.pvp.stake === "friendly" ? "Giao hữu" : "Sinh tử"}` : `🤖 Máy · ${AI_LEVEL_LABEL[this.level]}`;
     txt(this, 1180, 44, foeLabel, 18, { align: "right", weight: "700" }).setOrigin(1, 0.5).setDepth(60);
     this.banner = txt(this, 640, 40, "Đang vào trận…", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5).setDepth(60);
     this.turnT = txt(this, 640, 84, "", 22, { align: "center" }).setOrigin(0.5).setDepth(60);
@@ -479,6 +486,7 @@ export class Combat3Scene extends Phaser.Scene {
 
   /** Áp kết quả vào bản lưu: thắng nhận thưởng, thua MẤT cá lực chiến thấp nhất. */
   private async settle(won: boolean): Promise<string> {
+    const rankBefore = dmRankPoints(GameState.save.stats);
     const v = this.view;
     let r;
     if (this.pvp && this.driver instanceof PvpDriver) {
@@ -496,7 +504,11 @@ export class Combat3Scene extends Phaser.Scene {
     if (this.pvp?.stake === "friendly") return "Giao hữu – không mất cá, không thưởng";
     if (won) {
       const parts = [r.gold ? `+${formatNum(r.gold)} 🪙` : "", r.xp ? `+${r.xp} KN` : "", r.roasted ? `🍖 ${FISH_BY_ID.get(r.roasted.fishId)?.name ?? "Cá"} nướng` : ""].filter(Boolean);
-      return parts.length ? `Phần thưởng: ${parts.join(" · ")}` : "Chiến thắng!";
+      const rankAfter = dmRankPoints(GameState.save.stats);
+      const rk = dmRankOf(rankAfter);
+      const up = dmRankChange(rankBefore, rankAfter);
+      const rankLine = `🏅 +${rankAfter - rankBefore} điểm rank → ${dmRankLabel(rk)} · ${rk.stars}⭐ (${rk.starPoints}/100)${up.tier ? " · 🎉 LÊN HẠNG!" : up.division ? " · ⬆ LÊN BẬC!" : up.star ? " · +1 ⭐" : ""}`;
+      return `${parts.length ? `Phần thưởng: ${parts.join(" · ")}` : "Chiến thắng!"}\n${rankLine}`;
     }
     return r.lostFishId ? `💔 Mất ${FISH_BY_ID.get(r.lostFishId)?.name ?? "cá"} (con lực chiến thấp nhất trong đội)` : "Không mất cá (cá trong đội đã khoá)";
   }

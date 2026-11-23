@@ -146,3 +146,19 @@ export const ELEMENT_INFO = {
   dark: { name: "Bóng Tối", color: "#9575cd", dark: "#311b92", glyph: "🌑" },
   light: { name: "Ánh Sáng", color: "#fff176", dark: "#8d7a00", glyph: "☀" },
 } as const;
+
+/** RANK ĐẤU SINH TỬ: mỗi trận thắng (có rủi ro mất cá) +10 điểm · 100 điểm = 1 sao · 5 sao = lên 1 bậc · 5 bậc / hạng. */
+export const DM_RANK = {
+  pointsPerWin: 10,
+  pointsPerStar: 100,
+  starsPerDivision: 5,
+  divisionsPerTier: 5,
+} as const;
+
+export const DM_RANK_TIERS = [
+  { id: "tan_binh", name: "Tân Binh", stage: "Khởi động / Vòng loại", color: "#cd8a4b" },
+  { id: "chien_binh", name: "Chiến Binh", stage: "Vòng bảng / Tích lũy điểm", color: "#b8c7d9" },
+  { id: "tinh_anh", name: "Tinh Anh", stage: "Vòng tứ kết / Nhóm bứt phá", color: "#ffc93c" },
+  { id: "huyen_thoai", name: "Huyền Thoại", stage: "Vòng bán kết / Top đầu", color: "#c07bff" },
+  { id: "than_thoai", name: "Vô Địch / Thần Thoại", stage: "Quán quân / Đỉnh bảng", color: "#ff5a5f" },
+] as const;

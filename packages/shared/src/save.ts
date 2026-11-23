@@ -138,6 +138,8 @@ export interface PlayerSave {
     species: Record<string, number>;
     dmWins?: number;
     dmLosses?: number;
+    /** Điểm rank Đấu Sinh Tử (mùa hiện tại). */
+    rankPoints?: number;
     /** Số rác đã vớt được. */
     junkCaught?: number;
     /** Số cá nướng nhân vật đã ăn. */

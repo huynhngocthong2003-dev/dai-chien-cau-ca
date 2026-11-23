@@ -25,3 +25,4 @@ export * from "./elements.ts";
 export * from "./combat.ts";
 export * from "./combatSetup.ts";
 export * from "./breeding.ts";
+export * from "./rank.ts";

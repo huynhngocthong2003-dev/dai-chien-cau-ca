@@ -1,11 +1,11 @@
 import Phaser from "phaser";
-import { CHAR_RARITY_COLOR } from "@dccc/game-config";
+import { CHAR_RARITY_COLOR, DM_RANK, DM_RANK_TIERS } from "@dccc/game-config";
 import { CHARACTERS, FISH_BY_ID } from "@dccc/game-data";
-import { DIFFICULTY, charMaxLevel, charXpToNext, roastedXp, type OwnedFish } from "@dccc/shared";
+import { AI_LEVEL_LABEL, DIFFICULTY, charMaxLevel, dmAiLevel, dmAiPowerScale, dmRankLabel, dmRankOf, dmRankPoints, charXpToNext, roastedXp, type OwnedFish } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
 import { pvpCall, type PvpRoom, type PvpStake } from "../state/pvp.ts";
-import { characterHeadTexture, roastedFishTexture } from "../art/textures.ts";
+import { characterHeadTexture, rankBadgeTexture, roastedFishTexture } from "../art/textures.ts";
 import { fishPickCard, fishPickGrid } from "../ui/fishPickCard.ts";
 import { htmlOverlay } from "../ui/htmlOverlay.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
@@ -14,9 +14,12 @@ import { COLORS } from "../ui/theme.ts";
 import { menuBackdrop } from "../ui/backdrop.ts";
 import { hexToInt } from "../art/color.ts";
 import { Sfx } from "../audio/Sfx.ts";
+import { rankChip } from "../ui/rankPanel.ts";
 import { fishPower as power } from "../ui/fishPickCard.ts";
 
 type Mode = "arena" | "pvp" | "roasted";
+/** Thời gian tìm người chơi trước khi chuyển sang đấu máy (giây). */
+const QUICK_SEARCH_S = 20;
 
 /**
  * Đấu Cá: chọn & xếp 3 cá → trận 3vs3 theo lượt (canh lực) với MÁY, hoặc vào PHÒNG đấu với NGƯỜI.
@@ -51,21 +54,23 @@ export class DeathMatchScene extends Phaser.Scene {
     menuBackdrop(this);
     new TopBar(this, { title: "Đấu Cá", onBack: () => goTo(this, "Hub") });
     const defs: [Mode, string][] = [
-      ["arena", "⚔ Đấu 3vs3 với máy"],
-      ["pvp", "👥 Đấu với người"],
+      ["arena", "⚔ Đấu Sinh Tử"],
+      ["pvp", "👥 Phòng / Mời bạn"],
       ["roasted", `🍖 Cá nướng (${GameState.save.roasted.length})`],
     ];
     this.tabs = defs.map(
       ([m, label], i) =>
-        new Button(this, 124 + i * 236, 116, 228, 50, label, {
+        new Button(this, 114 + i * 216, 116, 208, 50, label, {
           color: COLORS.blue,
-          fontSize: 17,
+          fontSize: 16,
           onClick: () => {
             this.mode = m;
             this.render();
           },
         }),
     );
+    // rank Đấu Sinh Tử – bấm xem Thang Rank
+    rankChip(this, 668, 116, GameState.save.stats);
     this.render();
   }
 
@@ -141,53 +146,96 @@ export class DeathMatchScene extends Phaser.Scene {
     }
   }
 
-  // ---------------------------------------------------------------- đấu 3vs3 theo lượt (canh lực)
-  private arenaLevel: "easy" | "normal" | "hard" = "normal";
-
+  // ---------------------------------------------------------------- đấu sinh tử: ưu tiên ghép người, hết giờ → máy theo rank
   private renderArena(c: Phaser.GameObjects.Container) {
+    const rp = dmRankPoints(GameState.save.stats);
+    const lv = dmAiLevel(rp);
+    const rk = dmRankOf(rp);
+    const tier = DM_RANK_TIERS[rk.tier]!;
     c.add(panel(this, 852, 92, 412, 614, 0.95));
-    c.add(txt(this, 1058, 120, "⚔ Luyện tập 3vs3 với máy", 26, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
-    c.add(txt(this, 1058, 148, "Chọn độ giỏi của MÁY:", 15, { weight: "700", align: "center" }).setOrigin(0.5));
-    const lv: ["easy" | "normal" | "hard", string][] = [
-      ["easy", "Dễ"],
-      ["normal", "Thường"],
-      ["hard", "Khó"],
-    ];
-    lv.forEach(([k, label], i) =>
-      c.add(
-        new Button(this, 920 + i * 136, 184, 126, 46, label, {
-          color: k === this.arenaLevel ? COLORS.orange : COLORS.blue,
-          fontSize: 20,
-          onClick: () => {
-            this.arenaLevel = k;
-            this.render();
-          },
-        }),
-      ),
-    );
+    c.add(txt(this, 1058, 120, "⚔ Đấu Sinh Tử 3vs3", 26, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
+    c.add(this.add.image(926, 186, rankBadgeTexture(this, rk.tier, rk.division)).setDisplaySize(96, 96));
+    c.add(txt(this, 984, 166, dmRankLabel(rk), 19, { color: tier.color }).setOrigin(0, 0.5));
+    c.add(txt(this, 984, 194, `${rk.stars}/5 ⭐ · ${rk.starPoints}/100 điểm`, 15, { weight: "700" }).setOrigin(0, 0.5));
+    c.add(txt(this, 984, 218, `Máy: ${AI_LEVEL_LABEL[lv]} · lực ×${dmAiPowerScale(rp).toFixed(2)}`, 15, { weight: "700", color: "#ffab91" }).setOrigin(0, 0.5));
     const rules = [
-      "• Cá NHANH hơn đánh trước, sau đó luân phiên",
-      "• Thanh canh lực: XANH ×1.25 · VÀNG ×0.7 · ĐỎ hụt",
-      "• Khắc hệ ×1.5 · bị khắc ×0.75",
-      "• Kỹ năng riêng mỗi cá (có hồi chiêu)",
-      "• Phòng thủ: giảm 40% đòn kế tiếp",
-      "• Hạ đủ 3 cá đối phương để thắng",
+      GameState.online ? "🔎 Ưu tiên ghép với NGƯỜI (gần rank nhau)" : "💾 Chơi không tài khoản: chỉ đấu máy",
+      GameState.online ? `• Không có ai sau ${QUICK_SEARCH_S} giây → đấu MÁY` : "",
+      "• Rank càng cao máy càng khó & mạnh",
+      "• Cá NHANH đánh trước · canh lực XANH ×1.25",
+      "• Khắc hệ ×1.5 · bị khắc ×0.75 · kỹ năng riêng",
       "",
-      `🏆 Thắng: +${DIFFICULTY[this.arenaLevel].gold} 🪙 +${DIFFICULTY[this.arenaLevel].xp} KN + 🍖 cá nướng`,
-      "💔 Thua / bỏ cuộc: MẤT con cá lực chiến THẤP NHẤT trong đội",
-      GameState.online ? "☁ Trận do máy chủ làm trọng tài" : "💾 Chơi không tài khoản: trận chạy trên máy",
-    ];
-    c.add(txt(this, 872, 220, rules.join("\n"), 16, { weight: "700", wrap: 372 }).setLineSpacing(5));
+      `🏆 Thắng: +${DM_RANK.pointsPerWin} điểm rank + 🍖 cá nướng`,
+      `   (thắng máy thêm +${DIFFICULTY[lv === "boss" ? "hard" : lv].gold} 🪙 +${DIFFICULTY[lv === "boss" ? "hard" : lv].xp} KN)`,
+      "💔 Thua / bỏ cuộc: MẤT con cá lực chiến THẤP NHẤT",
+    ].filter((l, i, a) => l !== "" || a[i - 1] !== "");
+    c.add(txt(this, 872, 252, rules.join("\n"), 15, { weight: "700", wrap: 372 }).setLineSpacing(5));
     const ready = this.team.length === 3;
-    const go = new Button(this, 1058, 640, 330, 70, "⚔ VÀO TRẬN", {
+    const go = new Button(this, 1058, 640, 330, 70, GameState.online ? "🔎 TÌM TRẬN" : "⚔ VÀO TRẬN", {
       color: COLORS.red,
       fontSize: 30,
       disabled: !ready,
-      onClick: () => goTo(this, "Combat3", { team: [...this.team], level: this.arenaLevel }),
+      onClick: () => (GameState.online ? void this.findMatch() : goTo(this, "Combat3", { team: [...this.team] })),
     });
     go.on("disabled-click", () => toast(this, "Hãy chọn đủ 3 con cá (thứ tự chọn = thứ tự xuất trận)"));
     c.add(go);
     if (ready) this.tweens.add({ targets: go, scale: 1.05, duration: 600, yoyo: true, repeat: -1 });
+  }
+
+  /** Tìm người chơi khác đang tìm trận (gần rank); hết giờ → đấu máy (độ khó theo rank). */
+  private async findMatch() {
+    if (this.busy) return;
+    this.busy = true;
+    const team = [...this.team];
+    let cancelled = false;
+    let roomId: string | null = null;
+    const m = modal(this, 560, 340, "🔎 Đang tìm đối thủ…", () => {
+      cancelled = true;
+      this.busy = false;
+      if (roomId) void pvpCall({ op: "leave", id: roomId }).catch(() => null);
+    });
+    const info = txt(this, 640, m.y + 130, "Đang đồng bộ bản lưu…", 21, { align: "center", weight: "700", wrap: 500 }).setOrigin(0.5);
+    const fish = this.add.text(640, m.y + 210, "🐟", { fontSize: "54px", padding: { top: 8 } }).setOrigin(0.5);
+    this.tweens.add({ targets: fish, x: 700, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    m.root.add([info, fish]);
+    try {
+      const err = await GameState.syncNow(); // máy chủ đọc đội hình từ bản lưu mới nhất
+      if (err) throw new Error(`Chưa đồng bộ được bản lưu: ${err}`);
+      const t0 = Date.now();
+      while (!cancelled) {
+        const left = Math.max(0, Math.ceil(QUICK_SEARCH_S - (Date.now() - t0) / 1000));
+        const room = await pvpCall({ op: "quick" });
+        if (cancelled) {
+          void pvpCall({ op: "leave", id: room.id }).catch(() => null);
+          return;
+        }
+        roomId = room.id;
+        if (room.status === "picking") {
+          info.setText(`⚔ Đã tìm thấy: ${room.oppName ?? "Đối thủ"}!\nĐang chốt đội hình…`);
+          const picked = await pvpCall({ op: "pick", id: room.id, team });
+          roomId = null; // đã vào trận – đóng hộp thoại KHÔNG rời phòng
+          m.close();
+          goTo(this, "PvpRoom", { room: picked });
+          return;
+        }
+        if (room.status !== "waiting") continue;
+        if (left <= 0) {
+          await pvpCall({ op: "leave", id: room.id }).catch(() => null);
+          roomId = null;
+          m.close();
+          toast(this, "Chưa có người chơi nào đang tìm trận – đấu với MÁY", COLORS.blue);
+          goTo(this, "Combat3", { team });
+          return;
+        }
+        info.setText(`Đang tìm người chơi gần rank của bạn…\nCòn ${left} giây – không có ai sẽ đấu với MÁY`);
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    } catch (e) {
+      if (!cancelled) {
+        m.close();
+        toast(this, (e as Error).message, COLORS.red);
+      }
+    }
   }
 
   // ---------------------------------------------------------------- đấu với người (phòng)

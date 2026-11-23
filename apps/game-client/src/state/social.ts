@@ -28,6 +28,7 @@ export interface PlayerCard {
     caught?: number;
     bosses?: number;
     dmWins?: number;
+    rankPoints?: number;
     dmLosses?: number;
     species?: number;
     junk?: number;
@@ -83,6 +84,7 @@ export function cardFromSave(save: PlayerSave): Omit<PlayerCard, "user_id" | "fr
       caught: save.stats.totalCaught,
       bosses: save.stats.bossesCaught,
       dmWins: save.stats.dmWins ?? 0,
+      rankPoints: save.stats.rankPoints ?? 0,
       dmLosses: save.stats.dmLosses ?? 0,
       species: Object.keys(save.stats.species).length,
       junk: save.stats.junkCaught ?? 0,

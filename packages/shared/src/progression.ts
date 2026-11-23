@@ -113,17 +113,24 @@ export function fishMaxLevel(stars: number, growth = false): number {
   return 10 * Math.min(MAX_STARS, Math.max(1, stars));
 }
 
+/**
+ * Vàng nâng cấp cá theo độ hiếm (không nhân giá trị cá nữa – trước đây Boss/Thần Thoại tốn hàng chục vạn vàng / cấp).
+ * Mỗi cấp: hệ số × cấp + 20. VD Boss: cấp 10 ≈ 1.8K, cấp 40 ≈ 7.2K, trọn cấp 1→50 ≈ 220K.
+ */
+export const FISH_GOLD_RATE: Record<FishDef["rarity"], number> = { common: 15, rare: 25, precious: 40, epic: 70, legendary: 120, boss: 180, mythic: 220 };
+
 export function fishUpgradeCost(f: FishDef, level: number): Cost {
-  return { gold: Math.round(f.value * 0.3 * level + 20), stones: Math.ceil(level * (1 + fishRarityIdx(f) * 0.5)), soul: 0 };
+  return { gold: Math.round(FISH_GOLD_RATE[f.rarity] * level + 20), stones: Math.ceil(level * (1 + fishRarityIdx(f) * 0.5)), soul: 0 };
 }
 
 /** `formItem`: vật phẩm của hệ mà cá đã tiến hoá (bắt buộc với cá trưởng thành). */
 export function fishEvolveCost(f: FishDef, stars: number, formItem?: string): Cost {
-  if (!isGrowthFish(f)) return { gold: Math.round(f.value * 2 * stars + 100), stones: 10 * stars, soul: Math.max(0, fishRarityIdx(f) - 1) * stars };
+  const rate = FISH_GOLD_RATE[f.rarity];
+  if (!isGrowthFish(f)) return { gold: Math.round(Math.min(f.value * 2, rate * 40) * stars + 100), stones: 10 * stars, soul: Math.max(0, fishRarityIdx(f) - 1) * stars };
   // trưởng thành (Huyền Thoại/Boss/Thần Thoại): vàng + linh hồn + đá nâng cấp + Đá Tiến Hoá của hệ theo giai
   const st = fishStage(stars);
   return {
-    gold: Math.round(f.value * 4 * st * st + 5000 * st),
+    gold: Math.round(rate * 60 * st * st + 2000 * st),
     stones: 40 * st,
     soul: 25 * st,
     evo: { item: formItem ?? ELEMENT_EVO_ITEM[f.element], n: STAGE_EVO_STONES[st] ?? 1 },

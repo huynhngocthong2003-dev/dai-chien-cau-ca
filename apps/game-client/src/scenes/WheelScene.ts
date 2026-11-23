@@ -6,6 +6,7 @@ import { characterHeadTexture, characterTexture, evoItemTexture, menuIconTexture
 const nameOf = (id: string) => EVO_ITEM_BY_ID.get(id)?.name ?? CHARACTER_BY_ID.get(id)?.name ?? ROD_BY_ID.get(id)?.name ?? id;
 import { DUPLICATE_CHAR_SOUL, DUPLICATE_ROD_STONES, WHEEL_COST_10, WHEEL_COST_DIAMONDS, WHEEL_X10_GOOD_BOOST, rewardText, type RewardDef } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
+import { makeScrollArea } from "../ui/scrollArea.ts";
 import { Button, fadeIn, goTo, modal, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -250,19 +251,34 @@ export class WheelScene extends Phaser.Scene {
     m.root.add(txt(this, m.x + 590, m.y + 106, "Quay lẻ", 16, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
     m.root.add(txt(this, m.x + 720, m.y + 106, "Quay x10 (mỗi lượt)", 16, { color: COLORS.textGold, align: "center" }).setOrigin(0.5));
     const list = [...WHEEL_PRIZES].sort((a, b) => b.weight - a.weight);
-    // một cột đầy đủ dễ đọc: tên · cấp · % lẻ · % x10
+    // một cột đầy đủ dễ đọc: tên · cấp · % lẻ · % x10 – vùng cuộn có thanh trượt
+    const ROW = 34;
+    const top = m.y + 124;
+    const bottom = m.y + m.h - 64;
+    const content = this.add.container(0, 0);
+    m.root.add(content);
     list.forEach((p, i) => {
-      const y = m.y + 130 + i * 25;
+      const y = top + 16 + i * ROW;
       const t = tierOf(p);
       const g = this.add.graphics();
-      g.fillStyle(hexToInt(t.color), i % 2 ? 0.18 : 0.28).fillRoundedRect(m.x + 30, y - 11, m.w - 60, 23, 6);
-      m.root.add(g);
-      m.root.add(this.add.text(m.x + 50, y, p.icon, { fontSize: "16px", padding: { top: 4 } }).setOrigin(0.5));
-      m.root.add(txt(this, m.x + 70, y, p.label, 15, { weight: "700" }).setOrigin(0, 0.5));
-      m.root.add(txt(this, m.x + 330, y, t.name, 14, { color: t.color }).setOrigin(0, 0.5));
-      m.root.add(txt(this, m.x + 590, y, pct(rate1(p)), 15, { align: "center" }).setOrigin(0.5));
+      g.fillStyle(hexToInt(t.color), i % 2 ? 0.18 : 0.28).fillRoundedRect(m.x + 30, y - 15, m.w - 84, ROW - 3, 7);
+      content.add(g);
+      content.add(this.add.image(m.x + 54, y, prizeIcon(this, p)).setDisplaySize(28, 28));
+      content.add(txt(this, m.x + 78, y, p.label, 16, { weight: "700" }).setOrigin(0, 0.5));
+      content.add(txt(this, m.x + 330, y, t.name, 15, { color: t.color }).setOrigin(0, 0.5));
+      content.add(txt(this, m.x + 590, y, pct(rate1(p)), 16, { align: "center" }).setOrigin(0.5));
       const up = p.weight <= WHEEL_GOOD_WEIGHT;
-      m.root.add(txt(this, m.x + 720, y, `${pct(rate10(p))}${up ? " ▲" : ""}`, 15, { align: "center", color: up ? "#69f0ae" : "#ffffff" }).setOrigin(0.5));
+      content.add(txt(this, m.x + 720, y, `${pct(rate10(p))}${up ? " ▲" : ""}`, 16, { align: "center", color: up ? "#69f0ae" : "#ffffff" }).setOrigin(0.5));
+    });
+    makeScrollArea(this, m.root, content, {
+      left: m.x + 24,
+      right: m.x + m.w - 44,
+      top,
+      bottom,
+      contentH: list.length * ROW + 8,
+      trackX: m.x + m.w - 30,
+      scroll: 0,
+      onScroll: () => undefined,
     });
     m.root.add(txt(this, m.x + m.w / 2, m.y + m.h - 34, "▲ = món ngon được tăng tỉ lệ ×1,6 khi quay x10 (không đảm bảo). Nhân vật / cần câu hiếm bốc ngẫu nhiên trong nhóm; đã có thì đổi nguyên liệu.", 13, { align: "center", weight: "700", color: COLORS.textDim, wrap: 920 }).setOrigin(0.5));
   }

@@ -7,6 +7,7 @@
  *  act    { id, turn, action }                      → 1 lệnh / lượt (đúng lượt của mình)
  *  leave  { id }                                    → rời phòng (đang đấu = BỎ CUỘC, tính thua)
  *  decline{ id }                                    → từ chối lời mời
+ *  quick  {}                                       → TÌM TRẬN sinh tử: vào phòng công khai của người khác (gần rank nhất), không có thì mở/giữ phòng chờ
  *  settle { id }                                    → báo đã áp kết quả vào bản lưu
  *  pending{}                                        → các trận đã xong mà mình chưa áp kết quả
  * Đồng hồ: chỉ dùng giờ máy chủ. Thiếu đội khi hết 30 giây → huỷ trận. 3 lượt liên tiếp không đánh → xử thua.
@@ -24,6 +25,7 @@ import {
   refereeAction,
   timeoutAction,
   weakestFish,
+  dmRankPoints,
   type CombatEvent,
   type CombatState,
 } from "@dccc/shared";
@@ -38,6 +40,8 @@ const CORS = {
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const WAIT_MS = 60_000;
+/** Phòng TÌM TRẬN chờ tối đa (người chơi tự chuyển sang đấu máy sau ~20 giây). */
+const QUICK_WAIT_MS = 30_000;
 const PICK_MS = 30_000;
 const MAX_TIMEOUTS = 3;
 const MAX_ROOMS_PER_10MIN = 15;
@@ -67,6 +71,8 @@ type Room = {
   cancel_reason: string | null;
   settled_host: boolean;
   settled_guest: boolean;
+  quick: boolean;
+  host_rank: number;
 };
 type LoseFish = { uid: string; fishId: string; level: number; stars: number } | null;
 
@@ -209,6 +215,59 @@ Deno.serve(async (req: Request) => {
         if (!error && data) return json(200, view(data as Room, me));
       }
       return json(500, { error: "Không tạo được phòng" });
+    }
+
+    if (op === "quick") {
+      // ưu tiên ghép với NGƯỜI: phòng TÌM TRẬN đang chờ của người khác, rank gần mình nhất, chờ lâu nhất
+      const save = await loadSave(me);
+      if (!save) return json(400, { error: saveError });
+      const myRank = dmRankPoints(save.stats);
+      const { data: mine } = await admin.from("pvp_rooms").select("*").eq("host", me).eq("quick", true).eq("status", "waiting").maybeSingle();
+      const { data: others } = await admin
+        .from("pvp_rooms")
+        .select("*")
+        .eq("quick", true)
+        .eq("status", "waiting")
+        .neq("host", me)
+        .gt("expires_at", now())
+        .order("created_at")
+        .limit(20);
+      const cands = ((others ?? []) as Room[]).sort((a, b) => Math.abs(a.host_rank - myRank) - Math.abs(b.host_rank - myRank));
+      for (const o of cands) {
+        if (mine) {
+          // huỷ phòng chờ của mình trước; huỷ không được = vừa có người vào phòng mình → đã ghép xong
+          const c = await write(mine as Room, { status: "cancelled", cancel_reason: "Đã ghép phòng khác" }, { status: "waiting", guest: null });
+          if (!c) {
+            const { data: cur } = await admin.from("pvp_rooms").select("*").eq("id", (mine as Room).id).maybeSingle();
+            return json(200, view(cur as Room, me));
+          }
+        }
+        const upd = await write(
+          o,
+          { guest: me, guest_name: await nameOf(me), status: "picking", pick_deadline: new Date(Date.now() + PICK_MS).toISOString() },
+          { status: "waiting", guest: null },
+        );
+        if (upd) return json(200, view(upd, me));
+        if (mine) break; // phòng mình đã huỷ → mở phòng mới bên dưới
+      }
+      if (mine && cands.length === 0) {
+        const t = (await tick(mine as Room)).room;
+        if (t.status !== "cancelled") return json(200, view(t, me));
+      }
+      const since = new Date(Date.now() - 600_000).toISOString();
+      const { count } = await admin.from("pvp_rooms").select("id", { count: "exact", head: true }).eq("host", me).gte("created_at", since);
+      if ((count ?? 0) >= MAX_ROOMS_PER_10MIN * 2) return json(429, { error: "Bạn tìm trận quá nhanh, hãy nghỉ một lát" });
+      await admin.from("pvp_rooms").update({ status: "cancelled", cancel_reason: "Tìm trận mới", updated_at: now() }).eq("host", me).eq("status", "waiting");
+      const host_name = await nameOf(me);
+      for (let i = 0; i < 5; i++) {
+        const { data, error } = await admin
+          .from("pvp_rooms")
+          .insert({ code: newCode(), stake: "death", quick: true, host_rank: myRank, host: me, invitee: null, host_name, expires_at: new Date(Date.now() + QUICK_WAIT_MS).toISOString() })
+          .select("*")
+          .single();
+        if (!error && data) return json(200, view(data as Room, me));
+      }
+      return json(500, { error: "Không tìm được trận" });
     }
 
     if (op === "pending") {

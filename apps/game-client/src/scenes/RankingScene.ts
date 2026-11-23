@@ -1,10 +1,11 @@
 import { makeScrollArea } from "../ui/scrollArea.ts";
 import Phaser from "phaser";
 import { CHARACTER_BY_ID, FISH_BY_ID, FORM_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
-import { rankTitle, teamPower, type RankCategory } from "@dccc/shared";
+import { dmRankLabel, dmRankOf, rankTitle, teamPower, type RankCategory } from "@dccc/shared";
+import { DM_RANK_TIERS } from "@dccc/game-config";
 import { GameState } from "../state/GameState.ts";
 import * as Social from "../state/social.ts";
-import { characterHeadTexture } from "../art/textures.ts";
+import { characterHeadTexture, rankBadgeTexture } from "../art/textures.ts";
 import { Button, fadeIn, formatNum, goTo, panel, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
@@ -16,7 +17,7 @@ const TABS: [Tab, string, string][] = [
   ["level", "⭐ Cấp độ", "Cấp"],
   ["caught", "🐟 Câu cá", "Cá"],
   ["bosses", "👑 Săn Boss", "Boss"],
-  ["dmWins", "⚔ Sinh tử", "Thắng"],
+  ["dmRank", "⚔ Rank Sinh tử", "điểm"],
   ["junk", "♻ Nhặt rác", "Rác"],
   ["teamPower", "🐟 Chiến lực", "⚔"],
   ["guild", "🛡 Hội", "Điểm"],
@@ -112,7 +113,13 @@ export class RankingScene extends Phaser.Scene {
         lc.add(tt);
         if (r.rank === 1) this.tweens.add({ targets: tt, scale: 1.08, duration: 600, yoyo: true, repeat: -1 });
       }
-      lc.add(txt(this, 1210, y + 30, `${formatNum(r.score)} ${unit}`, 22, { color: COLORS.textGold }).setOrigin(1, 0.5));
+      if (cat === "dmRank") {
+        // hạng rank sinh tử: huy hiệu + tên hạng/bậc + sao (xếp theo điểm rank = theo hạng cao nhất)
+        const rk = dmRankOf(r.score);
+        lc.add(this.add.image(1000, y + 30, rankBadgeTexture(this, rk.tier, rk.division)).setDisplaySize(56, 56));
+        lc.add(txt(this, 1210, y + 20, dmRankLabel(rk), 19, { color: DM_RANK_TIERS[rk.tier]!.color }).setOrigin(1, 0.5));
+        lc.add(txt(this, 1210, y + 44, `${"★".repeat(rk.stars)}${"☆".repeat(5 - rk.stars)} · ${formatNum(r.score)} điểm`, 14, { weight: "700", color: COLORS.textGold }).setOrigin(1, 0.5));
+      } else lc.add(txt(this, 1210, y + 30, `${formatNum(r.score)} ${unit}`, 22, { color: COLORS.textGold }).setOrigin(1, 0.5));
       // bấm vào dòng để xem trang cá nhân
       const z = this.add.zone(640, y + 30, 1200, 60).setInteractive({ useHandCursor: true });
       z.on("pointerup", () => !area?.dragged() && void openPlayerProfile(this, r.user_id, `Hạng #${r.rank} ${TABS.find((t) => t[0] === cat)![1]}`));

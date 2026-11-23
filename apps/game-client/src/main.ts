@@ -16,6 +16,7 @@ import { Combat3Scene } from "./scenes/Combat3Scene.ts";
 import { PvpRoomScene } from "./scenes/PvpRoomScene.ts";
 import { BreedingScene } from "./scenes/BreedingScene.ts";
 import { installPvpInvites } from "./ui/pvpInvites.ts";
+import { installInlineIcons } from "./ui/inlineIcons.ts";
 import { ProfileScene } from "./scenes/ProfileScene.ts";
 import { QuestScene } from "./scenes/QuestScene.ts";
 import { WheelScene } from "./scenes/WheelScene.ts";
@@ -36,6 +37,8 @@ async function start() {
   } catch {
     /* dùng font dự phòng */
   }
+  // emoji tiền tệ cũ trong chữ → biểu tượng vẽ mới (đồng bộ với thanh tài nguyên)
+  installInlineIcons();
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: "game",

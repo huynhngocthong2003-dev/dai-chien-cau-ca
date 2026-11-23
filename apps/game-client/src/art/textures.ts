@@ -15,6 +15,7 @@ import { CHAR_H, CHAR_W, defaultLook, drawAura, drawCharacter, type Look } from 
 import { WORLD_H, WORLD_W, drawDock, drawZoneBackground } from "./Backgrounds.ts";
 import { drawJunk } from "./JunkArt.ts";
 import { MENU_ICON_SIZE, drawMenuIcon, type MenuIcon } from "./MenuIcons.ts";
+import { RANK_BADGE_SIZE, drawRankBadge } from "./RankArt.ts";
 
 /** Tạo texture từ hàm vẽ Canvas 2D (chỉ tạo một lần, lazy). */
 export function canvasTexture(
@@ -58,6 +59,11 @@ function softEdges(ctx: CanvasRenderingContext2D, w: number, h: number) {
 /** Biểu tượng mục menu sảnh (vẽ tay, cùng phong cách game). */
 export function menuIconTexture(scene: Phaser.Scene, kind: MenuIcon): string {
   return canvasTexture(scene, `menuicon_${kind}`, MENU_ICON_SIZE, MENU_ICON_SIZE, (ctx) => drawMenuIcon(ctx, kind), 1.5);
+}
+
+/** Huy hiệu rank Đấu Sinh Tử theo hạng (0..4) và bậc (1..5). */
+export function rankBadgeTexture(scene: Phaser.Scene, tier: number, division: number): string {
+  return canvasTexture(scene, `rank_${tier}_${division}`, RANK_BADGE_SIZE, RANK_BADGE_SIZE, (ctx) => drawRankBadge(ctx, tier, division), 1.5);
 }
 
 /** Quầng sáng tròn mềm (thay cho hạt lấp lánh phóng to làm nền sau cá). */

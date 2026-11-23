@@ -1,6 +1,6 @@
 /**
  * TRẬN 3VS3 THEO LƯỢT – MÁY CHỦ LÀ TRỌNG TÀI (Supabase Edge Function).
- *  POST { op: "start", mode: "practice", team: [uid×3], level }  → tạo trận (đội đọc từ bản lưu trên máy chủ)
+ *  POST { op: "start", mode: "practice", team: [uid×3] }  → tạo trận (đội đọc từ bản lưu; độ khó máy theo rank sinh tử)
  *  POST { op: "act", id, turn, action: { kind, pressMs? } }        → 1 lệnh / lượt; máy chủ tính vùng canh lực, sát thương, lượt máy
  *  POST { op: "get", id }                                          → lấy lại trạng thái (kết nối lại)
  *  POST { op: "forfeit", id }                                      → bỏ cuộc = THUA (mất cá lực chiến thấp nhất)
@@ -18,6 +18,9 @@ import {
   createCombat,
   currentBar,
   practiceOpponent,
+  dmAiLevel,
+  dmAiPowerScale,
+  dmRankPoints,
   type AiLevel,
   type CombatEvent,
   type CombatState,
@@ -32,7 +35,6 @@ const CORS = {
 };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const LEVELS: AiLevel[] = ["easy", "normal", "hard"];
 const MAX_STARTS_PER_10MIN = 20;
 const AI_SIDE = 1;
 
@@ -74,7 +76,6 @@ Deno.serve(async (req: Request) => {
     const op = body?.op;
 
     if (op === "start") {
-      const level = LEVELS.includes(body?.level as AiLevel) ? (body!.level as AiLevel) : "normal";
       if (body?.mode !== "practice") return json(400, { error: "Chế độ chưa mở" });
       const since = new Date(Date.now() - 600_000).toISOString();
       const { count } = await admin.from("battles").select("id", { count: "exact", head: true }).eq("user_id", me).gte("created_at", since);
@@ -87,6 +88,9 @@ Deno.serve(async (req: Request) => {
         console.error("parseSave lỗi", me, p.error.slice(0, 500));
         return json(400, { error: `Bản lưu trên máy chủ không hợp lệ (${p.error.split(";")[0]!.slice(0, 80)}) – hãy báo Ban Quản Trị` });
       }
+      // độ khó máy theo RANK sinh tử trên bản lưu máy chủ (không tin độ khó trình duyệt gửi)
+      const rp = dmRankPoints(p.save.stats);
+      const level = dmAiLevel(rp);
       const built = buildPlayerTeam(p.save, body?.team, FISH_BY_ID, FORM_BY_ID, ZONE_BY_ID);
       if ("error" in built) return json(400, { error: built.error });
       // trận dang dở (thoát giữa chừng) → tính thua
@@ -94,7 +98,7 @@ Deno.serve(async (req: Request) => {
       const seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
       const open = new Set(ZONES.filter((z) => p.save.level >= z.requiredLevel).map((z) => z.id));
       const pool = FISHES.filter((f) => f.rarity !== "boss" && f.zones.some((z) => open.has(z)));
-      const foe = practiceOpponent(seed, built.team, pool, level, FISH_BY_ID);
+      const foe = practiceOpponent(seed, built.team, pool, level, FISH_BY_ID, dmAiPowerScale(rp));
       const first = runAi(createCombat(built.team, foe, seed), level);
       const { data: ins, error: insErr } = await admin
         .from("battles")

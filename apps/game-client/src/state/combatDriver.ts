@@ -9,6 +9,8 @@ import {
   buildPlayerTeam,
   createCombat,
   currentBar,
+  dmAiPowerScale,
+  dmRankPoints,
   practiceOpponent,
   refereeAction,
   runAiTurns,
@@ -57,7 +59,7 @@ export class LocalDriver implements CombatDriver {
     const seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
     const open = new Set(ZONES.filter((z) => GameState.save.level >= z.requiredLevel).map((z) => z.id));
     const pool = FISHES.filter((f) => f.rarity !== "boss" && f.zones.some((z) => open.has(z)));
-    const foe = practiceOpponent(seed, built.team, pool, level, FISH_BY_ID);
+    const foe = practiceOpponent(seed, built.team, pool, level, FISH_BY_ID, dmAiPowerScale(dmRankPoints(GameState.save.stats)));
     const first = runAiTurns(createCombat(built.team, foe, seed), 1, level);
     this.state = first.state;
     this.turnStart = performance.now();

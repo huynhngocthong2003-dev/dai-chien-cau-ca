@@ -68,6 +68,7 @@ export const playerSaveSchema = z.object({
     heaviestKg: z.number().min(0),
     species: z.record(id, nonNegInt),
     dmWins: nonNegInt.optional(),
+    rankPoints: nonNegInt.optional(),
     dmLosses: nonNegInt.optional(),
     junkCaught: nonNegInt.optional(),
     roastedEaten: nonNegInt.optional(),

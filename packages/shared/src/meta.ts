@@ -273,6 +273,7 @@ const RANK_TITLES: Record<RankCategory, [string, string, string, string]> = {
   caught: ["Vua Câu Cá", "Á Vương Câu Cá", "Tam Hoàng Câu Cá", "Top 10 Thợ Câu"],
   bosses: ["Diệt Boss Chí Tôn", "Khắc Tinh Thủy Quái", "Thợ Săn Boss Lừng Danh", "Top 10 Săn Boss"],
   dmWins: ["Chiến Thần Sinh Tử", "Đấu Sĩ Bất Bại", "Sát Thủ Đấu Trường", "Top 10 Đấu Sĩ"],
+  dmRank: ["Chiến Thần Sinh Tử", "Đấu Sĩ Bất Bại", "Sát Thủ Đấu Trường", "Top 10 Đấu Sĩ"],
   junk: ["Vua Nhặt Rác", "Nữ Hoàng Tái Chế", "Hiệp Sĩ Môi Trường", "Top 10 Kẻ Săn Lùng Rác"],
   teamPower: ["Bá Chủ Đại Dương", "Hải Vương Chiến Lực", "Thủy Quân Vô Địch", "Top 10 Đội Hình Mạnh"],
 };

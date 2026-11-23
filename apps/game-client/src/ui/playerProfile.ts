@@ -1,3 +1,4 @@
+import { dmRankLabel, dmRankOf } from "@dccc/shared";
 import Phaser from "phaser";
 import { CHAR_RARITY_COLOR, FISH_RARITY_COLOR } from "@dccc/game-config";
 import { CHARACTER_BY_ID, COSMETIC_BY_ID, FISH_BY_ID, FORM_BY_ID, ROD_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
@@ -50,6 +51,7 @@ export function showPlayerProfile(scene: Phaser.Scene, p: Social.PlayerCard, opt
   const stats: [string, string][] = [
     ["🐟 Đã câu", formatNum(p.stats.caught ?? 0)],
     ["👑 Boss", formatNum(p.stats.bosses ?? 0)],
+    ["🏅 Rank", dmRankLabel(dmRankOf(p.stats.rankPoints ?? 0))],
     ["⚔ Sinh tử", `${p.stats.dmWins ?? 0}T–${p.stats.dmLosses ?? 0}B`],
     ["💪 Chiến lực", formatNum(p.stats.teamPower ?? 0)],
   ];

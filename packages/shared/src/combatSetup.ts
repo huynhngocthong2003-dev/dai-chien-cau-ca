@@ -2,6 +2,7 @@
  * Dựng đội cho trận 3vs3 từ bản lưu (máy chủ & game dùng chung):
  * kiểm tra quyền sở hữu, đủ 3 cá, không trùng; đội máy luyện tập có lực chiến tương đương.
  */
+import { DM_RANK } from "@dccc/game-config";
 import type { FishDef, FishFormDef, ZoneDef } from "./types.ts";
 import { addLedger, clone, grantXp, markTx, type PlayerSave } from "./save.ts";
 import { ownedFishPower } from "./progression.ts";
@@ -54,13 +55,15 @@ export function practiceOpponent(
   pool: FishDef[],
   level: AiLevel,
   fishById: Map<string, FishDef>,
+  /** Hệ số lực chiến đội máy (rank càng cao càng mạnh). */
+  powerScale = 1,
 ): CombatFish[] {
   const rng = new Rng(seed ^ 0x5bd1e995);
   const avgPower = playerTeam.reduce((a, f) => {
     const def = fishById.get(f.fishId)!;
     return a + makeFighter(def, { uid: f.uid, level: f.level, stars: f.stars }).power;
   }, 0) / playerTeam.length;
-  return aiTeam(rng, pool, avgPower, LEVEL_TO_DIFF[level]).map((fi, i) => {
+  return aiTeam(rng, pool, avgPower * powerScale, LEVEL_TO_DIFF[level]).map((fi, i) => {
     const def = fishById.get(fi.fishId)!;
     return makeCombatFish({ def, uid: `ai_${i}`, level: fi.level, stars: fi.stars, element: def.element });
   });
@@ -133,6 +136,8 @@ export function applyCombatOutcome(
       out.xp = d.xp;
     }
     s.stats.dmWins = (s.stats.dmWins ?? 0) + 1;
+    // rank Đấu Sinh Tử: mỗi trận thắng (có rủi ro mất cá) +10 điểm
+    s.stats.rankPoints = (s.stats.rankPoints ?? 0) + DM_RANK.pointsPerWin;
     const best = [...input.foe].sort((a, b) => b.level * b.stars - a.level * a.stars)[0];
     if (best && fishById.has(best.fishId)) {
       const roasted: RoastedFish = { id: input.txId, fishId: best.fishId, level: best.level, stars: best.stars };
