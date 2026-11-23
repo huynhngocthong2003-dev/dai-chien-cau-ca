@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { FISH_RARITY_COLOR } from "@dccc/game-config";
 import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import { ownedFishPower, winRate, type OwnedFish } from "@dccc/shared";
-import { fishDisplayMult, fishTextureFor } from "../art/textures.ts";
+import { fishDisplayMult, fishTextureFor, softGlowTexture } from "../art/textures.ts";
 import { hexToInt } from "../art/color.ts";
 import { formatNum, txt } from "./widgets.ts";
 import { elementBadges, fishElementSet } from "./element.ts";
@@ -31,7 +31,7 @@ export function fishPickCard(
   c.add(g);
   if (o.form) {
     const fm = FORM_BY_ID.get(o.form);
-    if (fm) c.add(scene.add.image(x + w / 2, y + h * 0.4, "p_spark").setTint(hexToInt(fm.glow)).setScale(4).setAlpha(0.35));
+    if (fm) c.add(scene.add.image(x + w / 2, y + h * 0.4, softGlowTexture(scene)).setTint(hexToInt(fm.glow)).setDisplaySize(w * 0.95, h * 0.6).setAlpha(0.45));
   }
   const m = Math.min(1.1, fishDisplayMult(f, o.stars));
   c.add(scene.add.image(x + w / 2, y + h * 0.4, fishTextureFor(scene, f, o.form, o.stars)).setDisplaySize(w * 0.86 * m, w * 0.54 * m));

@@ -36,18 +36,54 @@ export function canvasTexture(
   return key;
 }
 
+/**
+ * Làm mờ dần mép khung (hình elip): hào quang / tia sét / mây của cá trưởng thành & đột biến
+ * không bị cắt thành vệt vuông khi hiện trong ô nhỏ.
+ */
+function softEdges(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-in";
+  ctx.translate(w / 2, h / 2);
+  ctx.scale(w / h, 1);
+  const r = (h / 2) * 1.08;
+  const g = ctx.createRadialGradient(0, 0, r * 0.62, 0, 0, r);
+  g.addColorStop(0, "rgba(0,0,0,1)");
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(-w, -h, w * 2, h * 2);
+  ctx.restore();
+}
+
+/** Quầng sáng tròn mềm (thay cho hạt lấp lánh phóng to làm nền sau cá). */
+export function softGlowTexture(scene: Phaser.Scene): string {
+  return canvasTexture(scene, "soft_glow", 128, 128, (ctx) => {
+    const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 64);
+    g.addColorStop(0, "rgba(255,255,255,0.95)");
+    g.addColorStop(0.45, "rgba(255,255,255,0.45)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+  });
+}
+
 /** stage 0 = hình loài (sách cá, câu được); 1..4 = cá Huyền Thoại/Boss/Thần Thoại theo giai trưởng thành. */
 export function fishTexture(scene: Phaser.Scene, fish: FishDef, stage = 0): string {
   if (BREED_LOOKS[fish.id]) return breedFishTexture(scene, fish.id, stage);
   const res = fish.appearance.scale >= 1.5 || stage >= 3 ? 1.4 : 1;
-  return canvasTexture(scene, `fish_${fish.id}${stage ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => drawFish(ctx, fish, stage), res);
+  return canvasTexture(scene, `fish_${fish.id}${stage ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => {
+    drawFish(ctx, fish, stage);
+    if (stage >= 1) softEdges(ctx, FISH_W, FISH_H);
+  }, res);
 }
 
 /** Cá đã đột biến (ngoại hình riêng theo dạng). */
 export function formFishTexture(scene: Phaser.Scene, fish: FishDef, form: FishFormDef, stage = 0): string {
   if (BREED_LOOKS[fish.id]) return breedFishTexture(scene, fish.id, stage);
   const res = fish.appearance.scale >= 1.5 || stage >= 3 ? 1.4 : 1;
-  return canvasTexture(scene, `fishform_${fish.id}_${form.id}${stage ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => drawFormFish(ctx, fish, form, stage), res);
+  return canvasTexture(scene, `fishform_${fish.id}_${form.id}${stage ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => {
+    drawFormFish(ctx, fish, form, stage);
+    softEdges(ctx, FISH_W, FISH_H);
+  }, res);
 }
 
 /** Cá lai / Kraken của Đảo Lai Tạo: hình riêng (cùng khung 320×200 với cá thường). */

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.38.2] – 2026-11-23 – Sửa lỗi hiệu ứng cá đột biến / trưởng thành
+### Sửa
+- Cá đã **Tiến hoá hệ (đột biến)** và cá **trưởng thành** (Trung/Cao/Thánh Giai): hào quang, tia sét, mây vẽ tràn khung hình bị cắt thành **vệt màu vuông** trong ô Kho Cá / chọn đội → nay mép hình mờ dần tròn mềm.
+- Khung chi tiết Kho Cá và thẻ chọn cá: nền sáng sau cá dùng hạt lấp lánh phóng to (thành **dấu chữ thập** loang màu) → thay bằng quầng sáng tròn mềm.
+
 ## [0.38.1] – 2026-11-23 – Sửa "Hãy đồng bộ tài khoản trước khi đấu"
 ### Sửa
 - Vào trận 3vs3 với máy (đã đăng nhập), tạo / vào phòng, chốt đội: game **đẩy bản lưu mới nhất lên máy chủ trước**; đồng bộ lỗi thì báo đúng lỗi (vd mất mạng, máy đang dùng bản cũ) thay vì để máy chủ từ chối.
