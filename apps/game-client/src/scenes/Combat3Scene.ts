@@ -19,7 +19,7 @@ import { fishDisplayMult, fishTextureFor } from "../art/textures.ts";
 import { hexToInt } from "../art/color.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, modal, toast, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
-import { elementBadge } from "../ui/element.ts";
+import { elementBadges } from "../ui/element.ts";
 import { Sfx } from "../audio/Sfx.ts";
 import { PvpDriver, makeDriver, type CombatDriver, type CombatView, type PlayerAction } from "../state/combatDriver.ts";
 import { GameState, pvpOutcome } from "../state/GameState.ts";
@@ -43,7 +43,7 @@ interface SideUi {
   hp: Bar;
   hpT: Phaser.GameObjects.Text;
   name: Phaser.GameObjects.Text;
-  badge: Phaser.GameObjects.Image;
+  badge: Phaser.GameObjects.Container;
   status: Phaser.GameObjects.Text;
   dots: Phaser.GameObjects.Graphics;
 }
@@ -139,7 +139,9 @@ export class Combat3Scene extends Phaser.Scene {
     const hp = new Bar(this, x - 150, 150, 300, 24, side === 0 ? 0x4caf50 : 0xe53935, "").setDepth(20);
     const hpT = txt(this, x, 182, "", 16, { align: "center", weight: "700" }).setOrigin(0.5).setDepth(20);
     const name = txt(this, x + 14, 128, "", 22, { align: "center" }).setOrigin(0.5).setDepth(20);
-    const badge = elementBadge(this, x - 150, 128, f.element, 34).setDepth(21);
+    // cá lai: 2 hệ; hệ ẩn của mình thấy mờ, của đối thủ chỉ thấy "?"
+    const nb = (f.elements?.length ?? 1) + (f.hidden ? 1 : 0);
+    const badge = elementBadges(this, x - 150 + (nb - 1) * 31, 128, { els: f.elements ?? [f.element], hidden: f.hidden }, 34, side === 0).setDepth(21);
     const status = txt(this, x, 210, "", 16, { align: "center", color: "#fff59d", weight: "700" }).setOrigin(0.5).setDepth(20);
     const dots = this.add.graphics().setDepth(20);
     this.ui[side] = { img, hp, hpT, name, badge, status, dots };

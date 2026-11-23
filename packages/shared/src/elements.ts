@@ -35,6 +35,32 @@ export function elementMatchup(att: Element, def: Element): { mult: number; kind
   return { mult: kind === "strong" ? ELEMENT_STRONG : kind === "weak" ? ELEMENT_WEAK : ELEMENT_NORMAL, kind, label: MATCHUP_LABEL[kind] };
 }
 
+/**
+ * Khắc hệ khi cá có NHIỀU hệ (cá lai 2 hệ, Gen Lặn thêm 1 hệ ẩn):
+ * mỗi hệ bên đánh nhân hệ số với TẤT CẢ hệ bên bị đánh, chọn hệ có lợi nhất; kết quả giữ trong [×0.75, ×1.5].
+ */
+export function multiMatchup(att: readonly Element[], def: readonly Element[]): { mult: number; kind: MatchupKind; label: string } {
+  let best = -Infinity;
+  for (const a of att) {
+    let m = 1;
+    for (const d of def) m *= elementMatchup(a, d).mult;
+    best = Math.max(best, m);
+  }
+  const mult = Math.min(ELEMENT_STRONG, Math.max(ELEMENT_WEAK, best === -Infinity ? 1 : best));
+  const kind: MatchupKind = mult > 1.0001 ? "strong" : mult < 0.9999 ? "weak" : "normal";
+  return { mult: Math.round(mult * 1000) / 1000, kind, label: MATCHUP_LABEL[kind] };
+}
+
+/** Các hệ HIỆN của cá đang sở hữu (cá lai: 2 hệ bố mẹ; cá thường: 1 hệ). */
+export function ownedElements(
+  o: Pick<OwnedFish, "element" | "elements" | "zoneId">,
+  fish: Pick<FishDef, "element" | "elementFixed">,
+  zoneById: Map<string, Pick<ZoneDef, "element">>,
+): Element[] {
+  if (o.elements?.length) return [...o.elements];
+  return [ownedElement(o, fish, zoneById)];
+}
+
 export function isElement(x: unknown): x is Element {
   return typeof x === "string" && (ELEMENT_IDS as readonly string[]).includes(x);
 }

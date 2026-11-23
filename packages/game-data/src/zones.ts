@@ -116,6 +116,7 @@ export const ZONES: ZoneDef[] = [
     requiredLevel: 35,
     difficulty: 5,
     bossId: "f_boss_hac_long",
+    extraBosses: ["f_boss_thuy_quai_kraken"],
     secretBossId: "f_sboss_noc_bong_gon",
     spawn: [
       { fishId: "f_ca_den_long", weight: 28 },

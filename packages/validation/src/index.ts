@@ -10,6 +10,8 @@ export const ownedFishSchema = z.object({
   uid: id,
   fishId: id,
   element: z.enum(["metal", "wood", "water", "fire", "earth", "dark", "light"]).optional(),
+  elements: z.array(z.enum(["metal", "wood", "water", "fire", "earth", "dark", "light"])).min(1).max(2).optional(),
+  hiddenElement: z.enum(["metal", "wood", "water", "fire", "earth", "dark", "light"]).optional(),
   weightKg: z.number().min(0).max(1e6),
   zoneId: id,
   caughtAt: timestamp,
@@ -93,6 +95,29 @@ export const playerSaveSchema = z.object({
   createdAt: timestamp,
   updatedAt: timestamp,
   resetAt: timestamp.optional(),
+  breeding: z
+    .object({
+      slots: z
+        .array(
+          z.object({
+            open: z.boolean(),
+            egg: z
+              .object({
+                id,
+                recipeId: id,
+                parents: z.tuple([id, id]),
+                colors: z.object({ a: z.string().regex(/^#[0-9a-fA-F]{6}$/), b: z.string().regex(/^#[0-9a-fA-F]{6}$/), spot: z.string().regex(/^#[0-9a-fA-F]{6}$/) }).optional(),
+                start: timestamp,
+                end: timestamp,
+                seed: z.number().int().min(0).max(4294967295),
+              })
+              .nullable(),
+          }),
+        )
+        .max(3),
+      harvestAt: z.record(id, timestamp),
+    })
+    .optional(),
 });
 
 /**

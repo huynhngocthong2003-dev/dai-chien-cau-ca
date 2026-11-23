@@ -8,6 +8,13 @@ import {
   applyJunkCatch,
   applyDeathMatch,
   applyCombatOutcome,
+  collectHabitat,
+  breedingOf,
+  habitatFishes,
+  hatchEgg,
+  speedupEgg,
+  startBreeding,
+  unlockHatchSlot,
   type CombatOutcomeInput,
   applyRaceEntry,
   applyRodRepair,
@@ -74,7 +81,7 @@ import {
   type PlayerSave,
   type UnlockCondition,
 } from "@dccc/shared";
-import { EVO_ITEMS, FISH_FORMS, CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
+import { BREEDING_RECIPES, breedTierOf, EVO_ITEMS, FISH_FORMS, CATALOG, CHECKIN_REWARDS, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES, CHARACTERS, CHARACTER_BY_ID, FORM_BY_ID, GIFT_REWARDS, JUNK_BY_ID, RODS, COSMETIC_BY_ID, FISH_BY_ID, ROD_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { ECONOMY } from "@dccc/game-config";
 import { parseSave } from "@dccc/validation";
 import { detectStorage, MemorySaveStorage, type SaveStorage } from "./storage.ts";
@@ -309,6 +316,36 @@ class GameStateStore extends Phaser.Events.EventEmitter {
       console.warn("Kết toán trận 3vs3 thất bại:", (e as Error).message);
     }
     return n;
+  }
+
+  // ------------------------------------------------------------ Đảo Lai Tạo
+  /** Lai 2 cá Boss → trứng vào hang ấp (kết quả đã định sẵn theo seed của trứng). */
+  breedStart(parentUids: [string, string]) {
+    return this.run(startBreeding(this._save, { txId: uid("egg"), parentUids, now: Date.now(), seed: randomSeed() }, BREEDING_RECIPES, FISH_BY_ID));
+  }
+
+  breedUnlockSlot(slot: number) {
+    return this.run(unlockHatchSlot(this._save, { txId: uid("hs"), slot, now: Date.now() }));
+  }
+
+  breedSpeedup(slot: number) {
+    return this.run(speedupEgg(this._save, { txId: uid("sp"), slot, now: Date.now() }));
+  }
+
+  breedHatch(slot: number) {
+    return this.run(hatchEgg(this._save, { slot, now: Date.now() }, BREEDING_RECIPES, FISH_BY_ID));
+  }
+
+  /** Cá Boss mới vào bể nuôi: bắt đầu đếm chu kỳ thu hoạch (không cộng vàng). */
+  habitatInit() {
+    const st = breedingOf(this._save);
+    const fresh = habitatFishes(this._save, FISH_BY_ID).filter((f) => st.harvestAt[f.uid] === undefined).map((f) => f.uid);
+    if (fresh.length) this.run(collectHabitat(this._save, { txId: uid("hvi"), now: Date.now(), uids: fresh }, FISH_BY_ID, breedTierOf));
+  }
+
+  /** Thu vàng từ cá trong bể nuôi (uids bỏ trống = tất cả cá đã đủ chu kỳ). */
+  harvestHabitat(uids?: string[]) {
+    return this.run(collectHabitat(this._save, { txId: uid("hv"), now: Date.now(), uids }, FISH_BY_ID, breedTierOf));
   }
 
   /** Cho nhân vật ăn cá nướng để nhận kinh nghiệm. */

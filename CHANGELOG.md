@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.38.0] – 2026-11-23 – Đảo Lai Tạo
+### Thêm
+- **Đảo Lai Tạo** (nút 🥚 Lai Tạo ở sảnh), chuyển từ bản đồ nguyên mẫu `docs/prototypes/dao-lai-tao.html` vào game:
+  - **Bể Nuôi Thả**: mọi cá từ Boss trở lên (Boss, Thần Thoại, cá lai) tự bơi trong bể, càng hiếm càng to (Boss Lai ×1 · Siêu Boss ×1.15 · Mythic ×1.3 · Gen Lặn ×1.4). Mỗi 30 phút hiện 🪙 trên đầu cá → bấm để thu vàng (40/60/100/180/300 theo bậc, ghi sổ). Bấm cá xem thông tin / đặt làm bố mẹ.
+  - **Hang Ấp Trứng**: 3 ổ (ổ 1 mở sẵn, ổ 2: 2.000 vàng, ổ 3: 60 kim cương), đếm ngược theo giờ thật, ⚡ Tăng tốc 1 kim cương / 3 phút còn lại, ✨ Ấp Nở có hiệu ứng rung–nứt–vỡ–chớp sáng; **Gen Lặn Cổ Đại** rung màn hình, chớp tím–vàng, băng rôn "THỨC TỈNH GEN LẶN CỔ ĐẠI!"; cá mới bơi từ hang vào bể.
+  - Mục **Lai Tạo** riêng: chọn bố mẹ, xem trứng sẽ ra, thời gian ấp, bảng tỷ lệ 58% / 30% / 10% / 2%.
+- **Mọi cặp cá từ Boss trở lên đều lai được**: 2 công thức đặc biệt (Lão Ngư Sừng Sắt + Bạo Chúa San Hô → Trứng Thiết San Hô 30 phút; Thủy Quái Kraken + Phượng Hoàng Biển → Trứng Hỏa Thủy Thần Thú 45 phút, mỗi cặp 4 cá lai vẽ tay) và **28 dòng lai theo hệ** của bố mẹ × 4 bậc = **112 dạng lai** có hình riêng (thân theo hệ bố, vây/mắt theo hệ mẹ, đặc điểm 2 hệ cộng dồn theo bậc: sừng thép, gai đá, san hô lá, lửa, gai pha lê, cánh lửa/ánh sáng, vương miện, giáp nứt phát quang, vòng cổ ngữ).
+- **Trứng mang màu cá bố mẹ** (nửa trên màu cá bố, nửa dưới màu cá mẹ).
+- **Hệ của cá lai**: mang **2 hệ** (hệ chính của cá bố + cá mẹ); cá **Gen Lặn** thêm **1 hệ ẩn** (khác 2 hệ bố mẹ; chủ cá thấy mờ kèm chữ "ẩn", đối thủ chỉ thấy "?"). Khắc hệ nhiều hệ trong trận 3vs3: mỗi hệ bên đánh nhân qua mọi hệ bên bị đánh, chọn hệ có lợi nhất, giới hạn ×0.75–×1.5 (máy chủ `battle` / `pvp` đã cập nhật).
+- **Tiến hoá cá lai**: 4 giai Sơ → Trung (mắt sáng, hào quang, sừng, gai lưng) → Cao (cánh, giáp, xúc tu lửa) → Thánh (vương miện, vòng cổ ngữ, cánh pha lê, giáp nứt phát quang), lớn dần theo giai.
+- Boss mới **Thủy Quái Kraken** (Vực Sâu Bí Ẩn, Boss phụ, hệ Bóng Tối) – bố/mẹ của dòng Hỏa Thủy Thần Thú.
+- Kết quả nở được định sẵn theo seed lưu trong trứng (tải lại trang không đổi được kết quả); cá bố mẹ không bị mất. Bộ sưu tập chỉ hiện cá lai đã từng có; cá lai không xuất hiện ở khu câu hay đối thủ đua.
+### Kiểm thử
+- 227 unit test (mới: công thức & tỷ lệ 58/30/10/2 trên 20.000 trứng, mọi cặp Boss đều lai được, 116 hình không trùng, mở ổ/tăng tốc/ấp nở/thu hoạch ghi sổ, 2 hệ + hệ ẩn, khắc nhiều hệ); E2E `breeding.cjs` chơi thật cả luồng; toàn bộ E2E cũ.
+
 ## [0.37.0] – 2026-11-23 – Đấu cá với NGƯỜI + thua mất cá lực chiến thấp nhất
 ### Thêm
 - **Đấu 3vs3 với người (phòng)** – tab 👥 Đấu với người: chọn mức **💀 Sinh tử** / **🤝 Giao hữu** → **Tạo Phòng** (mã 6 ký tự, chờ 60 giây), **Vào bằng mã phòng**, hoặc **⚔ Mời** bạn bè (phòng riêng). Lời mời hiện ở mọi màn (trừ lúc đang đấu/đua) với đếm ngược theo giờ máy chủ, Nhận đấu / Từ chối.

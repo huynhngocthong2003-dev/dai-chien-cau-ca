@@ -117,6 +117,8 @@ export class HubScene extends Phaser.Scene {
       TITLES.some((t) => !s.titles.owned.includes(t.id) && titleProgress(s, t) >= t.target)
         ? "!"
         : undefined;
+    // Đảo Lai Tạo: có trứng nở được → "!"
+    const breedBadge = (s.breeding?.slots ?? []).some((x) => x.egg && x.egg.end <= Date.now()) ? "!" : undefined;
     const items: { icon: string; iconKey?: string; label: string; color: number; act: () => void; locked?: string; badge?: string }[] = [
       { icon: "🧑", iconKey: charIcon, label: "Nhân Vật", color: COLORS.blue, act: () => goTo(this, "Characters") },
       { icon: "🎣", iconKey: rodIcon, label: "Cần Câu", color: COLORS.blue, act: () => goTo(this, "Rods") },
@@ -125,6 +127,7 @@ export class HubScene extends Phaser.Scene {
       { icon: "📖", iconKey: bookIcon, label: "Bộ Sưu Tập", color: COLORS.green, act: () => goTo(this, "Inventory", { tab: "collection" }) },
       { icon: "⚙️", label: "Cài Đặt", color: COLORS.green, act: () => this.openSettings() },
       { icon: "⚔️", label: "Đấu Cá", color: COLORS.red, act: () => goTo(this, "DeathMatch") },
+      { icon: "🥚", label: "Lai Tạo", color: COLORS.orange, act: () => goTo(this, "Breeding"), badge: breedBadge },
       { icon: "🎡", label: "Vòng Quay", color: COLORS.purple, act: () => goTo(this, "Wheel"), badge: s.daily.freeSpinUsed && s.daily.day === dayKey(Date.now()) ? undefined : "FREE" },
       { icon: "📜", label: "Nhiệm Vụ", color: COLORS.purple, act: () => goTo(this, "Quests"), badge: questBadge },
       { icon: "🎉", label: "Sự Kiện", color: COLORS.orange, act: () => this.openEvents(), badge: eventsLeft ? "!" : undefined },
@@ -135,8 +138,8 @@ export class HubScene extends Phaser.Scene {
       const col = i % 3;
       const row = Math.floor(i / 3);
       const bx = 914 + col * 136;
-      const by = 160 + row * 140;
-      const b = new Button(this, bx, by, 126, 120, it.label, {
+      const by = 156 + row * 114;
+      const b = new Button(this, bx, by, 126, 104, it.label, {
         color: it.color,
         icon: it.icon,
         iconKey: it.iconKey,
@@ -347,6 +350,6 @@ export class HubScene extends Phaser.Scene {
         },
       }),
     );
-    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.37.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
+    m.root.add(txt(this, m.x + 40, m.y + 460, `Mã người chơi: ${s.playerId}\nPhiên bản 0.38.0 · Giai đoạn 2–5`, 16, { weight: "500", color: COLORS.textDim }));
   }
 }

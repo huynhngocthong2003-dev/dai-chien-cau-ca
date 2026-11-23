@@ -25,5 +25,6 @@ export const ROD_BY_ID = new Map(RODS.map((r) => [r.id, r]));
 export const ZONE_BY_ID = new Map(ZONES.map((z) => [z.id, z]));
 export const COSMETIC_BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));
 export const SHOP_ITEM_BY_ID = new Map(SHOP_ITEMS.map((i) => [i.id, i]));
+export { BREEDING_RECIPES, BREED_LOOKS, BREED_TIER, breedTierOf } from "./breeding.ts";
 export { CHECKIN_REWARDS, QUESTS, TITLES, TOPUP_PACKAGES, WHEEL_GOOD_WEIGHT, WHEEL_PRIZES };
 export const TITLE_BY_ID = new Map(TITLES.map((t) => [t.id, t]));

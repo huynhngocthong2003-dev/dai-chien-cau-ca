@@ -6,7 +6,7 @@ import type { FishDef, FishFormDef, ZoneDef } from "./types.ts";
 import { addLedger, clone, grantXp, markTx, type PlayerSave } from "./save.ts";
 import { ownedFishPower } from "./progression.ts";
 import { Rng } from "./rng.ts";
-import { ownedElement } from "./elements.ts";
+import { ownedElement, ownedElements } from "./elements.ts";
 import { DIFFICULTY, aiTeam, type Difficulty, type RoastedFish } from "./deathmatch.ts";
 import { makeFighter } from "./battle.ts";
 import { makeCombatFish, type AiLevel, type CombatFish } from "./combat.ts";
@@ -34,6 +34,8 @@ export function buildPlayerTeam(
         level: o.level,
         stars: o.stars,
         element: ownedElement(o, def, zoneById),
+        elements: ownedElements(o, def, zoneById),
+        hidden: o.hiddenElement,
         form: o.form ? formById.get(o.form) ?? null : null,
         formRoll: o.formRoll ?? null,
       }),

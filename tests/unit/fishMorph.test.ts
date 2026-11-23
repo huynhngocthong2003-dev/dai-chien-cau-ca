@@ -1,3 +1,4 @@
+import { BREED_LOOKS } from "@dccc/game-data";
 import { describe, expect, it } from "vitest";
 import { FISHES } from "@dccc/game-data";
 import { fishMorph, morphSignature } from "../../apps/game-client/src/art/fishMorph.ts";
@@ -7,6 +8,7 @@ describe("Hình dáng cá (vẽ vector chibi)", () => {
     const seen = new Map<string, string>();
     const dup: string[] = [];
     for (const f of FISHES) {
+      if (BREED_LOOKS[f.id]) continue; // cá lai: vẽ bằng hình riêng (BreedArt) – kiểm ở breeding.test
       const sig = morphSignature(fishMorph(f.id, f.appearance));
       const other = seen.get(sig);
       if (other) dup.push(`${f.id} trùng ${other}`);

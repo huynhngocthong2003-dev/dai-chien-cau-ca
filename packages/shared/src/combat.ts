@@ -13,7 +13,7 @@ import type { Element, FishDef, FishFormDef } from "./types.ts";
 import type { FormRoll } from "./save.ts";
 import { Rng } from "./rng.ts";
 import { fishStats } from "./progression.ts";
-import { elementMatchup, type MatchupKind } from "./elements.ts";
+import { multiMatchup, type MatchupKind } from "./elements.ts";
 
 // ------------------------------------------------------------------ hằng số cân bằng
 /**
@@ -124,6 +124,10 @@ export interface CombatFish {
   fishId: string;
   name: string;
   element: Element;
+  /** Cá lai: các hệ hiện (2 hệ bố mẹ). */
+  elements?: Element[];
+  /** Cá Gen Lặn: hệ ẩn (vẫn tính khắc chế; đối thủ chỉ thấy "?"). */
+  hidden?: Element;
   level: number;
   stars: number;
   form: string | null;
@@ -187,6 +191,8 @@ export interface CombatFishInput {
   level: number;
   stars: number;
   element: Element;
+  elements?: Element[];
+  hidden?: Element;
   form?: FishFormDef | null;
   formRoll?: FormRoll | null;
 }
@@ -200,6 +206,8 @@ export function makeCombatFish(i: CombatFishInput): CombatFish {
     fishId: i.def.id,
     name: i.form ? `${i.def.name} (${i.form.name})` : i.def.name,
     element: i.element,
+    ...(i.elements && i.elements.length > 1 ? { elements: [...i.elements] } : {}),
+    ...(i.hidden ? { hidden: i.hidden } : {}),
     level: i.level,
     stars: i.stars,
     form: i.form?.id ?? null,
@@ -255,9 +263,15 @@ export function skillReady(s: CombatState, side: 0 | 1): boolean {
   return activeOf(s, side).cd <= 0;
 }
 
+/** Mọi hệ của cá trong trận (hệ hiện + hệ ẩn). */
+export function allElements(f: Pick<CombatFish, "element" | "elements" | "hidden">): Element[] {
+  const base = f.elements?.length ? f.elements : [f.element];
+  return f.hidden ? [...base, f.hidden] : [...base];
+}
+
 /** Sát thương của 1 đòn (đã gồm phòng thủ, giảm sát thương). Thuần – có test. */
 export function computeDamage(att: CombatFish, tgt: CombatFish, zone: TimingZone, skillMult: number) {
-  const m = elementMatchup(att.element, tgt.element);
+  const m = multiMatchup(allElements(att), allElements(tgt));
   const atk = att.atk * (att.atkUp ? att.atkUp[0] : 1);
   const def = tgt.def * (tgt.defDown ? 1 - tgt.defDown[0] : 1);
   const base = atk * TIMING_MULT[zone] * m.mult * skillMult;
@@ -407,7 +421,7 @@ export function aiAction(s: CombatState, side: 0 | 1, level: AiLevel): CombatAct
       (k === "quake" && !foe.defDown);
     if (useful) return { kind: "skill", zone };
   }
-  const foeAdv = elementMatchup(foe.element, me.element).kind === "strong";
+  const foeAdv = multiMatchup(allElements(foe), allElements(me)).kind === "strong";
   if (hpPct < 0.3 && foeAdv && r.chance(0.35)) return { kind: "defend" };
   return { kind: "attack", zone };
 }

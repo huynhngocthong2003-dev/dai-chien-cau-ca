@@ -2,6 +2,7 @@ import { ECONOMY, PROGRESSION } from "@dccc/game-config";
 import { elementOfCatch } from "./elements.ts";
 import type { CharacterDef, CosmeticSlot, Element, FishDef, PassiveEffect, RodDef, UnlockCondition, ZoneDef } from "./types.ts";
 import { sumPassive } from "./loadout.ts";
+import type { BreedingState } from "./breeding.ts";
 
 export const SAVE_VERSION = 8;
 
@@ -18,6 +19,10 @@ export interface OwnedFish {
   fishId: string;
   /** Nguyên tố của con cá này (theo khu câu được; loài hệ cố định thì theo loài). */
   element?: Element;
+  /** Cá lai: 2 hệ (hệ chính của cá bố + cá mẹ). Có thì dùng thay cho `element`. */
+  elements?: Element[];
+  /** Cá Gen Lặn: thêm 1 hệ ẩn (đối thủ chỉ thấy "?"). */
+  hiddenElement?: Element;
   weightKg: number;
   zoneId: string;
   caughtAt: number;
@@ -154,6 +159,8 @@ export interface PlayerSave {
   updatedAt: number;
   /** Thời điểm người chơi tự xoá tiến trình (chơi lại từ đầu) – máy chủ chỉ cho tụt cấp khi giá trị này đổi. */
   resetAt?: number;
+  /** Đảo Lai Tạo: ổ ấp trứng + mốc thu hoạch của cá trong bể nuôi. */
+  breeding?: BreedingState;
 }
 
 export interface GameCatalog {

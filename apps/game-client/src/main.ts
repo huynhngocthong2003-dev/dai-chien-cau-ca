@@ -14,6 +14,7 @@ import { Sfx } from "./audio/Sfx.ts";
 import { DeathMatchScene } from "./scenes/DeathMatchScene.ts";
 import { Combat3Scene } from "./scenes/Combat3Scene.ts";
 import { PvpRoomScene } from "./scenes/PvpRoomScene.ts";
+import { BreedingScene } from "./scenes/BreedingScene.ts";
 import { installPvpInvites } from "./ui/pvpInvites.ts";
 import { ProfileScene } from "./scenes/ProfileScene.ts";
 import { QuestScene } from "./scenes/QuestScene.ts";
@@ -48,7 +49,7 @@ async function start() {
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
     fps: { target: 60 },
-    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, Combat3Scene, PvpRoomScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
+    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, Combat3Scene, PvpRoomScene, BreedingScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 

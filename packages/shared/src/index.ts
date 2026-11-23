@@ -24,3 +24,4 @@ export * from "./mail.ts";
 export * from "./elements.ts";
 export * from "./combat.ts";
 export * from "./combatSetup.ts";
+export * from "./breeding.ts";

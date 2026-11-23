@@ -33,8 +33,10 @@ describe("Dữ liệu game", () => {
     }
   });
 
-  it("mọi cá đều xuất hiện ở ít nhất một khu", () => {
+  it("mọi cá đều câu được ở ít nhất một khu hoặc nở được từ Đảo Lai Tạo", async () => {
+    const { BREEDING_RECIPES } = await import("@dccc/game-data");
     const spawned = new Set(ZONES.flatMap((z) => [z.bossId, ...(z.extraBosses ?? []), ...(z.secretBossId ? [z.secretBossId] : []), ...z.spawn.map((s) => s.fishId)]));
+    for (const r of BREEDING_RECIPES) for (const x of r.results) spawned.add(x.fish);
     for (const f of FISHES) expect(spawned.has(f.id), f.id).toBe(true);
   });
 

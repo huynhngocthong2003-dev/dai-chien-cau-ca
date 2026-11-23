@@ -2,7 +2,9 @@ import Phaser from "phaser";
 import type { AccessoryKind, CharacterDef, Element, FishFormDef, SkinKind, CosmeticSlot, CosmeticTier, FishDef, HatKind, HornKind, JunkDef, OutfitKind, RodDef, WingKind, ZoneDef } from "@dccc/shared";
 import { TIER_COLOR, TIER_ORDER } from "@dccc/game-config";
 import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
-import { COSMETIC_BY_ID, FORM_BY_ID } from "@dccc/game-data";
+import { BREED_LOOKS, COSMETIC_BY_ID, FORM_BY_ID, breedTierOf } from "@dccc/game-data";
+import { HABITAT, drawBreedEgg, drawBreedFish, drawHabitatMap, evolveBreedLook } from "./BreedArt.ts";
+import type { EggLook } from "@dccc/shared";
 import { drawFormFish } from "./FormArt.ts";
 import { drawEvoItem } from "./EvoItemArt.ts";
 import { drawElementIcon } from "./ElementArt.ts";
@@ -36,14 +38,42 @@ export function canvasTexture(
 
 /** stage 0 = hình loài (sách cá, câu được); 1..4 = cá Huyền Thoại/Boss/Thần Thoại theo giai trưởng thành. */
 export function fishTexture(scene: Phaser.Scene, fish: FishDef, stage = 0): string {
+  if (BREED_LOOKS[fish.id]) return breedFishTexture(scene, fish.id, stage);
   const res = fish.appearance.scale >= 1.5 || stage >= 3 ? 1.4 : 1;
   return canvasTexture(scene, `fish_${fish.id}${stage ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => drawFish(ctx, fish, stage), res);
 }
 
 /** Cá đã đột biến (ngoại hình riêng theo dạng). */
 export function formFishTexture(scene: Phaser.Scene, fish: FishDef, form: FishFormDef, stage = 0): string {
+  if (BREED_LOOKS[fish.id]) return breedFishTexture(scene, fish.id, stage);
   const res = fish.appearance.scale >= 1.5 || stage >= 3 ? 1.4 : 1;
   return canvasTexture(scene, `fishform_${fish.id}_${form.id}${stage ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => drawFormFish(ctx, fish, form, stage), res);
+}
+
+/** Cá lai / Kraken của Đảo Lai Tạo: hình riêng (cùng khung 320×200 với cá thường). */
+export function breedFishTexture(scene: Phaser.Scene, fishId: string, stage = 0, t = 0.3): string {
+  // giai trưởng thành (Sơ/Trung/Cao/Thánh): hình tiến hoá riêng
+  const look = evolveBreedLook(BREED_LOOKS[fishId]!, stage);
+  const tier = breedTierOf(fishId);
+  const fierce = stage >= 2 || tier === "super" || tier === "mythic" || tier === "recessive";
+  return canvasTexture(scene, `breedfish_${fishId}${stage > 1 ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => {
+    ctx.translate(FISH_W / 2 + 10, FISH_H / 2 + 6);
+    drawBreedFish(ctx, look, look.ring ? 0.72 : look.wings ? 0.8 : 0.9, t, fierce);
+  }, 1.4);
+}
+
+/** Trứng lai (crack 0..1 = mức nứt; glow 0..1 = toả sáng). */
+export function breedEggTexture(scene: Phaser.Scene, egg: EggLook, crack = 0, glow = 0): string {
+  const key = `breedegg_${egg.a}${egg.b}${egg.spot}_${Math.round(crack * 10)}_${Math.round(glow * 10)}`;
+  return canvasTexture(scene, key, 240, 260, (ctx) => {
+    ctx.translate(120, 136);
+    drawBreedEgg(ctx, egg, 1.7, 0.4, crack, glow);
+  });
+}
+
+/** Nền bản đồ Đảo Lai Tạo (bể nuôi + hang ấp trứng). */
+export function habitatMapTexture(scene: Phaser.Scene): string {
+  return canvasTexture(scene, "habitat_map", HABITAT.w, HABITAT.h, (ctx) => drawHabitatMap(ctx));
 }
 
 /** Giai hiển thị: 0 nếu không phải cá trưởng thành hoặc không biết sao. */

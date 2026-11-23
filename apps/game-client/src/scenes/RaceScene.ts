@@ -1,5 +1,8 @@
 import Phaser from "phaser";
 import { CHARACTERS, CHARACTER_BY_ID, FISHES, FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
+
+/** Cá đối thủ trong đua: chỉ loài câu được (không dùng cá lai của Đảo Lai Tạo). */
+const CATCHABLE = FISHES.filter((f) => f.zones.length > 0);
 import { ELEMENT_INFO, FISH_RARITY_COLOR, FISH_RARITY_LABEL } from "@dccc/game-config";
 import {
   RACE,
@@ -853,7 +856,7 @@ export class RaceScene extends Phaser.Scene {
         this.equips.set(mb.user_id, safeEquip(r.equip));
         return { ...newRacer(mb.user_id, r.name ?? "Người chơi", r.fishId, r.formId ?? null, r.charId, r.stats, null), remote: true };
       });
-      const ai = makeRaceOpponents(this.league, FISHES, chars, new Rng(room.seed), Math.max(0, 5 - humans.length));
+      const ai = makeRaceOpponents(this.league, CATCHABLE, chars, new Rng(room.seed), Math.max(0, 5 - humans.length));
       this.mapId = room.map && room.map in RACE_MAPS ? (room.map as RaceMapId) : mapFromSeed(room.seed);
       this.session = new RaceSession(me, [], room.seed, [...humans, ...ai], this.league, this.mapId);
     } else {
@@ -861,7 +864,7 @@ export class RaceScene extends Phaser.Scene {
       const rng = new Rng(seed);
       const open = RACE_MAP_IDS.filter((id) => GameState.save.level >= RACE_MAPS[id].minLevel);
       this.mapId = this.mapChoice === "random" ? open[rng.int(0, open.length - 1)]! : this.mapChoice;
-      this.session = new RaceSession(me, makeRaceOpponents(this.league, FISHES, chars, rng, 4), seed, undefined, this.league, this.mapId);
+      this.session = new RaceSession(me, makeRaceOpponents(this.league, CATCHABLE, chars, rng, 4), seed, undefined, this.league, this.mapId);
     }
     this.selectC?.destroy();
     this.selectC = undefined;

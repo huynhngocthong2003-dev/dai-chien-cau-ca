@@ -1,5 +1,6 @@
 import type { Element, FishAppearance, FishDef, FishRarity } from "@dccc/shared";
 import { ZONES } from "./zones.ts";
+import { GENERATED_HYBRIDS } from "./breeding.ts";
 
 /** Chỉ số cơ bản theo bậc khu vực (1..6). */
 const TIER_HP = [0, 90, 220, 450, 800, 1300, 2000];
@@ -71,6 +72,14 @@ function fish(
     appearance,
     description,
   };
+}
+
+/** Cá lai: Boss bậc 6, chỉ số nhân theo bậc lai (Boss Lai ×1 · Siêu Boss ×1.15 · Mythic ×1.35 · Gen Lặn ×1.6). */
+function hybrids(list: [string, string, Element, number, number, [number, number], Look, [string, string], string][]): FishDef[] {
+  return list.map(([id, name, el, mult, spd, w, look, skill, desc]) => {
+    const f = fish(id, name, "boss", el, 6, [], spd, w, { scale: 1.6, ...look }, skill, desc);
+    return { ...f, hp: Math.round(f.hp * mult), atk: Math.round(f.atk * mult), def: Math.round(f.def * mult), value: Math.round(f.value * mult), xp: Math.round(f.xp * mult) };
+  });
 }
 
 const Z1 = "z_ben_tan_thu";
@@ -156,6 +165,9 @@ const RAW_FISHES: FishDef[] = [
   fish("f_ac_ngu_gai_tim", "Ác Ngư Gai Tím", "epic", "dark", 5, [Z3], 40, [30, 120],
     { shape: "puffer", body: "#6a1b9a", belly: "#ce93d8", fin: "#9c27b0", spikes: true, teeth: true, eye: "glow", eyeColor: "#ff1744", scale: 1.4 },
     ["Gai Độc Tím", "Phản sát thương và gây độc."], "Gai nhọn mọc khắp người, miệng đầy răng cưa."),
+  fish("f_boss_thuy_quai_kraken", "Thủy Quái Kraken", "boss", "dark", 5, [Z3], 52, [600, 2000],
+    { shape: "angler", body: "#8e63d6", belly: "#d9c8ff", fin: "#7048c0", eye: "glow", eyeColor: "#ffe082", glow: "#b388ff", scale: 1.8 },
+    ["Xúc Tu Siết", "Quấn đối thủ, giảm tốc 2 lượt."], "Đầu tròn khổng lồ, 6 xúc tu cuộn sóng dưới đáy vực. Bố/mẹ lai tạo với Phượng Hoàng Biển."),
   fish("f_boss_hac_long", "Hắc Long Ngư Vực Thẳm", "boss", "dark", 5, [Z3], 60, [500, 1500],
     { shape: "serpent", body: "#1b0033", belly: "#4a148c", fin: "#7c4dff", spikes: true, teeth: true, horns: true, eye: "glow", eyeColor: "#00e5ff", glow: "#7c4dff", scale: 1.9 },
     ["Hố Đen", "Hút năng lượng toàn đội đối thủ."], "Kẻ canh giữ đáy vực, chưa ai thấy hết thân nó."),
@@ -320,6 +332,19 @@ const RAW_FISHES: FishDef[] = [
   fish("f_sboss_leviathan", "Leviathan Diệt Thế", "boss", "dark", 6, [Z6], 68, [80000, 250000],
     { shape: "shark", body: "#0d0d1a", belly: "#4a148c", fin: "#7c4dff", pattern: "stripes", patternColor: "#00e5ffaa", teeth: true, horns: true, spikes: true, eye: "glow", eyeColor: "#00e5ff", glow: "#651fff", scale: 2.7 },
     ["Nuốt Trời", "Nuốt chửng: hút 25% HP đối thủ."], "Quái vật cổ xưa lớn hơn cả hòn đảo – truyền thuyết của mọi cần thủ."),
+
+  // ===== Cá lai (Đảo Lai Tạo) – không câu được, chỉ nở từ trứng =====
+  ...hybrids([
+    ["f_lai_thiet_ngu_san_ho", "Thiết Ngư San Hô", "metal", 1.0, 55, [300, 900], { shape: "long", body: "#8796ad", belly: "#e3e9f2", fin: "#ff8a65", horns: true, spikes: true, pattern: "scales", patternColor: "#3f4c6255" }, ["Giáp San Hô", "Giảm sát thương nhận vào 2 lượt."], "Vảy sắt chắc chắn, sừng thép ngắn trước trán, cụm san hô đỏ dọc sống lưng."],
+    ["f_lai_chien_giap", "Chiến Giáp San Hô Vương", "metal", 1.15, 60, [600, 1600], { shape: "shark", body: "#5f6f88", belly: "#cfd9e6", fin: "#ff5252", horns: true, spikes: true, teeth: true, eye: "glow", eyeColor: "#ff1744", glow: "#ff5252" }, ["Lưỡi San Hô", "Chém xuyên giáp."], "Cặp sừng sắt lớn cong về trước, vây và đuôi hóa lưỡi san hô sắc bén phát sáng."],
+    ["f_lai_than_thu_huyen_thiet", "Thần Thú Huyền Thiết Hải Vương", "metal", 1.35, 64, [1200, 3000], { shape: "shark", body: "#2b2b36", belly: "#4a4a5c", fin: "#ffb300", horns: true, spikes: true, teeth: true, eye: "glow", eyeColor: "#ffea00", glow: "#ffc107" }, ["Vương Miện Lửa", "Tăng mạnh tấn công toàn đội."], "Giáp hắc kim viền vàng rực, vương miện san hô rực lửa, hào quang năng lượng."],
+    ["f_lai_cu_thu_nguyen_thuy", "Cự Thú Nguyên Thủy Thâm Uyên", "dark", 1.6, 66, [3000, 8000], { shape: "serpent", body: "#26314f", belly: "#3d4a72", fin: "#5ee7ff", horns: true, spikes: true, eye: "glow", eyeColor: "#7df9ff", glow: "#7e57ff" }, ["Thâm Uyên Cổ Đại", "Đòn cực mạnh, bỏ qua phòng thủ."], "Giáp cổ đại nứt rạn phát sáng xanh lam/tím thâm uyên, gai pha lê biển sâu phát quang, vòng hào quang cổ xưa."],
+    ["f_lai_hoa_xuc_kraken", "Hỏa Xúc Kraken", "fire", 1.0, 56, [500, 1500], { shape: "angler", body: "#a35bd1", belly: "#f3d0ff", fin: "#ff8f00", eye: "glow", eyeColor: "#ff1744", glow: "#ff9800" }, ["Xúc Tu Lửa", "Gây bỏng 2 lượt."], "Xúc tu bạch tuộc quấn vây lửa cam, mắt phát sáng đỏ rực."],
+    ["f_lai_viem_vu_hai_quai", "Viêm Vũ Hải Quái", "fire", 1.15, 70, [800, 2200], { shape: "angler", body: "#e0663a", belly: "#ffe0c2", fin: "#29b6f6", eye: "glow", eyeColor: "#fff59d", glow: "#29b6f6" }, ["Sải Vây Lửa", "Tăng tốc độ toàn đội."], "Xúc tu lớn có lông/vây cánh phượng hoàng, sải vây rực lửa xanh-cam."],
+    ["f_lai_bat_tu_hai_dieu", "Bất Tử Hải Điểu Vương", "fire", 1.35, 78, [1000, 2800], { shape: "angler", body: "#ffb300", belly: "#fff3c4", fin: "#ff3d00", horns: true, eye: "glow", eyeColor: "#ffffff", glow: "#ff6f00" }, ["Tái Sinh Lửa", "Hồi máu mạnh khi máu thấp."], "Thân uy nghi kết hợp xúc tu uốn lượn và đôi cánh lửa thần thoại, hào quang rực rỡ."],
+    ["f_lai_than_khai_hong_thuy", "Thần Khải Hồng Thủy Phượng", "light", 1.6, 84, [2000, 6000], { shape: "angler", body: "#6d28d9", belly: "#f5d0fe", fin: "#fde047", horns: true, eye: "glow", eyeColor: "#fef08a", glow: "#a855f7" }, ["Thần Khải", "Thanh tẩy và tấn công cực mạnh."], "Dáng thần thú cổ đại rực ánh tím/vàng kim nguyên thủy, vây cánh tinh thể lửa-nước phát sáng cực mạnh."],
+  ]),
+  ...GENERATED_HYBRIDS.map((g) => hybrids([[g.id, g.name, g.element, g.mult, g.spd, g.weightKg, g.appearance, g.skill, g.description]])[0]!),
 ];
 
 /**
@@ -331,11 +356,21 @@ const RAW_FISHES: FishDef[] = [
 const FIXED_ELEMENT: Record<string, Element> = {
   f_huyen_minh_long_ngu: "water", // rồng nước ngân hà
   f_diem_ma_tham_hai: "fire", // ác ma dung nham
+  // cá lai (không có khu câu)
+  f_lai_thiet_ngu_san_ho: "metal",
+  f_lai_chien_giap: "metal",
+  f_lai_than_thu_huyen_thiet: "metal",
+  f_lai_cu_thu_nguyen_thuy: "dark",
+  f_lai_hoa_xuc_kraken: "fire",
+  f_lai_viem_vu_hai_quai: "fire",
+  f_lai_bat_tu_hai_dieu: "fire",
+  f_lai_than_khai_hong_thuy: "light",
 };
 const ZONE_ELEMENT = new Map(ZONES.map((z) => [z.id, z.element]));
 
+const GEN_ELEMENT = new Map(GENERATED_HYBRIDS.map((g) => [g.id, g.element]));
 export const FISHES: FishDef[] = RAW_FISHES.map((f) => {
-  const fixed = FIXED_ELEMENT[f.id];
+  const fixed = FIXED_ELEMENT[f.id] ?? GEN_ELEMENT.get(f.id);
   if (fixed) return { ...f, element: fixed, elementFixed: true };
   const home = ZONE_ELEMENT.get(f.zones[0]!) ?? f.element;
   // loài sống ở NHIỀU khu: chỉ 1 hệ duy nhất = hệ khu chính (khu đầu tiên), câu ở khu nào cũng vậy
