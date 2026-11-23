@@ -75,8 +75,8 @@ const errs = [];
   await p.screenshot({ path: `${out}/deathmatch-pick.png` });
   await p.mouse.click(360, 116); // tab Đấu với người (khoá, có thông báo giai đoạn)
   await p.waitForTimeout(400);
-  if (await p.evaluate(() => window.__game.scene.getScene('DeathMatch').mode) !== 'pvp') errs.push('Tab Đấu với người không mở được thông báo');
-  else console.log('• Đấu Cá: tab 3vs3 mặc định, tab Đấu với người hiển thị khoá + Giai đoạn 6');
+  if (await p.evaluate(() => window.__game.scene.getScene('DeathMatch').mode) !== 'pvp') errs.push('Tab Đấu với người không mở được');
+  else console.log('• Đấu Cá: tab 3vs3 mặc định, tab Đấu với người mở được (chưa đăng nhập → mời đăng nhập)');
   await p.screenshot({ path: `${out}/pvp-locked.png` });
 
   // --- Cho ăn cá nướng (cá nướng cũ vẫn dùng được)

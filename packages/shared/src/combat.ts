@@ -468,3 +468,24 @@ export function runAiTurns(s: CombatState, aiSide: 0 | 1, level: AiLevel): { sta
   }
   return { state: st, events };
 }
+
+// ---------------------------------------------------------------- góc nhìn người chơi (đấu người)
+const flip = (x: 0 | 1): 0 | 1 => (x === 0 ? 1 : 0);
+
+/** Đảo một sự kiện sang góc nhìn bên kia (bên mình luôn là 0). */
+export function mirrorEvent(e: CombatEvent): CombatEvent {
+  if (e.t === "start") return { ...e, first: flip(e.first) };
+  if (e.t === "end") return { ...e, winner: flip(e.winner) };
+  return { ...e, side: flip(e.side) } as CombatEvent;
+}
+
+/** Đảo trạng thái trận để người chơi bên 1 cũng thấy mình là bên 0 (game chỉ vẽ theo bên 0 = mình). */
+export function mirrorCombat(s: CombatState): CombatState {
+  return {
+    ...s,
+    turnSide: flip(s.turnSide),
+    winner: s.winner === null ? null : flip(s.winner),
+    sides: [s.sides[1], s.sides[0]],
+    log: s.log.map(mirrorEvent),
+  };
+}

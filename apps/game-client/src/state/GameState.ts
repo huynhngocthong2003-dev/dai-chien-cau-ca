@@ -1,10 +1,14 @@
 import Phaser from "phaser";
+import type { AiLevel, CombatState } from "@dccc/shared";
+import { pvpCall, type PvpRoom } from "./pvp.ts";
 import {
   Rng,
   randomSeed,
   applyCatch,
   applyJunkCatch,
   applyDeathMatch,
+  applyCombatOutcome,
+  type CombatOutcomeInput,
   applyRaceEntry,
   applyRodRepair,
   applyRodWear,
@@ -249,6 +253,64 @@ class GameStateStore extends Phaser.Events.EventEmitter {
     );
   }
 
+  /**
+   * Áp kết quả trận 3vs3 (thắng: thưởng; thua: mất cá lực chiến thấp nhất) rồi báo máy chủ đã kết toán.
+   * `kind`: "battle" = trận với máy trên máy chủ, "pvp" = phòng đấu người, "local" = chơi không tài khoản.
+   */
+  async settleCombat(kind: "battle" | "pvp" | "local", id: string, input: Omit<CombatOutcomeInput, "now">) {
+    const r = applyCombatOutcome(this._save, { ...input, now: Date.now() }, FISH_BY_ID, FORM_BY_ID);
+    if (r.ok) this.commit(r.save);
+    const done = r.ok || this._save.appliedTx.includes(input.txId);
+    if (done && this.online && kind !== "local") {
+      try {
+        await this.syncNow();
+        await this.markCombatSettled(kind, id);
+      } catch {
+        /* lần mở game sau sẽ thử lại – txId chống áp 2 lần */
+      }
+    }
+    return r;
+  }
+
+  private async markCombatSettled(kind: "battle" | "pvp", id: string) {
+    if (kind === "battle") {
+      const sb = await Online.getClient();
+      await sb.rpc("mark_battle_settled", { battle_id: id });
+    } else await pvpCall({ op: "settle", id });
+  }
+
+  /** Kết toán các trận 3vs3 đã xong nhưng chưa áp (thoát giữa chừng, mất mạng, đóng game…). */
+  async settlePendingCombats(): Promise<number> {
+    if (!this.online) return 0;
+    let n = 0;
+    try {
+      const sb = await Online.getClient();
+      // trận với máy bỏ dở > 15 phút → máy chủ xử thua
+      const old = new Date(Date.now() - 15 * 60_000).toISOString();
+      const { data: open } = await sb.from("battles").select("id").is("winner", null).lt("updated_at", old).limit(10);
+      for (const b of (open ?? []) as { id: string }[]) await sb.functions.invoke("battle", { body: { op: "forfeit", id: b.id } }).catch(() => null);
+      const { data } = await sb.from("battles").select("id, team, ai_level, winner, state").not("winner", "is", null).eq("settled", false).limit(20);
+      for (const b of (data ?? []) as { id: string; team: string[]; ai_level: AiLevel | null; winner: 0 | 1; state: CombatState }[]) {
+        await this.settleCombat("battle", b.id, {
+          txId: `cb_${b.id}`,
+          teamUids: b.team,
+          won: b.winner === 0,
+          level: b.ai_level ?? "normal",
+          foe: b.state.sides[1].team,
+        });
+        n++;
+      }
+      const { rooms } = await pvpCall<{ rooms: PvpRoom[] }>({ op: "pending" });
+      for (const r of rooms) {
+        await this.settleCombat("pvp", r.id, pvpOutcome(r));
+        n++;
+      }
+    } catch (e) {
+      console.warn("Kết toán trận 3vs3 thất bại:", (e as Error).message);
+    }
+    return n;
+  }
+
   /** Cho nhân vật ăn cá nướng để nhận kinh nghiệm. */
   eatRoasted(roastedId: string, charId: string) {
     return this.run(eatRoasted(this._save, roastedId, charId, FISH_BY_ID, Date.now()));
@@ -308,6 +370,7 @@ class GameStateStore extends Phaser.Events.EventEmitter {
       if (applied.length) await this.syncNow();
       for (const m of applied) await Social.markPvpApplied(m.id);
       await this.publishProfile();
+      await this.settlePendingCombats();
     } catch (e) {
       console.warn("Đồng bộ mạng xã hội thất bại:", (e as Error).message);
     }
@@ -650,3 +713,16 @@ class GameStateStore extends Phaser.Events.EventEmitter {
 }
 
 export const GameState = new GameStateStore();
+
+/** Đầu vào kết toán cho một phòng đấu người đã xong (góc nhìn của mình). */
+export function pvpOutcome(r: PvpRoom): Omit<CombatOutcomeInput, "now"> {
+  return {
+    txId: `pv_${r.id}`,
+    teamUids: r.myTeam ?? [],
+    won: r.winner === 0,
+    level: null,
+    stake: r.stake,
+    loseUid: r.myLose?.uid ?? null,
+    foe: r.oppLose ? [r.oppLose] : [],
+  };
+}

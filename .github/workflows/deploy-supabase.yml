@@ -47,4 +47,7 @@ jobs:
         run: supabase db push --include-all --password "$SUPABASE_DB_PASSWORD"
       - name: Trien khai ham may chu death-match
         if: steps.chk.outputs.ok == 'true'
-        run: supabase functions deploy death-match --project-ref "${{ steps.chk.outputs.ref }}"
+        run: |
+          supabase functions deploy death-match --project-ref "${{ steps.chk.outputs.ref }}"
+          supabase functions deploy battle --project-ref "${{ steps.chk.outputs.ref }}"
+          supabase functions deploy pvp --project-ref "${{ steps.chk.outputs.ref }}"

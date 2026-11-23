@@ -17,11 +17,20 @@ import {
 } from "@dccc/shared";
 import { fishDisplayMult, fishTextureFor } from "../art/textures.ts";
 import { hexToInt } from "../art/color.ts";
-import { Bar, Button, fadeIn, goTo, toast, txt } from "../ui/widgets.ts";
+import { Bar, Button, fadeIn, formatNum, goTo, modal, toast, txt } from "../ui/widgets.ts";
 import { COLORS } from "../ui/theme.ts";
 import { elementBadge } from "../ui/element.ts";
 import { Sfx } from "../audio/Sfx.ts";
-import { makeDriver, type CombatDriver, type CombatView, type PlayerAction } from "../state/combatDriver.ts";
+import { PvpDriver, makeDriver, type CombatDriver, type CombatView, type PlayerAction } from "../state/combatDriver.ts";
+import { GameState, pvpOutcome } from "../state/GameState.ts";
+import { pvpCall, type PvpStake } from "../state/pvp.ts";
+
+/** Trận với người: id phòng + tên đối thủ + mức cược. */
+export interface PvpMatchInfo {
+  id: string;
+  oppName: string;
+  stake: PvpStake;
+}
 
 /** Toạ độ thanh canh lực. */
 const BAR = { x: 330, y: 560, w: 620, h: 40 };
@@ -66,9 +75,14 @@ export class Combat3Scene extends Phaser.Scene {
     super("Combat3");
   }
 
-  init(data: { team: string[]; level?: AiLevel }) {
+  private pvp: PvpMatchInfo | null = null;
+  private finished = false;
+
+  init(data: { team: string[]; level?: AiLevel; pvp?: PvpMatchInfo }) {
     this.team = data.team;
     this.level = data.level ?? "normal";
+    this.pvp = data.pvp ?? null;
+    this.finished = false;
     this.ui = [];
     this.view = undefined;
     this.myTurn = false;
@@ -78,17 +92,22 @@ export class Combat3Scene extends Phaser.Scene {
   create() {
     fadeIn(this);
     this.drawArena();
-    new Button(this, 76, 44, 128, 62, "← Thoát", { color: COLORS.blue, fontSize: 24, onClick: () => goTo(this, "DeathMatch", { mode: "arena" }) }).setDepth(60);
+    new Button(this, 76, 44, 128, 62, "← Thoát", { color: COLORS.blue, fontSize: 24, onClick: () => this.confirmExit() }).setDepth(60);
+    const foeLabel = this.pvp ? `👤 ${this.pvp.oppName} · ${this.pvp.stake === "friendly" ? "Giao hữu" : "Sinh tử"}` : `🤖 Máy · ${{ easy: "Dễ", normal: "Thường", hard: "Khó", boss: "Boss" }[this.level]}`;
+    txt(this, 1180, 44, foeLabel, 18, { align: "right", weight: "700" }).setOrigin(1, 0.5).setDepth(60);
     this.banner = txt(this, 640, 40, "Đang vào trận…", 30, { color: COLORS.textGold, align: "center" }).setOrigin(0.5).setDepth(60);
     this.turnT = txt(this, 640, 84, "", 22, { align: "center" }).setOrigin(0.5).setDepth(60);
-    this.driver = makeDriver();
+    this.driver = this.pvp ? new PvpDriver(this.pvp.id) : makeDriver();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.driver instanceof PvpDriver) this.driver.stopped = true;
+    });
     this.input.keyboard?.on("keydown-SPACE", () => this.press("attack"));
     void this.driver
       .start(this.team, this.level)
       .then((v) => this.onView(v, true))
       .catch((e: Error) => {
         toast(this, e.message, COLORS.red);
-        this.time.delayedCall(1500, () => goTo(this, "DeathMatch", { mode: "arena" }));
+        this.time.delayedCall(1500, () => this.back());
       });
   }
 
@@ -193,6 +212,60 @@ export class Combat3Scene extends Phaser.Scene {
     this.busy = false;
     if (v.state.winner !== null) return this.finish(v.state.winner);
     if (v.state.turnSide === 0) this.startMyTurn(v);
+    else this.awaitOpponent();
+  }
+
+  /** Đấu người: chờ đối thủ đánh (máy chủ xử quá giờ nếu đối thủ không bấm). */
+  private awaitOpponent() {
+    if (this.finished) return;
+    this.busy = true;
+    void this.say("⏳ Đối thủ đang canh lực…", 0, "#ffe0b2");
+    void this.driver
+      .waitTurn()
+      .then((v) => (this.finished ? undefined : this.onView(v)))
+      .catch((e: Error) => {
+        if (this.finished || !this.scene.isActive()) return;
+        toast(this, e.message, COLORS.red);
+        this.time.delayedCall(1500, () => this.back());
+      });
+  }
+
+  private back() {
+    goTo(this, "DeathMatch", { mode: this.pvp ? "pvp" : "arena" });
+  }
+
+  /** Thoát giữa trận = BỎ CUỘC (tính thua). */
+  private confirmExit() {
+    if (this.finished || !this.view) return this.back();
+    const friendly = this.pvp?.stake === "friendly";
+    const m = modal(this, 640, 300, "Thoát trận?");
+    m.root.setDepth(950);
+    m.root.add(
+      txt(this, 640, m.y + 120, friendly ? "Thoát giữa trận = THUA\n(giao hữu: không mất cá)" : "Thoát giữa trận = THUA\n⚠ Mất con cá LỰC CHIẾN THẤP NHẤT trong đội!", 22, {
+        align: "center",
+        weight: "700",
+        color: friendly ? "#e1f5fe" : "#ff8a80",
+      }).setOrigin(0.5),
+    );
+    m.root.add(new Button(this, 520, m.y + 236, 220, 60, "Ở lại", { color: COLORS.blue, fontSize: 22, onClick: () => m.close() }));
+    m.root.add(
+      new Button(this, 760, m.y + 236, 220, 60, "Bỏ cuộc", {
+        color: COLORS.red,
+        fontSize: 22,
+        onClick: () => {
+          m.close();
+          this.myTurn = false;
+          this.hideBar();
+          void this.driver
+            .forfeit()
+            .then((v) => {
+              this.view = v;
+              this.finish(1);
+            })
+            .catch((e: Error) => toast(this, e.message, COLORS.red));
+        },
+      }),
+    );
   }
 
   private say(text: string, ms = 700, color = COLORS.textGold) {
@@ -383,6 +456,9 @@ export class Combat3Scene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- kết thúc
   private finish(winner: 0 | 1) {
+    if (this.finished) return;
+    this.finished = true;
+    this.myTurn = false;
     this.hideBar();
     this.turnT?.setText("");
     const won = winner === 0;
@@ -391,10 +467,35 @@ export class Combat3Scene extends Phaser.Scene {
     void this.say(won ? "🏆 CHIẾN THẮNG!" : "THẤT BẠI", 0, won ? "#ffd54f" : "#ff8a80");
     const g = this.add.graphics().setDepth(70);
     g.fillStyle(0x000000, 0.55).fillRect(0, 0, 1280, 720);
-    const t = txt(this, 640, 300, won ? "🏆 CHIẾN THẮNG!" : "💀 THẤT BẠI", 72, { color: won ? "#ffd54f" : "#ff8a80", align: "center" }).setOrigin(0.5).setDepth(71).setScale(0.3);
+    const t = txt(this, 640, 290, won ? "🏆 CHIẾN THẮNG!" : "💀 THẤT BẠI", 72, { color: won ? "#ffd54f" : "#ff8a80", align: "center" }).setOrigin(0.5).setDepth(71).setScale(0.3);
     this.tweens.add({ targets: t, scale: 1, duration: 450, ease: "Back.easeOut" });
-    txt(this, 640, 380, "Trận luyện tập – không mất cá, chưa có thưởng (thưởng ở Chiến dịch PvE)", 20, { align: "center", color: "#e1f5fe" }).setOrigin(0.5).setDepth(71);
-    new Button(this, 520, 470, 220, 66, "⚔ Đấu lại", { color: COLORS.red, fontSize: 24, onClick: () => this.scene.restart({ team: this.team, level: this.level }) }).setDepth(72);
-    new Button(this, 760, 470, 220, 66, "← Về", { color: COLORS.blue, fontSize: 24, onClick: () => goTo(this, "DeathMatch", { mode: "arena" }) }).setDepth(72);
+    const info = txt(this, 640, 382, "Đang ghi nhận kết quả…", 21, { align: "center", color: "#e1f5fe", weight: "700" }).setOrigin(0.5).setDepth(71);
+    void this.settle(won).then((msg) => info.setText(msg));
+    if (!this.pvp) new Button(this, 520, 480, 220, 66, "⚔ Đấu lại", { color: COLORS.red, fontSize: 24, onClick: () => this.scene.restart({ team: this.team.filter((u) => GameState.save.fishes.some((f) => f.uid === u)), level: this.level }) }).setDepth(72);
+    new Button(this, this.pvp ? 640 : 760, 480, 220, 66, "← Về", { color: COLORS.blue, fontSize: 24, onClick: () => this.back() }).setDepth(72);
+  }
+
+  /** Áp kết quả vào bản lưu: thắng nhận thưởng, thua MẤT cá lực chiến thấp nhất. */
+  private async settle(won: boolean): Promise<string> {
+    const v = this.view;
+    let r;
+    if (this.pvp && this.driver instanceof PvpDriver) {
+      // lấy trạng thái phòng cuối cùng (có con cá bị mất do máy chủ chốt)
+      let room = this.driver.room;
+      for (let i = 0; i < 3 && room && room.status !== "done"; i++) room = await pvpCall({ op: "get", id: this.pvp!.id });
+      if (!room) return "Không lấy được kết quả – sẽ ghi nhận lần mở game sau";
+      r = await GameState.settleCombat("pvp", room.id, pvpOutcome(room));
+    } else {
+      const foe = v?.state.sides[1].team ?? [];
+      const id = v?.id ?? `local_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+      r = await GameState.settleCombat(v?.id ? "battle" : "local", id, { txId: v?.id ? `cb_${id}` : `cbl_${id}`, teamUids: this.team, won, level: this.level, foe });
+    }
+    if (!r.ok) return r.error;
+    if (this.pvp?.stake === "friendly") return "Giao hữu – không mất cá, không thưởng";
+    if (won) {
+      const parts = [r.gold ? `+${formatNum(r.gold)} 🪙` : "", r.xp ? `+${r.xp} KN` : "", r.roasted ? `🍖 ${FISH_BY_ID.get(r.roasted.fishId)?.name ?? "Cá"} nướng` : ""].filter(Boolean);
+      return parts.length ? `Phần thưởng: ${parts.join(" · ")}` : "Chiến thắng!";
+    }
+    return r.lostFishId ? `💔 Mất ${FISH_BY_ID.get(r.lostFishId)?.name ?? "cá"} (con lực chiến thấp nhất trong đội)` : "Không mất cá (cá trong đội đã khoá)";
   }
 }

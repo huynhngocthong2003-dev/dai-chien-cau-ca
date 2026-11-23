@@ -740,3 +740,37 @@ do $$ declare n int; begin
 end $$;
 reset role;
 select 'DB BATTLES TEST OK' as result;
+
+-- ================= Kết toán trận 3vs3 + phòng đấu với người =================
+do $$ declare bid uuid; begin
+  insert into public.battles (user_id, mode, ai_level, team, state, winner) values ('22222222-2222-2222-2222-222222222222', 'practice', 'normal', array['a','b','c'], '{}', 1) returning id into bid;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', true);
+  perform public.mark_battle_settled(bid);
+  reset role;
+  if (select settled from public.battles where id = bid) then raise exception 'Người khác đánh dấu kết toán trận hộ được'; end if;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', true);
+  perform public.mark_battle_settled(bid);
+  reset role;
+  if not (select settled from public.battles where id = bid) then raise exception 'Chủ trận không kết toán được'; end if;
+end $$;
+insert into public.pvp_rooms (code, stake, host, invitee, host_name, expires_at, host_team)
+  values ('ABC123', 'death', '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333', 'Chủ', now() + interval '60 seconds', array['x','y','z']);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false) \g /dev/null
+do $$ declare n int; begin
+  select count(*) into n from public.pvp_rooms where code = 'ABC123'; if n <> 1 then raise exception 'Người được mời không thấy lời mời'; end if;
+  begin perform host_team from public.pvp_rooms; raise exception 'LỖI: đọc được đội hình bí mật';
+  exception when insufficient_privilege then null; end;
+  begin update public.pvp_rooms set status = 'done'; raise exception 'LỖI: người chơi tự sửa phòng được';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.pvp_rooms (code, stake, host, host_name, expires_at) values ('Z', 'death', '33333333-3333-3333-3333-333333333333', 'x', now()); raise exception 'LỖI: người chơi tự tạo phòng được';
+  exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claim.sub', '44444444-4444-4444-4444-444444444444', false) \g /dev/null
+do $$ declare n int; begin
+  select count(*) into n from public.pvp_rooms; if n <> 0 then raise exception 'Người ngoài thấy phòng của người khác'; end if;
+end $$;
+reset role;
+select 'DB PVP ROOMS TEST OK' as result;

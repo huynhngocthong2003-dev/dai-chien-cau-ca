@@ -10,7 +10,7 @@ Cập nhật: 2026-11-22 (v0.35.0)
 | 3 – Chiến đấu 3vs3 theo lượt (máy chủ) | ✅ v0.36.0 (lõi trận + thanh canh lực + kỹ năng + phòng thủ + combo; máy chủ trọng tài `battle`; chế độ luyện tập); v0.36.1 gỡ Đấu Sinh Tử cũ (Q8: bỏ bản cũ) |
 | 4 – Nâng cấp Linh Hồn + Ngọc (= Đá Nâng Cấp), phân giải, bán | ⬜ |
 | 5 – PvE 50 ải | ⬜ |
-| 6 – PvP phòng riêng 30 giây | ⬜ |
+| 6 – PvP phòng riêng 30 giây | 🟡 v0.37.0: phòng mã/mời bạn, chọn đội bí mật 30s, trọng tài máy chủ, giao hữu & sinh tử (thua mất cá lực chiến thấp nhất); còn: xếp hạng, xem trận |
 | 7 – Giao diện & hiệu ứng | ⬜ |
 | 8 – Kiểm thử & nghiệm thu | ⬜ |
 

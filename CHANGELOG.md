@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.37.0] – 2026-11-23 – Đấu cá với NGƯỜI + thua mất cá lực chiến thấp nhất
+### Thêm
+- **Đấu 3vs3 với người (phòng)** – tab 👥 Đấu với người: chọn mức **💀 Sinh tử** / **🤝 Giao hữu** → **Tạo Phòng** (mã 6 ký tự, chờ 60 giây), **Vào bằng mã phòng**, hoặc **⚔ Mời** bạn bè (phòng riêng). Lời mời hiện ở mọi màn (trừ lúc đang đấu/đua) với đếm ngược theo giờ máy chủ, Nhận đấu / Từ chối.
+- **Chọn đội bí mật 30 giây** (màn Phòng Đấu): máy chủ giữ kín đội hình (cột đội hình không cấp quyền đọc), chỉ báo "đối thủ đã chốt ✓"; hết giờ còn bên chưa chốt → **huỷ trận**.
+- **Máy chủ làm trọng tài cả 2 người** – Edge Function `pvp` + bảng `pvp_rooms` (migration `20261208000001_pvp_rooms`, RLS: chỉ thấy phòng mình liên quan): đúng lượt mới được đánh, lệnh trùng bị từ chối, quá giờ lượt → tự phòng thủ, **3 lượt liên tiếp không đánh → xử thua**, thoát giữa trận = bỏ cuộc, mất mạng tự kết nối lại (hỏi lại máy chủ).
+- **Kết quả trận 3vs3** (`applyCombatOutcome` trong `packages/shared`, có test, chống áp 2 lần bằng txId):
+  - **THUA → mất con cá LỰC CHIẾN THẤP NHẤT trong đội** (đấu máy và Sinh tử). Đấu người: con cá bị mất do máy chủ chốt lúc chọn đội.
+  - Thắng máy: vàng + KN theo độ khó (Dễ 150 / Thường 350 / Khó 800 vàng) + cá nướng. Thắng người (Sinh tử): nhận chính con cá đối thủ bị mất dạng cá nướng (không sinh vàng – chống nuôi tài khoản phụ). Giao hữu: không mất, không thưởng.
+  - **Bỏ cuộc / thoát giữa trận = THUA** (có hộp xác nhận). Mở trận mới khi còn trận dang dở → trận cũ tính thua; trận bỏ dở > 15 phút cũng tính thua khi mở game. Kết quả chưa ghi (mất mạng/đóng game) được kết toán ở lần mở game sau.
+  - **Cá khoá 🔒 không được ra trận** (được bảo vệ khỏi bị mất).
+- Edge Function `battle`: thêm `op: forfeit`; bảng `battles` thêm cột `settled` + hàm `mark_battle_settled`.
+### Kiểm thử
+- 218 unit test (mới: thua mất đúng con yếu nhất, cá khoá, thưởng thắng, giao hữu/sinh tử, góc nhìn đảo bên); DB test phòng đấu (không đọc được đội hình bí mật, không tự sửa/tạo phòng, người ngoài không thấy); `deno check` 2 hàm máy chủ; E2E `combat3.cjs` thêm kết toán thắng/thua + bỏ cuộc giữa trận.
+
 ## [0.36.1] – 2026-11-23 – Đấu Cá: chỉ còn bản 3vs3 mới
 ### Thay đổi
 - Gỡ **Đấu Sinh Tử bản cũ** (đấu 1 lần tự động, thua mất cá) cả với máy lẫn với người: bỏ tab cũ, màn trận cũ `BattleScene`, ghép trận ngẫu nhiên cũ. Nút ở sảnh đổi tên **Đấu Cá**.

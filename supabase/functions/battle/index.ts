@@ -3,6 +3,9 @@
  *  POST { op: "start", mode: "practice", team: [uid×3], level }  → tạo trận (đội đọc từ bản lưu trên máy chủ)
  *  POST { op: "act", id, turn, action: { kind, pressMs? } }        → 1 lệnh / lượt; máy chủ tính vùng canh lực, sát thương, lượt máy
  *  POST { op: "get", id }                                          → lấy lại trạng thái (kết nối lại)
+ *  POST { op: "forfeit", id }                                      → bỏ cuộc = THUA (mất cá lực chiến thấp nhất)
+ * Kết quả (thắng/thua) do game áp vào bản lưu bằng applyCombatOutcome với txId = "cb_" + id (chống áp 2 lần).
+ * Mở trận mới khi còn trận dang dở → trận cũ tính THUA (chống thoát giữa chừng để né thua).
  * Không tin HP / sát thương / chỉ số từ trình duyệt: mọi con số do packages/shared/combat.ts tính tại đây.
  */
 import { createClient } from "@supabase/supabase-js";
@@ -56,6 +59,17 @@ Deno.serve(async (req: Request) => {
     const { data: auth, error: authErr } = await admin.auth.getUser(token);
     if (authErr || !auth.user) return json(401, { error: "Bạn cần đăng nhập để đấu" });
     const me = auth.user.id;
+    /** Trận dang dở của mình (thoát giữa chừng) → tính THUA. */
+    const forfeitOpen = async () => {
+      const { data } = await admin.from("battles").select("id, state").eq("user_id", me).is("winner", null).limit(20);
+      for (const r of (data ?? []) as { id: string; state: CombatState }[]) {
+        await admin
+          .from("battles")
+          .update({ state: { ...r.state, winner: AI_SIDE }, winner: AI_SIDE, updated_at: new Date().toISOString() })
+          .eq("id", r.id)
+          .is("winner", null);
+      }
+    };
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
     const op = body?.op;
 
@@ -71,6 +85,8 @@ Deno.serve(async (req: Request) => {
       if (!p.ok) return json(400, { error: "Dữ liệu người chơi không hợp lệ" });
       const built = buildPlayerTeam(p.save, body?.team, FISH_BY_ID, FORM_BY_ID, ZONE_BY_ID);
       if ("error" in built) return json(400, { error: built.error });
+      // trận dang dở (thoát giữa chừng) → tính thua
+      await forfeitOpen();
       const seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
       const open = new Set(ZONES.filter((z) => p.save.level >= z.requiredLevel).map((z) => z.id));
       const pool = FISHES.filter((f) => f.rarity !== "boss" && f.zones.some((z) => open.has(z)));
@@ -90,6 +106,18 @@ Deno.serve(async (req: Request) => {
     const { data: b, error: bErr } = await admin.from("battles").select("id, user_id, state, turn, turn_started_at, ai_level, winner").eq("id", id).maybeSingle();
     if (bErr || !b || b.user_id !== me) return json(404, { error: "Không tìm thấy trận" });
     if (op === "get") return json(200, view(b as never));
+    if (op === "forfeit") {
+      if (b.winner !== null) return json(200, view(b as never));
+      const st = { ...(b.state as CombatState), winner: AI_SIDE as 0 | 1 };
+      const { data: f } = await admin
+        .from("battles")
+        .update({ state: st, winner: AI_SIDE, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .is("winner", null)
+        .select("id, state, turn, turn_started_at, ai_level")
+        .maybeSingle();
+      return json(200, view((f ?? b) as never));
+    }
     if (op !== "act") return json(400, { error: "Thao tác không hợp lệ" });
 
     const state = b.state as CombatState;

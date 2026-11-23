@@ -182,12 +182,13 @@ async function playOneFish(p) {
           const c = db.cards && db.cards.get(want);
           return json(200, c ? [c] : []);
         }
-        if (u.pathname === '/rest/v1/pvp_matches' || u.pathname === '/rest/v1/friendships' || u.pathname === '/rest/v1/topup_orders') return json(200, []);
+        if (u.pathname === '/rest/v1/pvp_matches' || u.pathname === '/rest/v1/friendships' || u.pathname === '/rest/v1/topup_orders' || u.pathname === '/rest/v1/battles' || u.pathname === '/rest/v1/pvp_rooms') return json(200, []);
         if (u.pathname === '/rest/v1/rpc/claim_topups') return json(200, []);
         if (u.pathname === '/rest/v1/system_mail') return json(200, db.mail ? [{ id: 1, title: 'Quà đền bù lỗi lưu', body: 'Ban Quản Trị gửi bạn 1.000 kim cương và 50.000 vàng.', created_at: new Date().toISOString(), read_at: null, rewards: { txId: 'mail_e2e_1', gold: 12345, diamonds: 7 }, claimed_at: db.mailClaimed ? new Date().toISOString() : null }] : []);
         if (u.pathname === '/rest/v1/rpc/mark_mail_read') { db.mailRead = true; return json(200, null); }
         if (u.pathname === '/rest/v1/rpc/mark_mail_claimed') { db.mailClaimed = true; return json(200, null); }
         if (u.pathname.startsWith('/rest/v1/rpc/')) return json(200, null);
+        if (u.pathname === '/functions/v1/pvp') return json(200, { rooms: [] });
         return json(404, { message: 'mock: không hỗ trợ ' + req.method() + ' ' + u.pathname });
       });
     };

@@ -231,3 +231,63 @@ describe("Trọng tài phía máy chủ (Edge Function `battle` dùng hàm này)
     expect(st.winner !== null || st.turnSide === 0).toBe(true);
   });
 });
+
+import { applyCombatOutcome, mirrorCombat, weakestFish } from "@dccc/shared";
+
+describe("Kết quả trận 3vs3: THUA mất cá lực chiến THẤP NHẤT", () => {
+  const mkSave = () => {
+    const save = createNewSave("p", "A", CATALOG, 1);
+    const o = (uid: string, fishId: string, level: number, locked = false) => ({ uid, fishId, weightKg: 1, zoneId: "z_ben_tan_thu", caughtAt: 1, level, stars: 1, locked });
+    save.fishes = [o("manh", "f_ca_chep", 30), o("vua", "f_ca_ro", 12), o("yeu", "f_ca_ro", 2), o("khac", "f_ca_ro", 1)];
+    save.showcase = ["yeu"];
+    return save;
+  };
+  const team3 = ["manh", "vua", "yeu"];
+  it("cá khoá không được ra trận (được bảo vệ)", () => {
+    const s = mkSave();
+    s.fishes[0]!.locked = true;
+    const r = buildPlayerTeam(s, team3, FISH_BY_ID, FORM_BY_ID, ZONE_BY_ID);
+    expect("error" in r && r.error).toMatch(/khoá/);
+  });
+  it("thua với máy → mất đúng con yếu nhất trong đội (không phải cá ngoài đội), gỡ khỏi trưng bày", () => {
+    const s = mkSave();
+    expect(weakestFish(s, team3, FISH_BY_ID, FORM_BY_ID)?.uid).toBe("yeu");
+    const r = applyCombatOutcome(s, { txId: "cb_1", teamUids: team3, won: false, level: "normal", foe: [], now: 5 }, FISH_BY_ID, FORM_BY_ID);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.lostUid).toBe("yeu");
+    expect(r.save.fishes.map((f) => f.uid)).toEqual(["manh", "vua", "khac"]);
+    expect(r.save.showcase).toEqual([]);
+    expect(r.save.stats.dmLosses).toBe(1);
+    // áp lần 2 cùng txId bị từ chối
+    expect(applyCombatOutcome(r.save, { txId: "cb_1", teamUids: team3, won: false, level: "normal", foe: [], now: 6 }, FISH_BY_ID, FORM_BY_ID).ok).toBe(false);
+  });
+  it("thắng máy → vàng + KN (ghi sổ) + cá nướng, không mất cá", () => {
+    const s = mkSave();
+    const r = applyCombatOutcome(s, { txId: "cb_2", teamUids: team3, won: true, level: "hard", foe: [{ fishId: "f_ca_tre", level: 9, stars: 1 }, { fishId: "f_ca_ro", level: 3, stars: 1 }], now: 5 }, FISH_BY_ID, FORM_BY_ID);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.save.gold - s.gold).toBe(800);
+    expect(r.save.ledger.some((l) => l.txId === "cb_2" && l.currency === "gold")).toBe(true);
+    expect(r.roasted?.fishId).toBe("f_ca_tre");
+    expect(r.save.fishes).toHaveLength(4);
+  });
+  it("đấu người: giao hữu không mất gì; sinh tử thua mất con máy chủ chốt, thắng chỉ nhận cá nướng (không sinh vàng)", () => {
+    const s = mkSave();
+    const fr = applyCombatOutcome(s, { txId: "pv_1", teamUids: team3, won: false, level: null, stake: "friendly", foe: [], now: 5 }, FISH_BY_ID, FORM_BY_ID);
+    expect(fr.ok && fr.save.fishes.length).toBe(4);
+    const lose = applyCombatOutcome(s, { txId: "pv_2", teamUids: team3, won: false, level: null, loseUid: "vua", foe: [], now: 5 }, FISH_BY_ID, FORM_BY_ID);
+    expect(lose.ok && lose.lostUid).toBe("vua");
+    const win = applyCombatOutcome(s, { txId: "pv_3", teamUids: team3, won: true, level: null, foe: [{ fishId: "f_ca_tre", level: 4, stars: 1 }], now: 5 }, FISH_BY_ID, FORM_BY_ID);
+    if (!win.ok) throw new Error(win.error);
+    expect(win.save.gold).toBe(s.gold);
+    expect(win.roasted?.fishId).toBe("f_ca_tre");
+  });
+  it("góc nhìn bên 1 được đảo thành bên 0", () => {
+    const st = createCombat(team("a"), team("b"), 33);
+    const m = mirrorCombat(st);
+    expect(m.sides[0].team[0]!.uid).toBe("b0");
+    expect(m.turnSide).toBe(st.turnSide === 0 ? 1 : 0);
+    const first = st.log.find((e) => e.t === "start");
+    const mf = m.log.find((e) => e.t === "start");
+    expect(first && mf && first.t === "start" && mf.t === "start" && first.first !== mf.first).toBe(true);
+  });
+});

@@ -13,6 +13,8 @@ import { Music, type MusicTheme } from "./audio/Music.ts";
 import { Sfx } from "./audio/Sfx.ts";
 import { DeathMatchScene } from "./scenes/DeathMatchScene.ts";
 import { Combat3Scene } from "./scenes/Combat3Scene.ts";
+import { PvpRoomScene } from "./scenes/PvpRoomScene.ts";
+import { installPvpInvites } from "./ui/pvpInvites.ts";
 import { ProfileScene } from "./scenes/ProfileScene.ts";
 import { QuestScene } from "./scenes/QuestScene.ts";
 import { WheelScene } from "./scenes/WheelScene.ts";
@@ -46,7 +48,7 @@ async function start() {
     input: { activePointers: 3 },
     render: { antialias: true, roundPixels: false },
     fps: { target: 60 },
-    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, Combat3Scene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
+    scene: [BootScene, HubScene, ZoneScene, FishingScene, InventoryScene, CharacterScene, RodScene, ShopScene, AccountScene, DeathMatchScene, Combat3Scene, PvpRoomScene, ProfileScene, QuestScene, WheelScene, RankingScene, GuildScene, TopupScene, PlazaScene, RaceScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 
@@ -55,12 +57,14 @@ async function start() {
   const rewide = installWide(game);
   // lời mời đua cá: bảng xác nhận 10 giây ở mọi màn hình
   installRaceInvites(game);
+  // lời mời đấu cá 3vs3 với người
+  installPvpInvites(game);
   // nhạc nền theo màn: sảnh vui, câu cá êm, săn Boss căng thẳng, đấu sinh tử dồn dập
   const themeFor = (sc: Phaser.Scene): MusicTheme => {
     const k = sc.scene.key;
     if (k === "Hub" || k === "Plaza") return "hub";
     if (k === "Fishing") return (sc as unknown as { bossHunt?: boolean }).bossHunt ? "boss" : "fishing";
-    if (k === "Combat3" || k === "DeathMatch" || k === "Race") return "battle";
+    if (k === "Combat3" || k === "DeathMatch" || k === "PvpRoom" || k === "Race") return "battle";
     return "calm";
   };
   const hookMusic = () => {

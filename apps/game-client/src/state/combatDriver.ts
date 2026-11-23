@@ -1,7 +1,8 @@
 /**
  * Kết nối màn chiến đấu 3vs3 với trọng tài:
  *  - ServerDriver: đã đăng nhập → máy chủ (Edge Function `battle`) giữ trận, tính mọi con số.
- *  - LocalDriver: chơi không tài khoản (luyện tập, không thưởng) → chạy cùng lõi trận ngay trên máy.
+ *  - LocalDriver: chơi không tài khoản → chạy cùng lõi trận ngay trên máy.
+ *  - PvpDriver: đấu với NGƯỜI trong phòng (Edge Function `pvp`) – chờ lượt đối thủ bằng cách hỏi máy chủ.
  */
 import {
   applyAction,
@@ -19,6 +20,7 @@ import {
 import { FISHES, FISH_BY_ID, FORM_BY_ID, ZONES, ZONE_BY_ID } from "@dccc/game-data";
 import { GameState } from "./GameState.ts";
 import { getClient } from "./online.ts";
+import { pvpCall, type PvpRoom } from "./pvp.ts";
 
 export interface CombatView {
   id: string | null;
@@ -36,6 +38,10 @@ export interface CombatDriver {
   readonly server: boolean;
   start(team: string[], level: AiLevel): Promise<CombatView>;
   act(action: PlayerAction): Promise<CombatView>;
+  /** Chờ tới lượt mình (đấu người) – trả về các sự kiện mới. */
+  waitTurn(): Promise<CombatView>;
+  /** Bỏ cuộc = THUA. */
+  forfeit(): Promise<CombatView>;
 }
 
 export class LocalDriver implements CombatDriver {
@@ -67,6 +73,15 @@ export class LocalDriver implements CombatDriver {
     this.state = ai.state;
     this.turnStart = performance.now();
     return { id: null, state: this.state, bar: this.state.winner === null ? currentBar(this.state) : null, events: [...r.events, ...ai.events] };
+  }
+
+  async waitTurn(): Promise<CombatView> {
+    return { id: null, state: this.state, bar: currentBar(this.state), events: [] };
+  }
+
+  async forfeit(): Promise<CombatView> {
+    if (this.state.winner === null) this.state = { ...this.state, winner: 1, log: [...this.state.log, { t: "end", winner: 1 }] };
+    return { id: null, state: this.state, bar: null, events: [] };
   }
 }
 
@@ -101,6 +116,72 @@ export class ServerDriver implements CombatDriver {
 
   act(action: PlayerAction) {
     return this.call({ op: "act", id: this.id, turn: this.turn, action });
+  }
+
+  waitTurn() {
+    return this.call({ op: "get", id: this.id });
+  }
+
+  forfeit() {
+    return this.call({ op: "forfeit", id: this.id });
+  }
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Đấu với người: phòng đã vào trận; sự kiện mới = phần nhật ký trận chưa phát. */
+export class PvpDriver implements CombatDriver {
+  readonly server = true;
+  private seen = 0;
+  private turn = 0;
+  room: PvpRoom | null = null;
+  stopped = false;
+
+  constructor(readonly roomId: string) {}
+
+  private toView(r: PvpRoom): CombatView {
+    this.room = r;
+    this.turn = r.turn;
+    const log = r.state?.log ?? [];
+    const events = log.slice(this.seen);
+    this.seen = log.length;
+    return { id: r.id, state: r.state!, bar: r.bar, events };
+  }
+
+  async start(): Promise<CombatView> {
+    for (let i = 0; i < 20; i++) {
+      const r = await pvpCall({ op: "get", id: this.roomId });
+      if (r.state) return this.toView(r);
+      if (r.status === "cancelled") throw new Error(r.cancelReason ?? "Trận đã huỷ");
+      await sleep(700);
+    }
+    throw new Error("Trận chưa bắt đầu");
+  }
+
+  async act(action: PlayerAction): Promise<CombatView> {
+    return this.toView(await pvpCall({ op: "act", id: this.roomId, turn: this.turn, action }));
+  }
+
+  async waitTurn(): Promise<CombatView> {
+    let fails = 0;
+    for (;;) {
+      if (this.stopped) throw new Error("Đã rời trận");
+      try {
+        const r = await pvpCall({ op: "get", id: this.roomId });
+        fails = 0;
+        if (!r.state) throw new Error(r.cancelReason ?? "Trận đã huỷ");
+        if (r.state.log.length > this.seen || r.state.winner !== null || r.state.turnSide === 0) return this.toView(r);
+      } catch (e) {
+        // mất mạng thoáng qua → thử lại (kết nối lại); lỗi liên tục mới báo
+        if (++fails >= 8) throw e;
+      }
+      await sleep(900);
+    }
+  }
+
+  async forfeit(): Promise<CombatView> {
+    this.stopped = true;
+    return this.toView(await pvpCall({ op: "leave", id: this.roomId }));
   }
 }
 
