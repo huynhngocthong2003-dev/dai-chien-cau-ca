@@ -190,7 +190,9 @@ Deno.serve(async (req: Request) => {
       // ngoại hình nhân vật để người khác trong phòng nhìn thấy
       const cid = typeof save.selectedCharacterId === "string" ? save.selectedCharacterId.slice(0, 64) : "c_be_tom";
       const equip = save.characters?.[cid]?.equip ?? {};
-      const look = JSON.stringify({ c: cid, equip }).length < 1000 ? { c: cid, equip } : { c: cid };
+      // kèm cần câu đang dùng để người khác thấy đúng cần
+      const rod = typeof save.selectedRodId === "string" ? save.selectedRodId.slice(0, 64) : undefined;
+      const look = JSON.stringify({ c: cid, equip, rod }).length < 1000 ? { c: cid, equip, rod } : { c: cid, rod };
       const { data: ses, error: sErr } = await admin
         .from("world_boss_sessions")
         .insert({ boss: b.id, user_id: me, team: built.team, seed, name: await nameOf(me), look, power: pick.power })

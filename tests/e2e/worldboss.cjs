@@ -18,7 +18,7 @@ const status = () => ({
   boss: { id: 'wb_thanh_long', name: 'Thanh Long Long Vương', title: 'Dragon Fruit Emperor', element: 'wood', description: 'x' },
   hp: db.hp, maxHp: db.max, killer: db.hp <= 0 ? 'Cần Thủ' : null,
   top: [{ name: 'Pine Vô Địch', damage: 320000, me: false }, ...(db.hits ? [{ name: 'Cần Thủ', damage: db.hits * 20000, me: true }] : [])],
-  room: [{ name: 'Cần Thủ', look: { c: 'c_be_tom' }, power: 999, me: true, at: now() }, { name: 'Pine Vô Địch', look: { c: 'c_lam_ngoc_hau' }, power: 52000, me: false, at: new Date(Date.now() - db.ops.length * 1000).toISOString() }, { name: 'Mèo Câu', look: { c: 'c_kim_ke' }, power: 31000, me: false, at: '2026-11-23T12:00:00Z' }],
+  room: [{ name: 'Cần Thủ', look: { c: 'c_be_tom' }, power: 999, me: true, at: now() }, { name: 'Pine Vô Địch', look: { c: 'c_lam_ngoc_hau', rod: 'r_huyet_ma_long' }, power: 52000, me: false, at: new Date(Date.now() - db.ops.length * 1000).toISOString() }, { name: 'Mèo Câu', look: { c: 'c_kim_ke' }, power: 31000, me: false, at: '2026-11-23T12:00:00Z' }],
   me: { damage: db.hits * 20000, rank: db.hits ? 2 : null, entries: db.entered, entriesLeft: 3 - db.entered },
   rules: { hitsPerEntry: 15, entriesPerSlot: 3 },
 });
@@ -64,6 +64,8 @@ const status = () => ({
     const mk = (uid, fishId, level) => ({ uid, fishId, level, stars: 1, weightKg: 2, zoneId: 'z_ben_tan_thu', caughtAt: Date.now(), locked: uid === 'w1' });
     s.fishes = [mk('w1', 'f_boss_lao_ngu', 15), mk('w2', 'f_ca_ro', 8), mk('w3', 'f_ca_tre', 7), mk('w4', 'f_ca_ro', 3)];
     s.showcase = ['w2', 'w1', 'w3'];
+    s.rods = { ...s.rods, r_huyet_ma_long: s.rods[s.selectedRodId] ?? { level: 1, stars: 1 } };
+    s.selectedRodId = 'r_huyet_ma_long';
     GameState.commit(s);
     window.__game.scene.getScene('Hub').scene.restart();
   });
@@ -87,10 +89,17 @@ const status = () => ({
   });
   if (!arena.tex) errs.push('Không có sảnh đấu riêng cho boss');
   else if (!arena.flip || arena.bx < 500 || !arena.me || arena.me.x > 300 || !arena.me.key.startsWith('char_')) errs.push('Bố cục sai (boss bên phải quay trái, nhân vật người chơi bên trái): ' + JSON.stringify(arena).slice(0, 300));
-  else if (Math.abs(arena.w / arena.me.w - 10) > 0.01) errs.push('Boss không to gấp 10 lần nhân vật: ' + JSON.stringify(arena.me));
+  else if (Math.abs(arena.w / arena.me.w - 10) > 0.25) errs.push('Boss không to gấp 10 lần nhân vật: ' + JSON.stringify(arena.me));
   else if (arena.room !== 2 || !arena.names.includes('Pine Vô Địch') || !arena.names.some((t) => t.includes('3 người trong phòng'))) errs.push('Không thấy người chơi khác trong phòng boss: ' + JSON.stringify({ room: arena.room }));
   else if (!arena.names.some((t) => /Lực chiến/.test(t))) errs.push('Không hiện lực chiến đội');
   else console.log('• Sảnh Rừng Thanh Long; boss bên phải to gấp 10 lần nhân vật; nhân vật cầm cần bên trái; thấy 2 người chơi khác trong phòng');
+  const rods = await p.evaluate(() => { const sc = window.__game.scene.getScene('WorldBoss'); return { mine: sc.myRod?.rod.id, others: sc.roomC.list.filter((o) => o.rod).map((o) => o.rod.id) }; });
+  if (rods.mine !== 'r_huyet_ma_long' || !rods.others.includes('r_huyet_ma_long') || !rods.others.includes('r_tre')) errs.push('Cần câu trong phòng boss không đúng cần đang dùng: ' + JSON.stringify(rods));
+  else console.log('• Nhân vật cầm đúng cần câu đang dùng (' + rods.mine + '); người khác cầm cần của họ');
+  // độ mượt: lấy mẫu vị trí boss mỗi khung hình trong ~6 giây (qua lần cập nhật trạng thái 4 giây) – không được nhảy cóc
+  const jump = await p.evaluate(() => new Promise((res) => { const sc = window.__game.scene.getScene('WorldBoss'); let last = null; let max = 0; let n = 0; const t0 = window.performance.now(); const tick = () => { const b = sc.bossImg; if (b) { const q = { x: b.x, y: b.y, a: b.angle }; if (last) max = Math.max(max, Math.hypot(q.x - last.x, q.y - last.y)); last = q; n++; } if (window.performance.now() - t0 < 6000) window.requestAnimationFrame(tick); else res({ max, n }); }; tick(); }));
+  if (jump.max > 12) errs.push('Boss chuyển động giật (nhảy ' + jump.max.toFixed(1) + 'px giữa 2 khung hình)');
+  else console.log('• Boss bơi mượt: dịch chuyển tối đa ' + jump.max.toFixed(1) + 'px/khung hình qua ' + jump.n + ' khung (kể cả lúc cập nhật)');
   // vào đánh
   await p.mouse.click(1058, 540);
   await p.waitForFunction(() => !!window.__game.scene.getScene('WorldBoss').fight, null, { timeout: 8000 }).catch(() => errs.push('Không vào được trận boss'));

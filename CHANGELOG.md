@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.50.1] – 2026-11-23 – Boss: cầm đúng cần câu · chuyển động mượt
+### Thay đổi
+- **Đánh Boss Thế Giới bằng đúng cần câu đang dùng khi câu cá**: thân cần đúng màu, quấn chỉ, tay cầm, máy câu, vật trang trí đầu cần, hào quang / vân sét của cần xịn, dây câu đúng màu khi quăng móc boss. Người chơi khác trong phòng cũng cầm đúng cần của họ.
+### Sửa lỗi
+- **Boss chuyển động mượt**: trước đây mỗi đòn đánh và mỗi lần cập nhật (4 giây) vẽ lại cả màn → boss khựng, nhảy về chỗ cũ giữa lúc bị giật. Nay chỉ cập nhật số liệu; boss bơi liên tục theo thời gian thật (nhấp nhô, lắc thân, thở phồng, trôi nhẹ), cú giật cần cộng mượt vào rồi trôi về.
+- Chớp sáng khi trúng đòn dùng đồng hồ thật (máy yếu không còn bị boss trắng xoá lâu).
+
 ## [0.50.0] – 2026-11-23 – Tỉ lệ câu theo chỉ số người chơi · Boss 23h
 ### Thêm
 - **Tỉ lệ ra cá / rác tuỳ theo chỉ số người chơi**: may mắn (nhân vật + bùa) và tỉ lệ hiếm của cần càng cao → **cá cấp cao càng nhiều**, cá thường & rác càng ít. Ví dụ Bến Câu Tân Thủ: may mắn 0 → 22% cá Hiếm trở lên · 9,5% rác; may mắn 50 → 33% · 6% rác; may mắn 150 → 51% · 3,4% rác. Cá hiếm hơn vẫn luôn khó gặp hơn cá cấp dưới.

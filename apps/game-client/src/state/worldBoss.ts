@@ -13,7 +13,7 @@ export interface WbStatus {
   killer: string | null;
   top: { name: string; damage: number; me: boolean }[];
   /** Người chơi đang trong phòng boss (ra đòn gần đây): tên, ngoại hình nhân vật, lực chiến. */
-  room?: { name: string; look: { c?: string; equip?: Partial<Record<string, string>> } | null; power: number; me: boolean; at: string }[];
+  room?: { name: string; look: { c?: string; equip?: Partial<Record<string, string>>; rod?: string } | null; power: number; me: boolean; at: string }[];
   me: { damage: number; rank: number | null; entries: number; entriesLeft: number };
   rules: { hitsPerEntry: number; entriesPerSlot: number };
 }

@@ -6,6 +6,7 @@ import { GameState } from "../state/GameState.ts";
 import { wbCall, type WbEnter, type WbHit, type WbStatus } from "../state/worldBoss.ts";
 import { characterTexture, worldBossArenaTexture, worldBossTexture } from "../art/textures.ts";
 import { safeEquip } from "../ui/playerProfile.ts";
+import { HeldRod } from "../ui/heldRod.ts";
 import { ARENA_FX, ARENA_H, ARENA_W } from "../art/WorldBossArena.ts";
 import { Bar, Button, fadeIn, formatNum, goTo, panel, toast, txt } from "../ui/widgets.ts";
 import { TopBar } from "../ui/TopBar.ts";
@@ -26,7 +27,10 @@ const BOSS_SIZE = 10;
 const CHAR_VIEW = { w: 88, h: 106 };
 const ME_POS = { x: 120, y: 560 };
 /** Đầu cần câu (toạ độ trong nhân vật) & miệng boss (nơi lưỡi câu móc vào). */
-const ROD_TIP = { x: 74, y: -118 };
+const ROD_TIP = { x: 92, y: -138 };
+const ROD_HAND = { x: 22, y: -52 };
+/** Cần câu thu nhỏ so với màn câu cá (nhân vật ở đây cỡ ~0,46 lần). */
+const ROD_K = 0.46;
 const HOOK_Y = 452;
 /** Chỗ đứng người chơi khác trong phòng (sau lưng mình, lớp xa nhỏ hơn). */
 const ROOM_SPOTS = [
@@ -54,7 +58,15 @@ export class WorldBossScene extends Phaser.Scene {
   private needle?: Phaser.GameObjects.Graphics;
   private bossImg?: Phaser.GameObjects.Image;
   private roomC?: Phaser.GameObjects.Container;
-  private rodG?: Phaser.GameObjects.Graphics;
+  private myRod?: HeldRod;
+  /** Vị trí gốc của boss; chuyển động bơi tính liên tục theo thời gian thật trong update() (không khựng khi cập nhật). */
+  private bossBase = { x: 0, y: 0, dead: false };
+  /** Độ lệch do bị giật cần (tween mượt, cộng dồn vào tư thế bơi). */
+  private yank = { x: 0, a: 0 };
+  private bossGlow?: Phaser.GameObjects.Arc;
+  private hudT?: Phaser.GameObjects.Text;
+  /** Khoá nội dung sảnh chờ – chỉ vẽ lại cả màn khi thứ gì đó thật sự đổi (không phải mỗi 4 giây). */
+  private lobbyKey = "";
   private lineG?: Phaser.GameObjects.Graphics;
   private meBody?: Phaser.GameObjects.Image;
   /** Lần ra đòn gần nhất đã thấy của từng người trong phòng (để phát hoạt cảnh giật cần). */
@@ -92,6 +104,7 @@ export class WorldBossScene extends Phaser.Scene {
     this.input.enabled = true;
     this.fight = null;
     this.status = null;
+    this.lobbyKey = "";
     fadeIn(this);
     menuBackdrop(this);
     new TopBar(this, { title: "Boss Thế Giới", onBack: () => goTo(this, "Hub") });
@@ -113,8 +126,17 @@ export class WorldBossScene extends Phaser.Scene {
     try {
       this.status = await wbCall<WbStatus>({ op: "status" });
       if (!this.scene.isActive()) return;
-      if (!this.fight) this.render();
-      else this.renderRoom();
+      const st = this.status;
+      const key = JSON.stringify([st.boss.id, st.slot.key, st.slot.live, st.killer, st.top, st.me, st.hp <= 0]);
+      // chỉ cập nhật thanh máu & phòng; vẽ lại cả màn khi bảng xếp hạng / trạng thái đổi
+      if (!this.fight && key !== this.lobbyKey) {
+        this.lobbyKey = key;
+        this.render();
+      } else {
+        this.hpBar?.set(st.maxHp ? st.hp / st.maxHp : 0);
+        this.hpT?.setText(`${formatNum(st.hp)} / ${formatNum(st.maxHp)}`);
+        this.renderRoom();
+      }
     } catch (e) {
       if (this.scene.isActive()) toast(this, (e as Error).message, COLORS.red);
     }
@@ -193,11 +215,13 @@ export class WorldBossScene extends Phaser.Scene {
     }
     const glow = this.add.circle(this.bx() - 60, BOSS_Y + 30, 330, hexToInt(col), 0.18).setMask(mask);
     c.add(glow);
-    this.tweens.add({ targets: glow, scale: 1.12, alpha: 0.08, duration: 1400, yoyo: true, repeat: -1 });
+    this.bossGlow = glow;
     this.bossImg = this.add.image(this.bx(), BOSS_Y + 60, worldBossTexture(this, b.id)).setDisplaySize(FISH_VIEW.w * BOSS_SIZE, FISH_VIEW.h * BOSS_SIZE).setFlipX(true).setMask(mask);
     if (hp <= 0) this.bossImg.setTint(0x555555).setAngle(-12);
     c.add(this.bossImg);
-    this.tweens.add({ targets: this.bossImg, y: BOSS_Y + 44, duration: 1600, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    this.bossBase = { x: this.bx(), y: BOSS_Y + 52, dead: hp <= 0 };
+    this.yank = { x: 0, a: 0 };
+    this.poseBoss();
     // dải tối sau chữ để đọc rõ trên nền boss
     c.add(this.add.rectangle(this.cx(), 168, this.aw(), 130, 0x050814, 0.55));
     c.add(txt(this, this.cx(), 120, `🐉 ${b.name}`, 30, { color: col, align: "center" }).setOrigin(0.5));
@@ -220,8 +244,9 @@ export class WorldBossScene extends Phaser.Scene {
     me.add(this.add.ellipse(0, 2, 80, 16, 0x000000, 0.3));
     const body = this.add.image(0, 0, characterTexture(this, ch, GameState.equipOf(ch.id))).setOrigin(0.5, 1).setDisplaySize(CHAR_VIEW.w, CHAR_VIEW.h);
     me.add(body);
-    this.rodG = this.add.graphics();
-    me.add(this.rodG);
+    // đúng cần câu người chơi đang dùng khi câu cá
+    this.myRod = new HeldRod(this, GameState.save.selectedRodId, ROD_HAND, ROD_TIP, ROD_K);
+    me.add(this.myRod);
     this.meBody = body;
     this.drawRod(0);
     c.add(me);
@@ -243,28 +268,14 @@ export class WorldBossScene extends Phaser.Scene {
 
   /** Cần câu trong tay nhân vật; bend > 0 = cần cong khi đang giật boss. */
   private drawRod(bend: number) {
-    const g = this.rodG;
-    if (!g) return;
-    g.clear();
-    const hx = 22;
-    const hy = -52;
-    const tx = ROD_TIP.x - bend * 26;
-    const ty = ROD_TIP.y + bend * 34;
-    const cx = (hx + tx) / 2 + bend * 18;
-    const cy = (hy + ty) / 2 - 10 + bend * 8;
-    const curve = new Phaser.Curves.QuadraticBezier(new Phaser.Math.Vector2(hx, hy), new Phaser.Math.Vector2(cx, cy), new Phaser.Math.Vector2(tx, ty));
-    g.lineStyle(7, 0x1b1530, 1);
-    curve.draw(g, 16);
-    g.lineStyle(4, 0x8d6e63, 1);
-    curve.draw(g, 16);
-    g.fillStyle(0xffd740, 1).fillCircle(hx + 6, hy - 6, 5);
+    if (this.myRod?.active) this.myRod.draw(bend);
   }
 
   /**
    * Hoạt cảnh CÂU BOSS: quăng dây từ đầu cần tới miệng boss → móc → GIẬT mạnh (cần cong, boss bị kéo lệch).
    * rodWorld = toạ độ đầu cần trên màn hình; who = nhân vật để nghiêng người.
    */
-  private hookAndYank(rodWorld: { x: number; y: number }, who: Phaser.GameObjects.Image | null, strong: boolean, mine: boolean) {
+  private hookAndYank(rodWorld: { x: number; y: number }, who: Phaser.GameObjects.Image | null, strong: boolean, mine: boolean, lineColor = 0xffffff) {
     const g = this.add.graphics().setDepth(4);
     this.root?.add(g);
     const t = { p: 0, slack: 1 };
@@ -274,7 +285,7 @@ export class WorldBossScene extends Phaser.Scene {
       const ey = rodWorld.y + (HOOK_Y - rodWorld.y) * t.p;
       const mx = (rodWorld.x + ex) / 2;
       const my = (rodWorld.y + ey) / 2 + 40 * t.slack * t.p;
-      g.lineStyle(mine ? 2.5 : 1.6, 0xffffff, mine ? 0.95 : 0.6);
+      g.lineStyle(mine ? 2.5 : 1.6, lineColor, mine ? 0.95 : 0.7);
       new Phaser.Curves.QuadraticBezier(new Phaser.Math.Vector2(rodWorld.x, rodWorld.y), new Phaser.Math.Vector2(mx, my), new Phaser.Math.Vector2(ex, ey)).draw(g, 18);
       g.fillStyle(0xcfd8dc, 1).fillCircle(ex, ey, mine ? 4 : 3);
     };
@@ -292,7 +303,13 @@ export class WorldBossScene extends Phaser.Scene {
           window.setTimeout(() => this.drawRod(0), 260);
         }
         if (who) this.tweens.add({ targets: who, angle: -14, duration: 90, yoyo: true, hold: 120 });
-        if (this.bossImg && (mine || strong)) this.tweens.add({ targets: this.bossImg, x: this.bx() - (strong ? 46 : 22), angle: strong ? -5 : -2, duration: 100, yoyo: true, ease: "Quad.easeOut" });
+        if (mine || strong) {
+          // giật: kéo boss về phía người chơi rồi trôi về chậm, mượt (cộng vào tư thế bơi)
+          this.tweens.killTweensOf(this.yank);
+          this.tweens.add({ targets: this.yank, x: strong ? -46 : -22, a: strong ? -5 : -2, duration: 110, ease: "Quad.easeOut", onComplete: () => {
+            this.tweens.add({ targets: this.yank, x: 0, a: 0, duration: 520, ease: "Back.easeOut" });
+          } });
+        }
         window.setTimeout(() => {
           this.tweens.add({ targets: g, alpha: 0, duration: 200, onComplete: () => g.destroy() });
         }, 330);
@@ -311,14 +328,13 @@ export class WorldBossScene extends Phaser.Scene {
       const k = 0.62 + (spot.y / 720) * 0.3;
       const ch = CHARACTER_BY_ID.get(r.look?.c ?? "") ?? CHARACTER_BY_ID.get("c_be_tom")!;
       const body = this.add.image(spot.x, spot.y, characterTexture(this, ch, safeEquip(r.look?.equip))).setOrigin(0.5, 1).setDisplaySize(CHAR_VIEW.w * k, CHAR_VIEW.h * k).setAlpha(0.95);
-      const rod = this.add.graphics();
-      rod.lineStyle(3, 0x1b1530, 1).lineBetween(spot.x + 18 * k, spot.y - 50 * k, spot.x + ROD_TIP.x * k, spot.y + ROD_TIP.y * k);
-      rod.lineStyle(1.6, 0x8d6e63, 1).lineBetween(spot.x + 18 * k, spot.y - 50 * k, spot.x + ROD_TIP.x * k, spot.y + ROD_TIP.y * k);
+      // cần câu họ đang dùng (máy chủ gửi kèm ngoại hình)
+      const rod = new HeldRod(this, r.look?.rod, { x: ROD_HAND.x * k, y: ROD_HAND.y * k }, { x: ROD_TIP.x * k, y: ROD_TIP.y * k }, ROD_K * k).setPosition(spot.x, spot.y);
       const name = txt(this, spot.x, spot.y - CHAR_VIEW.h * k - 12, r.name, 11, { weight: "700", color: "#ffffff", align: "center" }).setOrigin(0.5);
       rc.add([this.add.ellipse(spot.x, spot.y + 2, 60 * k, 12 * k, 0x000000, 0.25), rod, body, name]);
       const prev = this.roomSeen.get(r.name);
       this.roomSeen.set(r.name, r.at);
-      if (prev && prev !== r.at) window.setTimeout(() => this.scene.isActive() && body.active && this.hookAndYank({ x: spot.x + ROD_TIP.x * k, y: spot.y + ROD_TIP.y * k }, body, false, false), 200 + i * 260);
+      if (prev && prev !== r.at) window.setTimeout(() => this.scene.isActive() && body.active && this.hookAndYank({ x: spot.x + rod.tip.x, y: spot.y + rod.tip.y }, body, false, false, rod.lineColor), 200 + i * 260);
     });
     if (others.length) rc.add(txt(this, 30, 250, `👥 ${others.length + 1} người trong phòng`, 13, { weight: "700", color: "#b9f6ca" }));
   }
@@ -395,7 +411,8 @@ export class WorldBossScene extends Phaser.Scene {
     const hud = this.add.graphics();
     hud.fillStyle(0x0a1628, 0.8).fillRoundedRect(1036, 560, 214, 132, 14);
     c.add(hud);
-    c.add(txt(this, 1143, 592, `Đòn ${f.hits}/${f.e.hitsMax}\nSát thương: ${formatNum(f.dmg)}`, 16, { align: "center", weight: "700" }).setOrigin(0.5));
+    this.hudT = txt(this, 1143, 592, `Đòn ${f.hits}/${f.e.hitsMax}\nSát thương: ${formatNum(f.dmg)}`, 16, { align: "center", weight: "700" }).setOrigin(0.5);
+    c.add(this.hudT);
     c.add(new Button(this, 1143, 654, 180, 46, "Rút lui", { color: COLORS.blue, fontSize: 18, onClick: () => this.endFight() }));
     // thanh canh kim
     const g = this.add.graphics();
@@ -422,7 +439,27 @@ export class WorldBossScene extends Phaser.Scene {
     this.needle = this.add.graphics().setDepth(5);
   }
 
+  /** Tư thế boss theo thời gian thật: nhấp nhô, lắc thân, thở phồng, trôi nhẹ + độ lệch khi bị giật. */
+  private poseBoss() {
+    const b = this.bossImg;
+    if (!b?.active) return;
+    const t = performance.now() / 1000;
+    const base = this.bossBase;
+    if (base.dead) {
+      b.setPosition(base.x, base.y + 30 + Math.sin(t * 0.8) * 4).setAngle(-12);
+      return;
+    }
+    const sx = (FISH_VIEW.w * BOSS_SIZE) / b.width;
+    const sy = (FISH_VIEW.h * BOSS_SIZE) / b.height;
+    const breathe = Math.sin(t * 2.1) * 0.018;
+    b.setPosition(base.x + Math.sin(t * 0.55) * 14 + this.yank.x, base.y + Math.sin(t * 1.25) * 12);
+    b.setAngle(Math.sin(t * 0.95) * 2.2 + this.yank.a);
+    b.setScale(sx * (1 - breathe * 0.5), sy * (1 + breathe));
+    this.bossGlow?.setScale(1.06 + Math.sin(t * 2.2) * 0.06).setAlpha(0.13 + Math.sin(t * 2.2) * 0.05);
+  }
+
   override update() {
+    this.poseBoss();
     const f = this.fight;
     if (!f || !f.bar || !this.needle) return;
     const p = needlePos(f.bar, performance.now() - f.t0);
@@ -455,7 +492,7 @@ export class WorldBossScene extends Phaser.Scene {
         } else if (r.hits >= r.hitsMax) {
           toast(this, `Hết lượt: gây ${formatNum(r.sessionDamage)} sát thương!`, COLORS.green);
           window.setTimeout(() => this.scene.isActive() && this.endFight(), 1200);
-        } else this.render();
+        } else this.hudT?.setText(`Đòn ${f.hits}/${f.e.hitsMax}\nSát thương: ${formatNum(f.dmg)}`);
       })
       .catch((e: Error) => {
         f.busy = false;
@@ -469,10 +506,12 @@ export class WorldBossScene extends Phaser.Scene {
     this.hpBar?.set(r.maxHp ? r.hp / r.maxHp : 0);
     this.hpT?.setText(`${formatNum(r.hp)} / ${formatNum(r.maxHp)}`);
     const big = r.zone === "green" || r.zone === "perfect";
-    this.hookAndYank({ x: ME_POS.x + ROD_TIP.x, y: ME_POS.y + ROD_TIP.y }, this.meBody ?? null, big, true);
+    const tip = this.myRod?.tip ?? ROD_TIP;
+    this.hookAndYank({ x: ME_POS.x + tip.x, y: ME_POS.y + tip.y }, this.meBody ?? null, big, true, this.myRod?.lineColor ?? 0xffffff);
     this.cameras.main.shake(big ? 160 : 60, big ? 0.008 : 0.003);
-    this.bossImg?.setTintFill(0xffffff);
-    this.time.delayedCall(80, () => this.bossImg?.clearTint());
+    // chớp sáng ngắn (đồng hồ thật – đồng hồ Phaser chậm trên máy yếu làm boss trắng xoá lâu)
+    this.bossImg?.setTint(big ? 0xfff3b0 : 0xffe0e0);
+    window.setTimeout(() => this.bossImg?.active && this.bossImg.clearTint(), 90);
     const t = txt(this, (this.bx() - 270) + Phaser.Math.Between(-40, 80), BOSS_Y - 40, `-${formatNum(r.dmg)}`, big ? 44 : 32, { color: r.zone === "red" ? "#b0bec5" : big ? "#ffeb3b" : "#ffffff", align: "center" }).setOrigin(0.5).setDepth(20);
     const z = txt(this, t.x, t.y + 40, TIMING_LABEL[r.zone], 18, { color: big ? "#b9f6ca" : r.zone === "red" ? "#ff8a80" : "#fff59d", align: "center" }).setOrigin(0.5).setDepth(20);
     this.tweens.add({ targets: [t, z], y: "-=70", alpha: 0, duration: 900, onComplete: () => (t.destroy(), z.destroy()) });
