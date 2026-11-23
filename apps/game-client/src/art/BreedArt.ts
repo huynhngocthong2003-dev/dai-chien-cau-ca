@@ -972,6 +972,14 @@ export function hybridMorph(father: Pick<FishDef, "id" | "appearance">, mother: 
     lure: f.lure || m.lure,
     scales: f.scales || m.scales,
     eyeSize: f.eyeSize,
+    coil: Math.max(f.coil ?? 0, m.coil ?? 0) * 0.7 || undefined,
+    // nét nhận diện: đồ trên đầu theo BỐ; bờm / mây / vây cánh theo MẸ (thiếu thì lấy bên kia)
+    sig: {
+      head: f.sig?.head ?? m.sig?.head,
+      mane: m.sig?.mane ?? f.sig?.mane,
+      clouds: m.sig?.clouds ?? false,
+      finwings: m.sig?.finwings ?? f.sig?.finwings,
+    },
   };
 }
 

@@ -276,7 +276,7 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
     tailSize: base.tailSize * (1 + 0.28 * k),
     dorsalSize: base.dorsalSize * (1 + 0.32 * k),
     dorsal: k >= 1 && base.dorsal === "none" ? "crest" : base.dorsal,
-    pectoral: base.pectoral * (1 + (fx.extra === "finwings" ? 0.45 : 0.2) * k),
+    pectoral: base.pectoral * (1 + (fx.extra === "finwings" ? 0.45 : 0.2) * k) * (base.sig?.finwings ? 1.5 : 1),
     whiskers: base.whiskers || (k >= 2 && fx.head === "antlers"),
     scales: base.scales || fx.body === "scales",
   };
@@ -312,7 +312,7 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   if (m.whiskers) extras.push([{ x: g.nose.x, y: g.nose.y + g.bodyH * 0.9 }]);
   if (m.lure || a.horns) extras.push([{ x: headS.p.x + headS.n.x * g.bodyH * 1.05, y: headS.p.y + headS.n.y * g.bodyH * 1.05 }]);
 
-  if (stage >= 3) {
+  if (stage >= 3 || m.sig) {
     const s0 = g.spine[0]!;
     const L = g.bodyH * (1.5 + 0.5 * (stage - 3));
     for (const off of [-0.5, 0.3]) extras.push([{ x: s0.p.x - s0.t.x * L * 0.45 + s0.n.x * g.bodyH * off, y: s0.p.y - s0.t.y * L * 0.45 + s0.n.y * g.bodyH * off }]);
@@ -364,7 +364,7 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   const gold: FishAppearance = { ...a, fin: fx.accent };
   if (dorsal) paintFin(ctx, dorsal, at(g, 0.5).p, stage >= 3 && fx.head !== "crystal" ? gold : a, stage >= 3 && fx.head !== "crystal" ? "#8d5a00" : outline);
   // bờm bay sau gáy (loài có bờm): Trung Giai ngắn → Thánh Giai dài
-  if (fx.extra === "mane" && stage >= 2) drawMane(ctx, g, a, stage + 1);
+  if ((fx.extra === "mane" && stage >= 2) || m.sig?.mane) drawMane(ctx, g, a, Math.max(stage, 2) + 1);
   if (!tube) {
     paintFin(ctx, vent, botAt(g, 0.3), a, outline);
     paintFin(ctx, pelvic, botAt(g, 0.55), a, outline);
@@ -526,7 +526,7 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
 
   // sừng
   // sừng: dài dần theo giai; nhóm tròn mọc sừng từ Cao Giai
-  if ((a.horns && !(stage >= 2 && fx.head === "antlers")) || (fx.head === "horns" && stage >= 2)) {
+  if ((a.horns && !(stage >= 2 && fx.head === "antlers")) || (fx.head === "horns" && stage >= 2) || m.sig?.head === "horns") {
     for (const k of [0, 1]) {
       const hb = topAt(g, 0.8 + k * 0.06, 0.95);
       const hs = at(g, 0.8 + k * 0.06);
@@ -568,12 +568,13 @@ export function drawVectorFish(ctx: CanvasRenderingContext2D, fish: Pick<FishDef
   // Trung Giai+: đốm sáng chòm sao trên thân; Cao Giai+: tinh vân; Thánh Giai: thân ngân hà
   if (stage >= 2 && (fx.body === "glow" || stage >= 4)) drawStarBody(ctx, body, g, a, stage);
   // đồ trên đầu riêng từng loài, lớn dần theo giai
-  if (stage >= 2) {
-    if (fx.head === "antlers") drawAntlers(ctx, g, stage);
-    else if (fx.head === "crystal") drawCrystalCrown(ctx, g, a, stage);
-    else if (fx.head === "flame") drawFlameCrest(ctx, g, stage);
-  }
-  if (fx.extra === "clouds" && stage >= 3) drawClouds(ctx, g, stage);
+  // nét nhận diện của loài (sig) hiện từ Sơ Giai; ngoài ra mở theo giai như cũ
+  const headFx = m.sig?.head ?? (stage >= 2 ? fx.head : null);
+  const hs = Math.max(stage, 2);
+  if (headFx === "antlers") drawAntlers(ctx, g, hs);
+  else if (headFx === "crystal") drawCrystalCrown(ctx, g, a, hs);
+  else if (headFx === "flame") drawFlameCrest(ctx, g, hs);
+  if ((fx.extra === "clouds" && stage >= 3) || m.sig?.clouds) drawClouds(ctx, g, Math.max(stage, 3));
   goldTrim = false;
   ctx.restore();
 }

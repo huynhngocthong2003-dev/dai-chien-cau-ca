@@ -41,6 +41,8 @@ export interface FishMorph {
   coil?: number;
   /** Màu đuôi riêng (vd đuôi lụa trắng). */
   tailColor?: string;
+  /** NÉT NHẬN DIỆN luôn hiện từ Sơ Giai (cá Boss / Thần Thoại): đồ trên đầu, bờm, mây, vây cánh. */
+  sig?: { head?: "antlers" | "horns" | "crystal" | "flame"; mane?: boolean; clouds?: boolean; finwings?: boolean };
 }
 
 /** Số giả ngẫu nhiên tất định theo chuỗi. */
@@ -79,6 +81,41 @@ const BASE: Record<FishAppearance["shape"], Omit<Partial<FishMorph>, "aspect"> &
 
 /** Vài loài chỉnh tay cho đúng đặc trưng (ngoài phần sinh tự động). */
 const OVERRIDES: Record<string, Partial<FishMorph>> = {
+  // ===== CÁ BOSS & THẦN THOẠI: mỗi loài một KIỂU DÁNG riêng hẳn + nét nhận diện luôn hiện =====
+  // Lão Ngư Sừng Sắt – cá trê già lưng gù, râu dài, đầu to
+  f_boss_lao_ngu: { aspect: 2.5, peak: 0.72, head: 1.45, hump: 1.55, bend: 0.12, tilt: 6, snout: "blunt", mouth: "pout", tail: "round", tailSize: 0.95, dorsal: "low", whiskers: true, scales: false, eyeSize: 1.25, sig: { head: "horns" } },
+  // Bạo Chúa San Hô – thân tròn hầm hố, hàm cá mập hếch, vương miện san hô
+  f_boss_bao_chua_san_ho: { aspect: 1.35, peak: 0.6, head: 1.55, hump: 1.2, bend: 0.2, tilt: 14, snout: "upturned", mouth: "fangs", tail: "fan", tailSize: 1.15, dorsal: "spiky", dorsalSize: 1.35, whiskers: false, eyeSize: 1.35, sig: { head: "crystal" } },
+  // Hắc Long Ngư Vực Thẳm – rồng đen cuộn chữ S, bờm bay, đuôi roi
+  f_boss_hac_long: { aspect: 6.2, peak: 0.8, head: 1.2, hump: 1, bend: 0.1, wave: 0.55, coil: 1.2, tilt: 2, snout: "duck", mouth: "fangs", tail: "whip", tailSize: 1.2, dorsal: "crest", dorsalSize: 1.2, whiskers: true, eyeSize: 1.2, sig: { head: "horns", mane: true } },
+  // Hỏa Ngục Bạo Ngư – cá mập đầu búa rực lửa, vây buồm
+  f_boss_hoa_nguc_bao_ngu: { aspect: 2.9, peak: 0.62, head: 0.95, hump: 1.1, bend: 0.22, tilt: 10, snout: "hammer", mouth: "fangs", tail: "lunate", tailSize: 1.25, dorsal: "sail", dorsalSize: 1.4, whiskers: false, lure: false, eyeSize: 1.3, sig: { head: "flame" } },
+  // Kim Long Đế – rồng vàng uốn lượn, gạc nai, râu rồng, đuôi quạt
+  f_boss_kim_long_de: { aspect: 5.2, peak: 0.76, head: 1.25, hump: 1, bend: 0.14, wave: 0.42, tilt: 6, snout: "duck", mouth: "grin", tail: "fan", tailSize: 1.3, dorsal: "spiky", dorsalSize: 1.1, whiskers: true, eyeSize: 1.3, sig: { head: "antlers", clouds: true } },
+  // Cá Kim Tiền Tí Hon – đồng xu tròn vo, vây đôi, vương miện vàng
+  f_sboss_kim_tien: { aspect: 1.12, peak: 0.55, head: 1.3, hump: 1, bend: 0.05, tilt: 4, snout: "round", mouth: "smile", tail: "split", tailSize: 1.2, dorsal: "double", whiskers: false, eyeSize: 1.6, sig: { head: "crystal" } },
+  // Thần Ngư Bắc Cực – kỳ lân biển mõm kiếm, thân thoi, mây băng
+  f_than_ngu_bac_cuc: { aspect: 3.3, peak: 0.6, head: 0.9, hump: 0.9, bend: 0.16, tilt: 8, snout: "sword", mouth: "smile", tail: "lunate", tailSize: 1.1, dorsal: "low", whiskers: false, eyeSize: 1.35, sig: { clouds: true } },
+  // Băng Đế Hải Xà – rắn biển dài mõm nhọn, vương miện pha lê, đuôi chẻ
+  f_boss_bang_de: { aspect: 5.4, peak: 0.8, head: 1, hump: 0.95, bend: 0.1, wave: 0.42, tilt: 2, snout: "pointed", mouth: "open", tail: "split", tailSize: 1.15, dorsal: "spiky", dorsalSize: 1.25, whiskers: false, lure: false, eyeSize: 1.15, sig: { head: "crystal" } },
+  // Thái Cổ Thần Ngư – cá vây tay cổ đại: thân đẫy, vây đôi, vây ngực như chân
+  f_thai_co_than_ngu: { aspect: 2.6, peak: 0.6, head: 1.3, hump: 1.25, bend: 0.1, tilt: 4, snout: "blunt", mouth: "grin", tail: "split", tailSize: 1.05, dorsal: "double", dorsalSize: 1.2, pectoral: 1.5, whiskers: false, scales: true, eyeSize: 1.2, sig: { head: "horns", finwings: true } },
+  // Phượng Hoàng Biển – vây cánh lớn, đuôi lửa dài, mào lửa
+  f_phuong_hoang_bien: { aspect: 2.3, peak: 0.66, head: 1.05, hump: 1.1, bend: 0.3, tilt: 20, snout: "pointed", mouth: "smile", tail: "flame", tailSize: 1.55, dorsal: "crest", dorsalSize: 1.4, pectoral: 1.7, whiskers: false, eyeSize: 1.35, sig: { head: "flame", finwings: true } },
+  // Hải Thần Cự Thú – cá voi khổng lồ: đầu vuông to, lưng phẳng, đuôi trăng khuyết rộng
+  f_boss_hai_than_cu_thu: { aspect: 2.3, peak: 0.72, head: 1.55, hump: 0.9, bend: 0.03, tilt: 0, snout: "blunt", mouth: "grin", tail: "fan", tailSize: 0.85, dorsal: "none", pectoral: 1.2, whiskers: false, lure: false, scales: false, eyeSize: 1.0, sig: { head: "horns", clouds: true } },
+  // Chép Tí Hon Thần Tài – cá chép râu dài, đuôi quạt bồng, mào vàng
+  f_sboss_chep_than_tai: { aspect: 1.9, peak: 0.62, head: 1.15, hump: 1.35, bend: 0.28, tilt: 18, snout: "round", mouth: "pout", tail: "fan", tailSize: 1.55, dorsal: "crest", dorsalSize: 1.3, whiskers: true, scales: true, eyeSize: 1.5, sig: { head: "crystal" } },
+  // Kình Ngư Cầu Vồng – cá voi lưng gù mõm tròn, vây ngực dài như cánh
+  f_sboss_kinh_ngu_cau_vong: { aspect: 2.4, peak: 0.66, head: 1.25, hump: 1.4, bend: 0.2, tilt: 12, snout: "round", mouth: "smile", tail: "fork", tailSize: 1.35, dorsal: "low", pectoral: 1.8, whiskers: false, scales: false, eyeSize: 1.2, sig: { finwings: true, clouds: true } },
+  // Nóc Bông Gòn – cá nóc tròn như bông, mây bông quanh mình
+  f_sboss_noc_bong_gon: { aspect: 1.08, peak: 0.55, head: 1.45, hump: 1.05, bend: 0.04, tilt: 3, snout: "round", mouth: "pout", tail: "round", tailSize: 0.8, dorsal: "low", whiskers: false, eyeSize: 1.7, sig: { clouds: true } },
+  // Cổ Long Vương Dung Nham – rồng dung nham mõm hếch, nanh, mào lửa + bờm
+  f_sboss_co_long_vuong: { aspect: 3.4, peak: 0.7, head: 1.4, hump: 1.3, bend: 0.3, wave: 0.2, tilt: 18, snout: "upturned", mouth: "fangs", tail: "flame", tailSize: 1.35, dorsal: "spiky", dorsalSize: 1.45, whiskers: false, lure: false, eyeSize: 1.15, sig: { head: "flame", mane: true } },
+  // Cá Tuyết Mochi – bánh mochi tròn dẹt, vây ngắn, vương miện tuyết
+  f_sboss_ca_tuyet_mochi: { aspect: 1.25, peak: 0.5, head: 1.25, hump: 0.85, bend: 0.06, tilt: 5, snout: "blunt", mouth: "smile", tail: "fan", tailSize: 0.9, dorsal: "none", pectoral: 0.8, whiskers: false, scales: false, eyeSize: 1.6, sig: { head: "crystal" } },
+  // Leviathan Diệt Thế – thuỷ quái lươn khổng lồ, hàm nanh, gai lưng, đuôi roi, bờm
+  f_sboss_leviathan: { aspect: 3.8, peak: 0.7, head: 1.45, hump: 1.3, bend: 0.14, wave: 0.2, tilt: 4, snout: "pointed", mouth: "fangs", tail: "lunate", tailSize: 1.2, dorsal: "sail", dorsalSize: 1.6, pectoral: 1.4, whiskers: false, lure: false, eyeSize: 1.0, sig: { head: "horns", finwings: true } },
   // giữ đúng dáng hình gốc (rồng nước thân mảnh, gai lưng vàng, đuôi lụa trắng)
   f_huyen_minh_long_ngu: { aspect: 6.4, peak: 0.78, head: 1.1, dorsal: "spiky", dorsalSize: 1.1, tail: "flame", tailSize: 1.3, tailColor: "#e0f7fa", whiskers: true, scales: true, wave: 0.35, tilt: 4 },
   f_ca_ro: { dorsal: "spiky", dorsalSize: 1.25, mouth: "grin", tail: "round", snout: "blunt" },
