@@ -5,7 +5,7 @@
  */
 import { OUTLINE, rgba } from "./color.ts";
 
-export const ARENA_W = 812;
+export const ARENA_W = 1232;
 export const ARENA_H = 606;
 
 /** Hạt hiệu ứng động phủ lên sảnh (Phaser vẽ): màu & hướng bay. */
@@ -22,6 +22,8 @@ export const ARENA_FX: Record<string, { tint: number[]; rise: boolean; label: st
 type C = CanvasRenderingContext2D;
 const W = ARENA_W;
 const H = ARENA_H;
+/** Hệ số giãn ngang so với bản vẽ gốc 812 px (đặt các vật trải đều theo bề rộng mới). */
+const K = W / 812;
 
 /** RNG tất định theo hạt giống (sảnh vẽ giống nhau mỗi lần). */
 function rng(seed: number) {
@@ -93,7 +95,7 @@ function wood(c: C) {
   glowDisc(c, 600, 120, 260, "#c6ff00", 0.35);
   const r = rng(11);
   // dây xương rồng thanh long (thân 3 cạnh xanh) rủ từ trên xuống
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 9; i++) {
     const x = 40 + i * 150 + r() * 40;
     const p = new Path2D();
     p.moveTo(x - 14, -10);
@@ -121,21 +123,21 @@ function fire(c: C) {
   sky(c, [[0, "#1a0500"], [0.45, "#5d1000"], [1, "#bf360c"]]);
   // núi lửa
   const v = new Path2D();
-  v.moveTo(160, 470);
-  v.lineTo(360, 150);
-  v.lineTo(460, 150);
-  v.lineTo(680, 470);
+  v.moveTo(160 * K, 470);
+  v.lineTo(360 * K, 150);
+  v.lineTo(460 * K, 150);
+  v.lineTo(680 * K, 470);
   v.closePath();
   ink(c, v, "#3e1a12", 3);
-  glowDisc(c, 410, 140, 200, "#ff6d00", 0.7);
+  glowDisc(c, 410 * K, 140, 240, "#ff6d00", 0.7);
   // dòng dung nham chảy
   c.strokeStyle = "#ff9100";
   c.lineWidth = 10;
   c.lineCap = "round";
   for (const [x0, x1] of [[380, 300], [430, 470], [410, 390]] as const) {
     c.beginPath();
-    c.moveTo(x0, 158);
-    c.bezierCurveTo(x0 - 10, 260, x1 + 20, 330, x1, 460);
+    c.moveTo(x0 * K, 158);
+    c.bezierCurveTo(x0 * K - 10, 260, x1 * K + 20, 330, x1 * K, 460);
     c.stroke();
   }
   ridge(c, 480, 50, "#4e1c0c", 21);
@@ -144,11 +146,11 @@ function fire(c: C) {
   lava.addColorStop(0, "#ffab00");
   lava.addColorStop(1, "#d84315");
   const l = new Path2D();
-  l.ellipse(W / 2, 590, 470, 70, 0, 0, Math.PI * 2);
+  l.ellipse(W / 2, 590, 470 * K, 70, 0, 0, Math.PI * 2);
   ink(c, l, lava, 3);
   // ớt đỏ cắm trên ruộng
   const r = rng(22);
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 13; i++) {
     const x = 30 + i * 92 + r() * 20;
     const y = 470 + r() * 30;
     const p = new Path2D();
@@ -165,7 +167,7 @@ function water(c: C) {
   sky(c, [[0, "#4fc3f7"], [0.35, "#0288d1"], [1, "#01395e"]]);
   c.globalAlpha = 0.18;
   c.fillStyle = "#ffffff";
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 9; i++) {
     c.beginPath();
     c.moveTo(80 + i * 140, 0);
     c.lineTo(140 + i * 140, 0);
@@ -178,7 +180,7 @@ function water(c: C) {
   // gợn sóng mặt nước
   c.strokeStyle = "rgba(255,255,255,.55)";
   c.lineWidth = 3;
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 13; i++) {
     c.beginPath();
     c.arc(40 + i * 95, 40, 30, 0.2 * Math.PI, 0.8 * Math.PI);
     c.stroke();
@@ -203,15 +205,16 @@ function water(c: C) {
   };
   ridge(c, 540, 30, "#e6c27a", 31, 9);
   slice(130, 560, 110);
-  slice(690, 570, 130);
-  slice(420, 600, 70);
+  slice(690 * K, 570, 130);
+  slice(420 * K, 600, 70);
+  slice(1080, 590, 90);
   // rong biển
   const r = rng(33);
   c.strokeStyle = "#1de9b6";
   c.lineWidth = 7;
   c.lineCap = "round";
   for (let i = 0; i < 7; i++) {
-    const x = 260 + i * 40 + r() * 20;
+    const x = 260 * K + i * 40 + r() * 20;
     c.beginPath();
     c.moveTo(x, H);
     c.bezierCurveTo(x - 20, 520, x + 20, 480, x - 6, 430 + r() * 40);
@@ -222,7 +225,7 @@ function water(c: C) {
 // ——— Kim: pháo đài vàng kim, cột thép, vương miện lá dứa
 function metal(c: C) {
   sky(c, [[0, "#3e2723"], [0.5, "#795548"], [1, "#a1887f"]]);
-  glowDisc(c, W / 2, 200, 320, "#ffd740", 0.4);
+  glowDisc(c, W / 2, 200, 320 * K, "#ffd740", 0.4);
   // tường thành vàng mắt dứa
   const wall = c.createLinearGradient(0, 300, 0, H);
   wall.addColorStop(0, "#ffca28");
@@ -253,7 +256,7 @@ function metal(c: C) {
       c.stroke();
     }
   // cột thép + vương miện lá dứa
-  for (const x of [70, 742]) {
+  for (const x of [70, W / 2, W - 70]) {
     const p = new Path2D();
     p.rect(x - 34, 150, 68, H);
     const g = c.createLinearGradient(x - 34, 0, x + 34, 0);
@@ -269,10 +272,10 @@ function metal(c: C) {
 // ——— Thổ: hang đá, thạch nhũ, đá gai sầu riêng
 function earth(c: C) {
   sky(c, [[0, "#1b120c"], [0.5, "#3e2a1c"], [1, "#5d4037"]]);
-  glowDisc(c, W / 2, 330, 300, "#ffca28", 0.25);
+  glowDisc(c, W / 2, 330, 300 * K, "#ffca28", 0.25);
   const r = rng(51);
   // thạch nhũ trên trần
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 21; i++) {
     const x = i * 60 + r() * 30;
     const len = 60 + r() * 110;
     const p = new Path2D();
@@ -301,8 +304,8 @@ function earth(c: C) {
     ink(c, m, "#fdd835", 2);
   };
   durian(110, 540, 55);
-  durian(700, 520, 70);
-  durian(420, 590, 40);
+  durian(700 * K, 520, 70);
+  durian(420 * K, 590, 40);
   ridge(c, 585, 20, "#3e2723", 53, 11);
 }
 
@@ -324,7 +327,7 @@ function light(c: C) {
   }
   c.restore();
   // cột đền trắng
-  for (const x of [90, 722]) {
+  for (const x of [90, W / 2 + 40, W - 90]) {
     const p = new Path2D();
     p.rect(x - 28, 140, 56, H);
     ink(c, p, "#fffde7", 3);
@@ -350,8 +353,9 @@ function light(c: C) {
     ink(c, p, "#ffffff", 0);
   };
   cloud(30, 560, 1.4);
-  cloud(560, 570, 1.5);
-  cloud(300, 600, 1.2);
+  cloud(560 * K, 570, 1.5);
+  cloud(300 * K, 600, 1.2);
+  cloud(W - 160, 590, 1.3);
   // sao khế lơ lửng
   const star = (x: number, y: number, rr: number) => {
     const p = new Path2D();
@@ -364,9 +368,9 @@ function light(c: C) {
     p.closePath();
     ink(c, p, "#fbc02d", 2.5);
   };
-  star(220, 120, 22);
-  star(600, 90, 26);
-  star(400, 60, 16);
+  star(220 * K, 120, 22);
+  star(600 * K, 90, 26);
+  star(400 * K, 60, 16);
 }
 
 // ——— Bóng Tối: vực tím, trăng khuyết, măng cụt, xúc tu bóng tối
@@ -382,18 +386,18 @@ function dark(c: C) {
   }
   c.globalAlpha = 1;
   // trăng khuyết tím
-  glowDisc(c, 640, 110, 130, "#e040fb", 0.45);
+  glowDisc(c, 640 * K, 110, 130, "#e040fb", 0.45);
   c.fillStyle = "#f3e5f5";
   c.beginPath();
-  c.arc(640, 110, 50, 0, Math.PI * 2);
+  c.arc(640 * K, 110, 50, 0, Math.PI * 2);
   c.fill();
   c.fillStyle = "#1a0633";
   c.beginPath();
-  c.arc(662, 96, 46, 0, Math.PI * 2);
+  c.arc(640 * K + 22, 96, 46, 0, Math.PI * 2);
   c.fill();
   // xúc tu bóng tối trồi lên
   for (let i = 0; i < 5; i++) {
-    const x = 60 + i * 175 + r() * 40;
+    const x = (60 + i * 175) * K + r() * 40;
     const p = new Path2D();
     p.moveTo(x - 24, H + 5);
     p.bezierCurveTo(x - 40, 420, x + 50, 380, x + 10, 300 + r() * 80);
@@ -403,7 +407,7 @@ function dark(c: C) {
   }
   ridge(c, 520, 40, "#1a0633", 72);
   // trái măng cụt dưới đáy
-  for (const [x, y, rr] of [[150, 560, 34], [660, 550, 42], [420, 585, 26]] as const) {
+  for (const [x, y, rr] of [[150, 560, 34], [660 * K, 550, 42], [420 * K, 585, 26]] as [number, number, number][]) {
     const b = new Path2D();
     b.arc(x, y, rr, 0, Math.PI * 2);
     ink(c, b, "#4a148c", 3);

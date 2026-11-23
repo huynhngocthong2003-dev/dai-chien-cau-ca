@@ -21,6 +21,7 @@ import {
   wbKillReward,
   wbRankReward,
   worldBossFor,
+  worldBossTeam,
   worldBossMaxHp,
   worldBossSlot,
   type CombatFish,
@@ -134,6 +135,23 @@ Deno.serve(async (req: Request) => {
         const { count: entries } = await admin.from("world_boss_sessions").select("id", { count: "exact", head: true }).eq("boss", b.id).eq("user_id", me);
         mine = { damage: dmg, rank: dmg > 0 ? (higher ?? 0) + 1 : null, entries: entries ?? 0 };
       }
+      // PHÒNG CHUNG: người chơi vừa vào/ra đòn trong ~2,5 phút gần nhất (mỗi người 1 dòng mới nhất)
+      const room: { name: string; look: unknown; power: number; me: boolean; at: string }[] = [];
+      if (b) {
+        const { data: rs } = await admin
+          .from("world_boss_sessions")
+          .select("user_id, name, look, power, bar_at")
+          .eq("boss", b.id)
+          .gt("bar_at", new Date(Date.now() - 150_000).toISOString())
+          .order("bar_at", { ascending: false })
+          .limit(40);
+        const seen = new Set<string>();
+        for (const r of (rs ?? []) as { user_id: string; name: string; look: unknown; power: number; bar_at: string }[]) {
+          if (seen.has(r.user_id) || seen.size >= 10) continue;
+          seen.add(r.user_id);
+          room.push({ name: r.name || "Ngư thủ", look: r.look, power: Number(r.power), me: r.user_id === me, at: r.bar_at });
+        }
+      }
       // boss của khung giờ = boss đã ghi trong bảng (nếu đã xuất hiện) – không đổi giữa chừng
       const shown = (b && WORLD_BOSS_BY_ID.get(b.boss_id)) || def;
       return json(200, {
@@ -144,6 +162,7 @@ Deno.serve(async (req: Request) => {
         maxHp: b ? Number(b.max_hp) : worldBossMaxHp(slot),
         killer: b?.killer_name ?? null,
         top: top.map((r) => ({ name: r.name, damage: Number(r.damage), me: r.user_id === me })),
+        room,
         me: { ...mine, entriesLeft: Math.max(0, WORLD_BOSS.entriesPerSlot - mine.entries) },
         rules: { hitsPerEntry: WORLD_BOSS.hitsPerEntry, entriesPerSlot: WORLD_BOSS.entriesPerSlot },
       });
@@ -162,12 +181,23 @@ Deno.serve(async (req: Request) => {
       if (!p.ok) return json(400, { error: `Bản lưu trên máy chủ không hợp lệ (${p.error.split(";")[0]!.slice(0, 80)})` });
       // đánh boss không mất cá → cá khoá cũng được ra trận
       const save = { ...p.save, fishes: p.save.fishes.map((f) => ({ ...f, locked: false })) };
-      const built = buildPlayerTeam(save, body?.team, FISH_BY_ID, FORM_BY_ID, ZONE_BY_ID);
+      // đội = đúng 3 CÁ TRƯNG BÀY (Hồ Sơ); lực chiến = tổng 3 con
+      const pick = worldBossTeam(save, FISH_BY_ID, FORM_BY_ID);
+      if (pick.uids.length < 3) return json(400, { error: "Hãy trưng bày đủ 3 cá (Hồ Sơ → Cá trưng bày) trước khi vào phòng boss" });
+      const built = buildPlayerTeam(save, pick.uids, FISH_BY_ID, FORM_BY_ID, ZONE_BY_ID);
       if ("error" in built) return json(400, { error: built.error });
       const seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
-      const { data: ses, error: sErr } = await admin.from("world_boss_sessions").insert({ boss: b.id, user_id: me, team: built.team, seed }).select("id, seed, bar_at").single();
+      // ngoại hình nhân vật để người khác trong phòng nhìn thấy
+      const cid = typeof save.selectedCharacterId === "string" ? save.selectedCharacterId.slice(0, 64) : "c_be_tom";
+      const equip = save.characters?.[cid]?.equip ?? {};
+      const look = JSON.stringify({ c: cid, equip }).length < 1000 ? { c: cid, equip } : { c: cid };
+      const { data: ses, error: sErr } = await admin
+        .from("world_boss_sessions")
+        .insert({ boss: b.id, user_id: me, team: built.team, seed, name: await nameOf(me), look, power: pick.power })
+        .select("id, seed, bar_at")
+        .single();
       if (sErr || !ses) return json(500, { error: "Không vào được trận" });
-      return json(200, { session: ses.id, hits: 0, hitsMax: WORLD_BOSS.hitsPerEntry, bar: barFor(Number(ses.seed), 0), serverNow: new Date().toISOString(), team: built.team.map((f: CombatFish) => ({ uid: f.uid, fishId: f.fishId, name: f.name, atk: f.atk, element: f.element, elements: f.elements, form: f.form, stars: f.stars, parents: f.parents })) });
+      return json(200, { session: ses.id, hits: 0, hitsMax: WORLD_BOSS.hitsPerEntry, bar: barFor(Number(ses.seed), 0), serverNow: new Date().toISOString(), power: pick.power, fromShowcase: pick.fromShowcase, team: built.team.map((f: CombatFish) => ({ uid: f.uid, fishId: f.fishId, name: f.name, atk: f.atk, element: f.element, elements: f.elements, form: f.form, stars: f.stars, parents: f.parents })) });
     }
 
     if (op === "hit") {

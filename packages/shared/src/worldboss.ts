@@ -9,7 +9,9 @@
 import type { Element } from "./types.ts";
 import { TIMING_MULT, type CombatFish, type TimingZone } from "./combat.ts";
 import { multiMatchup } from "./elements.ts";
-import { ELEMENT_EVO_ITEM } from "./progression.ts";
+import { ELEMENT_EVO_ITEM, ownedFishPower } from "./progression.ts";
+import type { FishDef, FishFormDef } from "./types.ts";
+import type { OwnedFish, PlayerSave } from "./save.ts";
 import type { MailReward } from "./mail.ts";
 
 export interface WorldBossDef {
@@ -115,4 +117,25 @@ export function wbRankReward(rank: number): Omit<MailReward, "txId"> {
 /** Quà KẾT LIỄU: 1 Đá Tiến Hoá đúng hệ của boss + 20 kim cương. */
 export function wbKillReward(element: Element): Omit<MailReward, "txId"> {
   return { diamonds: 20, evoItems: { [ELEMENT_EVO_ITEM[element]]: 1 } };
+}
+
+/**
+ * Đội đánh boss = đúng 3 CÁ TRƯNG BÀY của người chơi (Hồ Sơ) – phải trưng bày đủ 3 con mới được vào phòng boss.
+ * Lực chiến = tổng lực chiến 3 con. Đánh boss không mất cá nên cá khoá cũng được dùng.
+ */
+export function worldBossTeam(
+  save: Pick<PlayerSave, "fishes" | "showcase">,
+  fishById: Map<string, FishDef>,
+  formById: Map<string, FishFormDef>,
+): { uids: string[]; power: number; fromShowcase: number } {
+  const pow = (o: OwnedFish) => ownedFishPower(fishById.get(o.fishId)!, o, o.form ? formById.get(o.form) ?? null : null);
+  const ok = save.fishes.filter((f) => fishById.has(f.fishId));
+  const byUid = new Map(ok.map((f) => [f.uid, f]));
+  const picked: OwnedFish[] = [];
+  for (const u of save.showcase ?? []) {
+    const f = byUid.get(u);
+    if (f && !picked.includes(f) && picked.length < 3) picked.push(f);
+  }
+  const fromShowcase = picked.length;
+  return { uids: picked.map((f) => f.uid), power: picked.reduce((n, f) => n + pow(f), 0), fromShowcase };
 }

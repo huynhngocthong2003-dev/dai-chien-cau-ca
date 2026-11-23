@@ -112,12 +112,17 @@ export class TopBar extends Phaser.GameObjects.Container {
     GameState.on("changed", this.handler);
     GameState.on("account", this.accountHandler);
     // Báo rõ khi KHÔNG lưu được lên tài khoản (không để lỗi lưu âm thầm như đợt 21/11)
-    const syncTimer = scene.time.addEvent({ delay: 3000, loop: true, callback: () => this.refreshSync() });
-    this.once(Phaser.GameObjects.Events.DESTROY, () => syncTimer.remove());
+    // đồng hồ thật (đồng hồ Phaser chạy chậm khi máy yếu/FPS thấp → nhãn cập nhật trễ)
+    const syncTimer = window.setInterval(() => this.active && this.refreshSync(), 3000);
+    this.once(Phaser.GameObjects.Events.DESTROY, () => window.clearInterval(syncTimer));
     this.storageT.setInteractive({ useHandCursor: true }).on("pointerup", () => {
       const st = GameState.storage;
       if (st instanceof OnlineSaveStorage && st.failing) {
-        void GameState.syncNow().then((err) => toast(scene, err ? `⚠️ Chưa lưu được: ${err}` : "☁️ Đã lưu lên tài khoản"));
+        void GameState.syncNow().then((err) => {
+          if (!this.active) return;
+          this.refreshSync();
+          toast(scene, err ? `⚠️ Chưa lưu được: ${err}` : "☁️ Đã lưu lên tài khoản");
+        });
       }
     });
     const onRemote = (msg: string) => toast(scene, `☁️ ${msg}`);

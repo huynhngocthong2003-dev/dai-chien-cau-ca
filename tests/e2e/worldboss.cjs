@@ -18,6 +18,7 @@ const status = () => ({
   boss: { id: 'wb_thanh_long', name: 'Thanh Long Long Vương', title: 'Dragon Fruit Emperor', element: 'wood', description: 'x' },
   hp: db.hp, maxHp: db.max, killer: db.hp <= 0 ? 'Cần Thủ' : null,
   top: [{ name: 'Pine Vô Địch', damage: 320000, me: false }, ...(db.hits ? [{ name: 'Cần Thủ', damage: db.hits * 20000, me: true }] : [])],
+  room: [{ name: 'Cần Thủ', look: { c: 'c_be_tom' }, power: 999, me: true, at: now() }, { name: 'Pine Vô Địch', look: { c: 'c_lam_ngoc_hau' }, power: 52000, me: false, at: new Date(Date.now() - db.ops.length * 1000).toISOString() }, { name: 'Mèo Câu', look: { c: 'c_kim_ke' }, power: 31000, me: false, at: '2026-11-23T12:00:00Z' }],
   me: { damage: db.hits * 20000, rank: db.hits ? 2 : null, entries: db.entered, entriesLeft: 3 - db.entered },
   rules: { hitsPerEntry: 15, entriesPerSlot: 3 },
 });
@@ -34,7 +35,7 @@ const status = () => ({
       const body = req.postDataJSON() ?? {};
       db.ops.push(body.op);
       if (body.op === 'status') return json(200, status());
-      if (body.op === 'enter') { db.entered++; return json(200, { session: '11111111-1111-4111-8111-111111111111', hits: 0, hitsMax: 15, bar: { periodMs: 1400, phase: 0.1 }, serverNow: now(), team: body.team.map((u, i) => ({ uid: u, fishId: 'f_ca_chep', name: 'Cá', atk: 100 + i, element: 'water', form: null, stars: 1 })) }); }
+      if (body.op === 'enter') { db.entered++; return json(200, { session: '11111111-1111-4111-8111-111111111111', hits: 0, hitsMax: 15, bar: { periodMs: 1400, phase: 0.1 }, serverNow: now(), power: 1234, team: ['w2', 'w1', 'w3'].map((u, i) => ({ uid: u, fishId: 'f_ca_chep', name: 'Cá', atk: 100 + i, element: 'water', form: null, stars: 1 })) }); }
       if (body.op === 'hit') {
         db.hits++;
         const dmg = 20000;
@@ -61,7 +62,8 @@ const status = () => ({
     const { GameState } = await import(src);
     const s = JSON.parse(JSON.stringify(GameState.save));
     const mk = (uid, fishId, level) => ({ uid, fishId, level, stars: 1, weightKg: 2, zoneId: 'z_ben_tan_thu', caughtAt: Date.now(), locked: uid === 'w1' });
-    s.fishes = [mk('w1', 'f_boss_lao_ngu', 15), mk('w2', 'f_ca_ro', 8), mk('w3', 'f_ca_tre', 7)];
+    s.fishes = [mk('w1', 'f_boss_lao_ngu', 15), mk('w2', 'f_ca_ro', 8), mk('w3', 'f_ca_tre', 7), mk('w4', 'f_ca_ro', 3)];
+    s.showcase = ['w2', 'w1', 'w3'];
     GameState.commit(s);
     window.__game.scene.getScene('Hub').scene.restart();
   });
@@ -78,17 +80,23 @@ const status = () => ({
   const st0 = await p.evaluate(() => window.__game.scene.getScene('WorldBoss').status);
   if (!st0 || st0.hp !== 50000) errs.push('Không tải được trạng thái boss: ' + JSON.stringify(st0)?.slice(0, 120));
   else console.log('• Màn Boss Thế Giới: Thanh Long Long Vương, máu chung, bảng sát thương');
-  const arena = await p.evaluate(() => { const sc = window.__game.scene.getScene('WorldBoss'); const b = sc.bossImg; return { tex: sc.textures.exists('wbarena_wb_thanh_long'), flip: b?.flipX, bx: b?.x, w: b?.displayWidth, team: sc.teamFx.map((f) => ({ x: f.x, w: f.displayWidth })) }; });
+  const arena = await p.evaluate(() => {
+    const sc = window.__game.scene.getScene('WorldBoss'); const b = sc.bossImg;
+    const names = []; const walk = (o) => { if (o.text) names.push(o.text); (o.list || []).forEach(walk); }; sc.children.list.forEach(walk);
+    return { tex: sc.textures.exists('wbarena_wb_thanh_long'), flip: b?.flipX, bx: b?.x, w: b?.displayWidth, me: sc.meBody && { x: sc.meBody.parentContainer.x, w: sc.meBody.displayWidth, key: sc.meBody.texture.key }, room: sc.roomC?.list.filter((o) => o.texture && o.texture.key.startsWith('char_')).length, names };
+  });
   if (!arena.tex) errs.push('Không có sảnh đấu riêng cho boss');
-  else if (!arena.flip || arena.bx < 500 || arena.team.length !== 3 || arena.team.some((f) => f.x > 300)) errs.push('Bố cục sai (boss phải quay trái, đội cá bên trái): ' + JSON.stringify(arena));
-  else if (Math.abs(arena.w / arena.team[0].w - 10) > 0.01) errs.push('Boss không to gấp 10 lần cá: ' + JSON.stringify(arena));
-  else console.log('• Sảnh Rừng Thanh Long riêng của boss; boss bên phải to gấp 10 lần, đội cá bên trái');
+  else if (!arena.flip || arena.bx < 500 || !arena.me || arena.me.x > 300 || !arena.me.key.startsWith('char_')) errs.push('Bố cục sai (boss bên phải quay trái, nhân vật người chơi bên trái): ' + JSON.stringify(arena).slice(0, 300));
+  else if (Math.abs(arena.w / arena.me.w - 10) > 0.01) errs.push('Boss không to gấp 10 lần nhân vật: ' + JSON.stringify(arena.me));
+  else if (arena.room !== 2 || !arena.names.includes('Pine Vô Địch') || !arena.names.some((t) => t.includes('3 người trong phòng'))) errs.push('Không thấy người chơi khác trong phòng boss: ' + JSON.stringify({ room: arena.room }));
+  else if (!arena.names.some((t) => /Lực chiến/.test(t))) errs.push('Không hiện lực chiến đội');
+  else console.log('• Sảnh Rừng Thanh Long; boss bên phải to gấp 10 lần nhân vật; nhân vật cầm cần bên trái; thấy 2 người chơi khác trong phòng');
   // vào đánh
   await p.mouse.click(1058, 540);
   await p.waitForFunction(() => !!window.__game.scene.getScene('WorldBoss').fight, null, { timeout: 8000 }).catch(() => errs.push('Không vào được trận boss'));
   const team = await p.evaluate(() => window.__game.scene.getScene('WorldBoss').fight?.e.team.map((t) => t.uid));
   if (!team || team.length !== 3 || !team.includes('w1')) errs.push('Đội đánh boss sai (cá khoá cũng phải được đánh): ' + JSON.stringify(team));
-  else console.log('• Vào đánh: đội 3 cá mạnh nhất (kể cả cá khoá – không mất cá)');
+  else console.log('• Vào đánh: đội = 3 cá trưng bày (kể cả cá khoá – không mất cá)');
   for (let i = 0; i < 3; i++) {
     await p.waitForTimeout(700);
     await p.keyboard.press('Space');
@@ -102,6 +110,17 @@ const status = () => ({
   if (!back) errs.push('Kết liễu xong không về bảng');
   else console.log('• Đòn kết liễu → về bảng (quà gửi Hòm Thư)');
   await p.screenshot({ path: `${out}/worldboss-killed.png` });
+  // chưa trưng bày đủ 3 cá → không vào được phòng boss, có nút đi trưng bày
+  const gate = await p.evaluate(async () => {
+    const src = window.performance.getEntriesByType('resource').map((e) => e.name).find((n) => /\/src\/state\/GameState\.ts/.test(n)) ?? '/src/state/GameState.ts';
+    const { GameState } = await import(src);
+    const s = JSON.parse(JSON.stringify(GameState.save)); s.showcase = ['w1']; GameState.commit(s);
+    const sc = window.__game.scene.getScene('WorldBoss'); sc.render();
+    const texts = []; const walk = (o) => { if (o.text) texts.push(o.text); if (o.label?.text) texts.push(o.label.text + (o.disabled ? '#off' : '')); (o.list || []).forEach(walk); }; sc.children.list.forEach(walk);
+    return texts;
+  });
+  if (!gate.some((t) => t.includes('Cá trưng bày: 1/3')) || !gate.some((t) => t.includes('Trưng bày cá'))) errs.push('Chưa trưng bày đủ 3 cá mà không yêu cầu trưng bày: ' + JSON.stringify(gate).slice(0, 300));
+  else console.log('• Chưa trưng bày đủ 3 cá: hiện "Cá trưng bày 1/3" + nút 🏅 Trưng bày cá');
   await b.close();
   if (errs.length) { console.error('LỖI:\n' + errs.join('\n')); process.exit(1); }
   console.log('WORLD BOSS E2E OK');

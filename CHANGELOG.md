@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.49.0] – 2026-11-23 – Câu Boss bằng nhân vật · Phòng boss chung · Nhạc nền mới
+### Thêm
+- **Đánh Boss Thế Giới bằng NHÂN VẬT của bạn**: nhân vật cầm cần câu đứng bên trái, mỗi đòn canh kim là **quăng dây móc vào miệng boss rồi GIẬT mạnh** (cần cong, boss bị kéo lệch; đòn mạnh giật mạnh hơn). Boss to gấp ~10 lần nhân vật.
+- **Lực chiến = tổng 3 cá trưng bày** (Hồ Sơ). Phải **trưng bày đủ 3 cá** mới được vào phòng boss – sảnh boss báo "🏅 Cá trưng bày n/3" và có nút đi trưng bày. Máy chủ lấy đúng 3 cá trưng bày làm đội (cá khoá vẫn dùng được, không mất cá).
+- **Phòng boss chung**: thấy nhân vật (đúng ngoại hình, trang phục) và tên của những người chơi khác đang đánh cùng khung giờ, họ cũng quăng dây giật boss mỗi khi ra đòn; "👥 n người trong phòng".
+### Thay đổi
+- **Không gian đánh boss rộng toàn màn hình**: bỏ khung cá trưng bày bên phải; chỉ còn ô nhỏ góc phải (số đòn, sát thương, Rút lui). Sảnh chờ: khung boss rộng hơn, bảng xếp hạng gọn lại. Tranh nền 7 sảnh boss vẽ lại theo bề rộng mới.
+- **Nhạc nền mới vui tươi, hào hứng**: mỗi màn một bài có giai điệu riêng dễ nhớ (Sảnh lễ hội, Câu cá thư thái, Đấu Sinh Tử sôi sục, Boss hùng tráng), bass nảy, rải hợp âm, trống nhẹ, tiếng vang; vòng lặp thứ hai thêm bè hoà âm. Tiếng mềm (không còn chói), nốt ngân liền, lập lịch xa hơn nên không giật khi máy bận.
+### Sửa lỗi
+- Nhãn "⚠️ Chưa lưu – bấm thử lại" cập nhật bằng đồng hồ thật (trước đây chậm trên máy yếu, bấm thử lại xong vẫn còn cảnh báo).
+
 ## [0.48.0] – 2026-11-23 – Sảnh Boss riêng · Boss Cá Trái Cây · Chúc mừng nhận quà
 ### Thêm
 - **Hòm Thư – màn CHÚC MỪNG khi nhận quà**: bấm "🎁 Nhận quà" → tia sáng, pháo giấy, từng món quà hiện lần lượt kèm hình (vàng, kim cương, đá, linh hồn, Đá Tiến Hoá, cá) và số lượng đầy đủ; bấm "Tuyệt vời!" để đóng.

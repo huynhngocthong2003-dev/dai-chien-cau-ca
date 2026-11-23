@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { FISH_BY_ID, WORLD_BOSSES } from "@dccc/game-data";
-import { ELEMENT_EVO_ITEM, WORLD_BOSS, makeCombatFish, wbHitDamage, wbKillReward, wbRankReward, worldBossFor, worldBossMaxHp, worldBossSlot } from "@dccc/shared";
+import { FORM_BY_ID, FISH_BY_ID, WORLD_BOSSES } from "@dccc/game-data";
+import { ELEMENT_EVO_ITEM, WORLD_BOSS, makeCombatFish, worldBossTeam, wbHitDamage, wbKillReward, wbRankReward, worldBossFor, worldBossMaxHp, worldBossSlot } from "@dccc/shared";
 
 // 2026-11-23 theo giờ Việt Nam (UTC+7)
 const vn = (h: number, m = 0) => Date.UTC(2026, 10, 23, h - 7, m);
@@ -52,5 +52,15 @@ describe("Boss Thế Giới", () => {
     expect(wbRankReward(3).diamonds!).toBeGreaterThan(wbRankReward(10).diamonds!);
     expect(wbRankReward(10).diamonds!).toBeGreaterThan(wbRankReward(11).diamonds!);
     expect(wbKillReward("wood").evoItems).toEqual({ [ELEMENT_EVO_ITEM.wood]: 1 });
+  });
+  it("đội đánh boss = đúng 3 cá trưng bày; lực chiến = tổng 3 con; thiếu thì không đủ đội", () => {
+    const mk = (uid: string, fishId: string, level: number) => ({ uid, fishId, level, stars: 1, weightKg: 1, zoneId: "z_ben_tan_thu", caughtAt: 0 });
+    const fishes = [mk("a", "f_boss_lao_ngu", 20), mk("b", "f_ca_ro", 5), mk("c", "f_ca_tre", 4), mk("d", "f_ca_ro", 1)];
+    const t = worldBossTeam({ fishes, showcase: ["d", "b", "c"] } as never, FISH_BY_ID, FORM_BY_ID);
+    expect(t.uids).toEqual(["d", "b", "c"]); // không tự đổi sang cá mạnh nhất
+    expect(t.fromShowcase).toBe(3);
+    expect(t.power).toBeGreaterThan(0);
+    const one = worldBossTeam({ fishes, showcase: ["a", "zz"] } as never, FISH_BY_ID, FORM_BY_ID);
+    expect(one.uids).toEqual(["a"]);
   });
 });

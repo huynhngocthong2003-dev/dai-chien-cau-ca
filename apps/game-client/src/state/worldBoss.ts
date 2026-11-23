@@ -12,6 +12,8 @@ export interface WbStatus {
   maxHp: number;
   killer: string | null;
   top: { name: string; damage: number; me: boolean }[];
+  /** Người chơi đang trong phòng boss (ra đòn gần đây): tên, ngoại hình nhân vật, lực chiến. */
+  room?: { name: string; look: { c?: string; equip?: Partial<Record<string, string>> } | null; power: number; me: boolean; at: string }[];
   me: { damage: number; rank: number | null; entries: number; entriesLeft: number };
   rules: { hitsPerEntry: number; entriesPerSlot: number };
 }
@@ -22,6 +24,9 @@ export interface WbEnter {
   hitsMax: number;
   bar: BarParams;
   serverNow: string;
+  /** Lực chiến đội = tổng 3 cá trưng bày. */
+  power: number;
+  fromShowcase?: number;
   team: { uid: string; fishId: string; name: string; atk: number; element: Element; form: string | null; stars: number; parents?: [string, string] }[];
 }
 
