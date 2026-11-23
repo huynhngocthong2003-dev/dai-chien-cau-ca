@@ -15,7 +15,6 @@ import {
   rollCastEvent,
   type CastEventKind,
   Rng,
-  catchOdds,
   chooseFish,
   junkChanceFor,
   luckFactor,
@@ -217,8 +216,6 @@ export class FishingScene extends Phaser.Scene {
         goTo(this, "Inventory", { back: { scene: "Fishing", data: { zoneId: this.zone.id } } });
       },
     }).setDepth(45);
-    // bảng tỉ lệ theo CHỈ SỐ của người chơi (may mắn cao → nhiều cá cấp cao, ít rác)
-    new Button(this, 84, 214, 152, 46, "📊 Tỉ lệ", { color: COLORS.purple, fontSize: 18, onClick: () => this.showOdds() }).setDepth(45);
     this.huntLabel = txt(this, 16, 142, "", 18, { color: "#ff8a80" });
     this.refreshHuntLabel();
 
@@ -540,35 +537,6 @@ export class FishingScene extends Phaser.Scene {
       onComplete: () => this.landed(power),
     });
     this.hint.setText("");
-  }
-
-  /** Bảng tỉ lệ ra rác / từng cấp cá / Boss tính theo may mắn nhân vật + tỉ lệ hiếm của cần + bùa (lực quăng trung bình). */
-  private showOdds() {
-    if (this.session) return toast(this, "Đang câu – câu xong rồi xem tỉ lệ");
-    const lo = applyCastEvent(this.loadout, this.castEvent);
-    const o = catchOdds(this.zone, FISH_BY_ID, lo, 0.5, FISHING.junkChance);
-    const m = modal(this, 620, 560, "📊 Tỉ lệ câu theo chỉ số của bạn");
-    const luck = lo.luck + lo.passives.reduce((n, e) => n + (e.kind === "luck_bonus" ? e.value : 0), 0);
-    m.root.add(txt(this, 640, m.y + 84, `🍀 May mắn ${Math.round(luck)} · 🎣 Tỉ lệ hiếm cần ${lo.rareRate}%${this.castEvent === "school" ? " · 🌟 Đàn cá quý +60" : ""}`, 17, { weight: "700", color: "#b9f6ca", align: "center" }).setOrigin(0.5));
-    const rows: [string, string, number][] = [["♻ Rác", "#b0bec5", o.junk]];
-    for (const r of ["common", "rare", "precious", "epic", "legendary", "mythic", "boss"] as const) {
-      const p = o.byRarity[r];
-      if (p) rows.push([FISH_RARITY_LABEL[r], FISH_RARITY_COLOR[r], p]);
-    }
-    const max = Math.max(...rows.map((r) => r[2]));
-    rows.forEach(([label, col, p], i) => {
-      const y = m.y + 124 + i * 44;
-      m.root.add(txt(this, m.x + 40, y + 14, label, 18, { weight: "700", color: col }).setOrigin(0, 0.5));
-      const g = this.add.graphics();
-      g.fillStyle(0x0a1628, 1).fillRoundedRect(m.x + 200, y + 2, 300, 24, 8);
-      g.fillStyle(Phaser.Display.Color.HexStringToColor(col).color, 1).fillRoundedRect(m.x + 200, y + 2, Math.max(6, (300 * p) / max), 24, 8);
-      m.root.add(g);
-      m.root.add(txt(this, m.x + 580, y + 14, p >= 0.01 ? `${(p * 100).toFixed(1)}%` : `${(p * 100).toFixed(2)}%`, 17, { weight: "700" }).setOrigin(1, 0.5));
-    });
-    const hi = 1 - o.junk - (o.byRarity.common ?? 0);
-    m.root.add(
-      txt(this, 640, m.y + 520, `Cá cấp cao (Hiếm trở lên): ${(hi * 100).toFixed(1)}% · Quăng mạnh còn tăng thêm.\nNâng cấp nhân vật, cần câu, đeo bùa may mắn để ra cá xịn hơn & ít rác hơn.`, 15, { align: "center", color: COLORS.textDim, wrap: 580 }).setOrigin(0.5),
-    );
   }
 
   private landed(power: number) {

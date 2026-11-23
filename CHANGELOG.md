@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.52.1] – 2026-11-23
+### Thay đổi
+- Gỡ nút **📊 Tỉ lệ** trong màn câu cá – người chơi không xem được bảng tỉ lệ ra cá / rác. Cơ chế may mắn vẫn giữ nguyên (may mắn cao → nhiều cá cấp cao, ít rác).
+
 ## [0.52.0] – 2026-11-23 – Chiêu boss gây sát thương · Né / Đỡ chiêu
 ### Thêm
 - **Chiêu boss gây sát thương lên người chơi** (trong lượt đánh): bạn có **thanh máu = tổng máu 3 cá trưng bày** (hiện dưới chân nhân vật). Boss tung chiêu theo lịch **giây 6, rồi mỗi 8 giây**; mỗi chiêu trừ **25%** máu (boss khắc hệ đội: **35%**, đội khắc boss: **15%**).
