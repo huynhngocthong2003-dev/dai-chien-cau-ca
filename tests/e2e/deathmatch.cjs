@@ -44,7 +44,7 @@ const errs = [];
   await p.waitForTimeout(300);
   // Boss đủ cấp Sơ Giai (15): BƯỚC 1 – Tiến hoá hệ (chọn Ngọc Long Hồn → 1 dạng hệ Long, chỉ 1 lần)
   await p.screenshot({ path: `${out}/growth-before.png` });
-  await p.mouse.click(1058, 524); // 🧬 Tiến hoá hệ
+  await p.mouse.click(1205, 600); // 🧬 Đột biến (tuỳ chọn, có ở mọi cấp)
   await p.waitForTimeout(600);
   await p.screenshot({ path: `${out}/forms.png` });
   await p.mouse.click(120 + 20 + 96, 60 + 104 + 396); // "Tiến hoá 100%" – Ngọc Long Hồn
@@ -62,14 +62,14 @@ const errs = [];
   await p.waitForTimeout(500);
   await p.evaluate(() => { const sc = window.__game.scene.getScene('Inventory'); sc.selectedUid = 't4'; sc.render(); });
   await p.waitForTimeout(400);
-  // BƯỚC 2 – Trưởng thành lên Trung Giai: vàng + linh hồn + đá + 1 Ngọc Long Hồn (đá của hệ Long)
+  // BƯỚC 2 – Trưởng thành lên Trung Giai: vàng + linh hồn + đá nâng cấp – KHÔNG tốn Đá Tiến Hoá (chỉ Thánh Giai mới cần 1 viên)
   await p.mouse.click(1058, 524);
   await p.waitForTimeout(900);
   await p.screenshot({ path: `${out}/growth-after.png` });
   s = await save();
   t4 = s.fishes.find((f) => f.uid === 't4');
-  if (!t4 || t4.stars !== 2 || s.evoItems.e_ngoc_long_hon !== 1 || s.fishes.length !== 5) errs.push(`Trưởng thành sai: ${JSON.stringify(t4)} ${JSON.stringify(s.evoItems)}`);
-  else console.log('• Lên Trung Giai (tốn 1 Ngọc Long Hồn, không mất cá, giữ dạng hệ Long)');
+  if (!t4 || t4.stars !== 2 || s.evoItems.e_ngoc_long_hon !== 2 || s.fishes.length !== 5) errs.push(`Trưởng thành sai: ${JSON.stringify(t4)} ${JSON.stringify(s.evoItems)}`);
+  else console.log('• Lên Trung Giai: không tốn Đá Tiến Hoá, không mất cá, giữ dạng hệ Long');
 
   // --- Màn Đấu Cá: bản Đấu Sinh Tử cũ đã gỡ – chế độ cũ "ai" tự chuyển sang tab 3vs3
   await start('DeathMatch', { mode: 'ai' });

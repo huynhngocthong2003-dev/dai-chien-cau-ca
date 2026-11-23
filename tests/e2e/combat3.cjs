@@ -79,7 +79,7 @@ const errs = [];
   const good = myZones.filter((x) => x.endsWith('green') || x.endsWith('perfect')).length;
   if (fin.winner === null) errs.push('Trận không kết thúc sau ' + actions + ' lượt');
   if (!fin.log.some((x) => x === 'ko')) errs.push('Không thấy cá nào bị hạ');
-  if (!fin.log.some((x) => x === 'defend')) errs.push('Phòng thủ không hoạt động');
+  if (!fin.log.some((x) => x.startsWith('defend'))) errs.push('Canh bảo vệ không hoạt động');
   if (!fin.log.some((x) => x === 'skill')) errs.push('Không dùng được kỹ năng');
   if (good < 3) errs.push('Canh lực thật không ra vùng xanh/perfect: ' + JSON.stringify(myZones.slice(0, 12)));
   console.log(`• Trận 3vs3: ${actions} lệnh của người chơi (${JSON.stringify(kinds)}), ${fin.turn} lượt, ${good} đòn xanh/perfect, ${fin.winner === 0 ? 'THẮNG' : 'THUA'}`);

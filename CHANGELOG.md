@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.46.0] – 2026-11-23 – Đấu cá: B canh bảo vệ, V kỹ năng nạp nộ; lên giai không cần đá
+### Thay đổi – Đấu cá 3vs3 (máy & người, máy chủ làm trọng tài)
+- **B = CANH BẢO VỆ**: canh kim trên thanh như khi đánh – chặn đòn kế tiếp của địch theo độ chuẩn: PERFECT 75% · XANH 55% · VÀNG 30% · ĐỎ 10% (hết giờ = phòng thủ thường 40%). Chặn HOÀN HẢO thưởng +15 nộ.
+- **V = KỸ NĂNG** dùng **THANH NỘ** (bỏ hồi chiêu): vào trận nộ = 0; nộ tích từ sát thương địch gây cho mình (mất ~62% máu → đầy 100), dùng kỹ năng thì về 0. Nộ của cả đội (cá ngã thì cá sau thừa hưởng). Máy cũng theo đúng luật này và cũng biết canh bảo vệ.
+- **Kỹ năng riêng**: cơ chế theo **HỆ** (Kim khiên · Mộc hồi máu · Thủy sóng mạnh · Hỏa cuồng nộ · Thổ địa chấn · Bóng tối hút máu · Ánh sáng thanh tẩy) + tên & hiệu ứng thêm theo **DẠNG ĐỘT BIẾN / THẾ MẠNH**: chuyên CÔNG đòn kỹ năng ×1,25, chuyên THỦ thêm khiên 30%, chuyên MÁU hồi thêm 15%, dạng huyền thoại / cân bằng có đủ cả ba. Chưa đột biến: thế mạnh theo chỉ số nổi trội của loài. Kỹ năng mạnh hơn trước 20% (vì phải nạp nộ).
+- Màn trận: thanh nộ dưới thanh máu mỗi bên, nút "⚡ Nộ x/100" sáng khi đầy, nút "🛡 CANH BẢO VỆ"; báo mức chặn ("CHẶN HOÀN HẢO! −75%").
+### Thay đổi – Trưởng thành
+- **Lên giai không cần Đá Tiến Hoá** (chỉ vàng + đá nâng cấp + linh hồn); riêng **Cao → Thánh Giai cần 1 viên đá cùng loại** (cá đã đột biến: đá của dạng; chưa đột biến: đá theo hệ cá; đá vạn năng thay được).
+- Đột biến là **tuỳ chọn** (nút 🧬 lúc nào cũng được), không còn bắt buộc trước khi lên giai.
+### Sửa lỗi
+- Từ trận thứ 2 trở đi thanh nộ không hiện (tham chiếu đồ hoạ của trận trước không được làm mới).
+- Máy chủ trận đấu triển khai lại với lõi mới (`battle`, `pvp`); trận đang dở dạng cũ vẫn chơi tiếp được (nộ tính từ 0).
+
 ## [0.45.0] – 2026-11-23 – Hướng dẫn tân thủ, hiệu ứng đột biến theo dáng cá
 ### Thêm
 - **Hướng dẫn tân thủ** cho tài khoản mới: chào mừng → bấm CÂU CÁ → chọn bến Tân Thủ → quăng cần → giật khi có dấu ❗ → kéo cá (giữ kéo, thả khi lực căng đỏ) → xem Kho Cá → làm quen Đấu Cá, Lai Tạo, Nhân Vật/Cần Câu, Nhiệm Vụ, Vòng Quay → **nhận 2.000 🪙 + 30 💎 + 20 🔷** → chơi tự do. Trong lúc hướng dẫn chỉ bấm được đúng chỗ được chỉ; câu hụt / cá thoát thì quay lại bước quăng cần. Có nút "Bỏ qua hướng dẫn" (bấm 2 lần, không nhận quà). Người chơi cũ không bị ảnh hưởng.

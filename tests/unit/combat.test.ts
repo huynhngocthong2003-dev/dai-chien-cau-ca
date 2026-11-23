@@ -15,6 +15,11 @@ import {
   type CombatFish,
   type CombatState,
   type Element,
+  energyOf,
+  ENERGY_MAX,
+  ENERGY_PERFECT_GUARD,
+  GUARD_REDUCE,
+  combatSkillFor,
 } from "@dccc/shared";
 
 const mk = (id: string, uid: string, level = 10, element?: Element): CombatFish => {
@@ -138,24 +143,64 @@ describe("Lượt, tốc độ, hạ gục, thắng thua", () => {
 });
 
 describe("Kỹ năng, combo, AI", () => {
-  it("kỹ năng có hồi chiêu; dùng lại khi chưa hồi bị từ chối", () => {
+  it("THANH NỘ: tích từ sát thương địch gây ra; chưa đầy không dùng được kỹ năng; dùng xong về 0", () => {
     const A = team("a", ["f_ca_tre", "f_ca_ro", "f_ca_chep"]);
     let s = createCombat(A, team("b"), 5);
-    // đi tới lượt thứ 2 của bên đi trước (kỹ năng sẵn sàng từ lượt 2)
     const first = s.turnSide;
-    for (let i = 0; i < 2; i++) {
-      const r = applyAction(s, s.turnSide, { kind: "defend" });
-      if (!r.ok) throw new Error(r.error);
-      s = r.state;
-    }
-    expect(s.turnSide).toBe(first);
-    const r = applyAction(s, first, { kind: "skill", zone: "green" });
+    const other = (1 - first) as 0 | 1;
+    expect(energyOf(s, first)).toBe(0);
+    expect(applyAction(s, first, { kind: "skill", zone: "green" }).ok).toBe(false); // chưa có nộ
+    // bên đi trước đánh → bên kia bị mất máu → bên kia tích nộ (không phải bên đánh)
+    let r = applyAction(s, first, { kind: "attack", zone: "green" });
+    if (!r.ok) throw new Error(r.error);
+    expect(energyOf(r.state, other)).toBeGreaterThan(0);
+    expect(energyOf(r.state, first)).toBe(0);
+    expect(r.events.some((e) => e.t === "energy" && e.side === other)).toBe(true);
+    // nộ đầy → dùng kỹ năng → về 0
+    s = r.state;
+    s.sides[other].energy = ENERGY_MAX;
+    r = applyAction(s, other, { kind: "skill", zone: "green" });
     if (!r.ok) throw new Error(r.error);
     expect(r.events.some((e) => e.t === "skill")).toBe(true);
-    s = r.state;
-    const r2 = applyAction(s, s.turnSide, { kind: "defend" });
-    if (!r2.ok) throw new Error(r2.error);
-    expect(applyAction(r2.state, first, { kind: "skill", zone: "green" }).ok).toBe(false);
+    expect(r.state.sides[other].energy).toBeLessThan(ENERGY_MAX);
+  });
+  it("CANH BẢO VỆ: canh càng chuẩn chặn càng mạnh; chặn HOÀN HẢO thưởng nộ", () => {
+    const hit = (zone: "red" | "yellow" | "green" | "perfect" | null) => {
+      let s = createCombat(team("a"), team("b"), 9);
+      const g = s.turnSide;
+      const r = applyAction(s, g, zone ? { kind: "defend", zone } : { kind: "defend" });
+      if (!r.ok) throw new Error(r.error);
+      s = r.state;
+      const r2 = applyAction(s, s.turnSide, { kind: "attack", zone: "green" });
+      if (!r2.ok) throw new Error(r2.error);
+      const ev = r2.events.find((e) => e.t === "attack");
+      return { dmg: ev && ev.t === "attack" ? ev.dmg : 0, energy: energyOf(r.state, g) };
+    };
+    const p = hit("perfect");
+    const gr = hit("green");
+    const y = hit("yellow");
+    const rd = hit("red");
+    expect(p.dmg).toBeLessThan(gr.dmg);
+    expect(gr.dmg).toBeLessThan(y.dmg);
+    expect(y.dmg).toBeLessThan(rd.dmg);
+    expect(p.energy).toBe(ENERGY_PERFECT_GUARD);
+    expect(gr.energy).toBe(0);
+    expect(GUARD_REDUCE.perfect).toBeGreaterThan(DEFEND_REDUCE);
+  });
+  it("kỹ năng riêng theo HỆ + DẠNG ĐỘT BIẾN (thế mạnh), tên riêng theo dạng", () => {
+    const def = FISH_BY_ID.get("f_boss_lao_ngu")!;
+    const lam = { name: "Lam Hỏa", focus: "def" as const, rank: "rare" as const };
+    const hac = { name: "Hắc Hỏa", focus: "atk" as const, rank: "epic" as const };
+    const a = combatSkillFor(def, "fire", lam);
+    const b = combatSkillFor(def, "fire", hac);
+    expect(a.kind).toBe("rage");
+    expect(a.bonus).toBe("def");
+    expect(b.bonus).toBe("atk");
+    expect(a.name).toContain("Lam Hỏa");
+    expect(b.name).toContain("Hắc Hỏa");
+    expect(a.description).not.toBe(b.description);
+    expect(combatSkillFor(def, "water").kind).toBe("surge");
+    expect(combatSkillFor(def, "fire", { name: "Kim Hỏa", focus: "all", rank: "legend" }).bonus).toBe("all");
   });
   it("combo xanh liên tiếp chỉ ghi nhận, không cộng sát thương", () => {
     const a = mk("f_ca_ro", "a", 30, "water");

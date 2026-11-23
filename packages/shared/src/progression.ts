@@ -60,8 +60,11 @@ export const ELEMENT_EVO_ITEM: Record<Element, string> = {
 export const DIVINE_EVO_ITEM = "e_long_phuong_than";
 /** Đá dùng thay cho Đá Tiến Hoá của MỌI hệ (Đá Tiến Hoá Thần + 3 đá cũ U Minh / Thánh Quang / Địa Mạch). */
 export const WILDCARD_EVO_ITEMS = [DIVINE_EVO_ITEM, "e_u_minh_thach", "e_thanh_quang_thach", "e_dia_mach_thach"];
-/** Số Đá Tiến Hoá đúng hệ để lên giai tiếp theo (theo giai hiện tại): Trung 1, Cao 2, Thánh 3. */
-export const STAGE_EVO_STONES = [0, 1, 2, 3];
+/**
+ * Số Đá Tiến Hoá để lên giai tiếp theo (theo giai hiện tại): Sơ→Trung 0, Trung→Cao 0, Cao→THÁNH GIAI 1 viên cùng loại.
+ * (Lên các giai thường chỉ tốn vàng + đá nâng cấp + linh hồn.)
+ */
+export const STAGE_EVO_STONES = [0, 0, 0, 1];
 /** Kích thước hiển thị theo giai (Thánh Giai = 1, Sơ Giai nhỏ nhất). */
 export function stageScale(stars: number): number {
   return [0.62, 0.75, 0.88, 1][fishStage(stars) - 1]!;
@@ -127,13 +130,15 @@ export function fishUpgradeCost(f: FishDef, level: number): Cost {
 export function fishEvolveCost(f: FishDef, stars: number, formItem?: string): Cost {
   const rate = FISH_GOLD_RATE[f.rarity];
   if (!isGrowthFish(f)) return { gold: Math.round(Math.min(f.value * 2, rate * 40) * stars + 100), stones: 10 * stars, soul: Math.max(0, fishRarityIdx(f) - 1) * stars };
-  // trưởng thành (Huyền Thoại/Boss/Thần Thoại): vàng + linh hồn + đá nâng cấp + Đá Tiến Hoá của hệ theo giai
+  // trưởng thành (Huyền Thoại/Boss/Thần Thoại): vàng + linh hồn + đá nâng cấp; riêng lên THÁNH GIAI thêm 1 Đá Tiến Hoá cùng loại
+  // (cá đã đột biến: đá của dạng đột biến; chưa đột biến: đá theo hệ của cá)
   const st = fishStage(stars);
+  const n = STAGE_EVO_STONES[st] ?? 0;
   return {
     gold: Math.round(rate * 60 * st * st + 2000 * st),
     stones: 40 * st,
     soul: 25 * st,
-    evo: { item: formItem ?? ELEMENT_EVO_ITEM[f.element], n: STAGE_EVO_STONES[st] ?? 1 },
+    ...(n > 0 ? { evo: { item: formItem ?? ELEMENT_EVO_ITEM[f.element], n } } : {}),
   };
 }
 
@@ -315,9 +320,9 @@ export function nextFishAction(save: PlayerSave, o: OwnedFish, f: FishDef, formB
   if (o.level < fishMaxLevel(o.stars, growth)) return { action: "upgrade", cost: fishUpgradeCost(f, o.level) };
   if (o.stars < (growth ? MAX_STAGE : MAX_STARS)) {
     if (!growth) return { action: "evolve", cost: fishEvolveCost(f, o.stars) };
+    // đột biến là TUỲ CHỌN (nút 🧬 lúc nào cũng được) – không bắt buộc trước khi lên giai
     const form = o.form ? formById?.get(o.form) : undefined;
-    if (!form) return { action: "form", cost: null };
-    return { action: "evolve", cost: fishEvolveCost(f, o.stars, form.itemId) };
+    return { action: "evolve", cost: fishEvolveCost(f, o.stars, form?.itemId) };
   }
   return { action: "max", cost: null };
 }

@@ -3,6 +3,9 @@ import { ELEMENT_INFO, FISH_RARITY_COLOR } from "@dccc/game-config";
 import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import {
   AI_LEVEL_LABEL,
+  ENERGY_MAX,
+  GUARD_LABEL,
+  energyOf,
   MATCHUP_LABEL,
   TIMING_BANDS,
   TIMING_LABEL,
@@ -97,6 +100,8 @@ export class Combat3Scene extends Phaser.Scene {
   }
 
   create() {
+    // Phaser dùng lại cùng đối tượng màn → làm mới tham chiếu đồ hoạ của trận trước (đã bị huỷ)
+    this.energyUi = [];
     fadeIn(this);
     this.drawArena();
     new Button(this, 76, 44, 128, 62, "← Thoát", { color: COLORS.blue, fontSize: 24, onClick: () => this.confirmExit() }).setDepth(60);
@@ -108,7 +113,10 @@ export class Combat3Scene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       if (this.driver instanceof PvpDriver) this.driver.stopped = true;
     });
+    // phím tắt: Space đánh · B canh bảo vệ · V kỹ năng (đủ nộ)
     this.input.keyboard?.on("keydown-SPACE", () => this.press("attack"));
+    this.input.keyboard?.on("keydown-B", () => this.press("defend"));
+    this.input.keyboard?.on("keydown-V", () => this.press("skill"));
     void this.driver
       .start(this.team, this.level)
       .then((v) => this.onView(v, true))
@@ -149,12 +157,36 @@ export class Combat3Scene extends Phaser.Scene {
     // cá lai: 2 hệ; hệ ẩn của mình thấy mờ, của đối thủ chỉ thấy "?"
     const nb = (f.elements?.length ?? 1) + (f.hidden ? 1 : 0);
     const badge = elementBadges(this, x - 150 + (nb - 1) * 31, 128, { els: f.elements ?? [f.element], hidden: f.hidden }, 34, side === 0).setDepth(21);
-    const status = txt(this, x, 210, "", 16, { align: "center", color: "#fff59d", weight: "700" }).setOrigin(0.5).setDepth(20);
+    const status = txt(this, x, 246, "", 16, { align: "center", color: "#fff59d", weight: "700" }).setOrigin(0.5).setDepth(20);
     const dots = this.add.graphics().setDepth(20);
     this.ui[side] = { img, hp, hpT, name, badge, status, dots };
   }
 
+  /** Thanh NỘ của mỗi bên (tích từ sát thương bị nhận; đầy thì dùng kỹ năng bằng V). */
+  private energyUi: ({ bar: Bar; t: Phaser.GameObjects.Text; glow?: Phaser.Tweens.Tween } | undefined)[] = [];
+
+  private setEnergy(side: 0 | 1, v: number) {
+    let e = this.energyUi[side];
+    if (!e) {
+      const x = SIDE_X[side];
+      const bar = new Bar(this, x - 150, 198, 300, 14, 0xb388ff, "").setDepth(20);
+      const t = txt(this, x, 224, "", 14, { align: "center", weight: "700", color: "#d1c4e9" }).setOrigin(0.5).setDepth(20);
+      e = { bar, t };
+      this.energyUi[side] = e;
+    }
+    const full = v >= ENERGY_MAX;
+    e.bar.set(Math.max(0, Math.min(1, v / ENERGY_MAX)));
+    e.t.setText(full ? `⚡ NỘ ĐẦY – ${side === 0 ? "bấm V dùng kỹ năng!" : "đối thủ sắp tung kỹ năng!"}` : `⚡ Nộ ${v}/${ENERGY_MAX}`).setColor(full ? "#ffd740" : "#d1c4e9");
+    if (full && !e.glow) e.glow = this.tweens.add({ targets: e.bar, alpha: 0.55, duration: 380, yoyo: true, repeat: -1 });
+    if (!full && e.glow) {
+      e.glow.stop();
+      e.glow = undefined;
+      e.bar.setAlpha(1);
+    }
+  }
+
   private refreshSide(side: 0 | 1, s: CombatState) {
+    this.setEnergy(side, energyOf(s, side));
     const sd = s.sides[side];
     const f = sd.team[sd.active]!;
     let u = this.ui[side];
@@ -180,7 +212,7 @@ export class Combat3Scene extends Phaser.Scene {
     u.hp.set(f.hp / f.maxHp);
     u.hpT.setText(`${f.hp} / ${f.maxHp}   ⚔${f.atk} 🛡${f.def} ⚡${f.spd}`);
     const st: string[] = [];
-    if (f.defending) st.push("🛡 Phòng thủ");
+    if (f.defending) st.push(f.guard !== undefined ? `🛡 Chặn ${Math.round(f.guard * 100)}%` : "🛡 Phòng thủ");
     if (f.atkUp) st.push(`🔥 ATK +${Math.round((f.atkUp[0] - 1) * 100)}%`);
     if (f.dmgReduce) st.push(`💎 Giảm ST ${Math.round(f.dmgReduce[0] * 100)}%`);
     if (f.defDown) st.push(`💥 DEF −${Math.round(f.defDown[0] * 100)}%`);
@@ -203,6 +235,7 @@ export class Combat3Scene extends Phaser.Scene {
       const initial = JSON.parse(JSON.stringify(v.state)) as CombatState;
       for (const sd of initial.sides) {
         sd.active = 0;
+        sd.energy = 0;
         for (const t of sd.team) {
           t.hp = t.maxHp;
           t.defending = false;
@@ -308,7 +341,7 @@ export class Combat3Scene extends Phaser.Scene {
         this.float(foe.img.x, FISH_Y - 120, `-${e.dmg}`, e.zone === "red" ? "#b0bec5" : big ? "#ffeb3b" : "#ffffff", big ? 44 : 34);
         this.float(foe.img.x, FISH_Y - 60, TIMING_LABEL[e.zone], e.zone === "red" ? "#ff8a80" : big ? "#b9f6ca" : "#fff59d", 22);
         if (e.matchup !== "normal") this.float(foe.img.x, FISH_Y - 20, MATCHUP_LABEL[e.matchup], e.matchup === "strong" ? "#69f0ae" : "#ff8a80", 24);
-        if (e.defended) this.float(foe.img.x, FISH_Y + 20, "🛡 −40%", "#90caf9", 20);
+        if (e.defended) this.float(foe.img.x, FISH_Y + 20, "🛡 ĐÃ CHẶN", "#90caf9", 20);
         if (e.combo >= 2) this.float(me.img.x, FISH_Y - 150, `COMBO x${e.combo}!`, "#ff4081", 30);
         if (e.zone === "perfect") Sfx.crit();
         const sd = s.sides[(1 - e.side) as 0 | 1];
@@ -335,10 +368,26 @@ export class Combat3Scene extends Phaser.Scene {
         this.float(u[e.side]!.img.x, FISH_Y - 90, `+${e.amount} ❤`, "#69f0ae", 30);
         await this.wait(350);
         break;
-      case "defend":
-        this.float(u[e.side]!.img.x, FISH_Y - 90, "🛡 PHÒNG THỦ", "#90caf9", 28);
+      case "defend": {
+        // canh bảo vệ: báo mức chặn theo vùng canh
+        const lbl = e.zone ? `🛡 ${GUARD_LABEL[e.zone]} −${Math.round((e.reduce ?? 0) * 100)}%` : "🛡 PHÒNG THỦ";
+        const col = e.zone === "perfect" ? "#ffd740" : e.zone === "green" ? "#b9f6ca" : e.zone === "red" ? "#ff8a80" : "#90caf9";
+        this.float(u[e.side]!.img.x, FISH_Y - 90, lbl, col, 26);
+        if (e.zone === "perfect") {
+          Sfx.crit();
+          const ring = this.add.graphics().setDepth(41).setPosition(u[e.side]!.img.x, FISH_Y);
+          ring.lineStyle(8, 0xffd740, 1).strokeCircle(0, 0, 90);
+          this.tweens.add({ targets: ring, scale: 1.6, alpha: 0, duration: 500, onComplete: () => ring.destroy() });
+        }
         await this.wait(450);
         break;
+      }
+      case "energy": {
+        const before = this.energyUi[e.side]?.bar.value ?? 0;
+        this.setEnergy(e.side, e.energy);
+        if (e.energy / ENERGY_MAX > before + 0.001) this.float(SIDE_X[e.side], 200, `+⚡${Math.round(e.energy - before * ENERGY_MAX)}`, "#b388ff", 20);
+        break;
+      }
       case "ko": {
         Sfx.fail();
         const f = u[e.side]!;
@@ -365,18 +414,21 @@ export class Combat3Scene extends Phaser.Scene {
     this.barT0 = performance.now();
     this.turnLeftMs = TURN_TIME_MS - 3000;
     const me = v.state.sides[0].team[v.state.sides[0].active]!;
-    void this.say("LƯỢT CỦA BẠN – canh lực rồi bấm TẤN CÔNG!", 0, "#b9f6ca");
+    void this.say("LƯỢT CỦA BẠN – canh kim: Space ĐÁNH · B CANH BẢO VỆ · V KỸ NĂNG", 0, "#b9f6ca");
     this.showBar();
-    const ready = me.cd <= 0;
+    const en = energyOf(v.state, 0);
+    const ready = en >= ENERGY_MAX;
     this.btnAtk = new Button(this, 640, 650, 260, 74, "⚔ TẤN CÔNG", { color: COLORS.red, fontSize: 30, sub: "Bấm / Space", onClick: () => this.press("attack") }).setDepth(60);
-    this.btnSkill = new Button(this, 360, 650, 250, 66, ready ? `✨ ${me.skill.name}` : `✨ Hồi ${me.cd} lượt`, {
+    this.btnSkill = new Button(this, 360, 650, 250, 66, ready ? `✨ ${me.skill.name}` : `⚡ Nộ ${en}/${ENERGY_MAX}`, {
       color: COLORS.purple,
-      fontSize: 18,
+      fontSize: 17,
+      sub: ready ? "Kỹ năng · V" : "Bị đánh để tích nộ",
       disabled: !ready,
       onClick: () => this.press("skill"),
     }).setDepth(60);
-    this.btnSkill.on("disabled-click", () => toast(this, `${me.skill.description} – còn hồi ${me.cd} lượt`));
-    this.btnDef = new Button(this, 920, 650, 220, 66, "🛡 Phòng thủ", { color: COLORS.blue, fontSize: 22, onClick: () => this.press("defend") }).setDepth(60);
+    if (ready) this.tweens.add({ targets: this.btnSkill, scale: 1.06, duration: 380, yoyo: true, repeat: -1 });
+    this.btnSkill.on("disabled-click", () => toast(this, `${me.skill.name}: ${me.skill.description}\nNộ ${en}/${ENERGY_MAX} – nhận sát thương (hoặc chặn HOÀN HẢO) để tích nộ`));
+    this.btnDef = new Button(this, 920, 650, 240, 66, "🛡 CANH BẢO VỆ", { color: COLORS.blue, fontSize: 20, sub: "Canh kim · B", onClick: () => this.press("defend") }).setDepth(60);
   }
 
   private showBar() {
@@ -437,15 +489,19 @@ export class Combat3Scene extends Phaser.Scene {
   private press(kind: PlayerAction["kind"], timeout = false) {
     if (!this.myTurn || this.busy || !this.view) return;
     const me = this.view.state.sides[0].team[this.view.state.sides[0].active]!;
-    if (kind === "skill" && me.cd > 0) return;
+    if (kind === "skill" && energyOf(this.view.state, 0) < ENERGY_MAX) {
+      if (!timeout) toast(this, `Nộ chưa đầy (${energyOf(this.view.state, 0)}/${ENERGY_MAX}) – bị đánh để tích nộ`);
+      return;
+    }
     this.myTurn = false;
     this.busy = true;
     const pressMs = Math.round(performance.now() - this.barT0);
-    const usesBar = kind === "attack" || (kind === "skill" && me.skill.attack);
+    // canh bảo vệ (B) cũng dùng thanh kim; hết giờ = phòng thủ thường (không canh)
+    const usesBar = kind === "attack" || (kind === "skill" && me.skill.attack) || (kind === "defend" && !timeout);
     if (usesBar && this.bar) {
       // phản hồi tức thì: đóng băng kim + báo vùng dự kiến (máy chủ sẽ xác nhận)
       const z = timingZone(needlePos(this.bar, pressMs));
-      this.banner?.setText(TIMING_LABEL[z]).setColor(z === "red" ? "#ff8a80" : z === "yellow" ? "#fff59d" : "#b9f6ca");
+      this.banner?.setText(kind === "defend" ? GUARD_LABEL[z] : TIMING_LABEL[z]).setColor(z === "red" ? "#ff8a80" : z === "yellow" ? "#fff59d" : "#b9f6ca");
       Sfx.click();
     }
     if (timeout) toast(this, "Hết giờ – tự động PHÒNG THỦ");
