@@ -337,3 +337,13 @@ describe("Biến dị có cấp bậc", () => {
     for (const v of own) expect(Math.abs((n[v.id] ?? 0) / 200 - v.weight!)).toBeLessThan(1.5);
   });
 });
+
+describe("Ký hiệu đột biến ĐB-n", () => {
+  it("mỗi viên đá: ĐB-1 (phổ biến nhất) … ĐB-5 (hiếm nhất), tỷ lệ giảm dần", async () => {
+    const { FISH_FORMS: FF } = await import("@dccc/game-data");
+    const fire = FF.filter((f) => f.itemId === "e_loi_dung_nham");
+    expect(fire.map((f) => f.code)).toEqual(["ĐB-1", "ĐB-2", "ĐB-3", "ĐB-4", "ĐB-5"]);
+    expect(fire.map((f) => f.weight)).toEqual([45, 27, 15, 10, 3]);
+    expect(fire[3]!.description).toMatch(/^【ĐB-4 · 10%】/);
+  });
+});

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.39.1] – 2026-11-23 – Ký hiệu ĐB-1…ĐB-5, Bộ Sưu Tập chia vùng
+### Thay đổi
+- Dạng đột biến ghi bằng **ký hiệu ĐB-1 … ĐB-5** (ĐB-1 phổ biến nhất 45% → ĐB-5 hiếm nhất 3%) thay cho phân loại bằng màu / tên cấp bậc.
+- **Bộ Sưu Tập chia vùng theo cấp bậc**: thanh chọn Tất cả · Boss · Thần Thoại · Huyền Thoại · Sử Thi · Quý · Hiếm · Thường (kèm số đã khám phá), mỗi vùng chỉ hiện loài của vùng đó.
+
 ## [0.39.0] – 2026-11-23 – Hình cá Boss mới, cá lai theo bố mẹ, giới tính, biến dị có cấp bậc
 ### Thêm / Thay đổi
 - **21 loài Boss & Thần Thoại mỗi loài một kiểu dáng riêng** (cá trê già, cá mập đầu búa, rồng cuộn, kỳ lân biển mõm kiếm, rắn biển, cá vây tay cổ đại, cá voi, cá nóc bông…) + **nét nhận diện luôn hiện** (gạc, vương miện pha lê, mào lửa, bờm, mây, vây cánh), lớn & đẹp dần theo giai.

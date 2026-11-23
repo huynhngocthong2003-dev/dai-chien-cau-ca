@@ -21,6 +21,8 @@ export class InventoryScene extends Phaser.Scene {
   /** Vị trí cuộn của Bộ Sưu Tập (giữ nguyên khi chọn loài khác). */
   private colScroll = 0;
   private bagScroll = 0;
+  /** Vùng đang xem trong Bộ Sưu Tập ("all" = tất cả). */
+  private colRarity: string = "all";
   private gridC?: Phaser.GameObjects.Container;
   private detailC?: Phaser.GameObjects.Container;
   private selectedUid: string | null = null;
@@ -310,9 +312,26 @@ export class InventoryScene extends Phaser.Scene {
     const grid = this.add.container(0, 0);
     c.add(grid);
     let area: { dragged: () => boolean } | null = null;
-    // PHÂN NHÓM THEO CẤP BẬC (hiếm nhất trước), mỗi nhóm một tiêu đề
-    let y0 = 148;
-    for (const rar of [...RARITY_ORDER].reverse()) {
+    // THANH CHỌN VÙNG theo cấp bậc: mỗi cấp bậc một vùng riêng (Tất cả = xem hết, có tiêu đề nhóm)
+    const rars = [...RARITY_ORDER].reverse().filter((r) => LIST.some((f) => f.rarity === r));
+    (["all", ...rars] as string[]).forEach((r, i) => {
+      const n = r === "all" ? LIST.length : LIST.filter((f) => f.rarity === r).length;
+      const seenN = (r === "all" ? LIST : LIST.filter((f) => f.rarity === r)).filter((f) => (species[f.id] ?? 0) > 0).length;
+      const label = r === "all" ? "Tất cả" : FISH_RARITY_LABEL[r as (typeof RARITY_ORDER)[number]];
+      c.add(
+        new Button(this, 66 + i * 98, 160, 92, 40, `${label}\n${seenN}/${n}`, {
+          color: this.colRarity === r ? COLORS.orange : COLORS.blue,
+          fontSize: 12,
+          onClick: () => {
+            this.colRarity = r;
+            this.colScroll = 0;
+            this.render();
+          },
+        }),
+      );
+    });
+    let y0 = 190;
+    for (const rar of rars.filter((r) => this.colRarity === "all" || r === this.colRarity)) {
       const group = LIST.filter((f) => f.rarity === rar);
       if (!group.length) continue;
       const seenN = group.filter((f) => (species[f.id] ?? 0) > 0).length;
@@ -336,10 +355,10 @@ export class InventoryScene extends Phaser.Scene {
     area = makeScrollArea(this, c, grid, {
       left: 8,
       right: 848,
-      top: 142,
+      top: 184,
       bottom: 706,
       trackX: 836,
-      contentH: y0 - 148 + 12,
+      contentH: y0 - 190 + 12,
       scroll: this.colScroll,
       onScroll: (v) => (this.colScroll = v),
     });
@@ -605,11 +624,11 @@ export class InventoryScene extends Phaser.Scene {
       const y = m.y + 130;
       const rk = fm.rank ? FORM_RANK_INFO[fm.rank] : null;
       const g = this.add.graphics();
-      g.fillStyle(0x10294a, 0.95).fillRoundedRect(x, y, w, 456, 14).lineStyle(3, hexToInt(rk?.color ?? fm.glow)).strokeRoundedRect(x, y, w, 456, 14);
+      g.fillStyle(0x10294a, 0.95).fillRoundedRect(x, y, w, 456, 14).lineStyle(3, 0x5fb3ff, 0.8).strokeRoundedRect(x, y, w, 456, 14);
       m.root.add(g);
       m.root.add(this.add.image(x + w / 2, y + 96, formFishTexture(this, f, fm, 0)).setDisplaySize(w - 12, (w - 12) * 0.625));
       m.root.add(txt(this, x + w / 2, y + 196, fm.name, 21, { align: "center", color: fm.glow }).setOrigin(0.5));
-      if (rk) m.root.add(txt(this, x + w / 2, y + 226, `${rk.name} · ${fm.weight}%`, 16, { align: "center", color: rk.color }).setOrigin(0.5));
+      if (rk) m.root.add(txt(this, x + w / 2, y + 228, `${fm.code ?? ""} · ${fm.weight}%`, 20, { align: "center", color: COLORS.textGold }).setOrigin(0.5));
       const focus = fm.rank === "legend" ? "Toàn diện" : { hp: "Chuyên MÁU", atk: "Chuyên CÔNG", def: "Chuyên THỦ", all: "Cân bằng" }[fm.focus ?? "all"];
       m.root.add(
         txt(this, x + w / 2, y + 330, `${focus}\n\nMáu ×${fm.mult.hp}\nCông ×${fm.mult.atk}\nThủ ×${fm.mult.def}\nTốc +${fm.spdBonus}`, 16, { align: "center", weight: "700" }).setOrigin(0.5),

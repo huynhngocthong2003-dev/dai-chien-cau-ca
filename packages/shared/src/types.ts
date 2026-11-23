@@ -156,6 +156,8 @@ export interface FishFormDef {
   weight?: number;
   /** Chỉ số chuyên tăng. */
   focus?: "hp" | "atk" | "def" | "all";
+  /** Ký hiệu cấp đột biến theo độ hiếm trong cùng viên đá: "ĐB-1" (phổ biến) … "ĐB-5" (hiếm nhất). */
+  code?: string;
 }
 
 export type FormRank = "common" | "rare" | "epic" | "legend";

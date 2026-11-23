@@ -133,8 +133,10 @@ const STAT_NAME = { hp: "Máu", atk: "Công", def: "Thủ" } as const;
 const ITEM_EL = new Map(EVO_ITEMS.map((i) => [i.id, i]));
 const pct = (x: number) => `×${x.toFixed(2).replace(/0$/, "").replace(".", ",")}`;
 
-export const FISH_FORMS: FishFormDef[] = SPEC.map(([id, name, rank, weight, focus]) => {
+export const FISH_FORMS: FishFormDef[] = SPEC.map(([id, name, rank, weight, focus], idx) => {
   const raw = RAW_FORMS.find((f) => f.id === id)!;
+  // ký hiệu ĐB-n: thứ tự hiếm dần trong cùng viên đá
+  const code = `ĐB-${SPEC.slice(0, idx + 1).filter((x) => RAW_FORMS.find((f) => f.id === x[0])!.itemId === raw.itemId).length}`;
   const item = ITEM_EL.get(raw.itemId);
   const divine = !!item?.divine;
   const base = focus === "legend" ? LEGEND_MULT : FOCUS_MULT[focus];
@@ -148,12 +150,13 @@ export const FISH_FORMS: FishFormDef[] = SPEC.map(([id, name, rank, weight, focu
     ...raw,
     name: name ?? raw.name,
     rank,
+    code,
     weight,
     focus: focus === "legend" ? "all" : focus,
     mult,
     spdBonus,
     // biến dị giữ HỆ của viên đá (thần vật giữ hệ riêng của dạng)
     element: divine ? raw.element : item?.element ?? raw.element,
-    description: `【${FORM_RANK_INFO[rank].name} · ${weight}%】 ${flavor}. ${what[0]!.toUpperCase()}${what.slice(1)}: ${stats}.`,
+    description: `【${code} · ${weight}%】 ${flavor}. ${what[0]!.toUpperCase()}${what.slice(1)}: ${stats}.`,
   };
 });
