@@ -23,9 +23,9 @@ import {
   validateTeam,
   winRate,
   type OwnedFish,
-  type PlayerSave, formSeen, formSeenKey } from "@dccc/shared";
+  type PlayerSave, formSeen, formSeenKey, buildPlayerTeam } from "@dccc/shared";
 import { FISHING } from "@dccc/game-config";
-import { CATALOG, EVO_ITEMS, EVO_ITEM_BY_ID, FISHES, FISH_BY_ID, FISH_FORMS, FORMS_BY_ITEM, FORM_BY_ID } from "@dccc/game-data";
+import { CATALOG, EVO_ITEMS, EVO_ITEM_BY_ID, FISHES, FISH_BY_ID, FISH_FORMS, FORMS_BY_ITEM, FORM_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
 import { parseSave } from "@dccc/validation";
 
 function owned(id: string, fishId: string, level = 1, stars = 1, extra: Partial<OwnedFish> = {}): OwnedFish {
@@ -270,7 +270,21 @@ describe("Thể tiến hóa đột biến", () => {
     const avg = fishStats(boss, 5, 1, hoa, { hp: 1, atk: 1, def: 1 });
     const surge = fishStats(boss, 5, 1, hoa, { hp: 1, atk: 2.4, def: 1 });
     expect(surge.atk).toBeGreaterThan(avg.atk * 1.5);
-    expect(avg.element).toBe(boss.element); // thể đột biến KHÔNG đổi nguyên tố (hệ theo khu câu)
+    // đột biến GIỮ NGUYÊN hệ của cá, chỉ thêm dạng đột biến
+    expect(avg.element).toBe(boss.element);
+    // lên giai: phần tăng đột biến lớn dần theo hướng của dạng (chuyên Công → công tăng nhiều nhất)
+    const s1 = fishStats(boss, 15, 1, hoa, { hp: 1, atk: 1, def: 1 });
+    const s4 = fishStats(boss, 15, 4, hoa, { hp: 1, atk: 1, def: 1 });
+    const b1 = fishStats(boss, 15, 1);
+    const b4 = fishStats(boss, 15, 4);
+    const gain = (x: number, y: number) => x / y;
+    expect(gain(s4.atk, b4.atk)).toBeGreaterThan(gain(s1.atk, b1.atk));
+    expect(gain(s4.atk, b4.atk) - gain(s1.atk, b1.atk)).toBeGreaterThan(gain(s4.def, b4.def) - gain(s1.def, b1.def));
+    // ra trận: giữ hệ gốc, chỉ số mang phần đột biến
+    const sv = saveWith([{ ...owned("h1", boss.id, 15), form: hoa.id }, owned("h2", "f_ca_chep", 3), owned("h3", "f_ca_ro", 3)]);
+    const built = buildPlayerTeam(sv, ["h1", "h2", "h3"], FISH_BY_ID, FORM_BY_ID, ZONE_BY_ID);
+    if ("error" in built) throw new Error(built.error);
+    expect(built.team[0]!.element).toBe(boss.element);
     expect(FISH_FORMS.every((f) => FORMS_BY_ITEM.get(f.itemId)!.length >= 2)).toBe(true);
   });
 });

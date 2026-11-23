@@ -1,3 +1,4 @@
+import type { FishFormDef } from "@dccc/shared";
 import Phaser from "phaser";
 import { ELEMENT_INFO } from "@dccc/game-config";
 import { FISH_BY_ID, ZONE_BY_ID } from "@dccc/game-data";
@@ -74,3 +75,9 @@ export function elementTags(scene: Phaser.Scene, x: number, y: number, set: Elem
 
 export const elementName = (el: Element) => ELEMENT_INFO[el].name;
 export const elementColor = (el: Element) => ELEMENT_INFO[el].color;
+
+/** Nhãn dạng đột biến kèm hướng chỉ số: "Lam Hỏa (thiên THỦ)". Hệ của cá giữ nguyên, đây chỉ là dạng đột biến. */
+export function formTag(fm: Pick<FishFormDef, "name" | "focus" | "rank">): string {
+  const dir = fm.rank === "legend" ? "toàn diện" : { hp: "thiên MÁU", atk: "thiên CÔNG", def: "thiên THỦ", all: "cân bằng" }[fm.focus ?? "all"];
+  return `${fm.name} (${dir})`;
+}

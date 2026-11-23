@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.44.0] – 2026-11-23 – Tiến hoá hệ: lên giai theo hướng dạng đột biến
+### Thay đổi
+- **Giữ Tiến hoá hệ (Q6)**: cá đột biến **giữ nguyên hệ gốc**, chỉ thêm dạng đột biến – ghi rõ ở chi tiết cá ("Hệ Hỏa · 🧬 Lam Hỏa (thiên THỦ)"), thẻ chọn cá ("🧬 Lam Hỏa") và tên cá trong trận.
+- **Lên giai theo hướng dạng đột biến**: chỉ số = chỉ số cá + phần đột biến, phần đột biến lớn thêm mỗi giai (Sơ ×1 · Trung ×1,25 · Cao ×1,5 · Thánh ×1,75) theo đúng hướng của dạng – VD Lam Hỏa (chuyên Thủ) càng lên giai càng thiên phòng thủ; tốc độ thưởng của dạng cũng tăng theo giai.
+- **Hình theo giai của dạng đột biến**: cá thường/Boss/Thần Thoại đã có hình đột biến lớn dần qua 4 giai; nay **vẽ thêm cá lai đột biến** – giữ dáng lai theo bố mẹ, thân tô bảng màu của dạng, thêm hào quang & hiệu ứng của dạng, to dần theo giai.
+- Máy chủ trận đấu dùng chỉ số mới (đã triển khai lại `battle`, `pvp`).
+
 ## [0.43.1] – 2026-11-23 – Bộ Sưu Tập: dạng đột biến ẩn đến khi mở
 ### Thay đổi
 - **Bộ Sưu Tập → 🧬 Các dạng đột biến**: hiện đủ các dạng loài đó có thể đột biến, nhưng dạng **chưa mở** chỉ hiện bóng "???", mã ĐB và tỉ lệ (ẩn tên, hình, chỉ số). Đột biến ra dạng nào thì dạng đó được mở vĩnh viễn trong Bộ Sưu Tập (bán / mất cá vẫn giữ). Tiêu đề và từng viên đá có đếm "đã mở x/y". Cá đã đột biến từ trước được tính là đã mở.

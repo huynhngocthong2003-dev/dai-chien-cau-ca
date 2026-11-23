@@ -28,6 +28,7 @@ export function buildPlayerTeam(
     if (o.locked) return { error: "Cá đã khoá 🔒 được bảo vệ, không thể ra trận (thua sẽ mất cá)" };
     const def = fishById.get(o.fishId);
     if (!def) return { error: "Dữ liệu cá không hợp lệ" };
+    const form = o.form ? formById.get(o.form) ?? null : null;
     team.push(
       makeCombatFish({
         def,
@@ -38,7 +39,7 @@ export function buildPlayerTeam(
         elements: ownedElements(o, def, zoneById),
         hidden: o.hiddenElement,
         parents: o.parents,
-        form: o.form ? formById.get(o.form) ?? null : null,
+        form,
         formRoll: o.formRoll ?? null,
       }),
     );

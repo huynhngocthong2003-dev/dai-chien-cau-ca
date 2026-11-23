@@ -147,16 +147,22 @@ export function decomposeValue(f: FishDef, o: Pick<OwnedFish, "level" | "stars">
 }
 
 /** Chỉ số cá theo cấp (+8%/cấp), sao (+15%/sao) và thể tiến hóa (nếu có). */
+/** Phần tăng của dạng đột biến lớn thêm mỗi giai trưởng thành (Sơ ×1 · Trung ×1,25 · Cao ×1,5 · Thánh ×1,75). */
+export const FORM_STAGE_GROWTH = 0.25;
+
 export function fishStats(f: FishDef, level = 1, stars = 1, form?: FishFormDef | null, roll?: FormRoll | null) {
   const m = (1 + 0.08 * (level - 1)) * (1 + 0.15 * (stars - 1)) * (f.combatScale ?? 1);
-  // phần tăng của thể đột biến nhân với hệ số ngẫu nhiên của lần đột biến
-  const fm = (k: "hp" | "atk" | "def") => (form ? 1 + (form.mult[k] - 1) * (roll?.[k] ?? 1) : 1);
+  // phần tăng của thể đột biến nhân với hệ số ngẫu nhiên của lần đột biến;
+  // TIẾN HOÁ HỆ: mỗi giai trưởng thành (Trung/Cao/Thánh) phần tăng đột biến lớn thêm 25% – đi theo hướng của dạng
+  // (dạng chuyên CÔNG tăng công nhiều nhất, chuyên THỦ tăng thủ…)
+  const grow = form ? 1 + FORM_STAGE_GROWTH * (Math.max(1, Math.min(MAX_STAGE, stars)) - 1) : 1;
+  const fm = (k: "hp" | "atk" | "def") => (form ? 1 + (form.mult[k] - 1) * (roll?.[k] ?? 1) * grow : 1);
   return {
     hp: Math.round(f.hp * m * fm("hp")),
     atk: Math.round(f.atk * m * fm("atk")),
     def: Math.round(f.def * m * fm("def")),
-    spd: f.spd + (stars - 1) * 2 + (form?.spdBonus ?? 0),
-    element: f.element, // hệ theo loài / khu câu – thể đột biến không đổi hệ
+    spd: f.spd + (stars - 1) * 2 + Math.round((form?.spdBonus ?? 0) * grow),
+    element: f.element, // hệ giữ nguyên theo loài / khu câu – đột biến chỉ thêm dạng (VD Hỏa · Lam Viêm)
   };
 }
 

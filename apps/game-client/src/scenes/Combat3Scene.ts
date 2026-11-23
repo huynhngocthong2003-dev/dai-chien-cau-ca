@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { ELEMENT_INFO, FISH_RARITY_COLOR } from "@dccc/game-config";
-import { FISH_BY_ID } from "@dccc/game-data";
+import { FISH_BY_ID, FORM_BY_ID } from "@dccc/game-data";
 import {
   AI_LEVEL_LABEL,
   MATCHUP_LABEL,
@@ -175,7 +175,8 @@ export class Combat3Scene extends Phaser.Scene {
       this.tweens.add({ targets: u.img, x: SIDE_X[side], duration: 450, ease: "Back.easeOut" });
     }
     const def = FISH_BY_ID.get(f.fishId)!;
-    u.name.setText(`${f.name}  Lv.${f.level}`).setColor(FISH_RARITY_COLOR[def.rarity]);
+    const fm = f.form ? FORM_BY_ID.get(f.form) : null;
+    u.name.setText(`${def.name}${fm ? ` · 🧬${fm.name}` : ""}  Lv.${f.level}`).setColor(FISH_RARITY_COLOR[def.rarity]);
     u.hp.set(f.hp / f.maxHp);
     u.hpT.setText(`${f.hp} / ${f.maxHp}   ⚔${f.atk} 🛡${f.def} ⚡${f.spd}`);
     const st: string[] = [];

@@ -12,7 +12,7 @@ import { TopBar } from "../ui/TopBar.ts";
 import { COLORS } from "../ui/theme.ts";
 import { hexToInt } from "../art/color.ts";
 import { Sfx } from "../audio/Sfx.ts";
-import { elementBadges, elementName, elementTags, fishElementSet, type ElementSet } from "../ui/element.ts";
+import { elementBadges, elementName, elementTags, fishElementSet, formTag, type ElementSet } from "../ui/element.ts";
 
 
 export class InventoryScene extends Phaser.Scene {
@@ -431,7 +431,7 @@ export class InventoryScene extends Phaser.Scene {
         this,
         876,
         388,
-        `Cấp ${o.level}/${fishMaxLevel(o.stars, growth)}  ${growth ? `🌱 ${stageName(o.stars)}` : `${"★".repeat(o.stars)}${"☆".repeat(5 - o.stars)}`}   Lực chiến ${formatNum(ownedFishPower(f, o, form))}\nHP ${formatNum(st.hp)} · Công ${st.atk} · Thủ ${st.def} · Tốc ${st.spd}\nHệ ${fishElementSet(o, f).els.map(elementName).join(" · ")}${o.hiddenElement ? ` (+ẩn ${elementName(o.hiddenElement)})` : ""} · ${o.weightKg} kg · ${f.skill.name}`,
+        `Cấp ${o.level}/${fishMaxLevel(o.stars, growth)}  ${growth ? `🌱 ${stageName(o.stars)}` : `${"★".repeat(o.stars)}${"☆".repeat(5 - o.stars)}`}   Lực chiến ${formatNum(ownedFishPower(f, o, form))}\nHP ${formatNum(st.hp)} · Công ${st.atk} · Thủ ${st.def} · Tốc ${st.spd}\nHệ ${fishElementSet(o, f).els.map(elementName).join(" · ")}${o.hiddenElement ? ` (+ẩn ${elementName(o.hiddenElement)})` : ""}${form ? ` · 🧬 ${formTag(form)}` : ""} · ${o.weightKg} kg · ${f.skill.name}`,
         16,
         { weight: "700", wrap: 372 },
       ).setLineSpacing(3),

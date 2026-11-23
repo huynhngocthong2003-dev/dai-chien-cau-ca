@@ -31,10 +31,8 @@ export function fishPickCard(
   g.fillGradientStyle(0x1a3d66, 0x1a3d66, 0x0d2340, 0x0d2340, 0.95).fillRoundedRect(x, y, w, h, 12);
   g.lineStyle(badge ? 4 : 2.5, badge ? 0xffeb3b : col).strokeRoundedRect(x, y, w, h, 12);
   c.add(g);
-  if (o.form) {
-    const fm = FORM_BY_ID.get(o.form);
-    if (fm) c.add(scene.add.image(x + w / 2, y + h * 0.4, softGlowTexture(scene)).setTint(hexToInt(fm.glow)).setDisplaySize(w * 0.95, h * 0.6).setAlpha(0.45));
-  }
+  const fmDef = o.form ? FORM_BY_ID.get(o.form) : undefined;
+  if (fmDef) c.add(scene.add.image(x + w / 2, y + h * 0.4, softGlowTexture(scene)).setTint(hexToInt(fmDef.glow)).setDisplaySize(w * 0.95, h * 0.6).setAlpha(0.45));
   const m = Math.min(1.1, fishDisplayMult(f, o.stars));
   c.add(scene.add.image(x + w / 2, y + h * 0.4, fishTextureFor(scene, f, o.form, o.stars, o.parents)).setDisplaySize(w * 0.86 * m, w * 0.54 * m));
   // huy hiệu nguyên tố (góc phải trên)
@@ -42,6 +40,8 @@ export function fishPickCard(
   // giới tính ♂ / ♀ (góc trái dưới ảnh)
   const male = fishGender(o) === "m";
   c.add(txt(scene, x + 14, y + h * 0.62, male ? "♂" : "♀", 18, { color: male ? "#81d4fa" : "#f48fb1" }).setOrigin(0.5));
+  // dạng đột biến (hệ giữ nguyên): "🧬 Lam Hỏa"
+  if (fmDef) c.add(txt(scene, x + w / 2, y + h * 0.7, `🧬 ${fmDef.name}`, 10, { align: "center", weight: "700", color: fmDef.glow }).setOrigin(0.5));
   const wr = winRate(o);
   c.add(
     txt(scene, x + w / 2, y + h - 22, `${f.name}\nLv.${o.level} · ⚔${formatNum(fishPower(o))}${wr !== null ? ` · ${Math.round(wr * 100)}%` : ""}`, 11, {

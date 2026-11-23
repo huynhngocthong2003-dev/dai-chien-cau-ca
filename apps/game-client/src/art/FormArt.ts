@@ -472,3 +472,19 @@ export function drawFormFish(ctx: CanvasRenderingContext2D, fish: FishDef, form:
   AURA[look.aura].front?.(ctx, form);
   tierFront(ctx, fish.rarity, form);
 }
+
+/**
+ * Lớp hiệu ứng đột biến dùng cho hình KHÔNG vẽ bằng VectorFish (cá lai Đảo Lai Tạo):
+ * "back" = quầng sáng + hiệu ứng sau thân, "front" = hiệu ứng trước thân; to dần theo giai.
+ */
+export function drawFormLayer(ctx: CanvasRenderingContext2D, form: FishFormDef, stage: number, layer: "back" | "front") {
+  SK = stage <= 1 ? 0.85 : stage === 2 ? 1 : stage === 3 ? 1.15 : 1.3;
+  backPts = null;
+  tailAt = null;
+  headAt = null;
+  noseAt = null;
+  if (layer === "back") {
+    backGlow(ctx, form.glow, 0.45 + 0.08 * Math.max(0, stage - 1));
+    AURA[form.look.aura].back?.(ctx, form);
+  } else AURA[form.look.aura].front?.(ctx, form);
+}

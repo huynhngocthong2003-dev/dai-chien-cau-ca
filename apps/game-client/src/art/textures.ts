@@ -4,8 +4,9 @@ import { TIER_COLOR, TIER_ORDER } from "@dccc/game-config";
 import { drawOrnament, drawReel, drawRodIcon } from "./RodArt.ts";
 import { BREED_LOOKS, COSMETIC_BY_ID, FISH_BY_ID, FORM_BY_ID, breedTierOf } from "@dccc/game-data";
 import { HABITAT, drawBreedEgg, drawBreedFish, drawHabitatMap, drawParentHybrid, evolveBreedLook } from "./BreedArt.ts";
-import type { EggLook } from "@dccc/shared";
-import { drawFormFish } from "./FormArt.ts";
+import type { BreedLook, EggLook } from "@dccc/shared";
+import { drawFormFish, drawFormLayer } from "./FormArt.ts";
+import { rgba, shade } from "./color.ts";
 import { drawEvoItem } from "./EvoItemArt.ts";
 import { drawElementIcon } from "./ElementArt.ts";
 import { STAGE_K } from "./StageArt.ts";
@@ -89,8 +90,26 @@ export function fishTexture(scene: Phaser.Scene, fish: FishDef, stage = 0): stri
 }
 
 /** Cá đã đột biến (ngoại hình riêng theo dạng). */
+/** Cá lai đột biến: giữ dáng lai, đổi sang bảng màu + gai lưng + hào quang của dạng đột biến. */
+function formBreedLook(look: BreedLook, form: FishFormDef): BreedLook {
+  const fl = form.look;
+  return { ...look, body: fl.body, dark: shade(fl.body, -0.45), belly: fl.belly, fin: fl.fin, eye: fl.eyeColor, eyeGlow: true, backColor: form.glow, aura: rgba(form.glow, 0.42) };
+}
+
 export function formFishTexture(scene: Phaser.Scene, fish: FishDef, form: FishFormDef, stage = 0): string {
-  if (BREED_LOOKS[fish.id]) return breedFishTexture(scene, fish.id, stage);
+  if (BREED_LOOKS[fish.id]) {
+    // cá lai (dáng chung theo loài) đã đột biến: dáng lai + màu & hiệu ứng của dạng, lớn dần theo giai
+    const look = formBreedLook(evolveBreedLook(BREED_LOOKS[fish.id]!, stage), form);
+    return canvasTexture(scene, `breedform_${fish.id}_${form.id}_s${stage}`, FISH_W, FISH_H, (ctx) => {
+      drawFormLayer(ctx, form, stage, "back");
+      ctx.save();
+      ctx.translate(FISH_W / 2 + 10, FISH_H / 2 + 6);
+      drawBreedFish(ctx, look, look.ring ? 0.72 : look.wings ? 0.8 : 0.9, 0.3, true);
+      ctx.restore();
+      drawFormLayer(ctx, form, stage, "front");
+      softEdges(ctx, FISH_W, FISH_H);
+    }, 1.4);
+  }
   const res = fish.appearance.scale >= 1.5 || stage >= 3 ? 1.4 : 1;
   return canvasTexture(scene, `fishform_${fish.id}_${form.id}${stage ? `_s${stage}` : ""}`, FISH_W, FISH_H, (ctx) => {
     drawFormFish(ctx, fish, form, stage);
@@ -113,13 +132,22 @@ export function breedFishTexture(scene: Phaser.Scene, fishId: string, stage = 0,
 const TIER_IDX = { boss: 0, hybrid: 0, super: 1, mythic: 2, recessive: 3 } as const;
 
 /** Cá lai theo bố mẹ: đầu theo bố, đuôi/vây theo mẹ, bậc lai thêm cánh/hào quang; lớn & dữ dần theo giai. */
-export function hybridTexture(scene: Phaser.Scene, fishId: string, parents: readonly [string, string], stage = 0): string {
+export function hybridTexture(scene: Phaser.Scene, fishId: string, parents: readonly [string, string], stage = 0, form?: FishFormDef | null): string {
   const dad = FISH_BY_ID.get(parents[0]);
   const mom = FISH_BY_ID.get(parents[1]);
-  if (!dad || !mom || !BREED_LOOKS[fishId]) return breedFishTexture(scene, fishId, stage);
-  const key = `hyb_${fishId}_${parents[0]}_${parents[1]}_s${stage}`;
+  if (!dad || !mom || !BREED_LOOKS[fishId]) return form && BREED_LOOKS[fishId] ? formFishTexture(scene, FISH_BY_ID.get(fishId)!, form, stage) : breedFishTexture(scene, fishId, stage);
+  const key = `hyb_${fishId}_${parents[0]}_${parents[1]}_s${stage}${form ? `_${form.id}` : ""}`;
   return canvasTexture(scene, key, FISH_W, FISH_H, (ctx) => {
-    drawParentHybrid(ctx, dad, mom, BREED_LOOKS[fishId]!, TIER_IDX[breedTierOf(fishId)], Math.max(1, stage), `${parents[0]}x${parents[1]}#${fishId}`);
+    // đã đột biến: hiệu ứng của dạng sau & trước thân, thân mang bảng màu của dạng
+    if (form) drawFormLayer(ctx, form, Math.max(1, stage), "back");
+    const look = form ? formBreedLook(BREED_LOOKS[fishId]!, form) : BREED_LOOKS[fishId]!;
+    // thân cá lai vẽ từ dáng bố mẹ → tô lại bằng bảng màu của dạng đột biến (giữ nguyên dáng)
+    const tint = (p: FishDef): FishDef =>
+      form
+        ? { ...p, appearance: { ...p.appearance, body: form.look.body, belly: form.look.belly, fin: form.look.fin, pattern: form.look.pattern, patternColor: shade(form.look.patternColor, -0.15), eye: "glow", eyeColor: form.look.eyeColor, glow: form.glow } }
+        : p;
+    drawParentHybrid(ctx, tint(dad), tint(mom), look, TIER_IDX[breedTierOf(fishId)], Math.max(1, stage), `${parents[0]}x${parents[1]}#${fishId}`);
+    if (form) drawFormLayer(ctx, form, Math.max(1, stage), "front");
     softEdges(ctx, FISH_W, FISH_H);
   }, 1.4);
 }
@@ -146,8 +174,8 @@ function displayStage(fish: FishDef, stars?: number | null): number {
 /** Texture cá theo dạng đột biến + giai trưởng thành (truyền `stars` của cá đang sở hữu). */
 export function fishTextureFor(scene: Phaser.Scene, fish: FishDef, formId?: string | null, stars?: number | null, parents?: readonly [string, string] | null): string {
   // cá lai: vẽ theo dáng của chính cá bố & mẹ đã sinh ra nó
-  if (parents && BREED_LOOKS[fish.id]) return hybridTexture(scene, fish.id, parents, displayStage(fish, stars));
   const form = formId ? FORM_BY_ID.get(formId) : null;
+  if (parents && BREED_LOOKS[fish.id]) return hybridTexture(scene, fish.id, parents, displayStage(fish, stars), form);
   const st = displayStage(fish, stars);
   return form ? formFishTexture(scene, fish, form, st) : fishTexture(scene, fish, st);
 }
