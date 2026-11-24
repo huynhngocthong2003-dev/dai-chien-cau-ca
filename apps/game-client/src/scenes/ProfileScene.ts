@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { makeScrollArea } from "../ui/scrollArea.ts";
 import { FISH_RARITY_COLOR } from "@dccc/game-config";
 import { CHARACTER_BY_ID, FISH_BY_ID, FORM_BY_ID, ROD_BY_ID, TITLE_BY_ID } from "@dccc/game-data";
 import { CHAR_RARITY_COLOR } from "@dccc/game-config";
@@ -222,44 +223,65 @@ export class ProfileScene extends Phaser.Scene {
 
   private pickShowcase() {
     const sel = [...GameState.save.showcase];
-    const m = modal(this, 1060, 600, "Chọn tối đa 3 cá trưng bày", () => this.time.delayedCall(160, () => this.scene.restart()));
+    const m = modal(this, 1080, 640, "Chọn tối đa 3 cá trưng bày", () => this.time.delayedCall(160, () => this.scene.restart()));
     // cá đang trưng bày luôn ở đầu danh sách để gỡ được
     const pw = (o: OwnedFish) => ownedFishPower(FISH_BY_ID.get(o.fishId)!, o, o.form ? FORM_BY_ID.get(o.form) : null);
     const all = GameState.save.fishes.filter((f) => FISH_BY_ID.has(f.fishId));
+    // TẤT CẢ cá (không còn giới hạn 18 con) – cuộn bằng thanh trượt / lăn chuột / vuốt
     const list = [
       ...sel.map((u) => all.find((f) => f.uid === u)).filter((o): o is OwnedFish => !!o),
       ...all.filter((f) => !sel.includes(f.uid)).sort((a, b) => pw(b) - pw(a)),
-    ].slice(0, 18);
+    ];
     const box = this.add.container(0, 0);
     m.root.add(box);
-    const draw = () => {
-      box.removeAll(true);
-      list.forEach((o, i) => {
-        const f = FISH_BY_ID.get(o.fishId)!;
-        const x = m.x + 26 + (i % 6) * 168;
-        const y = m.y + 74 + Math.floor(i / 6) * 160;
-        const on = sel.includes(o.uid);
-        const g = this.add.graphics();
-        g.fillStyle(on ? 0x2a5a8a : 0x0d2340, 1).fillRoundedRect(x, y, 158, 150, 12);
-        g.lineStyle(on ? 4 : 2, on ? 0xffeb3b : hexToInt(FISH_RARITY_COLOR[f.rarity])).strokeRoundedRect(x, y, 158, 150, 12);
-        const im = this.add.image(x + 79, y + 56, fishTexture(this, f)).setDisplaySize(130, 80);
-        const t = txt(this, x + 79, y + 122, `${f.name} Lv.${o.level}\n${pct(winRate(o))}`, 13, { align: "center", weight: "700" }).setOrigin(0.5);
-        const z = this.add.zone(x + 79, y + 75, 158, 150).setInteractive({ useHandCursor: true });
-        z.on("pointerup", () => {
-          const k = sel.indexOf(o.uid);
-          if (k >= 0) sel.splice(k, 1);
-          else {
-            // đủ 3 con thì thay con chọn sớm nhất
-            if (sel.length >= 3) sel.shift();
-            sel.push(o.uid);
-          }
-          draw();
-        });
-        box.add([g, im, t, z]);
-      });
+    const top = m.y + 70;
+    const bottom = m.y + m.h - 84;
+    const cards: { uid: string; g: Phaser.GameObjects.Graphics; x: number; y: number; col: number }[] = [];
+    const paint = () => {
+      for (const c of cards) {
+        const on = sel.includes(c.uid);
+        c.g.clear().fillStyle(on ? 0x2a5a8a : 0x0d2340, 1).fillRoundedRect(c.x, c.y, 158, 150, 12);
+        c.g.lineStyle(on ? 4 : 2, on ? 0xffeb3b : c.col).strokeRoundedRect(c.x, c.y, 158, 150, 12);
+      }
+      countT.setText(`Đã chọn ${sel.length}/3 · ${list.length} con cá`);
     };
-    draw();
-    m.root.add(new Button(this, m.x + 150, m.y + m.h - 44, 200, 52, "🗑 Gỡ hết", { color: COLORS.grey, fontSize: 20, onClick: () => ((sel.length = 0), draw()) }));
+    let area: { dragged: () => boolean } | null = null;
+    list.forEach((o, i) => {
+      const f = FISH_BY_ID.get(o.fishId)!;
+      const x = m.x + 26 + (i % 6) * 168;
+      const y = top + 4 + Math.floor(i / 6) * 160;
+      const g = this.add.graphics();
+      const im = this.add.image(x + 79, y + 56, fishTexture(this, f)).setDisplaySize(130, 80);
+      const t = txt(this, x + 79, y + 122, `${f.name} Lv.${o.level}\n${pct(winRate(o))}`, 13, { align: "center", weight: "700" }).setOrigin(0.5);
+      const z = this.add.zone(x + 79, y + 75, 158, 150).setInteractive({ useHandCursor: true });
+      z.on("pointerup", () => {
+        if (area?.dragged()) return; // vừa kéo cuộn – không tính là chọn
+        const k = sel.indexOf(o.uid);
+        if (k >= 0) sel.splice(k, 1);
+        else {
+          // đủ 3 con thì thay con chọn sớm nhất
+          if (sel.length >= 3) sel.shift();
+          sel.push(o.uid);
+        }
+        paint();
+      });
+      cards.push({ uid: o.uid, g, x, y, col: hexToInt(FISH_RARITY_COLOR[f.rarity]) });
+      box.add([g, im, t, z]);
+    });
+    const countT = txt(this, m.x + 30, m.y + 50, "", 15, { weight: "700", color: COLORS.textGold }).setOrigin(0, 0.5);
+    m.root.add(countT);
+    paint();
+    area = makeScrollArea(this, m.root, box, {
+      left: m.x + 16,
+      right: m.x + m.w - 30,
+      top,
+      bottom,
+      trackX: m.x + m.w - 18,
+      contentH: Math.ceil(list.length / 6) * 160 + 10,
+      scroll: 0,
+      onScroll: () => undefined,
+    });
+    m.root.add(new Button(this, m.x + 150, m.y + m.h - 44, 200, 52, "🗑 Gỡ hết", { color: COLORS.grey, fontSize: 20, onClick: () => ((sel.length = 0), paint()) }));
     m.root.add(txt(this, m.x + m.w - 30, m.y + m.h - 44, "Chạm cá đã chọn để gỡ.\nChọn con thứ 4 sẽ thay con cũ nhất.", 14, { weight: "700", color: COLORS.textDim, align: "right" }).setOrigin(1, 0.5));
     m.root.add(
       new Button(this, m.x + m.w / 2, m.y + m.h - 44, 240, 58, "💾 Lưu", {

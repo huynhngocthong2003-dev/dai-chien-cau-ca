@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.60.1] – 2026-11-24
+### Sửa lỗi
+- **Chọn cá trưng bày** (Hồ Sơ): hiện **toàn bộ cá** (trước chỉ 18 con) kèm **thanh trượt** kéo được, lăn chuột hoặc vuốt trên điện thoại; kéo để cuộn không bị tính nhầm là chọn cá; hiện "Đã chọn n/3 · tổng số cá".
+
 ## [0.60.0] – 2026-11-24 – Boss Thế Giới mạnh theo cả máy chủ · câu boss không giới hạn
 ### Thay đổi
 - **Sức mạnh Boss Thế Giới = TỔNG CHIẾN LỰC đội hình của cả máy chủ** lúc boss xuất hiện; **máu = sức mạnh × 10** (tối thiểu 1 triệu). Mỗi lần boss xuất hiện (12h · 15h · 20h · 23h) tính lại → người chơi mạnh lên thì boss cũng mạnh lên. Hiện tại máy chủ ~405 nghìn chiến lực → boss ~4,05 triệu máu (trước cố định 0,8–1,2 triệu).
