@@ -17,13 +17,15 @@ export const RARITY_SPAWN_MULT: Partial<Record<FishDef["rarity"], number>> = { l
 /** May mắn làm cá THƯỜNG ít cắn hơn (nhường chỗ cho cá cấp cao): trọng số Thường ÷ (1 + lf × hệ số này). */
 export const COMMON_LUCK_DAMP = 0.45;
 
-export function spawnWeights(zone: ZoneDef, fishById: Map<string, FishDef>, lf: number) {
+export function spawnWeights(zone: ZoneDef, fishById: Map<string, FishDef>, lf: number, mythicLure = 0) {
   const l = Math.max(0, lf);
   const base = zone.spawn.map((s) => {
     const fish = fishById.get(s.fishId);
     if (!fish) throw new Error(`Không tìm thấy cá ${s.fishId} trong khu ${zone.id}`);
     const luck = fish.rarity === "common" ? 1 : 1 + l * RARE_WEIGHT_SCALING[fish.rarity];
-    return { fish, weight: s.weight * (RARITY_SPAWN_MULT[fish.rarity] ?? 1) * luck };
+    // cần "dụ cá Thần": Huyền Thoại & Thần Thoại ×(1 + mythicLure)
+    const lure = fish.rarity === "legendary" || fish.rarity === "mythic" ? 1 + Math.max(0, mythicLure) : 1;
+    return { fish, weight: s.weight * (RARITY_SPAWN_MULT[fish.rarity] ?? 1) * luck * lure };
   });
   // may mắn làm cá Thường ít đi, nhưng KHÔNG bao giờ ít hơn cá Hiếm (cá càng hiếm càng khó gặp)
   const sum = (r: FishDef["rarity"]) => base.filter((w) => w.fish.rarity === r).reduce((n, w) => n + w.weight, 0);
@@ -46,11 +48,12 @@ export function catchOdds(
 ): { lf: number; junk: number; byRarity: Partial<Record<FishDef["rarity"], number>> } {
   const lf = luckFactor(loadout, castPower);
   const junk = junkChanceFor(junkBase, lf);
-  const secret = zone.secretBossId ? Math.min(0.0015, FISHING.secretBossChance * (1 + lf * 0.5)) : 0;
-  const boss = bossChance(lf);
+  const lure = lureOf(loadout);
+  const secret = zone.secretBossId ? secretBossChance(lf, lure.boss) : 0;
+  const boss = bossChance(lf, lure.boss);
   const fishPart = 1 - junk;
   const normal = fishPart * (1 - secret) * (1 - boss);
-  const ws = spawnWeights(zone, fishById, lf);
+  const ws = spawnWeights(zone, fishById, lf, lure.mythic);
   const tot = ws.reduce((n, w) => n + w.weight, 0) || 1;
   const byRarity: Partial<Record<FishDef["rarity"], number>> = {};
   for (const w of ws) byRarity[w.fish.rarity] = (byRarity[w.fish.rarity] ?? 0) + (normal * w.weight) / tot;
@@ -73,8 +76,24 @@ export function giantSpawnBias(fish: FishDef, zoneAvgKg: number): number {
   return Math.min(3, Math.max(0.4, Math.pow(avg / Math.max(0.01, zoneAvgKg), 0.6)));
 }
 
-export function bossChance(lf: number): number {
-  return Math.min(0.004, FISHING.bossBaseChance * (1 + lf * 0.4));
+export function bossChance(lf: number, bossLure = 0): number {
+  // cần "dụ Boss": tỉ lệ & trần ×(1 + bossLure)
+  const k = 1 + Math.max(0, bossLure);
+  return Math.min(0.004 * k, FISHING.bossBaseChance * (1 + lf * 0.4) * k);
+}
+
+/** Hệ số dụ Boss / dụ cá Thần từ kỹ năng nhân vật + cần câu đang dùng. */
+export function lureOf(loadout: Loadout): { boss: number; mythic: number } {
+  return {
+    boss: sumPassive(loadout.passives, "boss_lure", (e) => e.value),
+    mythic: sumPassive(loadout.passives, "mythic_lure", (e) => e.value),
+  };
+}
+
+/** Tỉ lệ Boss siêu hiếm của khu. */
+export function secretBossChance(lf: number, bossLure = 0): number {
+  const k = 1 + Math.max(0, bossLure);
+  return Math.min(0.0015 * k, FISHING.secretBossChance * (1 + lf * 0.5) * k);
 }
 
 /** Tất cả Boss của khu (Boss chính trước). */
@@ -127,15 +146,16 @@ export function chooseFish(
 ): FishDef {
   const lf = luckFactor(loadout, castPower);
   // Boss phụ siêu hiếm: cực kỳ khó gặp
-  if (zone.secretBossId && rng.chance(Math.min(0.0015, FISHING.secretBossChance * (1 + lf * 0.5)))) {
+  const lure = lureOf(loadout);
+  if (zone.secretBossId && rng.chance(secretBossChance(lf, lure.boss))) {
     const sb = fishById.get(zone.secretBossId);
     if (sb) return sb;
   }
-  if (rng.chance(bossChance(lf))) {
+  if (rng.chance(bossChance(lf, lure.boss))) {
     const boss = pickZoneBoss(zone, fishById, rng);
     if (boss) return boss;
   }
-  const ws = spawnWeights(zone, fishById, lf);
+  const ws = spawnWeights(zone, fishById, lf, lure.mythic);
   if (opts.giant) {
     // cân nặng TRUNG BÌNH CÓ TRỌNG SỐ của khu (theo tỉ lệ xuất hiện) làm mốc "cá to"
     const tw = ws.reduce((n, w) => n + w.weight, 0) || 1;

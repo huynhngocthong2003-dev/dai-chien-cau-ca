@@ -273,6 +273,99 @@ export function drawOrnament(ctx: CanvasRenderingContext2D, kind: RodOrnament, s
       ctx.fill();
       break;
     }
+    case "celestial": {
+      // CỬU THIÊN THẦN LONG: vầng hào quang tia vàng + cánh vàng + trăng khuyết ôm ngọc tinh tú cầu vồng + vương miện
+      const cy = -s * 0.78;
+      // tia sáng
+      ctx.save();
+      ctx.translate(0, cy);
+      for (let i = 0; i < 12; i++) {
+        ctx.rotate(Math.PI / 6);
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.07, -s * 0.5);
+        ctx.lineTo(0, -s * (i % 2 ? 1.05 : 1.35));
+        ctx.lineTo(s * 0.07, -s * 0.5);
+        ctx.closePath();
+        ctx.fillStyle = i % 2 ? "rgba(255,241,118,0.85)" : "rgba(255,215,64,0.95)";
+        ctx.fill();
+      }
+      ctx.restore();
+      // vòng hào quang
+      ctx.beginPath();
+      ctx.arc(0, cy, s * 0.72, 0, Math.PI * 2);
+      ctx.lineWidth = s * 0.12;
+      ctx.strokeStyle = OUTLINE;
+      ctx.stroke();
+      ctx.lineWidth = s * 0.07;
+      const ringG = ctx.createLinearGradient(-s, cy, s, cy);
+      ringG.addColorStop(0, "#fff59d");
+      ringG.addColorStop(0.5, "#ffd740");
+      ringG.addColorStop(1, "#ffab00");
+      ctx.strokeStyle = ringG;
+      ctx.stroke();
+      // cánh vàng (3 lông mỗi bên)
+      for (const sx of [-1, 1]) {
+        for (let k = 0; k < 3; k++) {
+          ctx.save();
+          ctx.translate(sx * s * 0.45, cy + s * 0.18);
+          ctx.rotate(sx * (-0.35 - k * 0.42));
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(sx * s * 0.55, -s * 0.2, sx * s * (1.15 - k * 0.18), -s * 0.05);
+          ctx.quadraticCurveTo(sx * s * 0.6, s * 0.16, 0, s * 0.1);
+          ctx.closePath();
+          const fg = ctx.createLinearGradient(0, 0, sx * s * 1.1, 0);
+          fg.addColorStop(0, "#fffde7");
+          fg.addColorStop(1, k === 0 ? "#ffd740" : "#80d8ff");
+          outlineFill(ctx, fg, 1.6);
+          ctx.restore();
+        }
+      }
+      // trăng khuyết ôm ngọc
+      ctx.beginPath();
+      ctx.arc(0, cy, s * 0.56, Math.PI * 0.15, Math.PI * 0.85);
+      ctx.arc(0, cy - s * 0.08, s * 0.44, Math.PI * 0.85, Math.PI * 0.15, true);
+      ctx.closePath();
+      outlineFill(ctx, "#ffe082", 1.8);
+      // ngọc tinh tú cầu vồng
+      ctx.beginPath();
+      ctx.arc(0, cy, s * 0.4, 0, Math.PI * 2);
+      const og = ctx.createRadialGradient(-s * 0.12, cy - s * 0.14, 1, 0, cy, s * 0.42);
+      og.addColorStop(0, "#ffffff");
+      og.addColorStop(0.25, "#84ffff");
+      og.addColorStop(0.55, "#b388ff");
+      og.addColorStop(0.8, "#ff4081");
+      og.addColorStop(1, "#311b92");
+      outlineFill(ctx, og, 2.2);
+      // sao trong ngọc
+      ctx.fillStyle = "#ffffff";
+      star(ctx, s * 0.06, cy + s * 0.04, s * 0.17, 4, 0.3);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      for (const [dx, dy, r] of [[-0.18, -0.12, 0.05], [0.2, -0.16, 0.04], [-0.1, 0.2, 0.035]] as const) {
+        ctx.beginPath();
+        ctx.arc(dx * s, cy + dy * s, r * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // vương miện nhỏ trên đỉnh
+      ctx.beginPath();
+      const top = cy - s * 0.55;
+      ctx.moveTo(-s * 0.3, top + s * 0.12);
+      ctx.lineTo(-s * 0.3, top - s * 0.12);
+      ctx.lineTo(-s * 0.15, top);
+      ctx.lineTo(0, top - s * 0.22);
+      ctx.lineTo(s * 0.15, top);
+      ctx.lineTo(s * 0.3, top - s * 0.12);
+      ctx.lineTo(s * 0.3, top + s * 0.12);
+      ctx.closePath();
+      outlineFill(ctx, "#ffd740", 1.8);
+      for (const x of [-0.3, 0, 0.3]) {
+        ctx.beginPath();
+        ctx.arc(x * s, top - (x === 0 ? 0.22 : 0.12) * s, s * 0.055, 0, Math.PI * 2);
+        outlineFill(ctx, x === 0 ? "#ff4081" : "#18ffff", 1.2);
+      }
+      break;
+    }
     case "none":
       break;
   }

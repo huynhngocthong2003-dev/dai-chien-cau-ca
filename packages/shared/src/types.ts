@@ -36,7 +36,11 @@ export type PassiveEffect =
   | { kind: "durability_regen"; perSec: number }
   | { kind: "struggle_reduce"; value: number }
   | { kind: "boss_damage"; value: number }
-  | { kind: "element_damage"; element: Element; value: number };
+  | { kind: "element_damage"; element: Element; value: number }
+  /** Dụ Boss: tỉ lệ gặp Boss (kể cả Boss siêu hiếm) ×(1 + value), nâng luôn trần tỉ lệ. */
+  | { kind: "boss_lure"; value: number }
+  /** Dụ cá Thần: trọng số cá Huyền Thoại & Thần Thoại ×(1 + value). */
+  | { kind: "mythic_lure"; value: number };
 
 export interface SkillDef<E> {
   id: string;
@@ -229,7 +233,8 @@ export type RodOrnament =
   | "star"
   | "trident"
   | "orb"
-  | "dragon_eye";
+  | "dragon_eye"
+  | "celestial";
 
 export interface RodDef {
   id: string;

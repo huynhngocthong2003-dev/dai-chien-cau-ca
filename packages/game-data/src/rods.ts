@@ -109,4 +109,31 @@ export const RODS: RodDef[] = [
     visual: { shaft: "#1a0b0e", handle: "#7f0000", glow: "#ff1744", line: "#ff5252", wrap: "#ff1744", ornament: "dragon_eye", veins: "#ff1744" },
     description: "Rèn từ xương Hắc Long và máu Hỏa Long. Khi giật cần, sấm đỏ xé toạc mặt biển.",
   },
+  {
+    id: "r_cuu_thien_than_long",
+    name: "Cần Cửu Thiên Thần Long",
+    rarity: "LR",
+    // thế mạnh là DỤ Boss & cá Thần – chỉ số chiến đấu nhỉnh sau Huyết Ma Long (cần mạnh nhất)
+    pull: 320,
+    durability: 480,
+    reelSpeed: 1.9,
+    rareRate: 28,
+    antiSnap: 38,
+    passive: {
+      id: "rp_than_long_trieu_hoi",
+      name: "Thần Long Triệu Hồi",
+      description: "BOSS ×5 · HUYỀN THOẠI & THẦN THOẠI ×5 · +30 may mắn · 20% chí mạng x2,5 · +40% sát thương Boss.",
+      effects: [
+        { kind: "boss_lure", value: 4 },
+        { kind: "mythic_lure", value: 4 },
+        { kind: "luck_bonus", value: 30 },
+        { kind: "crit", chance: 0.2, multiplier: 2.5 },
+        { kind: "boss_damage", value: 0.4 },
+        { kind: "durability_regen", perSec: 12 },
+      ],
+    },
+    unlock: { kind: "code", codeHash: "18c0e97be791861e312fa31ca5" },
+    visual: { shaft: "#fff8e1", handle: "#1a237e", glow: "#ffd740", line: "#e1f5fe", wrap: "#ffd740", ornament: "celestial" },
+    description: "Vảy Thần Long cửu thiên & ngọc tinh tú – hào quang vàng gọi Boss và cá Thần Thoại.",
+  },
 ];

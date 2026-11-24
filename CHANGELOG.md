@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.58.0] – 2026-11-24 – Cần LR "Cửu Thiên Thần Long"
+### Thêm
+- **Cần Cửu Thiên Thần Long (LR)** – nhận bằng mã quà tặng. Ngoại hình mới: thân trắng ngà viền vàng, tay cầm xanh hoàng gia, đầu cần là **vầng hào quang tia vàng + đôi cánh vàng + trăng khuyết ôm ngọc tinh tú cầu vồng + vương miện**.
+  - Kỹ năng **Thần Long Triệu Hồi**: tỉ lệ gặp **BOSS ×5** (kể cả Boss siêu hiếm, nâng luôn trần tỉ lệ), cá **HUYỀN THOẠI & THẦN THOẠI ×5**, +30 may mắn, 20% chí mạng x2,5, +40% sát thương Boss, dây tự hồi 12 độ bền/giây.
+  - Ví dụ: Boss ~1,7% mỗi lần quăng (Huyết Ma Long ~0,33%); ở Đại Dương Thần Thoại cá Huyền Thoại ~12,9% (Huyết Ma Long ~2,9%).
+  - Chỉ số chiến đấu nhỉnh sau Cần Huyết Ma Long (vẫn là cần mạnh nhất về lực kéo / độ bền).
+- Kỹ năng bị động mới cho cần / nhân vật: **dụ Boss** (boss_lure) và **dụ cá Thần** (mythic_lure).
+
 ## [0.57.1] – 2026-11-23
 ### Thêm
 - **Mã quà tặng 5 Đá Tiến Hoá Thần** (Cài Đặt → 🎁 Mã quà; mỗi tài khoản dùng 1 lần). Mã quà tặng nay tặng được cả Đá Tiến Hoá; nhận xong hiện màn CHÚC MỪNG với phần quà.
