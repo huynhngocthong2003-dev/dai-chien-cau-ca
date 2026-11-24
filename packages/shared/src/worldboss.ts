@@ -31,7 +31,15 @@ export const WORLD_BOSS = {
   tzOffsetMin: 7 * 60,
   /** Máu theo khung giờ (20h đông người → trâu hơn). */
   maxHp: [800_000, 800_000, 1_200_000, 1_200_000] as const,
-  hitsPerEntry: 15,
+  /** Đánh KHÔNG GIỚI HẠN đòn mỗi lượt (chỉ hết lượt khi bị hạ gục / rút lui / boss chết / hết giờ). Số lớn = chặn an toàn. */
+  hitsPerEntry: 100_000,
+  /**
+   * SỨC MẠNH BOSS = TỔNG CHIẾN LỰC đội hình của cả máy chủ lúc boss xuất hiện; MÁU = sức mạnh × hpPerPower.
+   * (1 đòn canh kim gây ~0,3 × chiến lực đội → mỗi người cần ~33 đòn cho "phần" chiến lực của mình nếu mọi người cùng đánh.)
+   */
+  hpPerPower: 10,
+  /** Máu tối thiểu (máy chủ ít người vẫn có boss ra hồn). */
+  minHp: 1_000_000,
   entriesPerSlot: 3,
 } as const;
 
@@ -90,7 +98,18 @@ function wbHash(x: number): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
-/** Máu tối đa của boss trong khung giờ. */
+/** Máu boss theo TỔNG CHIẾN LỰC đội hình của mọi người chơi trên máy chủ (tại thời điểm boss xuất hiện). */
+export function wbServerHp(totalServerPower: number): number {
+  const p = Number.isFinite(totalServerPower) ? Math.max(0, totalServerPower) : 0;
+  return Math.max(WORLD_BOSS.minHp, Math.round(p * WORLD_BOSS.hpPerPower));
+}
+
+/** Đánh không giới hạn đòn (để hiển thị). */
+export function wbUnlimitedHits(hitsMax: number): boolean {
+  return hitsMax >= 10_000;
+}
+
+/** Máu tối đa của boss trong khung giờ (dự phòng khi chưa có số liệu máy chủ). */
 export function worldBossMaxHp(slot: Pick<WorldBossSlot, "slotIndex">): number {
   return WORLD_BOSS.maxHp[slot.slotIndex] ?? WORLD_BOSS.maxHp[0];
 }

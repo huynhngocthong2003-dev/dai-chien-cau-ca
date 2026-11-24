@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.60.0] – 2026-11-24 – Boss Thế Giới mạnh theo cả máy chủ · câu boss không giới hạn
+### Thay đổi
+- **Sức mạnh Boss Thế Giới = TỔNG CHIẾN LỰC đội hình của cả máy chủ** lúc boss xuất hiện; **máu = sức mạnh × 10** (tối thiểu 1 triệu). Mỗi lần boss xuất hiện (12h · 15h · 20h · 23h) tính lại → người chơi mạnh lên thì boss cũng mạnh lên. Hiện tại máy chủ ~405 nghìn chiến lực → boss ~4,05 triệu máu (trước cố định 0,8–1,2 triệu).
+- **Câu boss KHÔNG GIỚI HẠN đòn** (bỏ giới hạn 15 đòn/lượt): một lượt chỉ kết thúc khi bị boss hạ gục, rút lui, boss chết hoặc hết giờ. **Bị hạ gục được vào lại** – tối đa **3 lượt** mỗi khung giờ.
+- Sảnh boss hiện "💪 Sức mạnh boss = tổng chiến lực máy chủ"; ô trận đấu đếm "Đòn N · không giới hạn".
+- **Cần Cửu Thiên Thần Long**: ẩn mô tả & chi tiết kỹ năng – chỉ ghi "Cần câu được một vị thần tối cao đánh rơi." (kỹ năng vẫn hoạt động).
+
 ## [0.59.0] – 2026-11-24 – Cửu Thiên Thần Long: Thần Thoại 1%
 ### Thay đổi
 - **Cần Cửu Thiên Thần Long** thêm 2 kỹ năng:

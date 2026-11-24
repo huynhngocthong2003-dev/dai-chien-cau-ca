@@ -106,3 +106,16 @@ describe("Né / đỡ chiêu boss", () => {
     expect(wbPlayerHp(1000, 0.25, 15000, sched)).toBe(500);
   });
 });
+
+describe("Sức mạnh Boss Thế Giới theo tổng chiến lực máy chủ", () => {
+  it("máu = tổng chiến lực × hpPerPower, có mức tối thiểu; máy chủ mạnh lên → boss trâu lên", async () => {
+    const { WORLD_BOSS, wbServerHp, wbUnlimitedHits } = await import("@dccc/shared");
+    expect(wbServerHp(404_989)).toBe(404_989 * WORLD_BOSS.hpPerPower);
+    expect(wbServerHp(0)).toBe(WORLD_BOSS.minHp);
+    expect(wbServerHp(Number.NaN)).toBe(WORLD_BOSS.minHp);
+    expect(wbServerHp(2_000_000)).toBeGreaterThan(wbServerHp(1_000_000));
+    // đánh không giới hạn đòn mỗi lượt, 3 lượt (mạng) mỗi khung giờ
+    expect(wbUnlimitedHits(WORLD_BOSS.hitsPerEntry)).toBe(true);
+    expect(WORLD_BOSS.entriesPerSlot).toBe(3);
+  });
+});

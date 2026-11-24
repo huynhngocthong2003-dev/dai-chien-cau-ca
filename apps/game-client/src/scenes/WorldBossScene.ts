@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { ELEMENT_INFO } from "@dccc/game-config";
 import { CHARACTER_BY_ID, FISH_BY_ID, FORM_BY_ID, WORLD_BOSSES } from "@dccc/game-data";
-import { ELEMENT_EVO_ITEM, TIMING_BANDS, TIMING_LABEL, WORLD_BOSS, needlePos, timingZone, wbRankReward, worldBossFor, worldBossMaxHp, worldBossSlot, worldBossTeam, wbPlayerHp, wbJudgeGuard, wbSkillImpactMs, WB_GUARD, type WbGuardKind, type BarParams, type OwnedFish } from "@dccc/shared";
+import { ELEMENT_EVO_ITEM, TIMING_BANDS, TIMING_LABEL, WORLD_BOSS, needlePos, timingZone, wbRankReward, worldBossFor, worldBossMaxHp, worldBossSlot, worldBossTeam, wbPlayerHp, wbUnlimitedHits, wbJudgeGuard, wbSkillImpactMs, WB_GUARD, type WbGuardKind, type BarParams, type OwnedFish } from "@dccc/shared";
 import { GameState } from "../state/GameState.ts";
 import { wbCall, type WbEnter, type WbHit, type WbStatus } from "../state/worldBoss.ts";
 import { characterTexture, worldBossArenaTexture, worldBossTexture } from "../art/textures.ts";
@@ -393,26 +393,28 @@ export class WorldBossScene extends Phaser.Scene {
     const me = this.status?.me;
     const rw = wbRankReward(me?.rank ?? 99);
     c.add(
-      txt(this, 1098, 466, me?.rank ? `Bạn: hạng #${me.rank} · ${formatNum(me.damage)} sát thương\nQuà dự kiến: ${rw.diamonds} 💎 · ${formatNum(rw.gold ?? 0)} 🪙 · ${rw.stones} 🔷 · ${rw.soul} 🔮` : "Bạn chưa ra đòn trong khung giờ này", 15, { align: "center", weight: "700", wrap: 300 }).setOrigin(0.5),
+      txt(this, 1098, 420, me?.rank ? `Bạn: hạng #${me.rank} · ${formatNum(me.damage)} sát thương\nQuà dự kiến: ${rw.diamonds} 💎 · ${formatNum(rw.gold ?? 0)} 🪙 · ${rw.stones} 🔷 · ${rw.soul} 🔮` : "Bạn chưa ra đòn trong khung giờ này", 15, { align: "center", weight: "700", wrap: 300 }).setOrigin(0.5),
     );
     const left = me?.entriesLeft ?? WORLD_BOSS.entriesPerSlot;
     const shown = this.team().length;
     const can = live && hp > 0 && left > 0 && shown >= 3;
-    const go = new Button(this, 1098, 540, 300, 64, `⚔ VÀO ĐÁNH (${left}/${WORLD_BOSS.entriesPerSlot} lượt)`, { color: COLORS.red, fontSize: 22, disabled: !can, onClick: () => void this.enter() });
+    const go = new Button(this, 1098, 490, 300, 64, `⚔ VÀO ĐÁNH (${left}/${WORLD_BOSS.entriesPerSlot} lượt)`, { color: COLORS.red, fontSize: 22, disabled: !can, onClick: () => void this.enter() });
     go.on("disabled-click", () => toast(this, !live ? "Boss chưa xuất hiện – quay lại lúc 12h · 15h · 20h · 23h" : hp <= 0 ? "Boss đã bị hạ gục" : left <= 0 ? "Hết lượt đánh của khung giờ này" : "Hãy trưng bày đủ 3 cá (Hồ Sơ) trước khi vào phòng boss"));
     c.add(go);
     if (can) this.tweens.add({ targets: go, scale: 1.05, duration: 600, yoyo: true, repeat: -1 });
     // vào phòng boss phải TRƯNG BÀY đủ 3 cá (lực chiến = tổng 3 con)
-    c.add(txt(this, 1098, 590, `🏅 Cá trưng bày: ${shown}/3`, 15, { weight: "700", color: shown >= 3 ? "#b9f6ca" : "#ff8a80", align: "center" }).setOrigin(0.5));
-    if (shown < 3) c.add(new Button(this, 1098, 632, 240, 46, "🏅 Trưng bày cá", { color: COLORS.green, fontSize: 18, onClick: () => goTo(this, "Profile", { mode: "profile" }) }));
-    else this.rules(c, 616);
+    c.add(txt(this, 1098, 538, `🏅 Cá trưng bày: ${shown}/3`, 15, { weight: "700", color: shown >= 3 ? "#b9f6ca" : "#ff8a80", align: "center" }).setOrigin(0.5));
+    if (shown < 3) c.add(new Button(this, 1098, 590, 240, 46, "🏅 Trưng bày cá", { color: COLORS.green, fontSize: 18, onClick: () => goTo(this, "Profile", { mode: "profile" }) }));
+    else this.rules(c, 560);
   }
 
   private rules(c: Phaser.GameObjects.Container, y: number) {
     const b = this.bossInfo();
+    const maxHp = this.status?.maxHp ?? 0;
     const lines = [
       "⏰ 12h · 15h · 20h · 23h, mỗi lần 30 phút",
-      `⚔ Mỗi lượt ${WORLD_BOSS.hitsPerEntry} đòn canh kim (Space / chạm thanh)`,
+      ...(maxHp ? [`💪 Sức mạnh boss = tổng chiến lực máy chủ: ${formatNum(Math.round(maxHp / WORLD_BOSS.hpPerPower))}`] : []),
+      `⚔ Câu boss KHÔNG GIỚI HẠN đòn – bị hạ gục được vào lại (${WORLD_BOSS.entriesPerSlot} lượt)`,
       "🏅 Sát thương càng nhiều → quà càng nhiều",
       `🗡 Kết liễu: +1 Đá Tiến Hoá hệ ${ELEMENT_INFO[b.element].name} + 20 💎`,
     ];
@@ -449,7 +451,7 @@ export class WorldBossScene extends Phaser.Scene {
     this.myHpT = txt(this, ME_POS.x, ME_POS.y + 46, "", 14, { weight: "700", color: "#ffffff", align: "center" }).setOrigin(0.5).setStroke("#1b1530", 4);
     c.add([this.myHpBar, this.myHpT]);
     this.refreshMyHp();
-    this.hudT = txt(this, 1143, 592, `Đòn ${f.hits}/${f.e.hitsMax}\nSát thương: ${formatNum(f.dmg)}`, 16, { align: "center", weight: "700" }).setOrigin(0.5);
+    this.hudT = txt(this, 1143, 592, this.hudText(f), 16, { align: "center", weight: "700" }).setOrigin(0.5);
     c.add(this.hudT);
     c.add(new Button(this, 1143, 654, 180, 46, "Rút lui", { color: COLORS.blue, fontSize: 18, onClick: () => this.endFight() }));
     // thanh canh kim
@@ -475,6 +477,11 @@ export class WorldBossScene extends Phaser.Scene {
     // chạm vào boss cũng là đánh
     this.bossImg?.setInteractive({ useHandCursor: true }).on("pointerdown", () => this.hit());
     this.needle = this.add.graphics().setDepth(5);
+  }
+
+  /** Số đòn (không giới hạn) + sát thương lượt này. */
+  private hudText(f: NonNullable<WorldBossScene["fight"]>) {
+    return `${wbUnlimitedHits(f.e.hitsMax) ? `Đòn ${f.hits} · không giới hạn` : `Đòn ${f.hits}/${f.e.hitsMax}`}\nSát thương: ${formatNum(f.dmg)}`;
   }
 
   /** Boss gồng sức → báo tên chiêu → phóng chiêu vào người chơi (bản thân + người trong phòng). */
@@ -693,7 +700,7 @@ export class WorldBossScene extends Phaser.Scene {
         } else if (r.hits >= r.hitsMax) {
           toast(this, `Hết lượt: gây ${formatNum(r.sessionDamage)} sát thương!`, COLORS.green);
           window.setTimeout(() => this.scene.isActive() && this.endFight(), 1200);
-        } else this.hudT?.setText(`Đòn ${f.hits}/${f.e.hitsMax}\nSát thương: ${formatNum(f.dmg)}`);
+        } else this.hudT?.setText(this.hudText(f));
       })
       .catch((e: Error) => {
         f.busy = false;

@@ -20,7 +20,7 @@ const status = () => ({
   top: [{ name: 'Pine Vô Địch', damage: 320000, me: false }, ...(db.hits ? [{ name: 'Cần Thủ', damage: db.hits * 20000, me: true }] : [])],
   room: [{ name: 'Cần Thủ', look: { c: 'c_be_tom' }, power: 999, me: true, at: now() }, { name: 'Pine Vô Địch', look: { c: 'c_lam_ngoc_hau', rod: 'r_huyet_ma_long' }, power: 52000, me: false, at: new Date(Date.now() - db.ops.length * 1000).toISOString() }, { name: 'Mèo Câu', look: { c: 'c_kim_ke' }, power: 31000, me: false, at: '2026-11-23T12:00:00Z' }],
   me: { damage: db.hits * 20000, rank: db.hits ? 2 : null, entries: db.entered, entriesLeft: 3 - db.entered },
-  rules: { hitsPerEntry: 15, entriesPerSlot: 3 },
+  rules: { hitsPerEntry: 100000, entriesPerSlot: 3 },
 });
 (async () => {
   const b = await pw.chromium.launch();
@@ -35,13 +35,13 @@ const status = () => ({
       const body = req.postDataJSON() ?? {};
       db.ops.push(body.op);
       if (body.op === 'status') return json(200, status());
-      if (body.op === 'enter') { db.entered++; return json(200, { session: '11111111-1111-4111-8111-111111111111', hits: 0, hitsMax: 15, bar: { periodMs: 1400, phase: 0.1 }, serverNow: now(), power: 1234, playerMaxHp: 1000, playerHp: 1000, skillPct: db.ko ? 0.5 : 0.25, skill: db.ko ? { firstMs: 3000, everyMs: 3000 } : { firstMs: 6000, everyMs: 8000 }, team: ['w2', 'w1', 'w3'].map((u, i) => ({ uid: u, fishId: 'f_ca_chep', name: 'Cá', atk: 100 + i, element: 'water', form: null, stars: 1 })) }); }
+      if (body.op === 'enter') { db.entered++; return json(200, { session: '11111111-1111-4111-8111-111111111111', hits: 0, hitsMax: 100000, bar: { periodMs: 1400, phase: 0.1 }, serverNow: now(), power: 1234, playerMaxHp: 1000, playerHp: 1000, skillPct: db.ko ? 0.5 : 0.25, skill: db.ko ? { firstMs: 3000, everyMs: 3000 } : { firstMs: 6000, everyMs: 8000 }, team: ['w2', 'w1', 'w3'].map((u, i) => ({ uid: u, fishId: 'f_ca_chep', name: 'Cá', atk: 100 + i, element: 'water', form: null, stars: 1 })) }); }
       if (body.op === 'guard') { db.guards = (db.guards ?? 0) + 1; return json(200, { verdict: { k: 0, kind: 'dodge' }, guards: { 0: 'dodge' }, playerHp: 1000, playerMaxHp: 1000 }); }
       if (body.op === 'hit') {
         db.hits++;
         const dmg = 20000;
         db.hp = Math.max(0, db.hp - dmg);
-        return json(200, { zone: 'green', dmg, hp: db.hp, maxHp: db.max, killed: db.hp === 0, hits: body.n + 1, hitsMax: 15, bar: { periodMs: 1400, phase: 0.2 }, sessionDamage: (body.n + 1) * dmg });
+        return json(200, { zone: 'green', dmg, hp: db.hp, maxHp: db.max, killed: db.hp === 0, hits: body.n + 1, hitsMax: 100000, bar: { periodMs: 1400, phase: 0.2 }, sessionDamage: (body.n + 1) * dmg });
       }
       return json(400, { error: 'op' });
     }
@@ -108,7 +108,7 @@ const status = () => ({
   if (jump.max > 12) errs.push('Boss chuyển động giật (nhảy ' + jump.max.toFixed(1) + 'px giữa 2 khung hình)');
   else console.log('• Boss bơi mượt: dịch chuyển tối đa ' + jump.max.toFixed(1) + 'px/khung hình qua ' + jump.n + ' khung (kể cả lúc cập nhật)');
   // vào đánh
-  await p.mouse.click(1058, 540);
+  await p.mouse.click(1098, 490); // VÀO ĐÁNH
   await p.waitForFunction(() => !!window.__game.scene.getScene('WorldBoss').fight, null, { timeout: 8000 }).catch(() => errs.push('Không vào được trận boss'));
   const team = await p.evaluate(() => window.__game.scene.getScene('WorldBoss').fight?.e.team.map((t) => t.uid));
   if (!team || team.length !== 3 || !team.includes('w1')) errs.push('Đội đánh boss sai (cá khoá cũng phải được đánh): ' + JSON.stringify(team));

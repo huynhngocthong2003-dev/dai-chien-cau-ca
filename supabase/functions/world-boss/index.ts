@@ -22,6 +22,7 @@ import {
   wbRankReward,
   worldBossFor,
   worldBossTeam,
+  wbServerHp,
   WB_SKILL,
   wbJudgeGuard,
   wbPlayerHp,
@@ -85,7 +86,9 @@ Deno.serve(async (req: Request) => {
       if (!slot.live) return null;
       const { data } = await admin.from("world_boss").select("*").eq("slot_key", slot.key).maybeSingle();
       if (data) return data as Boss;
-      const hp = worldBossMaxHp(slot);
+      // SỨC MẠNH BOSS = tổng chiến lực đội hình cả máy chủ ngay lúc boss xuất hiện (chỉ lấy con số tổng)
+      const { data: total } = await admin.rpc("wb_server_power");
+      const hp = Number(total) > 0 ? wbServerHp(Number(total)) : worldBossMaxHp(slot);
       await admin
         .from("world_boss")
         .upsert(
@@ -235,7 +238,7 @@ Deno.serve(async (req: Request) => {
       if (!UUID.test(sid)) return json(400, { error: "Phiên đánh không hợp lệ" });
       const { data: s } = await admin.from("world_boss_sessions").select("*").eq("id", sid).maybeSingle();
       if (!s || s.user_id !== me) return json(404, { error: "Không tìm thấy phiên đánh" });
-      if (s.hits >= WORLD_BOSS.hitsPerEntry) return json(409, { error: "Lượt đánh đã hết đòn" });
+      if (s.hits >= WORLD_BOSS.hitsPerEntry) return json(409, { error: "Lượt đánh đã kết thúc – vào lại nếu còn lượt" });
       if (body?.n !== s.hits) return json(409, { error: "Đòn cũ (đã xử lý)" });
       const { data: bRow } = await admin.from("world_boss").select("*").eq("id", s.boss).maybeSingle();
       const b = bRow as Boss | null;

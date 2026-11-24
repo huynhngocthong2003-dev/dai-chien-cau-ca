@@ -122,7 +122,8 @@ export const RODS: RodDef[] = [
     passive: {
       id: "rp_than_long_trieu_hoi",
       name: "Thần Long Triệu Hồi",
-      description: "BOSS ×10 · HUYỀN THOẠI ×10 · THẦN THOẠI ≥1% · cá Thường & Hiếm −50% · +30 may mắn · chí mạng 20% x2,5.",
+      // ẩn chi tiết kỹ năng với người chơi (vẫn hoạt động: Boss ×10, Huyền Thoại ×10, Thần Thoại ≥1%, Thường & Hiếm −50%…)
+      description: "",
       effects: [
         { kind: "boss_lure", value: 9 },
         { kind: "mythic_lure", value: 9 },
@@ -136,6 +137,6 @@ export const RODS: RodDef[] = [
     },
     unlock: { kind: "code", codeHash: "18c0e97be791861e312fa31ca5" },
     visual: { shaft: "#fff8e1", handle: "#1a237e", glow: "#ffd740", line: "#e1f5fe", wrap: "#ffd740", ornament: "celestial" },
-    description: "Vảy Thần Long cửu thiên & ngọc tinh tú – hào quang vàng gọi Boss và cá Thần Thoại.",
+    description: "Cần câu được một vị thần tối cao đánh rơi.",
   },
 ];
