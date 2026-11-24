@@ -40,7 +40,11 @@ export type PassiveEffect =
   /** Dụ Boss: tỉ lệ gặp Boss (kể cả Boss siêu hiếm) ×(1 + value), nâng luôn trần tỉ lệ. */
   | { kind: "boss_lure"; value: number }
   /** Dụ cá Thần: trọng số cá Huyền Thoại & Thần Thoại ×(1 + value). */
-  | { kind: "mythic_lure"; value: number };
+  | { kind: "mythic_lure"; value: number }
+  /** Thần Thoại tối thiểu: cá Thần Thoại chiếm ít nhất `value` (vd 0.01 = 1%) số cá cắn câu – ở khu có cá Thần Thoại. */
+  | { kind: "mythic_floor"; value: number }
+  /** Xua cá tạp: trọng số cá Thường & Hiếm ×(1 − value). */
+  | { kind: "low_tier_cut"; value: number };
 
 export interface SkillDef<E> {
   id: string;

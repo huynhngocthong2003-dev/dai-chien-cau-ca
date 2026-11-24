@@ -32,4 +32,14 @@ describe("Cần Cửu Thiên Thần Long (LR): dụ Boss & cá Thần", () => {
     };
     expect(count("r_cuu_thien_than_long")).toBeGreaterThan(count("r_huyet_ma_long") * 7);
   });
+  it("Thần Thoại tối thiểu 1% số cá cắn câu, cá Thường & Hiếm giảm một nửa (ở khu có cá Thần Thoại)", () => {
+    for (const zone of ZONES) {
+      const a = catchOdds(zone, FISH_BY_ID, lo("r_huyet_ma_long"), 0.6, FISHING.junkChance);
+      const b = catchOdds(zone, FISH_BY_ID, lo("r_cuu_thien_than_long"), 0.6, FISHING.junkChance);
+      if (!a.byRarity.mythic) continue;
+      expect(b.byRarity.mythic ?? 0, zone.id).toBeGreaterThanOrEqual(0.0099); // ≥1% mỗi lần quăng
+      const low = (o: typeof a) => (o.byRarity.common ?? 0) + (o.byRarity.rare ?? 0);
+      expect(low(b), zone.id).toBeLessThan(low(a) * 0.6); // cá Thường + Hiếm còn khoảng một nửa
+    }
+  });
 });

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.59.0] – 2026-11-24 – Cửu Thiên Thần Long: Thần Thoại 1%
+### Thay đổi
+- **Cần Cửu Thiên Thần Long** thêm 2 kỹ năng:
+  - **Thần Thoại tối thiểu 1%** mỗi lần quăng (ở mọi khu có cá Thần Thoại – trước ~0,2–0,5%).
+  - **Xua cá tạp**: tỉ phần cá Thường + Hiếm giảm một nửa, nhường cho cá Quý / Sử Thi / Huyền Thoại.
+  - Ví dụ Biển Lửa: Thường 39% → 16%, Hiếm 36% → 15%, Huyền Thoại 2% → 33%, Thần Thoại 0,05% → 1%, Boss 3,3%.
+- Kỹ năng bị động mới: **mythic_floor** (Thần Thoại tối thiểu) và **low_tier_cut** (xua cá Thường & Hiếm).
+
 ## [0.58.2] – 2026-11-24
 ### Sửa lỗi
 - **Đàn Cá Quý** nay thật sự ra cá quý: trong 3 lần quăng, cá **Sử Thi trở lên chiếm 40%** số cá cắn câu (trước đây chỉ +60 may mắn → Sử Thi+ chỉ tăng ~5% lên ~8%). Cá Thường / Hiếm giảm tương ứng, ví dụ Bến Câu Tân Thủ: cá Thường 74,5% → 41%, Sử Thi+ 4,9% → 39,8%.

@@ -67,7 +67,7 @@ export function catchOdds(
   const boss = bossChance(lf, lure.boss);
   const fishPart = 1 - junk;
   const normal = fishPart * (1 - secret) * (1 - boss);
-  const raw = spawnWeights(zone, fishById, lf, lure.mythic);
+  const raw = applyRodPerks(spawnWeights(zone, fishById, lf, lure.mythic), lure);
   const ws = opts.school ? boostHighTier(raw) : raw;
   const tot = ws.reduce((n, w) => n + w.weight, 0) || 1;
   const byRarity: Partial<Record<FishDef["rarity"], number>> = {};
@@ -97,12 +97,39 @@ export function bossChance(lf: number, bossLure = 0): number {
   return Math.min(0.004 * k, FISHING.bossBaseChance * (1 + lf * 0.4) * k);
 }
 
-/** Hệ số dụ Boss / dụ cá Thần từ kỹ năng nhân vật + cần câu đang dùng. */
-export function lureOf(loadout: Loadout): { boss: number; mythic: number } {
+/** Hệ số dụ Boss / dụ cá Thần / Thần Thoại tối thiểu / xua cá tạp từ kỹ năng nhân vật + cần câu đang dùng. */
+export function lureOf(loadout: Loadout): { boss: number; mythic: number; mythicFloor: number; lowCut: number } {
   return {
     boss: sumPassive(loadout.passives, "boss_lure", (e) => e.value),
     mythic: sumPassive(loadout.passives, "mythic_lure", (e) => e.value),
+    mythicFloor: Math.min(0.5, sumPassive(loadout.passives, "mythic_floor", (e) => e.value)),
+    lowCut: Math.min(0.9, sumPassive(loadout.passives, "low_tier_cut", (e) => e.value)),
   };
+}
+
+/** Áp kỹ năng cần: xua cá Thường & Hiếm, rồi bảo đảm cá Thần Thoại tối thiểu (giữ tỉ lệ bên trong các nhóm khác). */
+export function applyRodPerks<T extends { fish: FishDef; weight: number }>(ws: T[], lure: { mythicFloor: number; lowCut: number }): T[] {
+  let out = ws;
+  if (lure.lowCut > 0) {
+    // giảm TỈ PHẦN cá Thường + Hiếm còn (1 − lowCut) – phần nhường cho các bậc cao hơn
+    const isLow = (w: T) => w.fish.rarity === "common" || w.fish.rarity === "rare";
+    const low = out.filter(isLow).reduce((n, w) => n + w.weight, 0);
+    const rest = out.filter((w) => !isLow(w)).reduce((n, w) => n + w.weight, 0);
+    if (low > 0 && rest > 0) {
+      const target = (low / (low + rest)) * (1 - lure.lowCut);
+      const k = (target * rest) / ((1 - target) * low);
+      out = out.map((w) => (isLow(w) ? { ...w, weight: w.weight * k } : w));
+    }
+  }
+  if (lure.mythicFloor > 0) {
+    const my = out.filter((w) => w.fish.rarity === "mythic").reduce((n, w) => n + w.weight, 0);
+    const rest = out.filter((w) => w.fish.rarity !== "mythic").reduce((n, w) => n + w.weight, 0);
+    if (my > 0 && rest > 0 && my / (my + rest) < lure.mythicFloor) {
+      const k = (lure.mythicFloor * rest) / ((1 - lure.mythicFloor) * my);
+      out = out.map((w) => (w.fish.rarity === "mythic" ? { ...w, weight: w.weight * k } : w));
+    }
+  }
+  return out;
 }
 
 /** Tỉ lệ Boss siêu hiếm của khu. */
@@ -170,7 +197,7 @@ export function chooseFish(
     const boss = pickZoneBoss(zone, fishById, rng);
     if (boss) return boss;
   }
-  const raw = spawnWeights(zone, fishById, lf, lure.mythic);
+  const raw = applyRodPerks(spawnWeights(zone, fishById, lf, lure.mythic), lure);
   // Đàn cá quý: Sử Thi trở lên chiếm 40%
   const ws = opts.school ? boostHighTier(raw) : raw;
   if (opts.giant) {

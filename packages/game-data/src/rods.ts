@@ -122,10 +122,12 @@ export const RODS: RodDef[] = [
     passive: {
       id: "rp_than_long_trieu_hoi",
       name: "Thần Long Triệu Hồi",
-      description: "BOSS ×10 · HUYỀN THOẠI & THẦN THOẠI ×10 · +30 may mắn · 20% chí mạng x2,5 · +40% sát thương Boss.",
+      description: "BOSS ×10 · HUYỀN THOẠI ×10 · THẦN THOẠI ≥1% · cá Thường & Hiếm −50% · +30 may mắn · chí mạng 20% x2,5.",
       effects: [
         { kind: "boss_lure", value: 9 },
         { kind: "mythic_lure", value: 9 },
+        { kind: "mythic_floor", value: 0.011 }, // ≈1% trên tổng mọi lần quăng (sau phần rác & Boss)
+        { kind: "low_tier_cut", value: 0.5 },
         { kind: "luck_bonus", value: 30 },
         { kind: "crit", chance: 0.2, multiplier: 2.5 },
         { kind: "boss_damage", value: 0.4 },
