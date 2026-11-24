@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.58.2] – 2026-11-24
+### Sửa lỗi
+- **Đàn Cá Quý** nay thật sự ra cá quý: trong 3 lần quăng, cá **Sử Thi trở lên chiếm 40%** số cá cắn câu (trước đây chỉ +60 may mắn → Sử Thi+ chỉ tăng ~5% lên ~8%). Cá Thường / Hiếm giảm tương ứng, ví dụ Bến Câu Tân Thủ: cá Thường 74,5% → 41%, Sử Thi+ 4,9% → 39,8%.
+
 ## [0.58.1] – 2026-11-24
 ### Thay đổi
 - **Cần Cửu Thiên Thần Long** mạnh hơn: tỉ lệ gặp **BOSS ×10** (trước ×5) và cá **HUYỀN THOẠI & THẦN THOẠI ×10** (trước ×5). Boss ~3,3% mỗi lần quăng; ở Đại Dương Thần Thoại cá Huyền Thoại ~21,8%, Thần Thoại ~0,52%.

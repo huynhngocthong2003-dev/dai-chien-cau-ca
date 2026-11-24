@@ -68,3 +68,33 @@ describe("may mắn & mùa cá lớn", () => {
     expect(common / N).toBeCloseTo(o.byRarity.common ?? 0, 1);
   });
 });
+
+describe("Đàn cá quý: Sử Thi trở lên chiếm 40%", () => {
+  it("ở mọi khu có cá Sử Thi+: ~40% cá Sử Thi+, cá Thường & Hiếm giảm so với lúc thường", () => {
+    for (const zone of ZONES) {
+      const run = (school: boolean) => {
+        const rng = new Rng(21);
+        const c: Record<string, number> = {};
+        const N = 20000;
+        for (let i = 0; i < N; i++) {
+          const f = chooseFish(zone, FISH_BY_ID, lo(20), 0.5, rng, { school });
+          c[f.rarity] = (c[f.rarity] ?? 0) + 1;
+        }
+        return { hi: ((c.epic ?? 0) + (c.legendary ?? 0) + (c.mythic ?? 0)) / N, common: (c.common ?? 0) / N, rare: (c.rare ?? 0) / N };
+      };
+      const a = run(false);
+      const b = run(true);
+      if (a.hi === 0) continue;
+      expect(b.hi, zone.id).toBeGreaterThan(0.37);
+      expect(b.hi, zone.id).toBeLessThan(0.43);
+      expect(b.common, zone.id).toBeLessThanOrEqual(a.common);
+      expect(b.rare, zone.id).toBeLessThan(a.rare);
+    }
+  });
+  it("bảng tỉ lệ khớp: nhóm Sử Thi+ ~40% số cá (trừ phần Boss)", () => {
+    const o = catchOdds(ZONES[0]!, FISH_BY_ID, lo(20), 0.5, FISHING.junkChance, { school: true });
+    const fish = 1 - o.junk - (o.byRarity.boss ?? 0);
+    const hi = (o.byRarity.epic ?? 0) + (o.byRarity.legendary ?? 0) + (o.byRarity.mythic ?? 0);
+    expect(hi / fish).toBeCloseTo(0.4, 2);
+  });
+});

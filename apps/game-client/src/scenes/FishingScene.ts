@@ -574,7 +574,7 @@ export class FishingScene extends Phaser.Scene {
       ? junkAsFish(this.junk)
       : this.bossHunt
         ? this.pickHunt(rng)
-        : chooseFish(this.zone, FISH_BY_ID, lo, power, rng, { giant }); // mùa cá lớn: ưu tiên loài to
+        : chooseFish(this.zone, FISH_BY_ID, lo, power, rng, { giant, school: this.castEvent === "school" }); // mùa cá lớn: ưu tiên loài to · đàn cá quý: Sử Thi+ 40%
     this.fishDef = fish;
     this.weightKg = rollWeight(fish, rng, giant && !this.junk);
     this.session = new FishingSession({ fish, loadout: this.loadout, seed: rng.int(1, 2 ** 31), zoneDifficulty: this.zone.difficulty });

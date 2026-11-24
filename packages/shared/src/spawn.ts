@@ -35,6 +35,19 @@ export function spawnWeights(zone: ZoneDef, fishById: Map<string, FishDef>, lf: 
   return base.map((w) => (w.fish.rarity === "common" ? { ...w, weight: w.weight * k } : w));
 }
 
+/** ĐÀN CÁ QUÝ: cá từ SỬ THI trở lên chiếm 40% số cá cắn câu (cá Thường / Hiếm / Quý giảm tương ứng). */
+export const SCHOOL_HIGH_SHARE = 0.4;
+const HIGH_TIER: FishDef["rarity"][] = ["epic", "legendary", "mythic"];
+
+/** Dồn trọng số để nhóm Sử Thi+ đạt `share` (giữ nguyên tỉ lệ bên trong từng nhóm). Không có cá Sử Thi+ thì giữ nguyên. */
+export function boostHighTier<T extends { fish: FishDef; weight: number }>(ws: T[], share = SCHOOL_HIGH_SHARE): T[] {
+  const hi = ws.filter((w) => HIGH_TIER.includes(w.fish.rarity)).reduce((n, w) => n + w.weight, 0);
+  const lo = ws.filter((w) => !HIGH_TIER.includes(w.fish.rarity)).reduce((n, w) => n + w.weight, 0);
+  if (hi <= 0 || lo <= 0 || hi / (hi + lo) >= share) return ws;
+  const k = (share * lo) / ((1 - share) * hi);
+  return ws.map((w) => (HIGH_TIER.includes(w.fish.rarity) ? { ...w, weight: w.weight * k } : w));
+}
+
 /**
  * BẢNG TỈ LỆ theo CHỈ SỐ NGƯỜI CHƠI (may mắn nhân vật + tỉ lệ hiếm của cần + bùa + lực quăng):
  * rác, từng cấp cá, Boss – đúng công thức chooseFish/rollJunk dùng khi câu.
@@ -45,6 +58,7 @@ export function catchOdds(
   loadout: Loadout,
   castPower: number,
   junkBase: number,
+  opts: { school?: boolean } = {},
 ): { lf: number; junk: number; byRarity: Partial<Record<FishDef["rarity"], number>> } {
   const lf = luckFactor(loadout, castPower);
   const junk = junkChanceFor(junkBase, lf);
@@ -53,7 +67,8 @@ export function catchOdds(
   const boss = bossChance(lf, lure.boss);
   const fishPart = 1 - junk;
   const normal = fishPart * (1 - secret) * (1 - boss);
-  const ws = spawnWeights(zone, fishById, lf, lure.mythic);
+  const raw = spawnWeights(zone, fishById, lf, lure.mythic);
+  const ws = opts.school ? boostHighTier(raw) : raw;
   const tot = ws.reduce((n, w) => n + w.weight, 0) || 1;
   const byRarity: Partial<Record<FishDef["rarity"], number>> = {};
   for (const w of ws) byRarity[w.fish.rarity] = (byRarity[w.fish.rarity] ?? 0) + (normal * w.weight) / tot;
@@ -142,7 +157,7 @@ export function chooseFish(
   loadout: Loadout,
   castPower: number,
   rng: Rng,
-  opts: { giant?: boolean } = {},
+  opts: { giant?: boolean; school?: boolean } = {},
 ): FishDef {
   const lf = luckFactor(loadout, castPower);
   // Boss phụ siêu hiếm: cực kỳ khó gặp
@@ -155,7 +170,9 @@ export function chooseFish(
     const boss = pickZoneBoss(zone, fishById, rng);
     if (boss) return boss;
   }
-  const ws = spawnWeights(zone, fishById, lf, lure.mythic);
+  const raw = spawnWeights(zone, fishById, lf, lure.mythic);
+  // Đàn cá quý: Sử Thi trở lên chiếm 40%
+  const ws = opts.school ? boostHighTier(raw) : raw;
   if (opts.giant) {
     // cân nặng TRUNG BÌNH CÓ TRỌNG SỐ của khu (theo tỉ lệ xuất hiện) làm mốc "cá to"
     const tw = ws.reduce((n, w) => n + w.weight, 0) || 1;

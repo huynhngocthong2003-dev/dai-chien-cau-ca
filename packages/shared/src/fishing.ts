@@ -90,7 +90,7 @@ export function comboWeightBonus(maxCombo: number): number {
 /** Sự kiện ngẫu nhiên khi quăng cần – giữ hiệu lực vài lần quăng. */
 export type CastEventKind = "school" | "giant";
 export const CAST_EVENT_INFO: Record<CastEventKind, { name: string; desc: string; casts: number }> = {
-  school: { name: "🌟 ĐÀN CÁ QUÝ!", desc: "Cá hiếm dễ cắn hơn trong 3 lần quăng", casts: 3 },
+  school: { name: "🌟 ĐÀN CÁ QUÝ!", desc: "3 lần quăng: cá SỬ THI trở lên chiếm 40% – ít cá thường, cá hiếm", casts: 3 },
   giant: { name: "🐋 MÙA CÁ LỚN!", desc: "3 lần quăng: loài cá to dễ cắn hơn, cá luôn to & nặng thêm 35%", casts: 3 },
 };
 export function rollCastEvent(rng: Rng): CastEventKind | null {
