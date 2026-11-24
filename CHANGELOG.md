@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.58.1] – 2026-11-24
+### Thay đổi
+- **Cần Cửu Thiên Thần Long** mạnh hơn: tỉ lệ gặp **BOSS ×10** (trước ×5) và cá **HUYỀN THOẠI & THẦN THOẠI ×10** (trước ×5). Boss ~3,3% mỗi lần quăng; ở Đại Dương Thần Thoại cá Huyền Thoại ~21,8%, Thần Thoại ~0,52%.
+
 ## [0.58.0] – 2026-11-24 – Cần LR "Cửu Thiên Thần Long"
 ### Thêm
 - **Cần Cửu Thiên Thần Long (LR)** – nhận bằng mã quà tặng. Ngoại hình mới: thân trắng ngà viền vàng, tay cầm xanh hoàng gia, đầu cần là **vầng hào quang tia vàng + đôi cánh vàng + trăng khuyết ôm ngọc tinh tú cầu vồng + vương miện**.
