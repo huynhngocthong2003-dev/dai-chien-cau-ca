@@ -1,5 +1,11 @@
 # Changelog
 
+## [HERO ARENA 0.1.0] – 2026-11-26 – Game riêng: Battle Royale 20 người
+### Thêm mới (tách hoàn toàn khỏi game câu cá)
+- `packages/hero-arena-core`: logic thuần, tất định theo seed – 8 lớp × 3 nhánh, cấp 1→15, khóa nhánh ở cấp 5, chọn 1 trong 3 thẻ, chiêu tối thượng cấp 10 / thức tỉnh cấp 15, vòng bo 7 giai đoạn + biến đổi môi trường theo 6 vùng (sương độc / bão cát / đất đóng băng), quái + Boss + rơi đồ + trang bị, 19 đối thủ máy; Quà tặng (mã quà), Hòm thư, Hướng dẫn tân thủ, thưởng trận – mọi thay đổi tài nguyên qua `applyReward` có txId + sổ cái. 26 unit test.
+- `apps/hero-arena` (Phaser 3, cổng 5174): Sảnh, Chọn anh hùng & giới tính, Trận đấu (bàn phím / cần ảo cảm ứng, bản đồ nhỏ, nút kỹ năng có hồi chiêu), Kết quả. `pnpm dev:arena`, `pnpm build:arena`, `pnpm test:e2e:arena`.
+- Sửa lỗi so với bản code mẫu: bỏ Date.now/Math.random trong logic, thẻ nâng cấp có hiệu ứng thật, hàng đợi lượt chọn không mất thẻ, bỏ qua hướng dẫn không được thưởng, quà/thư/trận chống nhận trùng.
+
 ## [0.60.1] – 2026-11-24
 ### Sửa lỗi
 - **Chọn cá trưng bày** (Hồ Sơ): hiện **toàn bộ cá** (trước chỉ 18 con) kèm **thanh trượt** kéo được, lăn chuột hoặc vuốt trên điện thoại; kéo để cuộn không bị tính nhầm là chọn cá; hiện "Đã chọn n/3 · tổng số cá".

@@ -18,7 +18,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "build:artifact": "pnpm build:single && node scripts/make-artifact.mjs",
-    "test:db": "bash tests/db/run.sh"
+    "test:db": "bash tests/db/run.sh",
+    "dev:arena": "pnpm --filter @hero-arena/client dev",
+    "build:arena": "pnpm --filter @hero-arena/client build:single",
+    "test:e2e:arena": "node tests/e2e/hero-arena.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -30,6 +33,7 @@
     "@dccc/shared": "workspace:*",
     "@dccc/game-data": "workspace:*",
     "@dccc/game-config": "workspace:*",
-    "@dccc/validation": "workspace:*"
+    "@dccc/validation": "workspace:*",
+    "@hero-arena/core": "workspace:*"
   }
 }

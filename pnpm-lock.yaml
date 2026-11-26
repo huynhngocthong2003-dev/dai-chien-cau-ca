@@ -23,6 +23,9 @@ importers:
       '@eslint/js':
         specifier: 10.0.1
         version: 10.0.1(eslint@10.15.0)
+      '@hero-arena/core':
+        specifier: workspace:*
+        version: link:packages/hero-arena-core
       eslint:
         specifier: 10.15.0
         version: 10.15.0
@@ -67,6 +70,22 @@ importers:
         specifier: 2.3.4
         version: 2.3.4(rollup@4.68.7)(vite@7.3.8(lightningcss@1.33.0))
 
+  apps/hero-arena:
+    dependencies:
+      '@hero-arena/core':
+        specifier: workspace:*
+        version: link:../../packages/hero-arena-core
+      phaser:
+        specifier: 3.90.0
+        version: 3.90.0
+    devDependencies:
+      vite:
+        specifier: 7.3.8
+        version: 7.3.8(lightningcss@1.33.0)
+      vite-plugin-singlefile:
+        specifier: 2.3.4
+        version: 2.3.4(rollup@4.68.7)(vite@7.3.8(lightningcss@1.33.0))
+
   packages/game-config: {}
 
   packages/game-data:
@@ -77,6 +96,8 @@ importers:
       '@dccc/shared':
         specifier: workspace:*
         version: link:../shared
+
+  packages/hero-arena-core: {}
 
   packages/shared:
     dependencies:

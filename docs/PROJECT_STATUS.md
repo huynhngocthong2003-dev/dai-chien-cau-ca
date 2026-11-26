@@ -2,6 +2,11 @@
 
 Cập nhật: 2026-11-22 (v0.35.0)
 
+## HERO ARENA (game riêng, 2026-11-26)
+- ✅ 0.1.0: lõi logic + client chơi được với 19 máy; E2E `tests/e2e/hero-arena.mjs` đạt trên bản dev.
+- ⏳ Chờ chủ dự án chốt: phong cách đồ hoạ (HD theo ảnh tham khảo cần tài sản hình vẽ) và danh sách 8 lớp (bản code mẫu vs ảnh mới).
+- Chưa có: chơi mạng thật (máy chủ), va chạm địa hình, âm thanh.
+
 ## ĐẠI TU (Master Prompt 11 phần – xem docs/GIAI_DOAN_1_BAO_CAO.md)
 | GĐ đại tu | Trạng thái |
 |---|---|
