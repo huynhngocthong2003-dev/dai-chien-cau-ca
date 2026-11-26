@@ -347,3 +347,20 @@ describe("hồi sinh đầu trận", () => {
     expect(p.respawnAt).toBeNull();
   });
 });
+
+describe("tự khoá mục tiêu", () => {
+  it("ưu tiên đối thủ, giữ nút đánh thì tự chạy tới cho đủ tầm và đánh trúng", () => {
+    const a = new Arena({ seed: 41, playerName: "Tôi", heroId: "fighter", gender: "male", players: 2 });
+    for (const m of a.monsters) m.alive = false;
+    const p = a.player;
+    const e = a.fighters[1]!;
+    e.bot = null;
+    e.x = p.x + 300;
+    e.y = p.y;
+    expect(a.lockTarget(p)?.id).toBe(e.id);
+    const hp = e.state.hp;
+    for (let i = 0; i < 60; i++) a.tick(1 / 30, { moveX: 0, moveY: 0, attack: true, cast: null, usePotion: false });
+    expect(Math.hypot(e.x - p.x, e.y - p.y)).toBeLessThan(150);
+    expect(e.state.hp).toBeLessThan(hp);
+  });
+});

@@ -37,7 +37,8 @@ import { addHeroImage, breathe, evolutionScale, evolutionTier, hasRealArt, heroA
 import { getSave, newMatchSeed, persist } from "../state.ts";
 import { button, H, hex, panel, pixelBox, pixelCircle, PX, text, toast, W } from "../ui.ts";
 
-const STEP = 1 / 30;
+/** Bước mô phỏng 60 lần/giây – khớp tốc độ khung hình, chuyển động mượt. */
+const STEP = 1 / 60;
 
 const BIOME_COLOR: Record<BiomeType, number> = {
   forest: 0x22392b,
@@ -147,6 +148,8 @@ export class ArenaScene extends Phaser.Scene {
   private pendingCast: SkillSlot | null = null;
   private pendingPotion = false;
   private dmgPool: Phaser.GameObjects.Text[] = [];
+  private dust!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private lastStep = new Map<string, number>();
 
   constructor() {
     super("Arena");
@@ -199,6 +202,16 @@ export class ArenaScene extends Phaser.Scene {
       });
     }
     this.ringG = this.add.graphics().setDepth(1);
+    // bụi tung dưới chân khi chạy
+    this.dust = this.add.particles(0, 0, "dot", {
+      speedX: { min: -40, max: 40 },
+      speedY: { min: -50, max: -10 },
+      lifespan: 420,
+      scale: { start: 0.38, end: 0 },
+      alpha: { start: 0.55, end: 0 },
+      tint: 0xd8ccb8,
+      emitting: false,
+    }).setDepth(2);
     this.zoneG = this.add.graphics().setDepth(5000);
     this.fxG = this.add.graphics().setDepth(5001).setBlendMode(Phaser.BlendModes.ADD);
     this.bars = this.add.graphics().setDepth(5002);
@@ -387,7 +400,7 @@ export class ArenaScene extends Phaser.Scene {
       const real = this.game.loop.rawDelta || deltaMs;
       this.acc += Math.min(0.25, real / 1000) * this.timeScale;
       let steps = 0;
-      while (this.acc >= STEP && steps < 60) {
+      while (this.acc >= STEP && steps < 60 * Math.max(1, this.timeScale / 2)) {
         this.acc -= STEP;
         steps++;
         const input = this.readInput();
@@ -440,7 +453,7 @@ export class ArenaScene extends Phaser.Scene {
           const af = a.fighterById(e.fighterId);
           if (!av || !af) break;
           const kind = e.action === "ult" ? "ult" : e.action === "cast" ? "cast" : e.melee ? "melee" : "shot";
-          av.act = { kind, t: 0, dur: kind === "melee" ? 0.3 : kind === "shot" ? 0.18 : kind === "ult" ? 0.7 : 0.45, dx: e.dirX, dy: e.dirY, color: e.color };
+          av.act = { kind, t: 0, dur: kind === "melee" ? 0.36 : kind === "shot" ? 0.2 : kind === "ult" ? 0.7 : 0.45, dx: e.dirX, dy: e.dirY, color: e.color };
           if (this.nearCamera(af.x, af.y)) {
             if (kind === "melee") this.slashFx(af.x, af.y - 50 * av.scale, e.dirX, e.dirY, e.color, av.scale);
             else if (kind === "shot") this.muzzleFx(af.x + e.dirX * 40, af.y - 60 * av.scale + e.dirY * 20, e.color);
@@ -557,18 +570,18 @@ export class ArenaScene extends Phaser.Scene {
   private slashFx(x: number, y: number, dx: number, dy: number, color: number, scale: number): void {
     const g = this.worldOnly(this.add.graphics().setDepth(5600));
     const base = Math.atan2(dy, dx);
-    const R = 70 * scale + 20;
+    const R = 95 * scale + 30;
     const state = { p: 0 };
     const draw = () => {
       g.clear();
-      const a0 = base - 1.3;
-      const a1 = a0 + 2.6 * Math.min(1, state.p * 1.6);
+      const a0 = base - 1.7;
+      const a1 = a0 + 3.4 * Math.min(1, state.p * 1.8);
       const n = 14;
       const outer: Phaser.Math.Vector2[] = [];
       const inner: Phaser.Math.Vector2[] = [];
       for (let i = 0; i <= n; i++) {
         const ang = a0 + ((a1 - a0) * i) / n;
-        const thick = Math.sin((i / n) * Math.PI) * 18 * scale + 2;
+        const thick = Math.sin((i / n) * Math.PI) * 28 * scale + 3;
         outer.push(new Phaser.Math.Vector2(x + Math.cos(ang) * R, y + Math.sin(ang) * R * 0.75));
         inner.push(new Phaser.Math.Vector2(x + Math.cos(ang) * (R - thick), y + Math.sin(ang) * (R - thick) * 0.75));
       }
@@ -578,7 +591,29 @@ export class ArenaScene extends Phaser.Scene {
       g.lineStyle(3, 0xffffff, 0.95 * al).strokePoints(outer, false);
     };
     draw();
-    this.tweens.add({ targets: state, p: 1, duration: 230, onUpdate: draw, onComplete: () => g.destroy() });
+    this.tweens.add({ targets: state, p: 1, duration: 260, delay: 90, onUpdate: draw, onComplete: () => g.destroy() });
+    // tia lửa cuối đường chém
+    this.time.delayedCall(200, () => {
+      const ex = x + Math.cos(base + 1.2) * R;
+      const ey = y + Math.sin(base + 1.2) * R * 0.75;
+      const em = this.worldOnly(this.add.particles(ex, ey, "dot", { speed: { min: 80, max: 260 }, lifespan: 300, scale: { start: 0.4, end: 0 }, tint: [0xffffff, color], blendMode: "ADD", emitting: false })).setDepth(5601);
+      em.explode(10);
+      this.time.delayedCall(400, () => em.destroy());
+    });
+  }
+
+  /** Bóng mờ của nhân vật (vệt chuyển động khi vung đòn). */
+  private afterImage(v: FighterView, color: number): void {
+    const gh = this.worldOnly(this.add.image(v.img.x, v.img.y, v.img.texture.key, v.img.frame.name))
+      .setOrigin(0.5, 0.97)
+      .setScale(v.img.scaleX, v.img.scaleY)
+      .setRotation(v.img.rotation)
+      .setFlipX(v.img.flipX)
+      .setDepth(v.img.depth - 0.5)
+      .setTintFill(color)
+      .setAlpha(0.35)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: gh, alpha: 0, duration: 160, onComplete: () => gh.destroy() });
   }
 
   /** Loé sáng đầu vũ khí khi bắn. */
@@ -788,12 +823,17 @@ export class ArenaScene extends Phaser.Scene {
       // đi/chạy: 4 khung bước chân, nhịp theo tốc độ
       const stepRate = 6 + speed / 40;
       const walkI = moving ? Math.floor((t * stepRate + v.phase) % WALK_FRAMES) : -1;
-      if (walkI >= 0) v.img.setTexture(walkFrameKey(this, v.texKey, v.texFrame, walkI));
-      else v.img.setTexture(v.texKey, v.texFrame);
+      if (walkI >= 0) {
+        v.img.setTexture(walkFrameKey(this, v.texKey, v.texFrame, walkI));
+        // chân chạm đất (khung 0 và 2) → tung bụi
+        if ((walkI === 0 || walkI === 2) && this.lastStep.get(f.id) !== walkI && this.nearCamera(f.x, f.y)) this.dust.emitParticleAt(f.x - f.faceX * 12, f.y - 2, 3);
+        this.lastStep.set(f.id, walkI);
+      } else v.img.setTexture(v.texKey, v.texFrame);
       const tt = t * 3 + v.phase;
       let sx = 1 - Math.sin(tt) * 0.012;
       let sy = 1 + Math.sin(tt) * 0.026;
-      let rot = moving ? (f.vx / Math.max(1, speed)) * 0.06 : 0;
+      // chạy: người nghiêng về hướng chạy
+      let rot = moving ? (f.vx / Math.max(1, speed)) * 0.13 * Math.min(1, speed / 300) : 0;
       let ox = 0;
       let oy = 0;
       // hành động
@@ -803,20 +843,27 @@ export class ArenaScene extends Phaser.Scene {
         const p = Math.min(1, v.act.t / v.act.dur);
         const side = v.act.dx < -0.1 ? -1 : 1;
         if (v.act.kind === "melee") {
-          // lấy đà ngả ra sau rồi chém ngả tới
-          const swing = p < 0.35 ? -(p / 0.35) * 0.28 : -0.28 + ((p - 0.35) / 0.65) * 0.62 * Math.sin(Math.min(1, (p - 0.35) / 0.3) * Math.PI * 0.5);
-          rot += swing * side * (1 - Math.max(0, p - 0.7) / 0.3);
-          const lk = p < 0.35 ? -p * 0.3 : Math.sin(((p - 0.35) / 0.65) * Math.PI);
-          ox = v.act.dx * lk * 18;
-          oy = v.act.dy * lk * 10;
-          sx *= 1 + Math.max(0, lk) * 0.06;
-          sy *= 1 + Math.max(0, lk) * 0.06;
+          // lấy đà ngả ra sau (0–30%), vung mạnh tới (30–55%), giữ thế rồi thu về
+          let swing: number;
+          if (p < 0.3) swing = -(p / 0.3) * 0.45;
+          else if (p < 0.55) swing = -0.45 + ((p - 0.3) / 0.25) * 1.05;
+          else swing = 0.6 * (1 - (p - 0.55) / 0.45);
+          rot += swing * side;
+          const lk = p < 0.3 ? -(p / 0.3) * 0.25 : Math.sin(Math.min(1, (p - 0.3) / 0.7) * Math.PI);
+          ox = v.act.dx * lk * 30;
+          oy = v.act.dy * lk * 16;
+          sx *= 1 + Math.max(0, lk) * 0.1 - (p < 0.3 ? 0.06 : 0);
+          sy *= 1 - Math.max(0, lk) * 0.04 + (p < 0.3 ? 0.06 : 0);
+          // bóng mờ nối đuôi lúc vung
+          if (p > 0.3 && p < 0.6 && this.nearCamera(f.x, f.y) && Math.random() < 0.6) this.afterImage(v, v.act.color);
         } else if (v.act.kind === "shot") {
           // giật lùi khi bắn
           const rk = Math.sin(p * Math.PI);
-          ox = -v.act.dx * rk * 7;
-          oy = -v.act.dy * rk * 4;
-          rot -= side * rk * 0.08;
+          ox = -v.act.dx * rk * 13;
+          oy = -v.act.dy * rk * 6;
+          rot -= side * rk * 0.16;
+          sx *= 1 + rk * 0.06;
+          sy *= 1 - rk * 0.05;
         } else {
           // tung chiêu: vươn người lên, toả sáng
           const up = Math.sin(p * Math.PI);
@@ -873,6 +920,20 @@ export class ArenaScene extends Phaser.Scene {
     // vòng sáng dưới chân (màu nhánh; người chơi viền vàng)
     const rg = this.ringG;
     rg.clear();
+    // vòng ngắm đỏ tại mục tiêu tự khoá
+    if (a.player.state.alive && !a.player.bot) {
+      const lk = a.lockTarget(a.player);
+      if (lk) {
+        const rr = (lk.isFighter ? 46 : lk.radius * 1.6 + 16) + Math.sin(t * 8) * 4;
+        rg.lineStyle(3, 0xff3a3a, 0.9).strokeEllipse(lk.x, lk.y, rr * 2, rr * 0.75);
+        for (let k = 0; k < 4; k++) {
+          const ang = (k / 4) * Math.PI * 2 + t * 2;
+          const cx = lk.x + Math.cos(ang) * rr;
+          const cy = lk.y + Math.sin(ang) * rr * 0.375;
+          rg.fillStyle(0xff3a3a, 1).fillTriangle(cx, cy, cx - Math.cos(ang) * 12 - Math.sin(ang) * 7, cy - Math.sin(ang) * 4.5 + Math.cos(ang) * 4, cx - Math.cos(ang) * 12 + Math.sin(ang) * 7, cy - Math.sin(ang) * 4.5 - Math.cos(ang) * 4);
+        }
+      }
+    }
     if (a.respawnOpen()) {
       for (const pt of a.respawnPoints) {
         const pulse = 0.5 + 0.5 * Math.sin(t * 3 + pt.x);

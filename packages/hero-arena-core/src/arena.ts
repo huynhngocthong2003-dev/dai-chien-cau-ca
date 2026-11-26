@@ -34,6 +34,8 @@ export const FIGHTER_RADIUS = 18;
 export const POTION_HEAL_PCT = 0.35;
 export const MAX_POTIONS = 5;
 export const PASSIVE_EXP_PER_SEC = 3;
+/** Tầm tự khoá mục tiêu của người chơi. */
+export const LOCK_RANGE = 560;
 /** Hồi sinh đầu trận: trong RESPAWN_WINDOW_SEC giây đầu, bị hạ lần đầu được hồi sinh 1 lần. */
 export const RESPAWN_WINDOW_SEC = 300;
 export const RESPAWN_DELAY_SEC = 5;
@@ -511,10 +513,20 @@ export class Arena {
     f.attackCd = Math.max(0, f.attackCd - dt);
     if (this.time > f.shieldUntil) f.shieldHp = 0;
 
+    // tự khoá mục tiêu (người chơi): ưu tiên đối thủ, rồi tới quái
+    const lock = f.bot ? null : this.lockTarget(f);
     // di chuyển
     const hz = HAZARD_EFFECTS[s.activeHazard];
     let mx = input.moveX;
     let my = input.moveY;
+    // giữ nút đánh mà không điều khiển → tự chạy tới mục tiêu cho đủ tầm
+    if (lock && input.attack && Math.hypot(mx, my) < 0.1) {
+      const gap = Math.hypot(lock.x - f.x, lock.y - f.y) - lock.radius;
+      if (gap > this.rangeOf(f) * 0.85) {
+        mx = (lock.x - f.x) / Math.max(1, gap + lock.radius);
+        my = (lock.y - f.y) / Math.max(1, gap + lock.radius);
+      }
+    }
     const len = Math.hypot(mx, my);
     if (len > 1) {
       mx /= len;
@@ -572,7 +584,7 @@ export class Arena {
     let aimX = input.aimX;
     let aimY = input.aimY;
     if (aimX === undefined || aimY === undefined) {
-      const t = this.nearestTarget(f, this.rangeOf(f) * 1.6);
+      const t = lock ?? this.nearestTarget(f, this.rangeOf(f) * 1.6);
       if (t) {
         aimX = t.x;
         aimY = t.y;
@@ -594,6 +606,31 @@ export class Arena {
       f.x = WORLD_CENTER + (dx / d) * max;
       f.y = WORLD_CENTER + (dy / d) * max;
     }
+  }
+
+  /** Mục tiêu tự khoá: đối thủ gần nhất trong LOCK_RANGE, không có thì quái gần nhất. */
+  lockTarget(f: Fighter): { x: number; y: number; id: string; radius: number; isFighter: boolean } | null {
+    let best: { x: number; y: number; id: string; radius: number; isFighter: boolean } | null = null;
+    let bd = LOCK_RANGE;
+    for (const o of this.fighters) {
+      if (o === f || !o.state.alive) continue;
+      const d = Math.hypot(o.x - f.x, o.y - f.y);
+      if (d < bd) {
+        bd = d;
+        best = { x: o.x, y: o.y, id: o.id, radius: FIGHTER_RADIUS, isFighter: true };
+      }
+    }
+    if (best) return best;
+    bd = LOCK_RANGE * 0.8;
+    for (const m of this.monsters) {
+      if (!m.alive) continue;
+      const d = Math.hypot(m.x - f.x, m.y - f.y) - m.def.size;
+      if (d < bd) {
+        bd = d;
+        best = { x: m.x, y: m.y, id: m.id, radius: m.def.size, isFighter: false };
+      }
+    }
+    return best;
   }
 
   /** Mục tiêu gần nhất (đối thủ hoặc quái) trong tầm. */

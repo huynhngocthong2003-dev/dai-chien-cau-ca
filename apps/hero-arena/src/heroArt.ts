@@ -158,10 +158,10 @@ export function walkFrameKey(scene: Phaser.Scene, key: string, frame: number | u
   const legTop = Math.round(bottom - figH * 0.2);
   const mid = Math.round((left + right) / 2);
   const P = 3; // một "điểm ảnh" của hình gốc
-  const lift = [0, -2 * P, 0, 0][i] ?? 0; // chân trái nhấc
-  const liftR = [0, 0, 0, -2 * P][i] ?? 0; // chân phải nhấc
-  const bodyDy = [0, -P, 0, -P][i] ?? 0; // thân nhún khi một chân nhấc
-  const stride = [0, P, 0, -P][i] ?? 0; // bước chân lệch ngang
+  const lift = [0, -4 * P, -P, 0][i] ?? 0; // chân trái nhấc cao
+  const liftR = [-P, 0, 0, -4 * P][i] ?? 0; // chân phải nhấc cao
+  const bodyDy = [P, -P, P, -P][i] ?? 0; // thân nhún: thấp khi chạm đất, cao khi bước
+  const stride = [-P, 2 * P, P, -2 * P][i] ?? 0; // sải chân lệch ngang
   const ctx = tex.getContext();
   ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0, 0, w, h);
