@@ -25,8 +25,10 @@ export interface SkillDef {
 
 /** Hiệu ứng bị động của nhánh/thẻ nâng cấp (cộng dồn). */
 export interface PassiveEffect {
-  /** Gây cháy/độc: tỉ lệ công/giây trong 3 giây sau mỗi đòn trúng. */
+  /** Thiêu đốt: tỉ lệ công/giây trong 3 giây sau mỗi đòn trúng. */
   dotPct?: number;
+  /** Nhiễm độc: tỉ lệ công/giây trong 5 giây (cộng dồn riêng với thiêu đốt). */
+  poisonPct?: number;
   /** Làm chậm mục tiêu (tỉ lệ) 1,5 giây. */
   slowPct?: number;
   lifesteal?: number;
@@ -45,18 +47,31 @@ export interface GenderAppearance {
   visualNotes: string;
 }
 
+/** Dạng 3 – một trong 3 hướng tiến hoá của mỗi Dạng 2 (chọn ở cấp 10). */
+export interface HeroEvolution {
+  id: string;
+  name: string;
+  descVi: string;
+  color: number;
+  /** 0 = Tấn công, 1 = Phòng thủ, 2 = Tinh thông nguyên tố. */
+  style: number;
+  passive: { id: string; nameVi: string; effect: PassiveEffect };
+  ultimate: SkillDef;
+  awakening: SkillDef;
+}
+
+/** Dạng 2 – một trong 3 hướng nâng cấp cùng cấp bậc (chọn ở cấp 5). */
 export interface HeroBranch {
   id: string;
   name: string;
   descVi: string;
   /** Màu hiệu ứng chủ đạo (0xRRGGBB). */
   color: number;
-  /** Màu trang phục chính / phụ. */
-  outfit: [number, number];
+  /** Thứ tự hướng (0..2). */
+  form: number;
   passive: { id: string; nameVi: string; effect: PassiveEffect };
   skills: [SkillDef, SkillDef, SkillDef];
-  ultimate: SkillDef;
-  awakening: SkillDef;
+  evolutions: [HeroEvolution, HeroEvolution, HeroEvolution];
   appearances: Record<Gender, GenderAppearance>;
 }
 
@@ -72,10 +87,11 @@ export interface HeroClassConfig {
   id: string;
   name: string;
   nameVi: string;
+  /** Tên Dạng 1 (nhân vật bình thường, cấp 1–4). */
+  baseNameVi: string;
   roleVi: string;
   ranged: boolean;
   attackRange: number;
-  outfit: [number, number];
   baseStats: HeroBaseStats;
   /** Kỹ năng cơ bản trước khi chọn nhánh. */
   baseSkill: SkillDef;
@@ -119,8 +135,11 @@ export interface PlayerMatchState {
   name: string;
   heroId: string;
   gender: Gender;
+  /** Hướng Dạng 2 đã chọn (cấp 5). */
   branchId: string | null;
   specializationLocked: boolean;
+  /** Hướng Dạng 3 đã chọn (cấp 10). */
+  evolutionId: string | null;
   level: number;
   exp: number;
   hp: number;
@@ -139,8 +158,10 @@ export interface PlayerMatchState {
   pickedUpgrades: Record<string, number>;
   /** Hàng đợi các lượt chọn 1 trong 3 (mỗi phần tử là 3 thẻ). */
   pendingOffers: UpgradeChoice[][];
-  /** Đang chờ chọn nhánh chuyên môn (đạt cấp 5). */
+  /** Đang chờ chọn Dạng 2 (đạt cấp 5). */
   needsBranch: boolean;
+  /** Đang chờ chọn Dạng 3 (đạt cấp 10). */
+  needsEvolution: boolean;
   bonus: Required<Omit<UpgradeEffect, "passive" | "maxHp" | "maxMana">>;
   passive: Required<PassiveEffect>;
 }

@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import {
   Arena,
+  EVOLUTION_STYLE_VI,
+  passiveText,
   ALTAR_RADIUS,
   BIOME_NAME_VI,
   BIOME_SECTORS,
@@ -16,6 +18,7 @@ import {
   EXP_TO_NEXT,
   potionsAvailable,
   Rng,
+  RESPAWN_WINDOW_SEC,
   skillFor,
   ULTIMATE_LEVEL,
   WORLD_CENTER,
@@ -27,9 +30,12 @@ import {
   type SkillSlot,
   type UpgradeChoice,
 } from "@hero-arena/core";
-import { decoTexture, dotTexture, heroTexture, makeMonsterTextures, monsterTexture, vignetteTexture, type DecoKind } from "../art.ts";
+import { dotTexture, makeMonsterTextures, monsterTexture, vignetteTexture } from "../art.ts";
+import { decoTexture, type DecoKind } from "../decoArt.ts";
+import { TERRAIN_SCALE, terrainTexture } from "../terrain.ts";
+import { addHeroImage, breathe, evolutionScale, evolutionTier, hasRealArt, heroArtKey, HERO_FIGURE_H, setHeroImage, skillIcon } from "../heroArt.ts";
 import { getSave, newMatchSeed, persist } from "../state.ts";
-import { button, H, hex, panel, text, toast, W } from "../ui.ts";
+import { button, H, hex, panel, pixelBox, pixelCircle, PX, text, toast, W } from "../ui.ts";
 
 const STEP = 1 / 30;
 
@@ -43,12 +49,22 @@ const BIOME_COLOR: Record<BiomeType, number> = {
 };
 
 const BIOME_DECO: Record<BiomeType, DecoKind[]> = {
-  forest: ["tree", "darktree", "darktree", "tree", "rock", "grave", "fire"],
-  ruined_temple: ["pillar", "pillar", "ruin", "grave", "rock", "tree"],
-  desert: ["cactus", "cactus", "rock", "obelisk", "house"],
-  ruined_village: ["house", "house", "rock", "cactus", "obelisk", "fire"],
-  mountain: ["peak", "pine", "pine", "rock", "crystal", "rock"],
-  glacier: ["crystal", "pine", "crystal", "peak", "rock"],
+  forest: ["tree", "darktree", "darktree", "tree", "bush", "rock", "grave", "fire", "deadtree"],
+  ruined_temple: ["pillar", "brokenpillar", "ruin", "arch", "statue", "grave", "tree", "bush"],
+  desert: ["cactus", "cactus", "rock", "boulder", "obelisk", "deadtree", "bones"],
+  ruined_village: ["house", "ruinhouse", "well", "barrel", "rock", "deadtree", "fire", "obelisk"],
+  mountain: ["peak", "snowpine", "snowpine", "boulder", "crystal", "rock"],
+  glacier: ["crystal", "icechunk", "snowpine", "crystal", "peak", "rock"],
+};
+
+/** Chi tiết nhỏ rải trên mặt đất (vẽ hàng loạt bằng Blitter). */
+const BIOME_GROUND: Record<BiomeType, DecoKind[]> = {
+  forest: ["tuft", "tuft", "flowers", "mushroom", "pebbles"],
+  ruined_temple: ["tuft", "pebbles", "flowers", "bones"],
+  desert: ["pebbles", "bones", "pebbles"],
+  ruined_village: ["pebbles", "tuft", "bones"],
+  mountain: ["snowdrift", "pebbles"],
+  glacier: ["snowdrift", "pebbles"],
 };
 
 const HAZARD_TINT: Record<string, [number, number]> = {
@@ -61,10 +77,19 @@ interface FighterView {
   img: Phaser.GameObjects.Image;
   name: Phaser.GameObjects.Text;
   key: string;
+  /** Hiệu ứng động: lao người khi đánh, loé khi trúng đòn, pha thở riêng. */
+  lunge: number;
+  flash: number;
+  phase: number;
+  scale: number;
+  aura: Phaser.GameObjects.Particles.ParticleEmitter | null;
+  auraKey: string;
 }
 
 interface SkillButton {
   slot: SkillSlot | "attack" | "potion";
+  icon: Phaser.GameObjects.Image;
+  cdG: Phaser.GameObjects.Graphics;
   x: number;
   y: number;
   r: number;
@@ -86,6 +111,8 @@ export class ArenaScene extends Phaser.Scene {
   private fighterViews = new Map<string, FighterView>();
   private monsterViews = new Map<string, Phaser.GameObjects.Image>();
   private bars!: Phaser.GameObjects.Graphics;
+  private ringG!: Phaser.GameObjects.Graphics;
+  private portraitKey = "init";
   private fxG!: Phaser.GameObjects.Graphics;
   private zoneG!: Phaser.GameObjects.Graphics;
   private hudG!: Phaser.GameObjects.Graphics;
@@ -140,21 +167,23 @@ export class ArenaScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
     this.cameras.main.setBackgroundColor("#0a1622");
-    this.cameras.main.setZoom(0.9);
+    this.cameras.main.setZoom(1);
     dotTexture(this);
     makeMonsterTextures(this);
     this.drawWorld(seed);
 
     for (const m of this.arena.monsters) {
-      const img = this.add.image(m.x, m.y, monsterTexture(this, m.def));
+      const img = this.add.image(m.x, m.y, monsterTexture(this, m.def)).setScale(1.5);
       this.monsterViews.set(m.id, img);
     }
     for (const f of this.arena.fighters) {
-      const key = heroTexture(this, f.state.heroId, null, f.state.gender);
-      const img = this.add.image(f.x, f.y, key).setOrigin(0.5, 0.92);
+      const img = addHeroImage(this, f.x, f.y, f.state.heroId, null, null, evolutionScale(1));
+      const key = `${heroArtKey(f.state.heroId, null, null)}:1`;
+      const phase = this.fighterViews.size * 0.7;
       const name = text(this, f.x, f.y, f.isBot ? f.state.name : `★ ${f.state.name}`, 15, f.isBot ? "#f0e0d0" : "#ffe14a").setOrigin(0.5, 1);
-      this.fighterViews.set(f.id, { img, name, key });
+      this.fighterViews.set(f.id, { img, name, key, lunge: 0, flash: 0, phase, scale: evolutionScale(1), aura: null, auraKey: "" });
     }
+    this.ringG = this.add.graphics().setDepth(1);
     this.zoneG = this.add.graphics().setDepth(5000);
     this.fxG = this.add.graphics().setDepth(5001).setBlendMode(Phaser.BlendModes.ADD);
     this.bars = this.add.graphics().setDepth(5002);
@@ -168,72 +197,42 @@ export class ArenaScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ bản đồ
   private drawWorld(seed: number): void {
-    const g = this.add.graphics().setDepth(-10);
     const C = WORLD_CENTER;
-    // vách đá quanh đảo
-    g.fillStyle(0x1e2228, 1).fillCircle(C, C, ISLAND_RADIUS + 70);
-    g.fillStyle(0x2c3038, 1).fillCircle(C, C, ISLAND_RADIUS + 30);
-    for (const s of BIOME_SECTORS) {
-      g.fillStyle(BIOME_COLOR[s.biome], 1);
-      g.slice(C, C, ISLAND_RADIUS, Phaser.Math.DegToRad(s.from), Phaser.Math.DegToRad(s.to), false);
-      g.fillPath();
-    }
-    // vân đất
+    // mặt đất vẽ từng điểm ảnh (độ phân giải 1/3, nét pixel)
+    this.add.image(0, 0, terrainTexture(this, seed)).setOrigin(0).setScale(TERRAIN_SCALE).setDepth(-10);
     const rng = new Rng(seed ^ 0x5eed);
-    for (let i = 0; i < 1400; i++) {
-      const a = rng.range(0, Math.PI * 2);
-      const d = Math.sqrt(rng.next()) * ISLAND_RADIUS;
-      const x = C + Math.cos(a) * d;
-      const y = C + Math.sin(a) * d;
-      const b = biomeAt(x, y);
-      const base = BIOME_COLOR[b];
-      const light = rng.chance(0.5);
-      g.fillStyle(light ? Phaser.Display.Color.IntegerToColor(base).lighten(12).color : Phaser.Display.Color.IntegerToColor(base).darken(12).color, 0.6);
-      g.fillEllipse(x, y, rng.range(30, 110), rng.range(14, 40));
-    }
-    // đường đá từ tế đàn
-    g.lineStyle(70, 0x4a4a52, 1);
-    for (const s of BIOME_SECTORS) {
-      const a = biomeMidAngle(s.biome);
-      g.lineBetween(C, C, C + Math.cos(a) * ISLAND_RADIUS * 0.8, C + Math.sin(a) * ISLAND_RADIUS * 0.8);
-    }
-    g.lineStyle(4, 0x2a2a30, 0.6);
-    for (const s of BIOME_SECTORS) {
-      const a = biomeMidAngle(s.biome);
-      g.lineBetween(C, C, C + Math.cos(a) * ISLAND_RADIUS * 0.8, C + Math.sin(a) * ISLAND_RADIUS * 0.8);
-    }
-    // tế đàn trung tâm (bát giác)
-    const oct = (r: number) => Array.from({ length: 8 }, (_, i) => new Phaser.Math.Vector2(C + Math.cos((i * Math.PI) / 4 + Math.PI / 8) * r, C + Math.sin((i * Math.PI) / 4 + Math.PI / 8) * r));
-    g.fillStyle(0x2a2630, 1).fillPoints(oct(ALTAR_RADIUS), true);
-    g.lineStyle(6, 0x5a4a6a, 1).strokePoints(oct(ALTAR_RADIUS), true);
-    g.fillStyle(0x3a3442, 1).fillPoints(oct(ALTAR_RADIUS * 0.62), true);
-    g.fillStyle(0xc070ff, 0.25).fillCircle(C, C, ALTAR_RADIUS * 0.4);
-    g.fillStyle(0xffb0ff, 0.25).fillCircle(C, C, ALTAR_RADIUS * 0.2);
-    // nướng nền vào texture nửa độ phân giải (Graphics vẽ lại mỗi khung rất tốn)
-    const BAKE = 0.5;
-    const rt = this.add.renderTexture(0, 0, WORLD_SIZE * BAKE, WORLD_SIZE * BAKE).setOrigin(0).setScale(1 / BAKE).setDepth(-10);
-    g.setScale(BAKE);
-    rt.draw(g);
-    g.destroy();
     // nhãn vùng
     for (const s of BIOME_SECTORS) {
       const a = biomeMidAngle(s.biome);
       text(this, C + Math.cos(a) * ISLAND_RADIUS * 0.96, C + Math.sin(a) * ISLAND_RADIUS * 0.96, BIOME_NAME_VI[s.biome], 30, "#ffffffaa").setOrigin(0.5).setDepth(-5);
     }
-    // trang trí
+    // trang trí lớn (sắp xếp chiều sâu theo y)
+    const blitters = new Map<DecoKind, Phaser.GameObjects.Blitter>();
     for (const s of BIOME_SECTORS) {
       const kinds = BIOME_DECO[s.biome];
-      for (let i = 0; i < 55; i++) {
-        const a = Phaser.Math.DegToRad(rng.range(s.from + 3, s.to - 3));
-        const d = rng.range(ALTAR_RADIUS + 80, ISLAND_RADIUS - 60);
+      const mid = biomeMidAngle(s.biome);
+      for (let i = 0; i < 110; i++) {
+        const a = Phaser.Math.DegToRad(rng.range(s.from + 2, s.to - 2));
+        const d = rng.range(ALTAR_RADIUS + 90, ISLAND_RADIUS - 70);
         const x = C + Math.cos(a) * d;
         const y = C + Math.sin(a) * d;
-        // tránh đường đá
-        const mid = biomeMidAngle(s.biome);
-        const off = Math.abs(Math.sin(a - mid)) * d;
-        if (off < 70) continue;
+        if (Math.abs(Math.sin(a - mid)) * d < 80) continue; // chừa đường đá
         const kind = rng.pick(kinds);
-        this.add.image(x, y, decoTexture(this, kind)).setOrigin(0.5, 0.9).setDepth(y).setScale(rng.range(0.8, 1.25));
+        this.add.image(x, y, decoTexture(this, kind)).setOrigin(0.5, 0.9).setDepth(y).setFlipX(rng.chance(0.5));
+      }
+      // chi tiết nhỏ trên mặt đất
+      const ground = BIOME_GROUND[s.biome];
+      for (let i = 0; i < 320; i++) {
+        const a = Phaser.Math.DegToRad(rng.range(s.from, s.to));
+        const d = rng.range(ALTAR_RADIUS + 40, ISLAND_RADIUS - 30);
+        const kind = rng.pick(ground);
+        let bl = blitters.get(kind);
+        if (!bl) {
+          bl = this.add.blitter(0, 0, decoTexture(this, kind)).setDepth(-5);
+          blitters.set(kind, bl);
+        }
+        const fr = this.textures.getFrame(decoTexture(this, kind));
+        bl.create(C + Math.cos(a) * d - fr.width / 2, C + Math.sin(a) * d - fr.height * 0.9);
       }
     }
   }
@@ -259,12 +258,14 @@ export class ArenaScene extends Phaser.Scene {
     this.hazardText = fixed(text(this, W - 24, 92, "", 22, "#ff7a6a").setOrigin(1, 0));
     this.statText = fixed(text(this, 132, 610, "", 17, "#f3ead8", 500));
     this.infoText = fixed(text(this, 250, 20, "", 18, "#d8d0c0", 500));
-    this.portrait = fixed(this.add.image(66, 686, heroTexture(this, this.heroId, null, this.gender)).setScale(1.2).setOrigin(0.5, 0.92));
+    this.portrait = fixed(addHeroImage(this, 68, 700, this.heroId, null, null, 0.62));
     for (let i = 0; i < 5; i++) this.feed.push(fixed(text(this, W - 24, 130 + i * 24, "", 17, "#f3ead8", 500).setOrigin(1, 0)));
 
     const mk = (slot: SkillButton["slot"], x: number, y: number, r: number, key: string) => {
       const g = fixed(this.add.graphics());
-      const label = fixed(text(this, x, y, "", r > 50 ? 18 : 14, "#ffffff").setOrigin(0.5));
+      const icon = fixed(this.add.image(x, y, skillIcon(this, "attack", 0xd06a3a)).setDisplaySize(r * 1.42, r * 1.42).setVisible(slot === "attack"));
+      const cdG = fixed(this.add.graphics());
+      const label = fixed(text(this, x, y, "", r > 50 ? 18 : 15, "#ffffff").setOrigin(0.5));
       const k = fixed(text(this, x + r * 0.62, y - r * 0.82, key, 13, "#ffe08a").setOrigin(0.5));
       const zone = fixed(this.add.zone(x, y, r * 2, r * 2).setInteractive());
       zone.on("pointerdown", (p: Phaser.Input.Pointer) => {
@@ -272,7 +273,7 @@ export class ArenaScene extends Phaser.Scene {
         else if (slot === "potion") this.pendingPotion = true;
         else this.pendingCast = slot;
       });
-      this.skillButtons.push({ slot, x, y, r, g, label, key: k });
+      this.skillButtons.push({ slot, icon, cdG, x, y, r, g, label, key: k });
     };
     mk("attack", 1176, 618, 62, "Space");
     mk("s1", 1052, 650, 40, "Q");
@@ -390,12 +391,18 @@ export class ArenaScene extends Phaser.Scene {
     let dirty = false;
     for (const e of evs) {
       switch (e.type) {
-        case "hit":
+        case "hit": {
           if (e.sourceId === pid || e.targetId === pid) this.damageNumber(e.x, e.y, e.amount, e.crit, e.targetId === pid);
+          const tv = this.fighterViews.get(e.targetId);
+          if (tv) tv.flash = 0.09;
           break;
-        case "fx":
+        }
+        case "fx": {
           this.spawnFx(e);
+          const ov = this.fighterViews.get(e.ownerId);
+          if (ov && e.kind !== "death" && e.kind !== "potion") ov.lunge = 0.16;
           break;
+        }
         case "eliminated": {
           const v = a.fighterById(e.victimId);
           const k = e.killerId ? a.fighterById(e.killerId) : null;
@@ -404,6 +411,16 @@ export class ArenaScene extends Phaser.Scene {
           if (e.victimId === pid) this.endMatch(false);
           break;
         }
+        case "downed": {
+          const v = a.fighterById(e.victimId);
+          const k = e.killerId ? a.fighterById(e.killerId) : null;
+          this.pushFeed(`✚ ${v?.state.name ?? "?"} gục${k ? ` bởi ${k.state.name}` : ""} – sẽ hồi sinh`, e.victimId === pid ? "#ffb347" : "#b8d8c8");
+          if (e.victimId === pid) this.note("BẠN ĐÃ GỤC – hồi sinh sau 5 giây (mất hết đồ & kinh nghiệm)", "#ff9a8a");
+          break;
+        }
+        case "respawned":
+          if (e.fighterId === pid) this.note("ĐÃ HỒI SINH! Không còn mạng hồi sinh nào nữa", "#8aff9a");
+          break;
         case "victory":
           if (e.winnerId === pid) this.endMatch(true);
           break;
@@ -418,7 +435,7 @@ export class ArenaScene extends Phaser.Scene {
           break;
         case "levelup":
           if (e.fighterId === pid) {
-            this.note(`LÊN CẤP ${e.level}!${e.level === ULTIMATE_LEVEL ? " Mở khóa chiêu Tối Thượng (F)" : e.level === MAX_LEVEL ? " THỨC TỈNH!" : ""}`, "#ffe14a");
+            this.note(`LÊN CẤP ${e.level}!${e.level === ULTIMATE_LEVEL ? " TIẾN HOÁ! Mở khóa chiêu Tối Thượng (F)" : e.level === MAX_LEVEL ? " THỨC TỈNH – sức mạnh tối đa!" : ""}`, "#ffe14a");
           }
           break;
         case "zone_shrink":
@@ -445,14 +462,68 @@ export class ArenaScene extends Phaser.Scene {
         heroId: this.heroId,
         gender: this.gender,
         branchId: s.branchId,
+        evolutionId: this.arena.player.state.evolutionId,
         placement: s.placement,
         kills: s.kills,
         level: s.level,
         won: s.won,
         lootGold: s.gold,
-        storePotionsUsed: Math.min(this.storePotions, s.potionsUsed),
+        storePotionsUsed: Math.min(this.storePotions, s.potionsUsed + this.arena.player.lostPotions),
       });
     });
+  }
+
+  /** Hạt sáng màu dạng bay quanh nhân vật – dày hơn khi tiến hoá / thức tỉnh. */
+  private updateAura(f: Arena["fighters"][number], v: FighterView): void {
+    const tier = evolutionTier(f.state.level);
+    const want = f.state.branchId ? `${f.state.branchId}:${tier}` : "";
+    if (want !== v.auraKey) {
+      v.auraKey = want;
+      v.aura?.destroy();
+      v.aura = null;
+      if (want) {
+        const color = fxColor(f);
+        const em = this.add.particles(0, 0, "dot", {
+          x: { min: -34, max: 34 },
+          y: { min: -10, max: 6 },
+          speedY: { min: -40 - tier * 25, max: -15 - tier * 10 },
+          speedX: { min: -12, max: 12 },
+          lifespan: { min: 700, max: 1300 },
+          scale: { start: 0.32 + tier * 0.1, end: 0 },
+          alpha: { start: 0.95, end: 0 },
+          tint: [color, 0xffffff, color],
+          blendMode: "ADD",
+          frequency: [200, 90, 40][tier] ?? 200,
+          quantity: tier === 2 ? 2 : 1,
+        });
+        em.startFollow(v.img, 0, -18);
+        this.worldOnly(em);
+        v.aura = em;
+      }
+    }
+    if (v.aura) {
+      v.aura.setDepth(f.y + 1);
+      v.aura.emitting = f.state.alive;
+    }
+  }
+
+  /** Bùng sáng khi tiến hoá (cấp 10) / thức tỉnh (cấp 15). */
+  private evolveBurst(x: number, y: number, color: number): void {
+    const em = this.add.particles(x, y - 70, "dot", {
+      speed: { min: 120, max: 420 },
+      lifespan: 900,
+      scale: { start: 0.9, end: 0 },
+      alpha: { start: 1, end: 0 },
+      tint: [color, 0xffffff],
+      blendMode: "ADD",
+      emitting: false,
+    });
+    this.worldOnly(em).setDepth(6000);
+    em.explode(60);
+    const ring = this.worldOnly(this.add.graphics().setDepth(5999).setBlendMode(Phaser.BlendModes.ADD));
+    ring.lineStyle(10, color, 0.9).strokeCircle(x, y - 60, 40);
+    this.tweens.add({ targets: ring, scale: 3, alpha: 0, duration: 700, onUpdate: () => ring.setPosition(x - x * ring.scale, y - 60 - (y - 60) * ring.scale), onComplete: () => ring.destroy() });
+    this.time.delayedCall(1200, () => em.destroy());
   }
 
   private pushFeed(msg: string, color: string): void {
@@ -486,17 +557,17 @@ export class ArenaScene extends Phaser.Scene {
     switch (e.kind) {
       case "attack":
       case "cleave":
-        g.fillStyle(e.color, e.kind === "cleave" ? 0.45 : 0.28).fillCircle(e.x, e.y, e.radius * 0.55);
+        g.fillStyle(e.color, e.kind === "cleave" ? 0.3 : 0.18).fillCircle(e.x, e.y, e.radius * 0.55);
         break;
       case "nova":
       case "heal":
       case "storm":
-        g.lineStyle(8, e.color, 0.9).strokeCircle(e.x, e.y, e.radius);
-        g.fillStyle(e.color, 0.28).fillCircle(e.x, e.y, e.radius);
+        g.lineStyle(6, e.color, 0.75).strokeCircle(e.x, e.y, e.radius);
+        g.fillStyle(e.color, e.kind === "storm" ? 0.12 : 0.16).fillCircle(e.x, e.y, e.radius);
         if (e.kind === "storm") {
           for (let i = 0; i < 6; i++) {
             const a = (i / 6) * Math.PI * 2;
-            g.lineStyle(4, 0xffffff, 0.8).lineBetween(e.x, e.y, e.x + Math.cos(a) * e.radius, e.y + Math.sin(a) * e.radius);
+            g.lineStyle(3, e.color, 0.45).lineBetween(e.x, e.y, e.x + Math.cos(a) * e.radius, e.y + Math.sin(a) * e.radius);
           }
           if (e.ownerId === this.arena.playerId) cam.shake(220, 0.006);
         }
@@ -525,6 +596,23 @@ export class ArenaScene extends Phaser.Scene {
         break;
     }
     this.tweens.add({ targets: g, alpha: 0, duration: dur, ease: "Quad.easeIn", onComplete: () => g.destroy() });
+    // hạt sáng cho kỹ năng
+    const sparks: Partial<Record<string, number>> = { cleave: 8, nova: 18, storm: 30, heal: 16, shield: 10, trap: 10, dash: 8, levelup: 24 };
+    const n = sparks[e.kind];
+    if (n) {
+      const em = this.add.particles(e.x, e.y - 30, "dot", {
+        speed: { min: 60, max: e.kind === "storm" ? 520 : 280 },
+        lifespan: { min: 300, max: 700 },
+        scale: { start: e.kind === "storm" ? 0.55 : 0.4, end: 0 },
+        alpha: { start: 0.85, end: 0 },
+        tint: e.color,
+        blendMode: "ADD",
+        emitting: false,
+      });
+      this.worldOnly(em).setDepth(5600);
+      em.explode(n);
+      this.time.delayedCall(800, () => em.destroy());
+    }
   }
 
   // ------------------------------------------------------------------ vẽ
@@ -541,20 +629,81 @@ export class ArenaScene extends Phaser.Scene {
         }
         continue;
       }
-      const key = heroTexture(this, f.state.heroId, f.state.branchId, f.state.gender);
-      if (key !== v.key) {
-        v.key = key;
-        v.img.setTexture(key);
+      if (!v.img.visible) {
+        v.img.setVisible(true);
+        v.name.setVisible(true);
       }
-      const bob = Math.hypot(f.vx, f.vy) > 20 ? Math.sin(t * 14 + f.x * 0.01) * 2.5 : 0;
-      v.img.setPosition(f.x, f.y + bob).setDepth(f.y).setFlipX(f.faceX < -0.1);
-      v.name.setPosition(f.x, f.y - 84).setDepth(5003);
+      // nhấp nháy khi đang bất tử sau hồi sinh
+      v.img.setAlpha(t < f.protectUntil ? 0.5 + 0.5 * Math.sin(t * 20) : 1);
+      const speed = Math.hypot(f.vx, f.vy);
+      const moving = speed > 20;
+      const back = moving && f.faceY < -0.6;
+      const key = `${heroArtKey(f.state.heroId, f.state.branchId, f.state.evolutionId, back)}:${f.state.level}`;
+      if (key !== v.key) {
+        const evolved = v.key !== "" && v.scale < evolutionScale(f.state.level);
+        v.key = key;
+        v.scale = evolutionScale(f.state.level);
+        setHeroImage(v.img, f.state.heroId, f.state.branchId, f.state.evolutionId, back, v.scale);
+        if (evolved) this.evolveBurst(f.x, f.y, fxColor(f));
+      }
+      // ---- hiệu ứng động ----
+      const dtv = this.game.loop.delta / 1000;
+      v.lunge = Math.max(0, v.lunge - dtv);
+      v.flash = Math.max(0, v.flash - dtv);
+      const tt = t * (moving ? 13 : 3) + v.phase;
+      // thở khi đứng, nhún + nghiêng khi chạy
+      const breatheY = moving ? 1 + Math.abs(Math.sin(tt)) * 0.04 : 1 + Math.sin(tt) * 0.028;
+      const breatheX = moving ? 1 - Math.abs(Math.sin(tt)) * 0.02 : 1 - Math.sin(tt) * 0.012;
+      const bob = moving ? -Math.abs(Math.sin(tt)) * 6 : 0;
+      const tilt = moving ? Math.sin(tt) * 0.07 + (f.vx / Math.max(1, speed)) * 0.05 : 0;
+      // lao người về hướng đánh + phóng to nhẹ
+      const lk = v.lunge > 0 ? Math.sin((v.lunge / 0.16) * Math.PI) : 0;
+      const punch = 1 + lk * 0.07;
+      v.img
+        .setPosition(f.x + f.faceX * lk * 14, f.y + bob + f.faceY * lk * 8)
+        .setDepth(f.y)
+        .setFlipX(f.faceX < -0.1)
+        .setRotation(tilt)
+        .setScale(v.scale * breatheX * punch, v.scale * breatheY * punch);
+      // loé trắng khi trúng đòn
+      if (v.flash > 0) v.img.setTintFill(0xffffff);
+      else v.img.clearTint();
+      v.name.setPosition(f.x, f.y - 30 - HERO_FIGURE_H * v.scale).setDepth(5003);
+      this.updateAura(f, v);
     }
     for (const m of a.monsters) {
       const img = this.monsterViews.get(m.id);
       if (!img) continue;
       img.setVisible(m.alive);
       if (m.alive) img.setPosition(m.x, m.y).setDepth(m.y);
+    }
+    // vòng sáng dưới chân (màu nhánh; người chơi viền vàng)
+    const rg = this.ringG;
+    rg.clear();
+    if (a.respawnOpen()) {
+      for (const pt of a.respawnPoints) {
+        const pulse = 0.5 + 0.5 * Math.sin(t * 3 + pt.x);
+        rg.fillStyle(0x6affb0, 0.12 + 0.1 * pulse).fillEllipse(pt.x, pt.y, 150, 60);
+        rg.lineStyle(4, 0x6affb0, 0.7).strokeEllipse(pt.x, pt.y, 150, 60);
+        rg.lineStyle(2, 0xffffff, 0.5 * pulse).strokeEllipse(pt.x, pt.y, 110, 40);
+        rg.lineStyle(5, 0x6affb0, 0.8).lineBetween(pt.x, pt.y - 18, pt.x, pt.y + 18).lineBetween(pt.x - 36, pt.y, pt.x + 36, pt.y);
+      }
+    }
+    for (const f of a.fighters) {
+      if (!f.state.alive) continue;
+      const isP = f.id === a.playerId;
+      const tier = evolutionTier(f.state.level);
+      if (tier > 0) {
+        // tiến hoá: hào quang toả sáng; thức tỉnh: cột sáng + vòng kép
+        const pul = 0.5 + 0.5 * Math.sin(t * 4 + f.x);
+        rg.fillStyle(fxColor(f), 0.12 + 0.08 * pul).fillEllipse(f.x, f.y, 130 + tier * 30, 44 + tier * 10);
+        if (tier === 2) {
+          rg.fillStyle(fxColor(f), 0.07 + 0.05 * pul).fillRect(f.x - 30, f.y - 190, 60, 190);
+          rg.lineStyle(2, 0xffffff, 0.5 * pul).strokeEllipse(f.x, f.y, 150, 50);
+        }
+      }
+      rg.fillStyle(fxColor(f), 0.18).fillEllipse(f.x, f.y, 70, 22);
+      rg.lineStyle(isP ? 3 : 2, isP ? 0xffd84a : fxColor(f), isP ? 0.95 : 0.6).strokeEllipse(f.x, f.y, 70 + Math.sin(t * 5) * 4, 22);
     }
     // thanh máu
     const b = this.bars;
@@ -563,7 +712,7 @@ export class ArenaScene extends Phaser.Scene {
       if (!f.state.alive) continue;
       const w = 54;
       const x = f.x - w / 2;
-      const y = f.y - 80;
+      const y = f.y - 26 - HERO_FIGURE_H * evolutionScale(f.state.level);
       b.fillStyle(0x0b0f18, 0.85).fillRect(x - 1, y - 1, w + 2, 8);
       b.fillStyle(f.id === a.playerId ? 0x5ad05a : 0xe04a3a, 1).fillRect(x, y, (w * f.state.hp) / f.state.maxHp, 6);
       if (f.shieldHp > 0) b.fillStyle(0xffffff, 0.8).fillRect(x, y - 3, Math.min(w, (w * f.shieldHp) / f.state.maxHp), 2);
@@ -618,27 +767,42 @@ export class ArenaScene extends Phaser.Scene {
     this.zoneText.setText(z.phase === "wait" ? `Bo thu hẹp sau: ${mmss}` : z.phase === "shrink" ? `BO ĐANG THU: ${mmss}` : "Bo đã đóng!");
     this.zoneText.setColor(z.phase === "shrink" ? "#ff9a6a" : "#f3ead8");
     const hz = HAZARD_EFFECTS[s.activeHazard];
-    this.hazardText.setText(s.outsideSafeZone ? `⚠ NGOÀI BO · ${hz.nameVi.toUpperCase()}!` : "");
+    const respawnLeft = Math.max(0, Math.ceil(RESPAWN_WINDOW_SEC - a.time));
+    const lifeInfo = p.respawnAt !== null ? `✚ Hồi sinh sau ${Math.max(0, Math.ceil(p.respawnAt - a.time))}s` : p.lives > 0 && respawnLeft > 0 ? `✚ Còn 1 mạng hồi sinh (${Math.floor(respawnLeft / 60)}:${String(respawnLeft % 60).padStart(2, "0")})` : "";
+    this.hazardText.setText(s.outsideSafeZone ? `⚠ NGOÀI BO · ${hz.nameVi.toUpperCase()}!` : lifeInfo);
+    this.hazardText.setColor(s.outsideSafeZone ? "#ff7a6a" : "#8affc0");
     const tint = HAZARD_TINT[s.activeHazard];
     this.hazardTint.setFillStyle(tint ? tint[0] : 0x000000, tint ? tint[1] + 0.05 * Math.sin(a.time * 4) : 0);
     this.vignette.setAlpha(s.outsideSafeZone ? Math.min(0.9, (1 - hz.vision) * 1.6) : 0);
 
     const hero = heroById(s.heroId);
     const br = hero?.branches.find((x) => x.id === s.branchId);
-    this.portrait.setTexture(heroTexture(this, s.heroId, s.branchId, s.gender));
+    const pk = `${s.branchId ?? ""}:${s.evolutionId ?? ""}`;
+    if (pk !== this.portraitKey) {
+      this.portraitKey = pk;
+      setHeroImage(this.portrait, s.heroId, s.branchId, s.evolutionId, false, 0.62);
+    }
     this.infoText.setText(
-      `${hero?.nameVi ?? ""}${br ? ` · ${br.name}` : " · chưa chọn nhánh"}  ·  🧪 ${p.potions}  ·  ⚔ ${s.kills}  ·  💰 ${p.gold}  ·  ${BIOME_NAME_VI[biomeAt(p.x, p.y)]}` +
+      `${hero?.nameVi ?? ""} · ${br?.evolutions.find((e) => e.id === s.evolutionId)?.name ?? br?.name ?? hero?.baseNameVi ?? ""}  ·  🧪 ${p.potions}  ·  ⚔ ${s.kills}  ·  💰 ${p.gold}  ·  ${BIOME_NAME_VI[biomeAt(p.x, p.y)]}` +
         (Object.keys(p.equipped).length ? `\nTrang bị: ${Object.values(p.equipped).map((e) => e?.nameVi).join(", ")}` : ""),
     );
     const g = this.hudG;
     g.clear();
     // khung chân dung + thanh
-    g.fillStyle(0x0b0f18, 0.75).fillRoundedRect(10, 594, 400, 116, 14);
-    g.lineStyle(3, 0x8a6a3a, 1).strokeRoundedRect(10, 594, 400, 116, 14);
-    g.fillStyle(0x1f2838, 1).fillRoundedRect(18, 602, 100, 100, 10);
+    pixelBox(g, 8, 592, 404, 120, 0x6a4a2a);
+    pixelBox(g, 16, 600, 388, 104, 0x141a28, { bevel: false, outline: 0x2a1c10 });
+    pixelBox(g, 20, 604, 100, 96, 0x232c40, { outline: 0x0b0a12 });
     const bar = (y: number, ratio: number, color: number) => {
-      g.fillStyle(0x05070c, 1).fillRoundedRect(130, y, 268, 14, 6);
-      g.fillStyle(color, 1).fillRoundedRect(130, y, Math.max(0, 268 * Math.min(1, ratio)), 14, 6);
+      const w = 268;
+      g.fillStyle(0x0b0a12, 1).fillRect(128, y - 2, w + 4, 16);
+      g.fillStyle(0x05070c, 1).fillRect(130, y, w, 12);
+      const fw = Math.floor((w * Math.max(0, Math.min(1, ratio))) / PX) * PX;
+      g.fillStyle(color, 1).fillRect(130, y, fw, 12);
+      g.fillStyle(Phaser.Display.Color.IntegerToColor(color).lighten(22).color, 1).fillRect(130, y, fw, PX);
+      g.fillStyle(Phaser.Display.Color.IntegerToColor(color).darken(25).color, 1).fillRect(130, y + 12 - PX, fw, PX);
+      // vạch chia ô
+      g.fillStyle(0x0b0a12, 0.5);
+      for (let i = 1; i < 10; i++) g.fillRect(130 + (w / 10) * i, y, 2, 12);
     };
     bar(636, s.hp / s.maxHp, 0xd83a3a);
     bar(656, s.mana / s.maxMana, 0x3a7ad8);
@@ -676,16 +840,30 @@ export class ArenaScene extends Phaser.Scene {
           ready = a.canCast(p, sb.slot);
         }
       }
-      gg.fillStyle(0x000000, 0.45).fillCircle(sb.x + 2, sb.y + 4, sb.r);
-      gg.fillStyle(ready ? Phaser.Display.Color.IntegerToColor(color).darken(30).color : 0x2a2e36, 0.92).fillCircle(sb.x, sb.y, sb.r);
-      if (ratio > 0) {
-        gg.fillStyle(0x000000, 0.6);
-        gg.slice(sb.x, sb.y, sb.r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio, false);
-        gg.fillPath();
+      let iconKey = sb.slot === "attack" ? skillIcon(this, "attack", 0xd06a3a) : "";
+      if (hero && sb.slot !== "attack" && sb.slot !== "potion") {
+        const sk = skillFor(hero, s, sb.slot);
+        if (sk) iconKey = skillIcon(this, sk.kind, fxColor(p));
       }
-      gg.lineStyle(4, ready ? 0xd9b45a : 0x5a5f6a, 1).strokeCircle(sb.x, sb.y, sb.r);
-      sb.label.setText(ratio > 0 && sb.slot !== "attack" && sb.slot !== "potion" ? `${Math.ceil(p.cd[sb.slot as SkillSlot])}s` : label);
-      sb.label.setWordWrapWidth(sb.r * 1.9).setAlign("center").setAlpha(ready || ratio > 0 ? 1 : 0.55);
+      const iconFrame = iconKey ? 0 : -1;
+      pixelCircle(gg, sb.x + PX, sb.y + PX * 2, sb.r, 0x000000, { alpha: 0.4, bevel: false, outline: 0x000000 });
+      pixelCircle(gg, sb.x, sb.y, sb.r, ready ? 0xe8b84a : 0x5a5f6a);
+      pixelCircle(gg, sb.x, sb.y, sb.r - PX * 2, ready ? Phaser.Display.Color.IntegerToColor(color).darken(30).color : 0x2a2e36, { outline: ready ? 0x8a6a2a : 0x3a3e46 });
+      if (iconFrame >= 0) {
+        if (sb.icon.texture.key !== iconKey) sb.icon.setTexture(iconKey).setDisplaySize(sb.r * 1.42, sb.r * 1.42);
+        sb.icon.setVisible(true).setAlpha(ready ? 1 : 0.45);
+      } else sb.icon.setVisible(false);
+      const cg = sb.cdG;
+      cg.clear();
+      if (ratio > 0) {
+        cg.fillStyle(0x000000, 0.62);
+        cg.slice(sb.x, sb.y, sb.r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio, false);
+        cg.fillPath();
+      }
+      if (ready && iconFrame >= 0) sb.icon.setAlpha(0.85 + 0.15 * Math.sin(a.time * 6));
+      const cdText = ratio > 0 && sb.slot !== "attack" && sb.slot !== "potion" ? `${Math.ceil(p.cd[sb.slot as SkillSlot])}s` : "";
+      sb.label.setText(cdText || (iconFrame >= 0 ? "" : label));
+      sb.label.setWordWrapWidth(sb.r * 1.9).setAlign("center").setAlpha(ready || ratio > 0 ? 1 : 0.7);
     }
     // cần điều khiển ảo
     this.joyG.clear();
@@ -716,8 +894,8 @@ export class ArenaScene extends Phaser.Scene {
     const mx = (x: number) => cx + (x - WORLD_CENTER) * k;
     const my = (y: number) => cy + (y - WORLD_CENTER) * k;
     g.clear();
-    g.fillStyle(0x0b0f18, 0.85).fillCircle(cx, cy, R + 12);
-    g.lineStyle(4, 0x8a6a3a, 1).strokeCircle(cx, cy, R + 12);
+    pixelCircle(g, cx, cy, R + 12, 0x6a4a2a);
+    pixelCircle(g, cx, cy, R + 4, 0x0b0f18, { bevel: false, outline: 0xe8b84a });
     for (const s of BIOME_SECTORS) {
       g.fillStyle(BIOME_COLOR[s.biome], 0.95);
       g.slice(cx, cy, R, Phaser.Math.DegToRad(s.from), Phaser.Math.DegToRad(s.to), false);
@@ -727,6 +905,7 @@ export class ArenaScene extends Phaser.Scene {
     g.lineStyle(2, 0xc87aff, 1).strokeCircle(mx(z.centerX), my(z.centerY), Math.max(1, z.radius * k));
     if (z.phase === "wait") g.lineStyle(1.5, 0xffffff, 0.9).strokeCircle(mx(z.targetX), my(z.targetY), Math.max(1, z.targetRadius * k));
     for (const m of a.monsters) if (m.alive && m.def.isBoss) g.fillStyle(0xff8a2a, 1).fillCircle(mx(m.x), my(m.y), 3);
+    if (a.respawnOpen()) for (const pt of a.respawnPoints) g.lineStyle(2, 0x6affb0, 1).strokeCircle(mx(pt.x), my(pt.y), 3.5);
     // chỉ hiện đối thủ ở gần (tầm nhìn)
     const p = a.player;
     for (const f of a.fighters) {
@@ -739,7 +918,7 @@ export class ArenaScene extends Phaser.Scene {
     }
   }
 
-  // ------------------------------------------------------------------ chọn nhánh / thẻ
+  // ------------------------------------------------------------------ chọn Dạng 2 / Dạng 3 / thẻ
   private openChoice(): void {
     const a = this.arena;
     const s = a.player.state;
@@ -755,21 +934,51 @@ export class ArenaScene extends Phaser.Scene {
       this.modal = null;
     };
     if (s.needsBranch) {
-      c.add(text(this, W / 2, 40, "CẤP 5 – KHÓA NHÁNH CHUYÊN MÔN", 40, "#ffb347", 800).setOrigin(0.5, 0));
-      c.add(text(this, W / 2, 96, "Chọn 1 nhánh cố định cho cả trận. Ngoại hình, kỹ năng và bị động sẽ đổi theo nhánh.", 20, "#e8e0d0", 500).setOrigin(0.5, 0));
+      c.add(text(this, W / 2, 40, "CẤP 5 – CHỌN HƯỚNG DẠNG 2", 40, "#ffb347", 800).setOrigin(0.5, 0));
+      c.add(text(this, W / 2, 96, "3 hướng cùng cấp bậc, chỉ số & hiệu ứng khác nhau. Chọn 1 hướng cố định cho cả trận.", 19, "#e8e0d0", 500).setOrigin(0.5, 0));
       hero.branches.forEach((br, i) => {
         const x = 70 + i * 390;
         c.add(panel(this, x, 140, 360, 520));
-        c.add(this.add.image(x + 180, 330, heroTexture(this, hero.id, br.id, s.gender)).setScale(2.2).setOrigin(0.5, 0.92));
+        c.add(text(this, x + 180, 150, `HƯỚNG ${i + 1}`, 18, hex(br.color)).setOrigin(0.5, 0));
+        const fig = addHeroImage(this, x + 180, 342, hero.id, br.id, null, 1.15);
+        c.add(fig);
+        breathe(this, fig);
         c.add(text(this, x + 180, 346, br.name, 30, hex(br.color)).setOrigin(0.5, 0));
         c.add(text(this, x + 180, 384, br.descVi, 17, "#e8e0d0", 500).setOrigin(0.5, 0).setWordWrapWidth(320).setAlign("center"));
-        c.add(text(this, x + 24, 432, `Bị động: ${br.passive.nameVi}\nQ ${br.skills[0].nameVi} · E ${br.skills[1].nameVi}\nR ${br.skills[2].nameVi}\nF (cấp 10) ${br.ultimate.nameVi}`, 17, "#d8d0c0", 500).setWordWrapWidth(320));
+        c.add(text(this, x + 24, 432, `Bị động: ${br.passive.nameVi}\nQ ${br.skills[0].nameVi} · E ${br.skills[1].nameVi} · R ${br.skills[2].nameVi}\nCấp 10 → ${br.evolutions.map((e) => e.name).join(" / ")}`, 16, "#d8d0c0", 500).setWordWrapWidth(320));
         c.add(
-          button(this, x + 180, 610, 260, 60, "Chọn nhánh", () => {
+          button(this, x + 180, 610, 260, 60, "Chọn dạng này", () => {
             if (a.chooseBranch(a.playerId, br.id)) {
               if (completeTutorialStep(getSave(), "lock_branch_at_lv5")) persist();
-              this.note(`Đã khóa nhánh ${br.name}!`, hex(br.color));
+              this.note(`Đã nâng cấp thành ${br.name}!`, hex(br.color));
             }
+            close();
+          }, 0xc8641e).root,
+        );
+      });
+      return;
+    }
+    if (s.needsEvolution) {
+      const br = hero.branches.find((b) => b.id === s.branchId);
+      if (!br) {
+        close();
+        return;
+      }
+      c.add(text(this, W / 2, 34, `CẤP 10 – TIẾN HOÁ DẠNG 3 · ${br.name.toUpperCase()}`, 38, hex(br.color), 800).setOrigin(0.5, 0));
+      c.add(text(this, W / 2, 88, "Chọn 1 trong 3 hướng: Tấn Công / Phòng Thủ / Tinh Thông. Mở khóa chiêu Tối Thượng (F).", 19, "#e8e0d0", 500).setOrigin(0.5, 0));
+      br.evolutions.forEach((evo, i) => {
+        const x = 70 + i * 390;
+        c.add(panel(this, x, 130, 360, 530));
+        c.add(text(this, x + 180, 142, EVOLUTION_STYLE_VI[evo.style]?.toUpperCase() ?? "", 18, hex(evo.color)).setOrigin(0.5, 0));
+        const fig = addHeroImage(this, x + 180, 352, hero.id, br.id, evo.id, 1.25);
+        c.add(fig);
+        breathe(this, fig);
+        c.add(text(this, x + 180, 358, evo.name, 28, hex(evo.color)).setOrigin(0.5, 0).setWordWrapWidth(330).setAlign("center"));
+        c.add(text(this, x + 180, 396, evo.descVi, 16, "#e8e0d0", 500).setOrigin(0.5, 0).setWordWrapWidth(320).setAlign("center"));
+        c.add(text(this, x + 24, 446, `${passiveText(evo.passive.effect)}\nTối thượng: ${evo.ultimate.nameVi}${hasRealArt(hero.id, br.id, evo.id) ? "" : "\n(hình tạm – chờ ảnh nhân vật)"}`, 16, "#d8d0c0", 500).setWordWrapWidth(320));
+        c.add(
+          button(this, x + 180, 616, 260, 58, "Tiến hoá", () => {
+            if (a.chooseEvolution(a.playerId, evo.id)) this.note(`TIẾN HOÁ: ${evo.name}!`, hex(evo.color));
             close();
           }, 0xc8641e).root,
         );

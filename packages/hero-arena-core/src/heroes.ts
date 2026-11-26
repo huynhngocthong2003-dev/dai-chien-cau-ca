@@ -1,343 +1,156 @@
-import type { Gender, GenderAppearance, HeroBranch, HeroClassConfig, PassiveEffect, SkillDef, SkillKind } from "./types.ts";
+import type { Gender, GenderAppearance, HeroBaseStats, HeroBranch, HeroClassConfig, HeroEvolution, PassiveEffect, SkillDef, SkillKind } from "./types.ts";
 
-// Dữ liệu 8 lớp anh hùng × 3 nhánh chuyên môn (chỉ dữ liệu).
+// 10 lớp, mỗi lớp là một cây tiến hoá (chỉ dữ liệu):
+//   Cấp 1–4  : Dạng 1 – nhân vật bình thường, mọi người như nhau.
+//   Cấp 5    : chọn 1 trong 3 hướng Dạng 2 (cùng cấp bậc, chỉ số & hiệu ứng khác nhau).
+//   Cấp 10   : chọn 1 trong 3 hướng Dạng 3 của Dạng 2 đó (Tấn công / Phòng thủ / Tinh thông) + mở chiêu tối thượng.
+//   Cấp 15   : thức tỉnh (chiêu tối thượng mạnh hơn).
+// Thứ tự lớp = hàng trong sprite sheet.
+
+type K = SkillKind;
+/** [id, tên, mô tả, màu, [tên bị động, hiệu ứng], s1, s2 (lướt), s3, [3 tên Dạng 3], [3 chiêu tối thượng], ngoại hình] */
+type DirRow = [string, string, string, number, [string, PassiveEffect], [string, K], string, [string, K], [string, string, string], [string, string, string], string];
 
 function sk(id: string, nameVi: string, kind: SkillKind): SkillDef {
   return { id, nameVi, kind };
 }
 
-function pair(keyPrefix: string, maleDesc: string, femaleDesc: string): Record<Gender, GenderAppearance> {
-  return {
-    male: { gender: "male", spriteKey: `${keyPrefix}_male`, visualNotes: maleDesc },
-    female: { gender: "female", spriteKey: `${keyPrefix}_female`, visualNotes: femaleDesc },
-  };
+function slug(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
 }
 
-interface BranchSpec {
-  id: string;
-  name: string;
-  descVi: string;
-  color: number;
-  outfit: [number, number];
-  passive: [string, string, PassiveEffect];
-  skills: [SkillDef, SkillDef, SkillDef];
-  ultimate: [string, string];
-  awakening: [string, string];
-  look: [string, string];
+function scale(e: PassiveEffect, k: number): PassiveEffect {
+  const out: PassiveEffect = {};
+  for (const key of Object.keys(e) as Array<keyof PassiveEffect>) out[key] = Math.round((e[key] ?? 0) * k * 100) / 100;
+  return out;
 }
 
-function branch(heroId: string, ultKind: SkillKind, s: BranchSpec): HeroBranch {
-  return {
-    id: s.id,
-    name: s.name,
-    descVi: s.descVi,
-    color: s.color,
-    outfit: s.outfit,
-    passive: { id: s.passive[0], nameVi: s.passive[1], effect: s.passive[2] },
-    skills: s.skills,
-    ultimate: sk(s.ultimate[0], s.ultimate[1], ultKind),
-    awakening: sk(s.awakening[0], s.awakening[1], ultKind),
-    appearances: pair(`${heroId}_${s.id}`, s.look[0], s.look[1]),
-  };
+function add(a: PassiveEffect, b: PassiveEffect): PassiveEffect {
+  const out: PassiveEffect = { ...a };
+  for (const key of Object.keys(b) as Array<keyof PassiveEffect>) out[key] = Math.round(((out[key] ?? 0) + (b[key] ?? 0)) * 100) / 100;
+  return out;
 }
+
+function mix(c1: number, c2: number, t: number): number {
+  const ch = (s: number) => Math.round(((c1 >> s) & 255) * (1 - t) + ((c2 >> s) & 255) * t);
+  return (ch(16) << 16) | (ch(8) << 8) | ch(0);
+}
+
+export const EVOLUTION_STYLE_VI = ["Tấn Công", "Phòng Thủ", "Tinh Thông"] as const;
+
+/** 3 hướng Dạng 3 sinh từ Dạng 2: tấn công (chí mạng, tốc đánh), phòng thủ (giảm sát thương, hút máu), tinh thông (nhân đôi hiệu ứng). */
+function evolutions(dirId: string, dirName: string, color: number, base: PassiveEffect, names: [string, string, string], ults: [string, string, string]): [HeroEvolution, HeroEvolution, HeroEvolution] {
+  const effects: PassiveEffect[] = [
+    add({ critChance: 0.12, attackSpeedPct: 0.1 }, scale(base, 0.5)),
+    add({ damageReduction: 0.14, lifesteal: 0.06 }, scale(base, 0.3)),
+    add({ critChance: 0.05 }, scale(base, 1)),
+  ];
+  const descs = [
+    `Hướng tấn công của ${dirName}: chí mạng và tốc đánh cao.`,
+    `Hướng phòng thủ của ${dirName}: chịu đòn và hồi máu tốt.`,
+    `Tinh thông ${dirName}: hiệu ứng nguyên tố mạnh gấp đôi.`,
+  ];
+  const colors = [mix(color, 0xff5a3a, 0.25), mix(color, 0x6a9aff, 0.45), mix(color, 0xffe070, 0.4)];
+  return names.map((name, i) => {
+    const id = `${dirId}_${["atk", "def", "mst"][i]}`;
+    const ult = ults[i] ?? name;
+    return {
+      id,
+      name,
+      descVi: descs[i] ?? "",
+      color: colors[i] ?? color,
+      style: i,
+      passive: { id: `${id}_passive`, nameVi: `${EVOLUTION_STYLE_VI[i]} · ${name}`, effect: effects[i] ?? {} },
+      ultimate: sk(slug(ult), ult, "storm"),
+      awakening: sk(`awakened_${slug(ult)}`, `${ult} · Thức Tỉnh`, "storm"),
+    } satisfies HeroEvolution;
+  }) as [HeroEvolution, HeroEvolution, HeroEvolution];
+}
+
+function dirs(heroId: string, rows: [DirRow, DirRow, DirRow]): [HeroBranch, HeroBranch, HeroBranch] {
+  return rows.map(([id, name, desc, color, [pName, pEff], s1, s2, s3, evoNames, ults, look], form) => {
+    const appearances: Record<Gender, GenderAppearance> = {
+      male: { gender: "male", spriteKey: `${heroId}_${id}_male`, visualNotes: look },
+      female: { gender: "female", spriteKey: `${heroId}_${id}_female`, visualNotes: look },
+    };
+    return {
+      id,
+      name,
+      descVi: desc,
+      color,
+      form,
+      passive: { id: `${id}_passive`, nameVi: pName, effect: pEff },
+      skills: [sk(slug(s1[0]), s1[0], s1[1]), sk(slug(s2), s2, "dash"), sk(slug(s3[0]), s3[0], s3[1])],
+      evolutions: evolutions(id, name, color, pEff, evoNames, ults),
+      appearances,
+    } satisfies HeroBranch;
+  }) as [HeroBranch, HeroBranch, HeroBranch];
+}
+
+function hero(id: string, nameVi: string, baseNameVi: string, roleVi: string, ranged: boolean, attackRange: number, baseStats: HeroBaseStats, base: [string, K], rows: [DirRow, DirRow, DirRow]): HeroClassConfig {
+  return { id, name: id, nameVi, baseNameVi, roleVi, ranged, attackRange, baseStats, baseSkill: sk(slug(base[0]), base[0], base[1]), branches: dirs(id, rows) };
+}
+
+const st = (hp: number, mana: number, stamina: number, moveSpeed: number, attackPower: number): HeroBaseStats => ({ hp, mana, stamina, moveSpeed, attackPower });
 
 export const HEROES: readonly HeroClassConfig[] = [
-  {
-    id: "mage",
-    name: "Mage",
-    nameVi: "Pháp Sư",
-    roleVi: "Phép thuật tầm xa",
-    ranged: true,
-    attackRange: 330,
-    outfit: [0x4a3a6e, 0xd9b45a],
-    baseStats: { hp: 900, mana: 300, stamina: 100, moveSpeed: 320, attackPower: 85 },
-    baseSkill: sk("arcane_bolt", "Tia Huyền Bí", "bolt"),
-    branches: [
-      branch("mage", "storm", {
-        id: "pyromancer", name: "Pyromancer", descVi: "Hỏa pháp sư – thiêu đốt kẻ địch theo thời gian.",
-        color: 0xff7a1a, outfit: [0x9c2a12, 0x3a1a12],
-        passive: ["burning", "Thiêu Đốt", { dotPct: 0.12 }],
-        skills: [sk("fireball", "Cầu Lửa", "bolt"), sk("fire_dash", "Bộ Pháp Lửa", "dash"), sk("fire_pillar", "Cột Lửa", "trap")],
-        ultimate: ["fire_dragon", "Hỏa Long"], awakening: ["awakened_fire_dragon", "Hỏa Long Thức Tỉnh"],
-        look: ["Áo choàng đỏ sẫm rách vạt, mũ chóp nhọn lệch, tóc nâu che một mắt, cầm trượng lửa.", "Áo choàng đỏ đen viền rách, tóc dài, cầm trượng/đốm lửa."],
-      }),
-      branch("mage", "storm", {
-        id: "cryomancer", name: "Cryomancer", descVi: "Băng pháp sư – làm chậm và khống chế.",
-        color: 0x7fd6ff, outfit: [0x2f5f8f, 0xe8f2ff],
-        passive: ["frost_energy", "Hàn Khí", { slowPct: 0.3 }],
-        skills: [sk("ice_arrow", "Tên Băng", "bolt"), sk("frost_step", "Bước Sương Giá", "dash"), sk("ice_wall", "Giáp Băng", "shield")],
-        ultimate: ["absolute_zero", "Độ Không Tuyệt Đối"], awakening: ["awakened_absolute_zero", "Độ Không Thức Tỉnh"],
-        look: ["Áo choàng xanh băng viền lông trắng, mũ bông tuyết, tinh thể băng.", "Áo choàng xanh băng viền lông trắng, tóc sáng màu, mảnh băng."],
-      }),
-      branch("mage", "storm", {
-        id: "stormcaller", name: "Stormcaller", descVi: "Lôi pháp sư – chí mạng và tốc độ.",
-        color: 0xffe14a, outfit: [0x3a2a5a, 0xd9b45a],
-        passive: ["electric_charge", "Tích Điện", { critChance: 0.18, attackSpeedPct: 0.1 }],
-        skills: [sk("lightning_orb", "Cầu Sét", "bolt"), sk("lightning_dash", "Lôi Bộ", "dash"), sk("thunder_strike", "Sấm Rền", "nova")],
-        ultimate: ["storm_field", "Trường Bão Tố"], awakening: ["awakened_storm_field", "Bão Tố Thức Tỉnh"],
-        look: ["Áo choàng tím than viền vàng, khăn bay dài, tia sét quanh tay/trượng.", "Áo choàng tím than viền vàng, ruy băng bay, tia sét lóe sáng."],
-      }),
-    ],
-  },
-  {
-    id: "warrior",
-    name: "Warrior",
-    nameVi: "Chiến Binh",
-    roleVi: "Cận chiến bền bỉ",
-    ranged: false,
-    attackRange: 90,
-    outfit: [0x5a5f6a, 0x8a2a2a],
-    baseStats: { hp: 1250, mana: 150, stamina: 120, moveSpeed: 310, attackPower: 95 },
-    baseSkill: sk("heavy_slash", "Trảm Mạnh", "cleave"),
-    branches: [
-      branch("warrior", "storm", {
-        id: "juggernaut", name: "Juggernaut", descVi: "Pháo đài sống – giảm sát thương nhận vào.",
-        color: 0xb0b8c8, outfit: [0x44484f, 0x7a6a4a],
-        passive: ["iron_bulwark", "Thành Lũy Sắt", { damageReduction: 0.15 }],
-        skills: [sk("shield_bash", "Khiên Đập", "cleave"), sk("charge", "Xung Phong", "dash"), sk("fortify_stance", "Thế Thủ Kiên Cố", "shield")],
-        ultimate: ["colossus_roar", "Tiếng Gầm Khổng Lồ"], awakening: ["awakened_colossus_roar", "Khổng Lồ Thức Tỉnh"],
-        look: ["Giáp thép nặng tối màu, khiên lớn khắc phù văn, tóc ngắn.", "Giáp vai và yếm giáp tối màu, khiên tháp viền kim loại, tóc búi gọn."],
-      }),
-      branch("warrior", "storm", {
-        id: "berserker", name: "Berserker", descVi: "Cuồng chiến – hút máu khi chém.",
-        color: 0xe03a3a, outfit: [0x5a2a1a, 0x2a1a1a],
-        passive: ["blood_frenzy", "Cuồng Huyết", { lifesteal: 0.14, attackSpeedPct: 0.08 }],
-        skills: [sk("cleave_axe", "Rìu Bổ", "cleave"), sk("crimson_leap", "Huyết Dược", "dash"), sk("war_howl", "Chiến Hống", "nova")],
-        ultimate: ["undying_rage", "Cơn Thịnh Nộ Bất Tử"], awakening: ["awakened_undying_rage", "Thịnh Nộ Thức Tỉnh"],
-        look: ["Rìu chiến đôi, áo choàng rách sẫm màu, mắt rực lửa.", "Rìu chiến, giáp da tối có vệt đỏ, tóc dài tung bay."],
-      }),
-      branch("warrior", "storm", {
-        id: "paladin", name: "Paladin", descVi: "Hiệp sĩ thánh – hồi máu và bảo hộ.",
-        color: 0xfff0a0, outfit: [0x9aa0aa, 0xd9b45a],
-        passive: ["sacred_aegis", "Thánh Thuẫn", { damageReduction: 0.08, lifesteal: 0.06 }],
-        skills: [sk("judgment_strike", "Phán Quyết", "cleave"), sk("purify_dash", "Thánh Bộ", "dash"), sk("holy_light", "Thánh Quang", "heal")],
-        ultimate: ["dawn_cataclysm", "Bình Minh Hủy Diệt"], awakening: ["awakened_dawn_cataclysm", "Bình Minh Thức Tỉnh"],
-        look: ["Áo choàng bạc xám, trọng kiếm, huy hiệu ánh sáng mờ.", "Áo choàng chiến binh bạc xám, kiếm dài, tóc cột cao."],
-      }),
-    ],
-  },
-  {
-    id: "assassin",
-    name: "Assassin",
-    nameVi: "Sát Thủ",
-    roleVi: "Cận chiến tốc độ",
-    ranged: false,
-    attackRange: 80,
-    outfit: [0x2a2235, 0x6a3a8a],
-    baseStats: { hp: 850, mana: 200, stamina: 140, moveSpeed: 365, attackPower: 110 },
-    baseSkill: sk("quick_stab", "Đâm Nhanh", "cleave"),
-    branches: [
-      branch("assassin", "storm", {
-        id: "nightblade", name: "Nightblade", descVi: "Dạ kiếm – chí mạng cực cao.",
-        color: 0xa070ff, outfit: [0x1a1424, 0x4a2a6a],
-        passive: ["lethal_ambush", "Phục Kích Chí Mạng", { critChance: 0.28 }],
-        skills: [sk("shadow_dagger", "Ám Đao", "bolt"), sk("blink_strike", "Thuấn Sát", "dash"), sk("smoke_vanish", "Khói Ẩn", "shield")],
-        ultimate: ["eclipse_execution", "Nhật Thực Hành Quyết"], awakening: ["awakened_eclipse_execution", "Nhật Thực Thức Tỉnh"],
-        look: ["Áo trùm đầu đen tím, song đao sắc lạnh.", "Áo sát thủ bó gọn đen tím, song đao, khăn che nửa mặt."],
-      }),
-      branch("assassin", "storm", {
-        id: "venomancer", name: "Venomancer", descVi: "Độc sư – độc ngấm theo thời gian.",
-        color: 0x7ae04a, outfit: [0x234a2a, 0x1a2a1a],
-        passive: ["viper_toxin", "Nọc Rắn", { dotPct: 0.14, slowPct: 0.1 }],
-        skills: [sk("poison_fang", "Nanh Độc", "cleave"), sk("backstep", "Lùi Né", "dash"), sk("toxic_flask", "Bình Độc", "trap")],
-        ultimate: ["plague_shroud", "Màn Dịch Hạch"], awakening: ["awakened_plague_shroud", "Dịch Hạch Thức Tỉnh"],
-        look: ["Áo choàng lục sẫm, ống độc dược bên hông.", "Trang phục sát thủ lục sẫm, lọ độc nhỏ, tóc xõa."],
-      }),
-      branch("assassin", "storm", {
-        id: "phantom", name: "Phantom", descVi: "Bóng ma – lướt nhanh, khó bắt.",
-        color: 0xc8a0ff, outfit: [0x2a2a3a, 0x8a7aaa],
-        passive: ["mirror_afterimage", "Ảo Ảnh", { moveSpeedPct: 0.12, critChance: 0.1 }],
-        skills: [sk("phantom_slash", "Ảo Trảm", "cleave"), sk("phase_dash", "Xuyên Không", "dash"), sk("void_burst", "Hư Không Bộc Phá", "nova")],
-        ultimate: ["void_tempest", "Bão Hư Không"], awakening: ["awakened_void_tempest", "Hư Không Thức Tỉnh"],
-        look: ["Áo choàng bóng tối rách vạt, kiếm ngắn, bóng mờ tím.", "Áo choàng bóng đêm, lưỡi kiếm mảnh, tóc dài bay."],
-      }),
-    ],
-  },
-  {
-    id: "ranger",
-    name: "Ranger",
-    nameVi: "Xạ Thủ",
-    roleVi: "Cung thủ tầm xa",
-    ranged: true,
-    attackRange: 380,
-    outfit: [0x3a5a2a, 0x7a5a3a],
-    baseStats: { hp: 920, mana: 220, stamina: 130, moveSpeed: 350, attackPower: 102 },
-    baseSkill: sk("power_shot", "Bắn Mạnh", "bolt"),
-    branches: [
-      branch("ranger", "storm", {
-        id: "sniper", name: "Sniper", descVi: "Thiện xạ – đòn xa chí mạng.",
-        color: 0xffd27a, outfit: [0x2f3f24, 0x5a4a2a],
-        passive: ["piercing_focus", "Tập Trung Xuyên Giáp", { critChance: 0.22 }],
-        skills: [sk("piercing_arrow", "Tên Xuyên", "bolt"), sk("vault_back", "Nhảy Lùi", "dash"), sk("eagle_eye", "Mắt Ưng", "shield")],
-        ultimate: ["starfall_volley", "Mưa Sao Băng"], awakening: ["awakened_starfall_volley", "Sao Băng Thức Tỉnh"],
-        look: ["Cung dài, áo choàng rêu tối, mũ trùm thợ săn.", "Cung dài tinh gọn, áo choàng rừng sâu, tóc đuôi ngựa."],
-      }),
-      branch("ranger", "storm", {
-        id: "trapper", name: "Trapper", descVi: "Thợ bẫy – kiểm soát khu vực.",
-        color: 0xd0a060, outfit: [0x5a3f24, 0x3a2a1a],
-        passive: ["tactical_snare", "Bẫy Chiến Thuật", { slowPct: 0.22 }],
-        skills: [sk("scatter_shot", "Bắn Tỏa", "bolt"), sk("camo_roll", "Lăn Ngụy Trang", "dash"), sk("bear_trap", "Bẫy Gấu", "trap")],
-        ultimate: ["minefield_barrage", "Bãi Mìn"], awakening: ["awakened_minefield_barrage", "Bãi Mìn Thức Tỉnh"],
-        look: ["Nỏ/cung ngắn, túi bẫy và dây thừng, áo da nâu.", "Cung săn, đai bẫy gọn, mũ rộng vành."],
-      }),
-      branch("ranger", "storm", {
-        id: "windrunner", name: "Windrunner", descVi: "Phong xạ – chạy nhanh, bắn nhanh.",
-        color: 0x9effc8, outfit: [0x2a5a4a, 0xbfe8d0],
-        passive: ["gale_momentum", "Đà Gió", { moveSpeedPct: 0.12, attackSpeedPct: 0.14 }],
-        skills: [sk("gale_arrow", "Tên Gió", "bolt"), sk("zephyr_step", "Bước Gió", "dash"), sk("tailwind_burst", "Gió Xoáy", "nova")],
-        ultimate: ["hurricane_arrows", "Cuồng Phong Tiễn"], awakening: ["awakened_hurricane_arrows", "Cuồng Phong Thức Tỉnh"],
-        look: ["Cung gió, khăn choàng dài bay theo gió.", "Cung gió, áo choàng nhẹ xanh rêu, tóc dài bay."],
-      }),
-    ],
-  },
-  {
-    id: "guardian",
-    name: "Guardian",
-    nameVi: "Hộ Vệ",
-    roleVi: "Đỡ đòn",
-    ranged: false,
-    attackRange: 95,
-    outfit: [0x6a6050, 0x3a6a8a],
-    baseStats: { hp: 1350, mana: 180, stamina: 115, moveSpeed: 300, attackPower: 82 },
-    baseSkill: sk("hammer_blow", "Búa Giáng", "cleave"),
-    branches: [
-      branch("guardian", "storm", {
-        id: "warden", name: "Warden", descVi: "Thủ hộ đá – da đá cứng chắc.",
-        color: 0xc0a070, outfit: [0x5a5040, 0x8a7a5a],
-        passive: ["stone_skin", "Da Đá", { damageReduction: 0.2 }],
-        skills: [sk("taunt_slam", "Nện Khiêu Khích", "cleave"), sk("boulder_roll", "Lăn Đá", "dash"), sk("earth_pulse", "Địa Chấn", "nova")],
-        ultimate: ["bastion_domain", "Lãnh Địa Thành Lũy"], awakening: ["awakened_bastion_domain", "Thành Lũy Thức Tỉnh"],
-        look: ["Giáp đá cổ, chùy nặng, biểu tượng đá.", "Giáp hộ vệ cổ điển, búa/khiên đá, tóc búi."],
-      }),
-      branch("guardian", "storm", {
-        id: "runeguard", name: "Runeguard", descVi: "Hộ vệ cổ ngữ – khiên phép.",
-        color: 0x5ab0ff, outfit: [0x2a3f5a, 0x6ab0e0],
-        passive: ["arcane_ward", "Phù Văn Hộ Mệnh", { damageReduction: 0.1, manaRegenPct: 0.5 }],
-        skills: [sk("rune_seal", "Ấn Phù Văn", "bolt"), sk("glyph_step", "Bước Cổ Ngữ", "dash"), sk("ward_nova", "Khiên Phù Văn", "shield")],
-        ultimate: ["aegis_cataclysm", "Đại Thuẫn Hủy Diệt"], awakening: ["awakened_aegis_cataclysm", "Đại Thuẫn Thức Tỉnh"],
-        look: ["Giáp khắc cổ ngữ phát sáng xanh lam, giáo/khiên cổ.", "Giáp cổ ngữ, khiên tròn khắc rune, tóc dài buộc sau."],
-      }),
-      branch("guardian", "storm", {
-        id: "thornknight", name: "Thornknight", descVi: "Kỵ sĩ gai – phản sát thương.",
-        color: 0x6ad06a, outfit: [0x2a3a24, 0x5a3a2a],
-        passive: ["bramble_thorns", "Gai Góc", { thorns: 0.25, damageReduction: 0.06 }],
-        skills: [sk("thorn_lash", "Roi Gai", "cleave"), sk("spiked_dash", "Lao Gai", "dash"), sk("root_spike", "Rễ Gai", "trap")],
-        ultimate: ["thorn_prison", "Ngục Gai"], awakening: ["awakened_thorn_prison", "Ngục Gai Thức Tỉnh"],
-        look: ["Giáp gai rừng tối màu, khiên gai.", "Giáp gai thanh thoát, khiên nhỏ có gai, tóc xõa."],
-      }),
-    ],
-  },
-  {
-    id: "monk",
-    name: "Monk",
-    nameVi: "Võ Tăng",
-    roleVi: "Quyền pháp cơ động",
-    ranged: false,
-    attackRange: 85,
-    outfit: [0xb06a2a, 0x3a2a1a],
-    baseStats: { hp: 1050, mana: 240, stamina: 150, moveSpeed: 355, attackPower: 98 },
-    baseSkill: sk("palm_strike", "Chưởng Phong", "cleave"),
-    branches: [
-      branch("monk", "storm", {
-        id: "ironfist", name: "Ironfist", descVi: "Thiết quyền – đấm liên hoàn.",
-        color: 0xffb04a, outfit: [0x8a4a1a, 0x2a1a12],
-        passive: ["chi_combo", "Liên Hoàn Khí", { attackSpeedPct: 0.2 }],
-        skills: [sk("dragon_kick", "Long Cước", "cleave"), sk("chi_dash", "Khí Bộ", "dash"), sk("chi_burst", "Khí Bạo", "nova")],
-        ultimate: ["thousand_fists", "Thiên Quyền"], awakening: ["awakened_thousand_fists", "Thiên Quyền Thức Tỉnh"],
-        look: ["Võ phục tối màu, băng quấn tay.", "Võ phục gọn tối màu, băng tay, tóc cột cao."],
-      }),
-      branch("monk", "storm", {
-        id: "spiritwalker", name: "Spiritwalker", descVi: "Linh tu – hồi phục bằng linh khí.",
-        color: 0x9ae0ff, outfit: [0x3a4a6a, 0xd0e0f0],
-        passive: ["astral_flow", "Tinh Lưu", { lifesteal: 0.08, manaRegenPct: 0.6 }],
-        skills: [sk("spirit_orb", "Linh Cầu", "bolt"), sk("astral_step", "Tinh Bộ", "dash"), sk("zen_pulse", "Thiền Quang", "heal")],
-        ultimate: ["celestial_ascension", "Thăng Thiên"], awakening: ["awakened_celestial_ascension", "Thăng Thiên Thức Tỉnh"],
-        look: ["Áo tu hành tối màu, chuỗi hạt cổ, linh khí bao quanh.", "Trang phục linh tu, dải lụa bay, linh khí quanh tay."],
-      }),
-      branch("monk", "storm", {
-        id: "quakestriker", name: "Quakestriker", descVi: "Chấn địa – đòn đánh rung chuyển đất.",
-        color: 0xd08a4a, outfit: [0x5a3a24, 0x8a6a4a],
-        passive: ["seismic_impact", "Chấn Động", { slowPct: 0.18, damageReduction: 0.06 }],
-        skills: [sk("seismic_punch", "Địa Chấn Quyền", "cleave"), sk("slam_leap", "Nhảy Nện", "dash"), sk("shock_wave", "Sóng Chấn", "nova")],
-        ultimate: ["earthshatter_combo", "Liên Hoàn Vỡ Đất"], awakening: ["awakened_earthshatter_combo", "Vỡ Đất Thức Tỉnh"],
-        look: ["Giáp tay nặng, đai lưng dày.", "Võ giáp chắc chắn, găng tay lớn."],
-      }),
-    ],
-  },
-  {
-    id: "necromancer",
-    name: "Necromancer",
-    nameVi: "Vu Sư",
-    roleVi: "Hắc thuật tầm xa",
-    ranged: true,
-    attackRange: 310,
-    outfit: [0x2a2a2a, 0x6a1a3a],
-    baseStats: { hp: 880, mana: 340, stamina: 100, moveSpeed: 315, attackPower: 92 },
-    baseSkill: sk("dark_bolt", "Hắc Tiễn", "bolt"),
-    branches: [
-      branch("necromancer", "storm", {
-        id: "soulweaver", name: "Soulweaver", descVi: "Dệt hồn – hút sinh lực.",
-        color: 0x7affe0, outfit: [0x1a2a2a, 0x3a6a6a],
-        passive: ["soul_harvest", "Thu Hồn", { lifesteal: 0.12 }],
-        skills: [sk("soul_bolt", "Hồn Tiễn", "bolt"), sk("wraith_shift", "Hóa Bóng", "dash"), sk("spirit_link", "Hồn Liên", "heal")],
-        ultimate: ["soul_apocalypse", "Tận Thế Linh Hồn"], awakening: ["awakened_soul_apocalypse", "Linh Hồn Thức Tỉnh"],
-        look: ["Áo choàng linh hồn u ám, trượng sọ.", "Đầm choàng gothic tối màu, trượng linh hồn, tóc dài."],
-      }),
-      branch("necromancer", "storm", {
-        id: "dreadlord", name: "Dreadlord", descVi: "Chúa tể bóng tối – xương giáo xuyên thủng.",
-        color: 0xc0c0a0, outfit: [0x24242a, 0x7a6a3a],
-        passive: ["undead_command", "Hiệu Lệnh Bất Tử", { damageReduction: 0.1, critChance: 0.08 }],
-        skills: [sk("bone_spear", "Giáo Xương", "bolt"), sk("dark_step", "Hắc Bộ", "dash"), sk("bone_prison", "Ngục Xương", "trap")],
-        ultimate: ["legion_of_ash", "Quân Đoàn Tro Tàn"], awakening: ["awakened_legion_of_ash", "Quân Đoàn Thức Tỉnh"],
-        look: ["Giáp chúa tể bóng tối, mũ sừng nhỏ, quyền trượng.", "Trang phục chúa tể gothic, quyền trượng."],
-      }),
-      branch("necromancer", "storm", {
-        id: "bloodmage", name: "Bloodmage", descVi: "Huyết pháp sư – đánh đổi máu lấy sức mạnh.",
-        color: 0xff3a5a, outfit: [0x5a0a1a, 0x1a0a0a],
-        passive: ["crimson_siphon", "Huyết Hấp", { lifesteal: 0.1, dotPct: 0.06 }],
-        skills: [sk("blood_lance", "Huyết Thương", "bolt"), sk("crimson_step", "Huyết Bộ", "dash"), sk("sanguine_pool", "Huyết Trì", "trap")],
-        ultimate: ["crimson_maelstrom", "Huyết Xoáy"], awakening: ["awakened_crimson_maelstrom", "Huyết Xoáy Thức Tỉnh"],
-        look: ["Áo choàng đỏ sẫm đen, hoa văn huyết ma thuật.", "Váy áo đỏ sẫm gothic, tóc dài, huyết ma thuật."],
-      }),
-    ],
-  },
-  {
-    id: "duelist",
-    name: "Duelist",
-    nameVi: "Kiếm Khách",
-    roleVi: "Đấu kiếm phản đòn",
-    ranged: false,
-    attackRange: 100,
-    outfit: [0x3a3a5a, 0xc0a060],
-    baseStats: { hp: 980, mana: 210, stamina: 145, moveSpeed: 355, attackPower: 106 },
-    baseSkill: sk("lunge", "Đâm Tới", "cleave"),
-    branches: [
-      branch("duelist", "storm", {
-        id: "bladedancer", name: "Bladedancer", descVi: "Vũ kiếm – lướt chém liên tục.",
-        color: 0xff8ab0, outfit: [0x5a2a3a, 0xe0c0c8],
-        passive: ["graceful_riposte", "Phản Kiếm Uyển Chuyển", { attackSpeedPct: 0.14, moveSpeedPct: 0.06 }],
-        skills: [sk("blade_whirl", "Kiếm Xoáy", "cleave"), sk("evade_step", "Bước Né", "dash"), sk("whirlwind", "Lốc Kiếm", "nova")],
-        ultimate: ["crimson_waltz", "Vũ Điệu Đỏ"], awakening: ["awakened_crimson_waltz", "Vũ Điệu Thức Tỉnh"],
-        look: ["Kiếm đôi, áo choàng ngắn gọn nhẹ.", "Kiếm mảnh, trang phục đấu sĩ gọn nhẹ, tóc cột cao."],
-      }),
-      branch("duelist", "storm", {
-        id: "spellblade", name: "Spellblade", descVi: "Ma kiếm – kiếm mang phép.",
-        color: 0x8ab0ff, outfit: [0x2a3a6a, 0xa0c0ff],
-        passive: ["arcane_edge", "Lưỡi Huyền Bí", { critChance: 0.12, manaRegenPct: 0.4 }],
-        skills: [sk("arc_bolt", "Kiếm Khí", "bolt"), sk("blink_thrust", "Thuấn Thích", "dash"), sk("enchanted_slash", "Ma Trảm", "nova")],
-        ultimate: ["astral_tempest_blade", "Tinh Kiếm Phong Bạo"], awakening: ["awakened_astral_tempest_blade", "Tinh Kiếm Thức Tỉnh"],
-        look: ["Trường kiếm phát sáng ma thuật, áo choàng đấu sĩ.", "Kiếm ma thuật, áo choàng ngắn viền sáng, tóc dài."],
-      }),
-      branch("duelist", "storm", {
-        id: "countermaster", name: "Countermaster", descVi: "Phản kiếm – đỡ và phản đòn.",
-        color: 0xe0e0e0, outfit: [0x2a2a2a, 0x8a8a8a],
-        passive: ["perfect_parry", "Đỡ Hoàn Hảo", { thorns: 0.2, damageReduction: 0.1 }],
-        skills: [sk("counter_slash", "Phản Trảm", "cleave"), sk("feint_dash", "Hư Chiêu", "dash"), sk("parry_stance", "Thế Đỡ", "shield")],
-        ultimate: ["zero_point_cut", "Nhất Kiếm Điểm Không"], awakening: ["awakened_zero_point_cut", "Điểm Không Thức Tỉnh"],
-        look: ["Kiếm dài, trang phục kiếm khách sẫm màu.", "Kiếm dài, trang phục kiếm khách tối, phong thái điềm tĩnh."],
-      }),
-    ],
-  },
+  hero("fighter", "Đấu Sĩ", "Kiếm Sĩ Tập Sự", "Cận chiến mạnh mẽ", false, 92, st(1150, 160, 130, 330, 100), ["Chém Thường", "cleave"], [
+    ["flame_blade", "Hỏa Kiếm", "Kiếm lửa – mỗi nhát chém gây THIÊU ĐỐT.", 0xff7a2a, ["Lửa Kiếm", { dotPct: 0.12, lifesteal: 0.04 }], ["Hỏa Trảm", "cleave"], "Lao Lửa", ["Vòng Lửa", "nova"], ["Hỏa Kiếm Bạo Liệt", "Hỏa Giáp Bất Diệt", "Hỏa Long Kiếm Thánh"], ["Liệt Hỏa Trảm", "Hỏa Ngục Thuẫn", "Hỏa Long Giáng Thế"], "Kiếm lửa, giáp xích, khăn và áo choàng đỏ."],
+    ["venom_blade", "Độc Kiếm", "Kiếm tẩm độc – gây NHIỄM ĐỘC lâu và làm chậm.", 0x7aff4a, ["Nọc Kiếm", { poisonPct: 0.12, slowPct: 0.08 }], ["Độc Trảm", "cleave"], "Lướt Độc", ["Đầm Độc", "trap"], ["Độc Kiếm Tử Thần", "Giáp Độc Gai", "Xà Vương Kiếm"], ["Vạn Độc Trảm", "Độc Vụ Thuẫn", "Xà Vương Hiện Thân"], "Kiếm xanh độc, giáp xích, khăn lục."],
+    ["sword_shield", "Kiếm Khiên", "Kiếm và khiên – vừa CÔNG vừa THỦ tốt.", 0x6ab0ff, ["Công Thủ Toàn Diện", { damageReduction: 0.14, critChance: 0.08, thorns: 0.08 }], ["Khiên Đập", "cleave"], "Xung Phong", ["Khiên Chắn", "shield"], ["Kiếm Khiên Phá Trận", "Thánh Thuẫn Hộ Vệ", "Kiếm Khiên Hoàng Kim"], ["Phá Trận Trảm", "Thành Lũy Thép", "Hoàng Kim Phán Quyết"], "Kiếm thép, khiên lớn, giáp xanh thép."],
+  ]),
+  hero("helper", "Trợ Thủ", "Dược Sư Tập Sự", "Hồi phục, bảo hộ", true, 300, st(960, 320, 110, 330, 84), ["Tia Lá", "bolt"], [
+    ["leaf_healer", "Thảo Mộc", "Dược thảo – HÚT MÁU và hồi năng lượng.", 0x5ae0d0, ["Dược Thảo", { lifesteal: 0.1, manaRegenPct: 0.3 }], ["Gai Lá", "bolt"], "Bước Gió", ["Suối Thảo Mộc", "heal"], ["Thảo Mộc Hồi Xuân", "Mộc Thuẫn", "Tiên Thảo Thánh Y"], ["Hồi Xuân Đại Pháp", "Rễ Thần Hộ Thể", "Tiên Thảo Giáng Lâm"], "Vòng lá, trượng dây leo, gió xanh ngọc."],
+    ["thorn_druid", "Gai Độc", "Dây gai độc – NHIỄM ĐỘC và trói chân.", 0xb0ff4a, ["Gai Độc", { poisonPct: 0.1, slowPct: 0.12 }], ["Roi Gai", "bolt"], "Lướt Lá", ["Vòng Rễ Độc", "trap"], ["Độc Đằng", "Gai Thép", "Vua Rừng Độc"], ["Vạn Gai Xuyên Tâm", "Rừng Gai Hộ Vệ", "Độc Lâm Thức Giấc"], "Áo lá sẫm, dây gai quấn tay."],
+    ["holy_light", "Thánh Quang", "Ánh sáng thánh – GIẢM SÁT THƯƠNG nhận vào.", 0xffe07a, ["Thánh Thuẫn", { damageReduction: 0.12, lifesteal: 0.06 }], ["Thánh Tiễn", "bolt"], "Cánh Sáng", ["Khiên Thánh", "shield"], ["Thánh Tiễn Sứ", "Thiên Thuẫn", "Đại Thiên Sứ"], ["Thánh Quang Xuyên Thiên", "Thiên Thuẫn Bất Diệt", "Thiên Sứ Giáng Lâm"], "Áo trắng vàng, hào quang thánh."],
+  ]),
+  hero("marksman", "Xạ Thủ", "Thợ Săn Tập Sự", "Tầm xa chí mạng", true, 380, st(920, 220, 130, 345, 104), ["Bắn Tên", "bolt"], [
+    ["wind_archer", "Phong Tiễn", "Tên gió – TỐC ĐÁNH và tốc chạy cao.", 0x5affb0, ["Theo Gió", { attackSpeedPct: 0.15, moveSpeedPct: 0.08 }], ["Tên Gió", "bolt"], "Bước Gió", ["Gió Xoáy", "nova"], ["Phong Tiễn Bão Táp", "Gió Hộ Thân", "Phong Thần Tiễn"], ["Cuồng Phong Tiễn", "Lốc Xoáy Hộ Vệ", "Phong Thần Giáng"], "Mũ trùm, khăn che mặt, cung phát sáng xanh."],
+    ["fire_archer", "Hỏa Tiễn", "Tên lửa – THIÊU ĐỐT mục tiêu.", 0xff7a3a, ["Tên Lửa", { dotPct: 0.12, critChance: 0.06 }], ["Tên Lửa", "bolt"], "Lăn Né", ["Bẫy Lửa", "trap"], ["Hỏa Tiễn Bạo Liệt", "Giáp Than Hồng", "Phượng Hoàng Tiễn"], ["Mưa Lửa", "Tường Lửa", "Phượng Hoàng Lửa"], "Mũ trùm đỏ, cung lửa."],
+    ["venom_archer", "Độc Tiễn", "Tên độc – NHIỄM ĐỘC kéo dài.", 0x9aff3a, ["Tên Độc", { poisonPct: 0.14 }], ["Tên Độc", "bolt"], "Nhảy Lùi", ["Bẫy Độc", "trap"], ["Độc Tiễn Xuyên Giáp", "Áo Choàng Độc", "Xà Thần Tiễn"], ["Vạn Độc Tiễn", "Màn Sương Độc", "Xà Thần Tiễn Vũ"], "Mũ trùm lục, tên tẩm độc."],
+  ]),
+  hero("gunner", "Pháo Thủ", "Lính Súng Tập Sự", "Sát thương diện rộng", true, 320, st(1040, 220, 110, 310, 98), ["Bắn Súng", "bolt"], [
+    ["fire_gunner", "Hỏa Pháo", "Đạn cháy – THIÊU ĐỐT diện rộng.", 0xffb03a, ["Thuốc Nổ", { dotPct: 0.12 }], ["Đạn Cháy", "bolt"], "Tên Lửa Đẩy", ["Bom Lửa", "trap"], ["Hỏa Pháo Bạo Liệt", "Giáp Lò Lửa", "Hỏa Thần Pháo"], ["Mưa Pháo Lửa", "Pháo Đài Lửa", "Hỏa Thần Hủy Diệt"], "Tóc vàng, kính bảo hộ, súng khói."],
+    ["frost_gunner", "Băng Pháo", "Đạn băng – LÀM CHẬM mạnh.", 0x7ad8ff, ["Đạn Băng", { slowPct: 0.28 }], ["Đạn Băng", "bolt"], "Trượt Băng", ["Mìn Băng", "trap"], ["Băng Pháo Xuyên Phá", "Giáp Băng", "Băng Thần Pháo"], ["Bão Đạn Băng", "Thành Băng", "Kỷ Băng Hà"], "Kính bảo hộ xanh, súng băng."],
+    ["heavy_gunner", "Trọng Pháo", "Pháo hạng nặng – bền bỉ, CHÍ MẠNG.", 0xc0c8d8, ["Giáp Pháo", { damageReduction: 0.14, critChance: 0.1 }], ["Pháo Nổ", "bolt"], "Lao Giáp", ["Nổ Chấn Động", "nova"], ["Trọng Pháo Xuyên Giáp", "Pháo Đài Di Động", "Siêu Trọng Pháo"], ["Càn Quét", "Lô Cốt Thép", "Pháo Hủy Diệt"], "Áo giáp thép, pháo vác vai."],
+  ]),
+  hero("assassin", "Sát Thủ", "Đạo Tặc Tập Sự", "Ám sát, dồn sát thương", false, 82, st(850, 200, 140, 370, 112), ["Đâm Nhanh", "cleave"], [
+    ["shadow_blade", "Ảnh Nhận", "Bóng tối – CHÍ MẠNG và lướt nhanh.", 0xa05aff, ["Màn Đêm", { critChance: 0.2, moveSpeedPct: 0.08 }], ["Ám Đao", "cleave"], "Thuấn Sát", ["Màn Đêm", "shield"], ["Ảnh Sát", "Ảnh Giáp", "Bóng Tối Tông Sư"], ["Ảnh Sát Tuyệt Kỹ", "Màn Đêm Hộ Thân", "Bóng Tối Nuốt Chửng"], "Mũ trùm, mặt nạ sọ, khói tím."],
+    ["poison_blade", "Độc Nhận", "Dao tẩm độc – NHIỄM ĐỘC chết người.", 0x7aff4a, ["Nọc Độc", { poisonPct: 0.14, critChance: 0.06 }], ["Lưỡi Độc", "cleave"], "Ảnh Bộ", ["Khói Độc", "trap"], ["Độc Nhận Tử Huyệt", "Áo Độc", "Độc Vương"], ["Vạn Độc Trảm", "Màn Sương Độc", "Độc Vương Hiện Thân"], "Mặt nạ, áo choàng lục, dao độc."],
+    ["blood_blade", "Huyết Nhận", "Huyết đao – HÚT MÁU khi chém.", 0xff3a5a, ["Khát Máu", { lifesteal: 0.14, attackSpeedPct: 0.08 }], ["Huyết Trảm", "cleave"], "Huyết Bộ", ["Huyết Vũ", "nova"], ["Huyết Nhận Cuồng Sát", "Huyết Giáp", "Huyết Vương"], ["Huyết Vũ Tuyệt Sát", "Huyết Thuẫn", "Huyết Vương Thức Tỉnh"], "Mặt nạ, áo choàng đỏ thẫm, dao đỏ."],
+  ]),
+  hero("support", "Hỗ Trợ", "Tu Sĩ Tập Sự", "Buff & hồi máu", true, 300, st(940, 330, 110, 330, 84), ["Thánh Văn", "bolt"], [
+    ["healer", "Hồi Phục", "Hồi máu – HÚT MÁU và hồi năng lượng nhanh.", 0x8ad8ff, ["Phúc Âm", { lifesteal: 0.12, manaRegenPct: 0.4 }], ["Tia Hồi Sinh", "bolt"], "Bước Nhẹ", ["Lời Cầu Nguyện", "heal"], ["Hồi Sinh Sư", "Thánh Y Hộ Mệnh", "Thánh Tổ"], ["Hồi Sinh Đại Pháp", "Kết Giới Sinh Mệnh", "Thánh Tổ Giáng Lâm"], "Tóc vàng, áo choàng xanh trắng, trượng pha lê."],
+    ["barrier", "Kết Giới", "Kết giới – GIẢM SÁT THƯƠNG, làm chậm kẻ địch.", 0xc0a0ff, ["Kết Giới", { damageReduction: 0.15, slowPct: 0.1 }], ["Tia Phán Xét", "bolt"], "Dịch Chuyển", ["Kết Giới Thánh", "shield"], ["Phán Quan", "Kết Giới Sư", "Thần Hộ Mệnh"], ["Phán Xét", "Thánh Địa", "Thần Hộ Mệnh Giáng Thế"], "Áo choàng tím trắng, sách phép."],
+    ["blessing", "Chúc Phúc", "Chúc phúc – TỐC ĐÁNH và chí mạng.", 0xffd84a, ["Phúc Lành", { attackSpeedPct: 0.14, critChance: 0.08 }], ["Thánh Văn", "bolt"], "Thăng Hoa", ["Vòng Chúc Phúc", "nova"], ["Chiến Ca", "Chúc Phúc Hộ Thân", "Thánh Ca Tông Sư"], ["Chiến Ca Hùng Tráng", "Phúc Lành Bất Diệt", "Thiên Ca"], "Áo vàng, hào quang ấm."],
+  ]),
+  hero("summoner", "Triệu Hồi Sư", "Triệu Hồi Sư Tập Sự", "Gọi linh hồn & thú", true, 320, st(900, 340, 110, 320, 88), ["Hồn Cầu", "bolt"], [
+    ["beast_caller", "Thú Linh", "Sói linh – TỐC ĐÁNH và cắn xé.", 0x7ad0ff, ["Bầy Thú", { attackSpeedPct: 0.14, dotPct: 0.05 }], ["Sói Linh Vồ", "bolt"], "Lướt Cùng Sói", ["Sói Tru", "nova"], ["Sói Vương", "Gấu Linh Hộ Vệ", "Thú Thần"], ["Bầy Sói Thần", "Gấu Thần Hộ Thể", "Thú Thần Giáng Lâm"], "Vòng lá, trượng gỗ, sói linh."],
+    ["ghost_caller", "Hồn Linh", "Linh hồn lạnh – LÀM CHẬM và hút sinh lực.", 0x6affd0, ["Hồn Lạnh", { slowPct: 0.18, lifesteal: 0.06 }], ["Linh Hồn Tiễn", "bolt"], "Hồn Bộ", ["Linh Hồn Hộ Thân", "shield"], ["Hồn Sư", "Hồn Giáp", "Vạn Hồn Chủ"], ["Đại Quân Linh Hồn", "Linh Hồn Bất Diệt", "Vạn Hồn Quy Tông"], "Áo choàng xanh lục, hồn ma bay quanh."],
+    ["bone_caller", "Cốt Linh", "Rồng xương – NHIỄM ĐỘC và chí mạng.", 0x9a8aff, ["Độc Cốt", { poisonPct: 0.1, critChance: 0.06 }], ["Giáo Xương", "bolt"], "Cánh Rồng", ["Ngục Xương", "trap"], ["Cốt Long Sư", "Cốt Giáp", "Long Hồn Chủ"], ["Cốt Long Phun Độc", "Ngục Xương Bất Diệt", "Hắc Long Giáng Thế"], "Áo tím, trượng sọ, rồng xương."],
+  ]),
+  hero("swordsman", "Kiếm Khách", "Võ Sĩ Tập Sự", "Kiếm thuật nhanh", false, 100, st(1000, 210, 145, 355, 106), ["Rút Kiếm Chém", "cleave"], [
+    ["samurai", "Samurai", "Võ sĩ đạo – thủ chắc, CHÍ MẠNG.", 0xff6a3a, ["Võ Sĩ Đạo", { damageReduction: 0.1, critChance: 0.12 }], ["Song Đao Trảm", "cleave"], "Thuấn Bộ", ["Thế Thủ", "shield"], ["Kiếm Thánh", "Võ Sĩ Đạo Giáp", "Samurai Huyền Thoại"], ["Nhất Đao Đoạn Không", "Giáp Võ Sĩ Đạo", "Đao Thần"], "Giáp đỏ, hai thanh đao."],
+    ["flame_sword", "Hỏa Đao", "Đao lửa – THIÊU ĐỐT và hút máu.", 0xffa03a, ["Hỏa Đao", { dotPct: 0.12, lifesteal: 0.05 }], ["Hỏa Đao Trảm", "cleave"], "Lướt Lửa", ["Vòng Lửa", "nova"], ["Hỏa Đao Cuồng Trảm", "Hỏa Giáp Đao Khách", "Hỏa Đao Thần"], ["Liệt Hỏa Đao", "Hỏa Thuẫn", "Hỏa Thần Đao"], "Giáp cam, đao lửa."],
+    ["wind_sword", "Phong Kiếm", "Kiếm gió – TỐC ĐÁNH và tốc chạy.", 0x6ad0ff, ["Phong Vũ", { moveSpeedPct: 0.1, attackSpeedPct: 0.15 }], ["Kiếm Gió", "bolt"], "Lướt Gió", ["Lốc Kiếm", "nova"], ["Phong Kiếm Bão Táp", "Phong Giáp", "Kiếm Thần Phong Vũ"], ["Cuồng Phong Kiếm Vũ", "Phong Thuẫn", "Kiếm Phong Vạn Lý"], "Giáp xanh, kiếm gió."],
+  ]),
+  hero("mage", "Pháp Sư", "Pháp Sư Tập Sự", "Sát thương phép", true, 330, st(880, 340, 100, 320, 90), ["Tia Huyền Bí", "bolt"], [
+    ["fire_mage", "Hỏa Pháp Sư", "Sát thương THIÊU ĐỐT.", 0xff6a2a, ["Thiêu Đốt", { dotPct: 0.14 }], ["Cầu Lửa", "bolt"], "Bộ Pháp Lửa", ["Cột Lửa", "trap"], ["Xạ Hỏa Pháp Sư", "Ma Pháp Núi Lửa", "Hỏa Thần Pháp"], ["Hỏa Tiễn Liên Châu", "Dung Nham Hộ Thể", "Phượng Hoàng Lửa"], "Áo choàng đỏ rách, hai tay cầm đuốc lửa."],
+    ["poison_mage", "Độc Pháp Sư", "Sát thương NHIỄM ĐỘC.", 0x6aff4a, ["Kịch Độc", { poisonPct: 0.14, slowPct: 0.06 }], ["Cầu Độc", "bolt"], "Bước Sương Độc", ["Đầm Độc", "trap"], ["Mãng Xà Độc Pháp", "Đại Dịch Pháp Sư", "Độc Vương Pháp"], ["Mãng Xà Phun Độc", "Dịch Bệnh Lan Tràn", "Độc Vương Giáng Thế"], "Mũ trùm lục, khăn che mặt, khói độc."],
+    ["guard_mage", "Hộ Pháp Sư", "Vừa CÔNG vừa THỦ – khiên phép và pha lê.", 0x6ab0ff, ["Hộ Pháp", { damageReduction: 0.14, critChance: 0.08, thorns: 0.06 }], ["Tia Pha Lê", "bolt"], "Dịch Chuyển", ["Khiên Phép", "shield"], ["Ảnh Pháp Hộ Sư", "Thiên Quân Pháp Sư", "Thánh Quang Pháp"], ["Gương Ảnh Phản Kích", "Thiên Quân Thuẫn", "Thánh Quang Phán Quyết"], "Giáp xanh bạc, trượng pha lê, khiên phép."],
+  ]),
+  hero("seer", "Tiên Tri", "Tiên Tri Tập Sự", "Khống chế, tiên đoán", true, 320, st(900, 340, 110, 330, 88), ["Cầu Tiên Tri", "bolt"], [
+    ["rune_scribe", "Huyền Thư", "Cổ ngữ nguyền rủa – NHIỄM ĐỘC và làm chậm.", 0x7affe0, ["Lời Nguyền", { poisonPct: 0.08, slowPct: 0.14 }], ["Cổ Ngữ", "bolt"], "Dịch Chuyển", ["Lồng Cổ Ngữ", "trap"], ["Ấn Chú Sư", "Thư Giới", "Đại Huyền Thư"], ["Lời Nguyền Diệt Vong", "Thư Giới Phong Ấn", "Lời Tiên Tri"], "Mũ trùm tím, sách cổ, chữ cổ bay."],
+    ["star_oracle", "Tinh Tú", "Sao trời – CHÍ MẠNG rực rỡ.", 0xffd84a, ["Tinh Mệnh", { critChance: 0.16, manaRegenPct: 0.3 }], ["Sao Băng", "bolt"], "Bước Tinh Không", ["Vòng Tinh Tú", "nova"], ["Sao Băng Sư", "Tinh Giới", "Tinh Tú Chi Chủ"], ["Mưa Sao Băng", "Vòng Tinh Tú Hộ Mệnh", "Thiên Hà Sụp Đổ"], "Áo choàng sao, vòng vàng."],
+    ["time_seer", "Thời Không", "Thời gian – LÀM CHẬM cực mạnh, lướt nhanh.", 0xa0b0ff, ["Ngưng Đọng", { slowPct: 0.24, moveSpeedPct: 0.08 }], ["Kim Thời Gian", "bolt"], "Dịch Chuyển Thời Gian", ["Vùng Ngưng Đọng", "trap"], ["Thời Không Sát", "Thời Không Giáp", "Chủ Thời Gian"], ["Ngưng Đọng Thời Gian", "Vòng Lặp", "Lồng Thời Gian"], "Áo choàng bạc xanh, đồng hồ cát."],
+  ]),
 ];
 
 export function heroById(id: string): HeroClassConfig | undefined {
@@ -347,4 +160,9 @@ export function heroById(id: string): HeroClassConfig | undefined {
 export function branchById(hero: HeroClassConfig, branchId: string | null): HeroBranch | undefined {
   if (!branchId) return undefined;
   return hero.branches.find((b) => b.id === branchId);
+}
+
+export function evolutionById(hero: HeroClassConfig, branchId: string | null, evolutionId: string | null): HeroEvolution | undefined {
+  if (!evolutionId) return undefined;
+  return branchById(hero, branchId)?.evolutions.find((e) => e.id === evolutionId);
 }

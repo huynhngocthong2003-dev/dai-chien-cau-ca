@@ -1,5 +1,16 @@
 # Changelog
 
+## [HERO ARENA 0.2.0] – 2026-11-26 – Cây tiến hoá pixel-art, hồi sinh đầu trận, bản đồ pixel
+### Thay đổi theo góp ý chủ dự án
+- **10 lớp** (Đấu Sĩ, Trợ Thủ, Xạ Thủ, Pháo Thủ, Sát Thủ, Hỗ Trợ, Triệu Hồi Sư, Kiếm Khách, Pháp Sư, Tiên Tri), mỗi lớp là **cây tiến hoá**: Dạng 1 (cấp 1–4) → cấp 5 chọn 1 trong **3 hướng Dạng 2** cùng cấp bậc (thiêu đốt / nhiễm độc / làm chậm / hút máu / công-thủ…) → cấp 10 chọn 1 trong **3 Dạng 3 của hướng đó** (Tấn Công / Phòng Thủ / Tinh Thông, mở chiêu tối thượng) → cấp 15 thức tỉnh. 30 hướng Dạng 2, 90 hướng Dạng 3.
+- Pháp Sư theo đúng ảnh cây tiến hoá (Hỏa / Độc / Hộ Pháp Sư và 9 Dạng 3).
+- Hiệu ứng mới **Nhiễm độc** (5 giây, cộng dồn riêng với thiêu đốt).
+- **Đồ hoạ pixel-art** từ ảnh của chủ dự án (`scripts/hero-arena-atlas.py` cắt ảnh → `heroes-atlas.png` + `spriteMap.ts`); nút chưa có ảnh tạm nhuộm màu hình gần nhất. Bỏ toàn bộ hình 3D.
+- Hiệu ứng động: thở, nhún & nghiêng khi chạy, lao người khi đánh, loé trắng khi trúng đòn, hạt sáng theo màu dạng, bùng sáng khi tiến hoá; nhân vật lớn dần theo cấp.
+- **Không có thời gian hoà bình** – giao tranh từ giây đầu; **hồi sinh 1 lần trong 5 phút đầu** tại 8 điểm hồi sinh ngẫu nhiên mỗi trận (mất hết đồ & kinh nghiệm, bất tử 3 giây).
+- Trận dài hơn (bo 7 giai đoạn ~17,7 phút, đảo bán kính 2300).
+- Giao diện & bản đồ pixel: nút/khung góc bậc thang, nút kỹ năng tròn pixel, mặt đất vẽ từng điểm ảnh (cỏ rêu, đá lát, cát nứt, tuyết, băng, vách đá, biển), 30 loại trang trí.
+
 ## [HERO ARENA 0.1.0] – 2026-11-26 – Game riêng: Battle Royale 20 người
 ### Thêm mới (tách hoàn toàn khỏi game câu cá)
 - `packages/hero-arena-core`: logic thuần, tất định theo seed – 8 lớp × 3 nhánh, cấp 1→15, khóa nhánh ở cấp 5, chọn 1 trong 3 thẻ, chiêu tối thượng cấp 10 / thức tỉnh cấp 15, vòng bo 7 giai đoạn + biến đổi môi trường theo 6 vùng (sương độc / bão cát / đất đóng băng), quái + Boss + rơi đồ + trang bị, 19 đối thủ máy; Quà tặng (mã quà), Hòm thư, Hướng dẫn tân thủ, thưởng trận – mọi thay đổi tài nguyên qua `applyReward` có txId + sổ cái. 26 unit test.

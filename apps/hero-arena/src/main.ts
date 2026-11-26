@@ -4,6 +4,8 @@ import { HeroSelectScene } from "./scenes/HeroSelectScene.ts";
 import { ArenaScene } from "./scenes/ArenaScene.ts";
 import { ResultScene } from "./scenes/ResultScene.ts";
 import mapUrl from "./assets/lobby-map.jpg";
+import heroesUrl from "./assets/heroes-atlas.png";
+import { HERO_CELL_H, HERO_CELL_W, HERO_SHEET } from "./heroArt.ts";
 import { H, W } from "./ui.ts";
 
 class BootScene extends Phaser.Scene {
@@ -11,9 +13,14 @@ class BootScene extends Phaser.Scene {
     super("Boot");
   }
   preload(): void {
+    // Hình của chủ dự án: bản đồ đảo pixel + bộ nhân vật pixel 10 lớp × 3 dạng
     this.load.image("lobby_map", mapUrl);
+    this.load.spritesheet(HERO_SHEET, heroesUrl, { frameWidth: HERO_CELL_W, frameHeight: HERO_CELL_H });
   }
   create(): void {
+    // pixel-art: phóng to giữ nét
+    this.textures.get(HERO_SHEET).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.textures.get("lobby_map").setFilter(Phaser.Textures.FilterMode.NEAREST);
     document.getElementById("loading")?.remove();
     (window as unknown as { __ready: boolean }).__ready = true;
     this.scene.start("Lobby");

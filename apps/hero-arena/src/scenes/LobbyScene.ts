@@ -88,7 +88,7 @@ export class LobbyScene extends Phaser.Scene {
       add(text(this, 52, 390, `Mở Hướng Dẫn để nhận: ${rewardText(TUTORIAL_REWARD)}`, 18, "#e8e0d0", 500).setWordWrapWidth(370));
     } else {
       add(text(this, 52, 356, "Mẹo chiến đấu", 22, "#ffe08a"));
-      add(text(this, 52, 390, "Di chuyển: WASD / cần ảo bên trái. Đánh: Space/J. Kỹ năng: Q E R F. Bình máu: H. Chạy vào vòng sáng trước khi bo thu!", 18, "#e8e0d0", 500).setWordWrapWidth(370));
+      add(text(this, 52, 390, "Di chuyển: WASD / cần ảo. Đánh: Space. Kỹ năng: Q E R F. Bình máu: H. 5 phút đầu được hồi sinh 1 lần (mất hết đồ & kinh nghiệm).", 18, "#e8e0d0", 500).setWordWrapWidth(370));
     }
 
     // huy hiệu

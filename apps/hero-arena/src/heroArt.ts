@@ -1,0 +1,231 @@
+import Phaser from "phaser";
+import { AWAKENING_LEVEL, branchById, heroById, HEROES, ULTIMATE_LEVEL, type SkillKind } from "@hero-arena/core";
+import { SPRITE_MAP } from "./spriteMap.ts";
+import { css, pixelTex } from "./art.ts";
+
+// Nhân vật pixel-art từ ảnh của chủ dự án (assets/heroes-atlas.png, sinh bởi scripts/hero-arena-atlas.py).
+// Mỗi nút cây tiến hoá có hình riêng; nút chưa có ảnh → tạm nhuộm màu hình gần nhất cùng lớp.
+
+export const HERO_SHEET = "heroes_atlas";
+export const HERO_CELL_W = 182;
+export const HERO_CELL_H = 168;
+
+export function classIndex(heroId: string): number {
+  return Math.max(0, HEROES.findIndex((h) => h.id === heroId));
+}
+
+interface ArtPick {
+  frame: number;
+  /** Màu đích khi phải nhuộm (null = hình thật). */
+  tint: number | null;
+  /** Màu gốc của hình mượn (để tính độ xoay sắc độ). */
+  from: number;
+}
+
+function art(id: string, back: boolean): number | undefined {
+  const m = SPRITE_MAP[id];
+  if (!m) return undefined;
+  return back ? (m.b ?? m.f) : m.f;
+}
+
+/** Chọn hình cho nút hiện tại của nhân vật. */
+function pickArt(heroId: string, branchId: string | null, evolutionId: string | null, back: boolean): ArtPick {
+  const hero = heroById(heroId);
+  const baseFrame = art(`${heroId}:base`, back) ?? 0;
+  if (!hero) return { frame: baseFrame, tint: null, from: 0 };
+  const br = branchById(hero, branchId);
+  const evo = br?.evolutions.find((e) => e.id === evolutionId);
+  if (evo) {
+    const own = art(evo.id, back);
+    if (own !== undefined) return { frame: own, tint: null, from: evo.color };
+    // mượn hình Dạng 3 khác (ưu tiên cùng nhánh), nhuộm theo màu hướng này
+    const pool = [...br!.evolutions, ...hero.branches.flatMap((b) => b.evolutions)];
+    const donor = pool.find((e) => art(e.id, back) !== undefined);
+    if (donor) return { frame: art(donor.id, back) ?? baseFrame, tint: evo.color, from: donor.color };
+  }
+  if (br) {
+    const own = art(br.id, back);
+    if (own !== undefined) return { frame: own, tint: evo ? evo.color : null, from: br.color };
+    const donor = hero.branches.find((b) => art(b.id, back) !== undefined);
+    if (donor) return { frame: art(donor.id, back) ?? baseFrame, tint: evo?.color ?? br.color, from: donor.color };
+    return { frame: baseFrame, tint: evo?.color ?? br.color, from: 0x3a8a3a };
+  }
+  return { frame: baseFrame, tint: null, from: 0 };
+}
+
+function hueOf(c: number): number {
+  const r = ((c >> 16) & 255) / 255;
+  const g = ((c >> 8) & 255) / 255;
+  const b = (c & 255) / 255;
+  const mx = Math.max(r, g, b);
+  const mn = Math.min(r, g, b);
+  if (mx === mn) return 0;
+  const d = mx - mn;
+  const h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return h * 60;
+}
+
+/** Tạo bản nhuộm màu của một khung (xoay sắc độ các điểm ảnh rực màu, giữ da & đường viền). */
+function recolored(scene: Phaser.Scene, frame: number, from: number, to: number): string {
+  const key = `recol_${frame}_${to.toString(16)}`;
+  if (scene.textures.exists(key)) return key;
+  const src = scene.textures.getFrame(HERO_SHEET, frame);
+  const tex = scene.textures.createCanvas(key, HERO_CELL_W, HERO_CELL_H);
+  if (!src || !tex) return HERO_SHEET;
+  const ctx = tex.getContext();
+  ctx.drawImage(src.source.image as CanvasImageSource, src.cutX, src.cutY, src.cutWidth, src.cutHeight, 0, 0, HERO_CELL_W, HERO_CELL_H);
+  const img = ctx.getImageData(0, 0, HERO_CELL_W, HERO_CELL_H);
+  const d = img.data;
+  const shift = (hueOf(to) - hueOf(from) + 360) % 360;
+  const col = Phaser.Display.Color;
+  for (let i = 0; i < d.length; i += 4) {
+    if ((d[i + 3] ?? 0) < 10) continue;
+    const hsv = col.RGBToHSV(d[i] ?? 0, d[i + 1] ?? 0, d[i + 2] ?? 0);
+    // chỉ nhuộm phần rực màu (áo, hiệu ứng); da (sắc cam nhạt, độ bão hoà thấp) giữ nguyên
+    const isSkin = hsv.h * 360 > 10 && hsv.h * 360 < 45 && hsv.s < 0.5 && hsv.v > 0.55;
+    if (hsv.s < 0.3 || hsv.v < 0.18 || isSkin) continue;
+    const c = col.HSVToRGB(((hsv.h * 360 + shift) % 360) / 360, Math.min(1, hsv.s * 1.05), hsv.v) as Phaser.Types.Display.ColorObject;
+    d[i] = c.r;
+    d[i + 1] = c.g;
+    d[i + 2] = c.b;
+  }
+  ctx.putImageData(img, 0, 0);
+  tex.refresh();
+  tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+  return key;
+}
+
+/** Khoá nhận dạng hình hiện tại (để biết khi nào cần đổi). */
+export function heroArtKey(heroId: string, branchId: string | null, evolutionId: string | null, back = false): string {
+  const a = pickArt(heroId, branchId, evolutionId, back);
+  return `${a.frame}:${a.tint ?? ""}`;
+}
+
+/** Hình nhân vật có ảnh thật hay đang tạm nhuộm màu. */
+export function hasRealArt(heroId: string, branchId: string | null, evolutionId: string | null): boolean {
+  return pickArt(heroId, branchId, evolutionId, false).tint === null;
+}
+
+/** Đặt hình nhân vật lên Image (gốc ở chân). */
+export function setHeroImage(img: Phaser.GameObjects.Image, heroId: string, branchId: string | null, evolutionId: string | null, back = false, scale = 1): Phaser.GameObjects.Image {
+  const a = pickArt(heroId, branchId, evolutionId, back);
+  if (a.tint === null) img.setTexture(HERO_SHEET, a.frame);
+  else img.setTexture(recolored(img.scene, a.frame, a.from, a.tint));
+  return img.setOrigin(0.5, 0.97).setScale(scale);
+}
+
+export function addHeroImage(scene: Phaser.Scene, x: number, y: number, heroId: string, branchId: string | null, evolutionId: string | null = null, scale = 1): Phaser.GameObjects.Image {
+  return setHeroImage(scene.add.image(x, y, HERO_SHEET, 0), heroId, branchId, evolutionId, false, scale);
+}
+
+/** Bậc tiến hoá theo cấp: 0 = thường, 1 = tiến hoá (cấp 10), 2 = thức tỉnh (cấp 15). */
+export function evolutionTier(level: number): number {
+  return level >= AWAKENING_LEVEL ? 2 : level >= ULTIMATE_LEVEL ? 1 : 0;
+}
+
+/** Tỉ lệ hiển thị: nhân vật lớn dần khi tiến hoá. */
+export function evolutionScale(level: number): number {
+  return [0.82, 0.92, 1.02][evolutionTier(level)] ?? 0.82;
+}
+
+/** Chiều cao hình nhân vật trong ô (px, trước khi nhân tỉ lệ). */
+export const HERO_FIGURE_H = 150;
+
+/** Hiệu ứng "thở" nhẹ cho hình đứng yên (màn chọn, bảng chọn dạng, kết quả). */
+export function breathe(scene: Phaser.Scene, img: Phaser.GameObjects.Image): void {
+  const sy = img.scaleY;
+  const sx = img.scaleX;
+  scene.tweens.add({ targets: img, scaleY: sy * 1.035, scaleX: sx * 0.988, duration: 850 + Math.floor(Math.random() * 300), yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+}
+
+/** Biểu tượng kỹ năng pixel-art (theo loại kỹ năng + màu nhánh). */
+export function skillIcon(scene: Phaser.Scene, kind: SkillKind | "attack", color: number): string {
+  const key = `sicon_${kind}_${color.toString(16)}`;
+  return pixelTex(
+    scene,
+    key,
+    64,
+    64,
+    (c) => {
+      const g = c.createRadialGradient(32, 28, 4, 32, 32, 34);
+      g.addColorStop(0, css(color, 0.95));
+      g.addColorStop(1, css(color, 0.25));
+      c.fillStyle = "#151a26";
+      c.fillRect(4, 4, 56, 56);
+      c.fillStyle = g;
+      c.fillRect(6, 6, 52, 52);
+      c.fillStyle = "#ffffff";
+      c.strokeStyle = "#ffffff";
+      c.lineWidth = 6;
+      c.lineCap = "round";
+      c.lineJoin = "round";
+      const path = (pts: number[]) => {
+        c.beginPath();
+        c.moveTo(pts[0] ?? 0, pts[1] ?? 0);
+        for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i] ?? 0, pts[i + 1] ?? 0);
+      };
+      switch (kind) {
+        case "attack":
+          path([16, 48, 46, 18]);
+          c.stroke();
+          path([38, 14, 50, 26]);
+          c.stroke();
+          path([14, 40, 24, 50]);
+          c.stroke();
+          break;
+        case "bolt":
+          path([14, 50, 44, 20]);
+          c.stroke();
+          path([30, 16, 50, 14, 48, 34]);
+          c.stroke();
+          break;
+        case "cleave":
+          c.beginPath();
+          c.arc(30, 36, 20, -Math.PI * 0.9, -Math.PI * 0.05);
+          c.stroke();
+          path([46, 30, 52, 40]);
+          c.stroke();
+          break;
+        case "dash":
+          path([12, 22, 30, 32, 12, 42]);
+          c.stroke();
+          path([30, 22, 48, 32, 30, 42]);
+          c.stroke();
+          break;
+        case "nova":
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            path([32 + Math.cos(a) * 8, 32 + Math.sin(a) * 8, 32 + Math.cos(a) * 22, 32 + Math.sin(a) * 22]);
+            c.stroke();
+          }
+          break;
+        case "shield":
+          path([32, 12, 50, 18, 48, 36, 32, 52, 16, 36, 14, 18]);
+          c.closePath();
+          c.stroke();
+          break;
+        case "heal":
+          c.fillRect(27, 14, 10, 36);
+          c.fillRect(14, 27, 36, 10);
+          break;
+        case "trap":
+          c.beginPath();
+          c.arc(32, 32, 18, 0, Math.PI * 2);
+          c.stroke();
+          c.beginPath();
+          c.arc(32, 32, 6, 0, Math.PI * 2);
+          c.fill();
+          break;
+        case "storm":
+          path([36, 10, 22, 34, 34, 34, 26, 56]);
+          c.stroke();
+          c.lineWidth = 3;
+          c.beginPath();
+          c.arc(32, 32, 24, 0, Math.PI * 2);
+          c.stroke();
+          break;
+      }
+    },
+    4,
+  );
+}

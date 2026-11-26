@@ -1,6 +1,7 @@
-import { branchById, heroById, HEROES } from "./heroes.ts";
+import { branchById, evolutionById, heroById, HEROES } from "./heroes.ts";
 import {
   AWAKENING_LEVEL,
+  chooseEvolution,
   chooseSpecializationBranch,
   createMatchPlayer,
   effectiveAttack,
@@ -32,9 +33,14 @@ export const MAX_PLAYERS = 20;
 export const FIGHTER_RADIUS = 18;
 export const POTION_HEAL_PCT = 0.35;
 export const MAX_POTIONS = 5;
-export const PASSIVE_EXP_PER_SEC = 6;
+export const PASSIVE_EXP_PER_SEC = 3;
+/** Hồi sinh đầu trận: trong RESPAWN_WINDOW_SEC giây đầu, bị hạ lần đầu được hồi sinh 1 lần. */
+export const RESPAWN_WINDOW_SEC = 300;
+export const RESPAWN_DELAY_SEC = 5;
+export const RESPAWN_PROTECT_SEC = 3;
+export const RESPAWN_POINT_COUNT = 8;
 /** Hệ số sát thương giữa các anh hùng (để giao tranh kéo dài, có thời gian phản ứng). */
-export const PVP_DAMAGE_MUL = 0.45;
+export const PVP_DAMAGE_MUL = 0.3;
 
 const SKILL_COOLDOWN: Record<SkillSlot, number> = { s1: 4.5, s2: 6, s3: 10, ult: 28 };
 const SKILL_MANA: Record<SkillSlot, number> = { s1: 30, s2: 15, s3: 45, ult: 90 };
@@ -73,6 +79,8 @@ export interface Fighter {
   dotDps: number;
   dotUntil: number;
   dotSourceId: string | null;
+  poisonDps: number;
+  poisonUntil: number;
   dashTime: number;
   potions: number;
   potionsUsed: number;
@@ -87,6 +95,14 @@ export interface Fighter {
   combatUntil: number;
   /** Bị đối thủ (người) đánh gần đây – máy sẽ đánh trả kẻ đó. */
   pvpUntil: number;
+  /** Số mạng hồi sinh còn lại (chỉ dùng được trong RESPAWN_WINDOW_SEC giây đầu). */
+  lives: number;
+  /** Đang chờ hồi sinh tới thời điểm này (null = không). */
+  respawnAt: number | null;
+  /** Bất tử ngắn sau khi hồi sinh. */
+  protectUntil: number;
+  /** Số bình máu bị mất khi gục (tính vào bình kho đã tiêu). */
+  lostPotions: number;
 }
 
 export interface BotBrain {
@@ -96,8 +112,8 @@ export interface BotBrain {
   aimError: number;
   /** Bot "rụt rè": rút lui khi máu dưới ngưỡng này. */
   retreatAt: number;
-  /** Trước thời điểm này máy chỉ săn quái (trừ khi bị đánh). */
-  peaceUntil: number;
+  /** Tính hiếu chiến (0..1): ảnh hưởng tầm săn người. */
+  aggression: number;
   targetId: string | null;
 }
 
@@ -119,6 +135,8 @@ export interface Monster {
   dotDps: number;
   dotUntil: number;
   dotSourceId: string | null;
+  poisonDps: number;
+  poisonUntil: number;
 }
 
 export interface Projectile {
@@ -158,9 +176,12 @@ export type ArenaEvent =
   | { type: "loot"; fighterId: string; text: string }
   | { type: "levelup"; fighterId: string; level: number }
   | { type: "branch_needed"; fighterId: string }
+  | { type: "evolution_needed"; fighterId: string }
   | { type: "offer"; fighterId: string }
   | { type: "zone_shrink"; stage: number }
   | { type: "zone_stage_done"; stage: number }
+  | { type: "downed"; victimId: string; killerId: string | null; respawnAt: number }
+  | { type: "respawned"; fighterId: string; x: number; y: number }
   | { type: "victory"; winnerId: string };
 
 export interface ArenaConfig {
@@ -186,13 +207,15 @@ export function skillFor(hero: HeroClassConfig, p: PlayerMatchState, slot: Skill
   if (slot === "s2") return br.skills[1];
   if (slot === "s3") return br.skills[2];
   if (p.level < ULTIMATE_LEVEL) return null;
-  return p.level >= AWAKENING_LEVEL ? br.awakening : br.ultimate;
+  const evo = evolutionById(hero, p.branchId, p.evolutionId);
+  if (!evo) return null;
+  return p.level >= AWAKENING_LEVEL ? evo.awakening : evo.ultimate;
 }
 
 export function fxColor(f: Fighter): number {
   const hero = heroById(f.state.heroId);
   if (!hero) return 0xffffff;
-  return branchById(hero, f.state.branchId)?.color ?? 0xe0d0ff;
+  return evolutionById(hero, f.state.branchId, f.state.evolutionId)?.color ?? branchById(hero, f.state.branchId)?.color ?? 0xe0d0ff;
 }
 
 export class Arena {
@@ -202,6 +225,8 @@ export class Arena {
   readonly monsters: Monster[] = [];
   readonly projectiles: Projectile[] = [];
   readonly fields: Field[] = [];
+  /** Điểm hồi sinh – mỗi trận một bộ vị trí ngẫu nhiên theo seed. */
+  readonly respawnPoints: Array<{ x: number; y: number }> = [];
   readonly playerId = "p0";
   time = 0;
   finished = false;
@@ -223,6 +248,7 @@ export class Arena {
     }
     this.aliveCount = this.fighters.length;
     this.spawnMonsters();
+    this.pickRespawnPoints();
   }
 
   get player(): Fighter {
@@ -252,7 +278,7 @@ export class Arena {
       cd: { s1: 0, s2: 0, s3: 0, ult: 0 },
       shieldHp: 0, shieldUntil: 0,
       slowPct: 0, slowUntil: 0,
-      dotDps: 0, dotUntil: 0, dotSourceId: null,
+      dotDps: 0, dotUntil: 0, dotSourceId: null, poisonDps: 0, poisonUntil: 0,
       dashTime: 0,
       potions: 2 + bonusPotions,
       potionsUsed: 0,
@@ -263,17 +289,82 @@ export class Arena {
       placement: null,
       combatUntil: 0,
       pvpUntil: 0,
+      lives: 1,
+      respawnAt: null,
+      protectUntil: 0,
+      lostPotions: 0,
       bot: isBot
-        ? { wanderX: WORLD_CENTER, wanderY: WORLD_CENTER, retarget: 0, aimError: this.rng.range(0.05, 0.3), retreatAt: this.rng.range(0.15, 0.35), peaceUntil: this.rng.range(100, 220), targetId: null }
+        ? { wanderX: WORLD_CENTER, wanderY: WORLD_CENTER, retarget: 0, aimError: this.rng.range(0.05, 0.3), retreatAt: this.rng.range(0.3, 0.5), aggression: this.rng.range(0.2, 1), targetId: null }
         : null,
     };
     this.fighters.push(f);
   }
 
+  private pickRespawnPoints(): void {
+    let guard = 0;
+    while (this.respawnPoints.length < RESPAWN_POINT_COUNT && guard++ < 500) {
+      const a = this.rng.range(0, Math.PI * 2);
+      const d = ISLAND_RADIUS * Math.sqrt(this.rng.range(0.08, 0.72));
+      const x = WORLD_CENTER + Math.cos(a) * d;
+      const y = WORLD_CENTER + Math.sin(a) * d;
+      // cách nhau ít nhất 700 đơn vị
+      if (this.respawnPoints.every((p) => Math.hypot(p.x - x, p.y - y) > 700)) this.respawnPoints.push({ x, y });
+    }
+  }
+
+  /** Còn trong khoảng thời gian được hồi sinh không. */
+  respawnOpen(): boolean {
+    return this.time < RESPAWN_WINDOW_SEC;
+  }
+
+  private respawn(f: Fighter, ev: ArenaEvent[]): void {
+    // điểm trong bo, ưu tiên xa kẻ địch gần nhất; nếu không còn điểm nào trong bo → tâm bo
+    const inZone = this.respawnPoints.filter((p) => !isOutsideZone(this.zone, p.x, p.y));
+    let pt = { x: this.zone.centerX, y: this.zone.centerY };
+    if (inZone.length > 0) {
+      let best = -1;
+      for (const p of inZone) {
+        let near = Infinity;
+        for (const o of this.fighters) if (o !== f && o.state.alive) near = Math.min(near, Math.hypot(o.x - p.x, o.y - p.y));
+        const score = near + this.rng.range(0, 300);
+        if (score > best) {
+          best = score;
+          pt = p;
+        }
+      }
+    }
+    // mất hết đồ và kinh nghiệm: về cấp 1, mất nhánh, trang bị, nguyên liệu, vàng, bình máu
+    const kills = f.state.kills;
+    f.state = createMatchPlayer(f.id, f.state.name, f.state.heroId, f.state.gender);
+    f.state.kills = kills;
+    f.equipped = {};
+    f.materials = {};
+    f.gold = 0;
+    f.potions = 2;
+    f.x = pt.x;
+    f.y = pt.y;
+    f.vx = 0;
+    f.vy = 0;
+    f.cd = { s1: 0, s2: 0, s3: 0, ult: 0 };
+    f.attackCd = 0;
+    f.shieldHp = 0;
+    f.slowUntil = 0;
+    f.dotUntil = 0;
+    f.poisonUntil = 0;
+    f.dashTime = 0;
+    f.lastHitBy = null;
+    f.pvpUntil = 0;
+    f.respawnAt = null;
+    f.protectUntil = this.time + RESPAWN_PROTECT_SEC;
+    if (f.bot) f.bot.targetId = null;
+    ev.push({ type: "respawned", fighterId: f.id, x: f.x, y: f.y });
+    ev.push({ type: "fx", kind: "levelup", x: f.x, y: f.y, radius: 60, color: 0x6affb0, ownerId: f.id });
+  }
+
   private spawnMonsters(): void {
     for (const def of MONSTERS) {
       const mid = biomeMidAngle(def.biome);
-      const count = def.isBoss ? 1 : 9;
+      const count = def.isBoss ? 1 : 14;
       for (let i = 0; i < count; i++) {
         const a = def.isBoss ? mid : mid + this.rng.range(-0.45, 0.45);
         const d = def.isBoss ? ISLAND_RADIUS * 0.5 : ISLAND_RADIUS * this.rng.range(0.25, 0.9);
@@ -284,7 +375,7 @@ export class Arena {
           def, x, y, homeX: x, homeY: y,
           hp: def.hp, maxHp: def.hp, alive: true, respawnAt: 0,
           attackCd: 0, aggroId: null,
-          slowPct: 0, slowUntil: 0, dotDps: 0, dotUntil: 0, dotSourceId: null,
+          slowPct: 0, slowUntil: 0, dotDps: 0, dotUntil: 0, dotSourceId: null, poisonDps: 0, poisonUntil: 0,
         });
       }
     }
@@ -295,6 +386,12 @@ export class Arena {
     const f = this.fighterById(fighterId);
     if (!f || !f.state.alive) return false;
     return chooseSpecializationBranch(f.state, branchId, this.rng);
+  }
+
+  chooseEvolution(fighterId: string, evolutionId: string): boolean {
+    const f = this.fighterById(fighterId);
+    if (!f || !f.state.alive) return false;
+    return chooseEvolution(f.state, evolutionId, this.rng);
   }
 
   chooseUpgrade(fighterId: string, choiceId: string): boolean {
@@ -318,13 +415,13 @@ export class Arena {
   /** Bật/tắt tự động chơi cho người chơi (máy điều khiển thay). */
   setAutopilot(on: boolean): void {
     const p = this.player;
-    p.bot = on ? { wanderX: WORLD_CENTER, wanderY: WORLD_CENTER, retarget: 0, aimError: 0.05, retreatAt: 0.2, peaceUntil: 90, targetId: null } : null;
+    p.bot = on ? { wanderX: WORLD_CENTER, wanderY: WORLD_CENTER, retarget: 0, aimError: 0.05, retreatAt: 0.3, aggression: 0.6, targetId: null } : null;
   }
 
   /** Người chơi đang phải chọn (nhánh hoặc thẻ) → client tạm dừng trận. */
   playerNeedsChoice(): boolean {
     const p = this.player.state;
-    return p.alive && (p.needsBranch || p.pendingOffers.length > 0);
+    return p.alive && (p.needsBranch || p.needsEvolution || p.pendingOffers.length > 0);
   }
 
   // ------------------------------------------------------------------ vòng tick
@@ -337,6 +434,9 @@ export class Arena {
     if (z.shrinkStarted) ev.push({ type: "zone_shrink", stage: this.zone.stage + 1 });
     if (z.stageDone) ev.push({ type: "zone_stage_done", stage: this.zone.stage });
 
+    for (const f of this.fighters) {
+      if (f.respawnAt !== null && this.time >= f.respawnAt) this.respawn(f, ev);
+    }
     for (const f of this.fighters) {
       if (!f.state.alive) continue;
       const input = f.bot ? this.botThink(f, dt) : playerInput;
@@ -352,6 +452,11 @@ export class Arena {
       if (f.state.needsBranch) {
         const hero = heroById(f.state.heroId);
         if (hero) this.chooseBranch(f.id, this.rng.pick(hero.branches).id);
+      }
+      if (f.state.needsEvolution) {
+        const hero = heroById(f.state.heroId);
+        const br = hero ? branchById(hero, f.state.branchId) : undefined;
+        if (br) this.chooseEvolution(f.id, this.rng.pick(br.evolutions).id);
       }
       while (f.state.pendingOffers.length > 0) {
         const offer = f.state.pendingOffers[0];
@@ -446,6 +551,11 @@ export class Arena {
     if (this.time < f.dotUntil && f.dotDps > 0) {
       const src = f.dotSourceId ? this.fighterById(f.dotSourceId) ?? null : null;
       this.damageFighter(f, f.dotDps * dt, src, ev, "fighter", false, true);
+      if (!s.alive) return;
+    }
+    if (this.time < f.poisonUntil && f.poisonDps > 0) {
+      const src = f.dotSourceId ? this.fighterById(f.dotSourceId) ?? null : null;
+      this.damageFighter(f, f.poisonDps * dt, src, ev, "fighter", false, true);
       if (!s.alive) return;
     }
 
@@ -657,7 +767,7 @@ export class Arena {
     return { dmg: damage, crit: false };
   }
 
-  private applyOnHit(src: Fighter, target: { slowPct: number; slowUntil: number; dotDps: number; dotUntil: number; dotSourceId: string | null }): void {
+  private applyOnHit(src: Fighter, target: { slowPct: number; slowUntil: number; dotDps: number; dotUntil: number; dotSourceId: string | null; poisonDps: number; poisonUntil: number }): void {
     const pas = totalPassive(src.state);
     if (pas.slowPct > 0) {
       target.slowPct = Math.max(this.time < target.slowUntil ? target.slowPct : 0, pas.slowPct);
@@ -666,6 +776,12 @@ export class Arena {
     if (pas.dotPct > 0) {
       target.dotDps = this.attackOf(src) * pas.dotPct * ("state" in target ? PVP_DAMAGE_MUL : 1);
       target.dotUntil = this.time + 3;
+      target.dotSourceId = src.id;
+    }
+    if (pas.poisonPct > 0) {
+      // nhiễm độc: yếu hơn mỗi giây nhưng kéo dài 5 giây
+      target.poisonDps = this.attackOf(src) * pas.poisonPct * ("state" in target ? PVP_DAMAGE_MUL : 1);
+      target.poisonUntil = this.time + 5;
       target.dotSourceId = src.id;
     }
   }
@@ -686,6 +802,7 @@ export class Arena {
   private damageFighter(target: Fighter, raw: number, src: Fighter | null, ev: ArenaEvent[], cause: "fighter" | "zone" | "monster", crit: boolean, quiet: boolean): number {
     const s = target.state;
     if (!s.alive || raw <= 0) return 0;
+    if (this.time < target.protectUntil) return 0;
     let dmg = cause === "zone" ? raw : raw * (1 - totalPassive(s).damageReduction);
     if (target.shieldHp > 0 && cause !== "zone") {
       const absorbed = Math.min(target.shieldHp, dmg);
@@ -707,6 +824,22 @@ export class Arena {
     const s = victim.state;
     s.hp = 0;
     s.alive = false;
+    if (victim.lives > 0 && this.respawnOpen()) {
+      // gục: chờ hồi sinh, không bị loại, không tính thứ hạng
+      victim.lives -= 1;
+      victim.respawnAt = this.time + RESPAWN_DELAY_SEC;
+      victim.lostPotions += victim.potions;
+      victim.potions = 0;
+      const k = src ?? (victim.lastHitBy ? this.fighterById(victim.lastHitBy) ?? null : null);
+      const kAlive = k && k.state.alive && k !== victim ? k : null;
+      if (kAlive) {
+        gainExpEv(this, kAlive, 60 + 15 * s.level, ev);
+        kAlive.gold += 10;
+      }
+      ev.push({ type: "fx", kind: "death", x: victim.x, y: victim.y, radius: 40, color: 0xffffff, ownerId: victim.id });
+      ev.push({ type: "downed", victimId: victim.id, killerId: kAlive?.id ?? null, respawnAt: victim.respawnAt });
+      return;
+    }
     victim.placement = this.aliveCount;
     this.aliveCount -= 1;
     // người hạ gục: trực tiếp, hoặc người đánh cuối nếu chết vì bo/độc
@@ -714,7 +847,7 @@ export class Arena {
     const killerAlive = killer && killer.state.alive && killer !== victim ? killer : null;
     if (killerAlive) {
       killerAlive.state.kills += 1;
-      gainExpEv(this, killerAlive, 160 + 40 * s.level, ev);
+      gainExpEv(this, killerAlive, 100 + 25 * s.level, ev);
       killerAlive.gold += 25;
       // nhặt một nửa bình máu của nạn nhân
       killerAlive.potions = Math.min(MAX_POTIONS, killerAlive.potions + Math.ceil(victim.potions / 2));
@@ -780,8 +913,9 @@ export class Arena {
         }
         continue;
       }
-      if (this.time < m.dotUntil && m.dotDps > 0) {
-        m.hp -= m.dotDps * dt;
+      const mdot = (this.time < m.dotUntil ? m.dotDps : 0) + (this.time < m.poisonUntil ? m.poisonDps : 0);
+      if (mdot > 0) {
+        m.hp -= mdot * dt;
         if (m.hp <= 0) {
           const src = m.dotSourceId ? this.fighterById(m.dotSourceId) : undefined;
           if (src) this.killMonster(m, src, ev);
@@ -926,10 +1060,10 @@ export class Arena {
       b.retarget = 0.5;
       b.targetId = null;
       let best = Infinity;
-      // đầu trận máy ưu tiên săn quái; về sau (hoặc bị tấn công) mới săn người
-      const aggressive = this.time > b.peaceUntil;
-      const huntRange = aggressive ? 480 : 0;
-      // bị đánh → đánh trả đúng kẻ đã đánh mình
+      // không có thời gian hoà bình: luôn có thể giao tranh. Tầm săn người tăng dần theo thời gian
+      // (đầu trận chỉ đánh kẻ ở gần, cuối trận truy đuổi xa) và theo tính hiếu chiến của từng máy.
+      const huntRange = (180 + Math.min(1, this.time / 900) * 320) * (0.6 + b.aggression * 0.6);
+      // bị đánh → luôn đánh trả kẻ đã đánh mình
       const attacker = this.time < f.pvpUntil && f.lastHitBy ? this.fighterById(f.lastHitBy) : undefined;
       if (attacker?.state.alive && Math.hypot(attacker.x - f.x, attacker.y - f.y) < 600) {
         b.targetId = attacker.id;
@@ -1053,5 +1187,6 @@ function gainExpEv(arena: Arena, f: Fighter, amount: number, ev: ArenaEvent[]): 
     ev.push({ type: "fx", kind: "levelup", x: f.x, y: f.y, radius: 40, color: 0xffe14a, ownerId: f.id });
   }
   if (r.needsBranchSelection && before < SPECIALIZATION_LEVEL) ev.push({ type: "branch_needed", fighterId: f.id });
+  if (r.needsEvolutionSelection) ev.push({ type: "evolution_needed", fighterId: f.id });
   if (r.offersAdded > 0) ev.push({ type: "offer", fighterId: f.id });
 }

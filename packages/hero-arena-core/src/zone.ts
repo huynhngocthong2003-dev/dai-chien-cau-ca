@@ -3,9 +3,9 @@ import type { BiomeType, EnvironmentalHazard } from "./types.ts";
 
 // Bản đồ đảo tròn 6 vùng địa hình + vòng bo thu hẹp + biến đổi môi trường.
 
-export const WORLD_SIZE = 4000;
+export const WORLD_SIZE = 5200;
 export const WORLD_CENTER = WORLD_SIZE / 2;
-export const ISLAND_RADIUS = 1700;
+export const ISLAND_RADIUS = 2300;
 /** Bán kính khu tế đàn trung tâm. */
 export const ALTAR_RADIUS = 230;
 
@@ -85,14 +85,15 @@ export interface ZoneStage {
 }
 
 export const ZONE_STAGES: readonly ZoneStage[] = [
-  { waitSec: 45, shrinkSec: 20, radius: 1200, dps: 10 },
-  { waitSec: 40, shrinkSec: 18, radius: 850, dps: 18 },
-  { waitSec: 35, shrinkSec: 16, radius: 560, dps: 28 },
-  { waitSec: 30, shrinkSec: 14, radius: 340, dps: 42 },
-  { waitSec: 25, shrinkSec: 12, radius: 170, dps: 64 },
-  { waitSec: 20, shrinkSec: 12, radius: 40, dps: 95 },
-  { waitSec: 15, shrinkSec: 10, radius: 0, dps: 150 },
-];
+  // tổng tối đa ~17,7 phút → trận 15–20 phút
+  { waitSec: 150, shrinkSec: 60, radius: 1700, dps: 10 },
+  { waitSec: 140, shrinkSec: 50, radius: 1250, dps: 18 },
+  { waitSec: 130, shrinkSec: 45, radius: 880, dps: 28 },
+  { waitSec: 115, shrinkSec: 40, radius: 560, dps: 42 },
+  { waitSec: 100, shrinkSec: 35, radius: 320, dps: 64 },
+  { waitSec: 80, shrinkSec: 30, radius: 130, dps: 95 },
+  { waitSec: 60, shrinkSec: 25, radius: 0, dps: 150 },
+]
 
 export interface ZoneState {
   /** Chỉ số giai đoạn kế tiếp trong ZONE_STAGES (= số lần đã thu xong). */

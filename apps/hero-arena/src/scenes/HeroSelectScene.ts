@@ -1,14 +1,15 @@
 import Phaser from "phaser";
-import { HEROES, heroById, type Gender } from "@hero-arena/core";
-import { heroTexture } from "../art.ts";
+import { HEROES, heroById, passiveText, type Gender } from "@hero-arena/core";
+import { addHeroImage, breathe, skillIcon } from "../heroArt.ts";
 import { getSave, persist } from "../state.ts";
 import { button, H, hex, panel, text, W } from "../ui.ts";
 
 export class HeroSelectScene extends Phaser.Scene {
-  private heroId = "mage";
+  private heroId = "fighter";
   private gender: Gender = "male";
   private detail!: Phaser.GameObjects.Container;
-  private cards: Array<{ id: string; frame: Phaser.GameObjects.Rectangle; img: Phaser.GameObjects.Image }> = [];
+  private cards: Array<{ id: string; frame: Phaser.GameObjects.Graphics; x: number; y: number }> = [];
+  private genderBtns: Array<{ g: Gender; b: ReturnType<typeof button> }> = [];
 
   constructor() {
     super("HeroSelect");
@@ -16,48 +17,57 @@ export class HeroSelectScene extends Phaser.Scene {
 
   create(): void {
     const s = getSave();
-    if (s.lastHero) {
+    if (s.lastHero && heroById(s.lastHero.heroId)) {
       this.heroId = s.lastHero.heroId;
       this.gender = s.lastHero.gender;
     }
-    this.add.rectangle(0, 0, W, H, 0x0d1320).setOrigin(0);
-    const bg = this.add.image(W / 2, H / 2, "lobby_map").setAlpha(0.18);
+    const bg = this.add.image(W / 2, H / 2, "lobby_map");
     bg.setScale(Math.max(W / bg.width, H / bg.height));
-    text(this, 40, 20, "CHỌN ANH HÙNG & GIỚI TÍNH", 38, "#ffb347", 800);
-    button(this, 1180, 44, 150, 52, "← Sảnh", () => this.scene.start("Lobby"), 0x4a4f5a, 22);
+    this.add.rectangle(0, 0, W, H, 0x070a14, 0.8).setOrigin(0);
+    text(this, 30, 12, "CHỌN ANH HÙNG", 40, "#ffcf5a", 800);
+    text(this, 372, 28, "10 lớp · mỗi lớp 3 dạng tiến hoá", 18, "#c8c0b0", 500);
+    button(this, 1186, 40, 150, 50, "← Sảnh", () => this.scene.start("Lobby"), 0x4a4f5a, 22);
     this.cards = [];
     HEROES.forEach((h, i) => {
-      const x = 40 + (i % 4) * 150;
-      const y = 90 + Math.floor(i / 4) * 250;
-      const frame = this.add.rectangle(x, y, 138, 236, 0x151c2b, 0.95).setOrigin(0).setStrokeStyle(3, 0x3a4458);
-      frame.setInteractive({ useHandCursor: true }).on("pointerdown", () => {
-        this.heroId = h.id;
-        this.refresh();
-      });
-      const img = this.add.image(x + 69, y + 120, heroTexture(this, h.id, null, this.gender)).setScale(1.7).setOrigin(0.5, 0.92);
-      text(this, x + 69, y + 150, h.nameVi, 24, "#ffe08a").setOrigin(0.5, 0);
-      text(this, x + 69, y + 182, h.roleVi, 15, "#c8c0b0", 500).setOrigin(0.5, 0);
-      text(this, x + 69, y + 204, h.ranged ? "Tầm xa" : "Cận chiến", 14, h.ranged ? "#9ad8ff" : "#ffb0a0", 500).setOrigin(0.5, 0);
-      this.cards.push({ id: h.id, frame, img });
+      const x = 22 + (i % 5) * 118;
+      const y = 74 + Math.floor(i / 5) * 268;
+      const g = this.add.graphics();
+      g.fillStyle(0x131a2a, 0.95).fillRoundedRect(x, y, 112, 258, 10);
+      const frame = this.add.graphics();
+      breathe(this, addHeroImage(this, x + 56, y + 178, h.id, null, null, 0.72));
+      text(this, x + 56, y + 184, h.nameVi, 20, "#ffe08a").setOrigin(0.5, 0);
+      text(this, x + 56, y + 210, h.roleVi, 12, "#c8c0b0", 500).setOrigin(0.5, 0).setWordWrapWidth(104).setAlign("center");
+      text(this, x + 56, y + 240, h.ranged ? "Tầm xa" : "Cận chiến", 12, h.ranged ? "#9ad8ff" : "#ffb0a0", 500).setOrigin(0.5, 0);
+      this.add
+        .zone(x, y, 112, 258)
+        .setOrigin(0)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerdown", () => {
+          this.heroId = h.id;
+          this.refresh();
+        });
+      this.cards.push({ id: h.id, frame, x, y });
     });
-    button(this, 150, 640, 200, 60, "♂ Nam", () => {
-      this.gender = "male";
-      this.refresh();
-    }, 0x2f5f8f);
-    button(this, 370, 640, 200, 60, "♀ Nữ", () => {
-      this.gender = "female";
-      this.refresh();
-    }, 0x8f2f6a);
+    this.genderBtns = [
+      { g: "male", b: button(this, 150, 676, 200, 52, "♂ Nam", () => this.setGender("male"), 0x2f5f8f) },
+      { g: "female", b: button(this, 370, 676, 200, 52, "♀ Nữ", () => this.setGender("female"), 0x8f2f6a) },
+    ];
     this.detail = this.add.container(0, 0);
+    this.refresh();
+  }
+
+  private setGender(g: Gender): void {
+    this.gender = g;
     this.refresh();
   }
 
   private refresh(): void {
     for (const c of this.cards) {
       const sel = c.id === this.heroId;
-      c.frame.setStrokeStyle(sel ? 5 : 3, sel ? 0xffb347 : 0x3a4458);
-      c.img.setTexture(heroTexture(this, c.id, null, this.gender));
+      c.frame.clear();
+      c.frame.lineStyle(sel ? 4 : 2, sel ? 0xffcf5a : 0x3a4458, 1).strokeRoundedRect(c.x, c.y, 112, 258, 10);
     }
+    for (const gb of this.genderBtns) gb.b.root.setAlpha(gb.g === this.gender ? 1 : 0.55);
     this.detail.removeAll(true);
     const h = heroById(this.heroId);
     if (!h) return;
@@ -65,26 +75,38 @@ export class HeroSelectScene extends Phaser.Scene {
       this.detail.add(o);
       return o;
     };
-    add(panel(this, 650, 90, 600, 520));
-    add(this.add.image(740, 290, heroTexture(this, h.id, null, this.gender)).setScale(2.6).setOrigin(0.5, 0.92));
-    add(text(this, 840, 104, `${h.nameVi} (${h.name}) · ${this.gender === "male" ? "Nam" : "Nữ"}`, 28, "#ffe08a"));
-    const b = h.baseStats;
-    add(text(this, 840, 146, `Máu ${b.hp} · Năng lượng ${b.mana}\nCông ${b.attackPower} · Tốc chạy ${b.moveSpeed}\nTầm đánh ${h.attackRange}\nKỹ năng đầu: ${h.baseSkill.nameVi}`, 19, "#e8e0d0", 500));
-    add(text(this, 670, 310, "Nhánh chuyên môn (khóa ở cấp 5):", 21, "#ffb347"));
+    add(panel(this, 618, 70, 646, 570));
+    // Dạng 1
+    breathe(this, add(addHeroImage(this, 680, 168, h.id, null, null, 0.56)));
+    add(text(this, 720, 80, `${h.nameVi} · ${this.gender === "male" ? "Nam" : "Nữ"}`, 28, "#ffe08a"));
+    add(text(this, 720, 116, `Dạng 1: ${h.baseNameVi} · Máu ${h.baseStats.hp} · Công ${h.baseStats.attackPower} · Tầm ${h.attackRange}`, 15, "#e8e0d0", 500));
+    add(text(this, 720, 140, "Cấp 5 → chọn 1 trong 3 hướng Dạng 2 · Cấp 10 → 3 hướng Dạng 3 của hướng đó", 14, "#9ad8a0", 500));
     h.branches.forEach((br, i) => {
-      const y = 346 + i * 86;
-      add(this.add.image(700, y + 66, heroTexture(this, h.id, br.id, this.gender)).setScale(0.9).setOrigin(0.5, 0.92));
-      add(text(this, 740, y, `${br.name} – ${br.passive.nameVi}`, 20, hex(br.color)));
-      add(text(this, 740, y + 26, br.descVi, 16, "#d8d0c0", 500).setWordWrapWidth(490));
-      add(text(this, 740, y + 48, `${br.skills.map((x) => x.nameVi).join(" · ")} · Tối thượng: ${br.ultimate.nameVi}`, 15, "#a8a090", 500).setWordWrapWidth(490));
+      const x = 636 + i * 208;
+      const g = add(this.add.graphics());
+      g.fillStyle(0x0b0f18, 0.7).fillRect(x, 176, 198, 452);
+      g.lineStyle(2, br.color, 0.8).strokeRect(x, 176, 198, 452);
+      breathe(this, add(addHeroImage(this, x + 99, 300, h.id, br.id, null, 0.78)));
+      add(text(this, x + 99, 302, br.name, 21, hex(br.color)).setOrigin(0.5, 0));
+      add(text(this, x + 99, 330, br.descVi, 13, "#d8d0c0", 500).setOrigin(0.5, 0).setWordWrapWidth(186).setAlign("center"));
+      add(text(this, x + 99, 366, passiveText(br.passive.effect), 13, "#ffcf5a", 500).setOrigin(0.5, 0).setWordWrapWidth(186).setAlign("center"));
+      br.skills.forEach((sk, j) => {
+        add(this.add.image(x + 46 + j * 53, 410, skillIcon(this, sk.kind, br.color)).setDisplaySize(30, 30));
+      });
+      add(text(this, x + 8, 430, "Dạng 3 (cấp 10):", 12, "#a8a090", 500));
+      br.evolutions.forEach((evo, j) => {
+        const ex = x + 34 + j * 65;
+        add(addHeroImage(this, ex, 550, h.id, br.id, evo.id, 0.46));
+        add(text(this, ex, 554, evo.name, 11, `#${evo.color.toString(16).padStart(6, "0")}`, 500).setOrigin(0.5, 0).setWordWrapWidth(64).setAlign("center"));
+      });
     });
     add(
-      button(this, 950, 660, 360, 72, "⚔ VÀO TRẬN (20 người)", () => {
+      button(this, 1000, 676, 380, 56, "⚔ VÀO TRẬN (20 người)", () => {
         const s = getSave();
         s.lastHero = { heroId: this.heroId, gender: this.gender };
         persist();
         this.scene.start("Arena", { heroId: this.heroId, gender: this.gender });
-      }, 0xc8461e, 28).root,
+      }, 0xc8461e, 26).root,
     );
   }
 }
