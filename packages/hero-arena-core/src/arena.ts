@@ -182,7 +182,9 @@ export type ArenaEvent =
   | { type: "zone_stage_done"; stage: number }
   | { type: "downed"; victimId: string; killerId: string | null; respawnAt: number }
   | { type: "respawned"; fighterId: string; x: number; y: number }
-  | { type: "victory"; winnerId: string };
+  | { type: "victory"; winnerId: string }
+  /** Hành động của đấu thủ (để client chạy hoạt ảnh): đánh thường / tung chiêu / chiêu tối thượng. */
+  | { type: "act"; fighterId: string; action: "attack" | "cast" | "ult"; melee: boolean; dirX: number; dirY: number; color: number };
 
 export interface ArenaConfig {
   seed: number;
@@ -627,6 +629,7 @@ export class Arena {
     f.faceX = dx;
     f.faceY = dy;
     const color = fxColor(f);
+    ev.push({ type: "act", fighterId: f.id, action: "attack", melee: !hero.ranged, dirX: dx, dirY: dy, color });
     if (hero.ranged) {
       this.spawnProjectile(f, dx, dy, 620, this.rangeOf(f), dmg, 8, false, color, false);
     } else {
@@ -663,6 +666,7 @@ export class Arena {
     const { dx, dy, dist } = dir(f.x, f.y, ax, ay, f);
     f.faceX = dx;
     f.faceY = dy;
+    ev.push({ type: "act", fighterId: f.id, action: slot === "ult" ? "ult" : "cast", melee: skill.kind === "cleave", dirX: dx, dirY: dy, color });
     switch (skill.kind) {
       case "bolt": {
         this.spawnProjectile(f, dx, dy, 760, this.rangeOf(f) * 1.35 + 60, atk * 1.7, 16, true, color, true);

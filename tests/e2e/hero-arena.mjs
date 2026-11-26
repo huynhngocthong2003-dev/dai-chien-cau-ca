@@ -80,11 +80,10 @@ await expect(s.inventory.gold === 2400 && s.mails.every((m) => !m.reward || m.is
 await page.mouse.click(1080, 96);
 step("Hòm thư: nhận tất cả");
 
-// Chọn anh hùng: Xạ Thủ (lớp thứ 3), Nữ
+// Chọn anh hùng: Xạ Thủ (lớp thứ 3)
 await page.mouse.click(235, 600);
 await waitScene("HeroSelect");
 await page.mouse.click(314, 174);
-await page.mouse.click(370, 676);
 await page.waitForTimeout(300);
 await shot("04-select");
 await page.mouse.click(1000, 676);
@@ -94,7 +93,7 @@ const info = await page.evaluate(() => {
   const a = window.__arenaScene.arena;
   return { n: a.fighters.length, hero: a.player.state.heroId, g: a.player.state.gender, x: a.player.x, potions: a.player.potions };
 });
-await expect(info.n === 20 && info.hero === "marksman" && info.g === "female", `trận sai: ${JSON.stringify(info)}`);
+await expect(info.n === 20 && info.hero === "marksman", `trận sai: ${JSON.stringify(info)}`);
 await expect(info.potions === 5, `phải mang 3 bình máu kho + 2 mặc định, có ${info.potions}`);
 step("Vào trận 20 người");
 

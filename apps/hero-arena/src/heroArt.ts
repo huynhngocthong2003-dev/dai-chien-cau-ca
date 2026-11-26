@@ -106,12 +106,71 @@ export function hasRealArt(heroId: string, branchId: string | null, evolutionId:
   return pickArt(heroId, branchId, evolutionId, false).tint === null;
 }
 
+/** Texture (khoá + khung) của hình nhân vật hiện tại. */
+export function heroTex(scene: Phaser.Scene, heroId: string, branchId: string | null, evolutionId: string | null, back = false): { key: string; frame: number | undefined } {
+  const a = pickArt(heroId, branchId, evolutionId, back);
+  if (a.tint === null) return { key: HERO_SHEET, frame: a.frame };
+  return { key: recolored(scene, a.frame, a.from, a.tint), frame: undefined };
+}
+
 /** Đặt hình nhân vật lên Image (gốc ở chân). */
 export function setHeroImage(img: Phaser.GameObjects.Image, heroId: string, branchId: string | null, evolutionId: string | null, back = false, scale = 1): Phaser.GameObjects.Image {
-  const a = pickArt(heroId, branchId, evolutionId, back);
-  if (a.tint === null) img.setTexture(HERO_SHEET, a.frame);
-  else img.setTexture(recolored(img.scene, a.frame, a.from, a.tint));
+  const t = heroTex(img.scene, heroId, branchId, evolutionId, back);
+  img.setTexture(t.key, t.frame);
   return img.setOrigin(0.5, 0.97).setScale(scale);
+}
+
+export const WALK_FRAMES = 4;
+
+/**
+ * Khung bước chân sinh từ hình tĩnh: tách dải chân thành chân trái / chân phải,
+ * nhấc luân phiên từng chân, thân nhún theo nhịp (0 và 2: hai chân chạm đất).
+ */
+export function walkFrameKey(scene: Phaser.Scene, key: string, frame: number | undefined, i: number): string {
+  const out = `walk_${key}_${frame ?? "x"}_${i}`;
+  if (scene.textures.exists(out)) return out;
+  const src = scene.textures.getFrame(key, frame);
+  if (!src) return key;
+  const w = src.cutWidth;
+  const h = src.cutHeight;
+  const tmp = document.createElement("canvas");
+  tmp.width = w;
+  tmp.height = h;
+  const tctx = tmp.getContext("2d");
+  const tex = scene.textures.createCanvas(out, w, h);
+  if (!tctx || !tex) return key;
+  tctx.drawImage(src.source.image as CanvasImageSource, src.cutX, src.cutY, w, h, 0, 0, w, h);
+  // khung bao hình (bỏ qua hiệu ứng mờ)
+  const data = tctx.getImageData(0, 0, w, h).data;
+  let top = h;
+  let left = w;
+  let right = 0;
+  let bottom = 0;
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++)
+      if ((data[(y * w + x) * 4 + 3] ?? 0) > 200) {
+        top = Math.min(top, y);
+        bottom = Math.max(bottom, y);
+        left = Math.min(left, x);
+        right = Math.max(right, x);
+      }
+  const figH = Math.max(1, bottom - top);
+  const legTop = Math.round(bottom - figH * 0.2);
+  const mid = Math.round((left + right) / 2);
+  const P = 3; // một "điểm ảnh" của hình gốc
+  const lift = [0, -2 * P, 0, 0][i] ?? 0; // chân trái nhấc
+  const liftR = [0, 0, 0, -2 * P][i] ?? 0; // chân phải nhấc
+  const bodyDy = [0, -P, 0, -P][i] ?? 0; // thân nhún khi một chân nhấc
+  const stride = [0, P, 0, -P][i] ?? 0; // bước chân lệch ngang
+  const ctx = tex.getContext();
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(tmp, 0, 0, w, legTop, 0, bodyDy, w, legTop);
+  ctx.drawImage(tmp, 0, legTop, mid, h - legTop, stride, legTop + lift, mid, h - legTop);
+  ctx.drawImage(tmp, mid, legTop, w - mid, h - legTop, mid - stride, legTop + liftR, w - mid, h - legTop);
+  tex.refresh();
+  tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+  return out;
 }
 
 export function addHeroImage(scene: Phaser.Scene, x: number, y: number, heroId: string, branchId: string | null, evolutionId: string | null = null, scale = 1): Phaser.GameObjects.Image {

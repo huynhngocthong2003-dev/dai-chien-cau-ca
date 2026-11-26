@@ -9,7 +9,6 @@ export class HeroSelectScene extends Phaser.Scene {
   private gender: Gender = "male";
   private detail!: Phaser.GameObjects.Container;
   private cards: Array<{ id: string; frame: Phaser.GameObjects.Graphics; x: number; y: number }> = [];
-  private genderBtns: Array<{ g: Gender; b: ReturnType<typeof button> }> = [];
 
   constructor() {
     super("HeroSelect");
@@ -19,7 +18,6 @@ export class HeroSelectScene extends Phaser.Scene {
     const s = getSave();
     if (s.lastHero && heroById(s.lastHero.heroId)) {
       this.heroId = s.lastHero.heroId;
-      this.gender = s.lastHero.gender;
     }
     const bg = this.add.image(W / 2, H / 2, "lobby_map");
     bg.setScale(Math.max(W / bg.width, H / bg.height));
@@ -48,16 +46,7 @@ export class HeroSelectScene extends Phaser.Scene {
         });
       this.cards.push({ id: h.id, frame, x, y });
     });
-    this.genderBtns = [
-      { g: "male", b: button(this, 150, 676, 200, 52, "♂ Nam", () => this.setGender("male"), 0x2f5f8f) },
-      { g: "female", b: button(this, 370, 676, 200, 52, "♀ Nữ", () => this.setGender("female"), 0x8f2f6a) },
-    ];
     this.detail = this.add.container(0, 0);
-    this.refresh();
-  }
-
-  private setGender(g: Gender): void {
-    this.gender = g;
     this.refresh();
   }
 
@@ -67,7 +56,6 @@ export class HeroSelectScene extends Phaser.Scene {
       c.frame.clear();
       c.frame.lineStyle(sel ? 4 : 2, sel ? 0xffcf5a : 0x3a4458, 1).strokeRoundedRect(c.x, c.y, 112, 258, 10);
     }
-    for (const gb of this.genderBtns) gb.b.root.setAlpha(gb.g === this.gender ? 1 : 0.55);
     this.detail.removeAll(true);
     const h = heroById(this.heroId);
     if (!h) return;
@@ -78,7 +66,7 @@ export class HeroSelectScene extends Phaser.Scene {
     add(panel(this, 618, 70, 646, 570));
     // Dạng 1
     breathe(this, add(addHeroImage(this, 680, 168, h.id, null, null, 0.56)));
-    add(text(this, 720, 80, `${h.nameVi} · ${this.gender === "male" ? "Nam" : "Nữ"}`, 28, "#ffe08a"));
+    add(text(this, 720, 80, h.nameVi, 28, "#ffe08a"));
     add(text(this, 720, 116, `Dạng 1: ${h.baseNameVi} · Máu ${h.baseStats.hp} · Công ${h.baseStats.attackPower} · Tầm ${h.attackRange}`, 15, "#e8e0d0", 500));
     add(text(this, 720, 140, "Cấp 5 → chọn 1 trong 3 hướng Dạng 2 · Cấp 10 → 3 hướng Dạng 3 của hướng đó", 14, "#9ad8a0", 500));
     h.branches.forEach((br, i) => {

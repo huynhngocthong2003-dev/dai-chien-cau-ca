@@ -33,7 +33,7 @@ import {
 import { dotTexture, makeMonsterTextures, monsterTexture, vignetteTexture } from "../art.ts";
 import { decoTexture, type DecoKind } from "../decoArt.ts";
 import { TERRAIN_SCALE, terrainTexture } from "../terrain.ts";
-import { addHeroImage, breathe, evolutionScale, evolutionTier, hasRealArt, heroArtKey, HERO_FIGURE_H, setHeroImage, skillIcon } from "../heroArt.ts";
+import { addHeroImage, breathe, evolutionScale, evolutionTier, hasRealArt, heroArtKey, heroTex, HERO_FIGURE_H, setHeroImage, skillIcon, walkFrameKey, WALK_FRAMES } from "../heroArt.ts";
 import { getSave, newMatchSeed, persist } from "../state.ts";
 import { button, H, hex, panel, pixelBox, pixelCircle, PX, text, toast, W } from "../ui.ts";
 
@@ -82,6 +82,17 @@ interface FighterView {
   flash: number;
   phase: number;
   scale: number;
+  /** Texture gốc hiện tại (để sinh khung bước chân). */
+  texKey: string;
+  texFrame: number | undefined;
+  /** Hành động đang diễn: chém / bắn / tung chiêu / tối thượng. */
+  act: { kind: "melee" | "shot" | "cast" | "ult"; t: number; dur: number; dx: number; dy: number; color: number } | null;
+  /** Trúng đòn: thời gian còn lại + hướng bị đẩy. */
+  hit: number;
+  hitDx: number;
+  hitDy: number;
+  /** Lớp phát sáng khi tung chiêu. */
+  glow: Phaser.GameObjects.Image;
   aura: Phaser.GameObjects.Particles.ParticleEmitter | null;
   auraKey: string;
 }
@@ -181,7 +192,11 @@ export class ArenaScene extends Phaser.Scene {
       const key = `${heroArtKey(f.state.heroId, null, null)}:1`;
       const phase = this.fighterViews.size * 0.7;
       const name = text(this, f.x, f.y, f.isBot ? f.state.name : `★ ${f.state.name}`, 15, f.isBot ? "#f0e0d0" : "#ffe14a").setOrigin(0.5, 1);
-      this.fighterViews.set(f.id, { img, name, key, lunge: 0, flash: 0, phase, scale: evolutionScale(1), aura: null, auraKey: "" });
+      const glow = this.add.image(f.x, f.y, img.texture.key, img.frame.name).setOrigin(0.5, 0.97).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+      this.fighterViews.set(f.id, {
+        img, name, key, lunge: 0, flash: 0, phase, scale: evolutionScale(1), aura: null, auraKey: "",
+        texKey: heroTex(this, f.state.heroId, null, null).key, texFrame: heroTex(this, f.state.heroId, null, null).frame, act: null, hit: 0, hitDx: 0, hitDy: 0, glow,
+      });
     }
     this.ringG = this.add.graphics().setDepth(1);
     this.zoneG = this.add.graphics().setDepth(5000);
@@ -394,13 +409,21 @@ export class ArenaScene extends Phaser.Scene {
         case "hit": {
           if (e.sourceId === pid || e.targetId === pid) this.damageNumber(e.x, e.y, e.amount, e.crit, e.targetId === pid);
           const tv = this.fighterViews.get(e.targetId);
-          if (tv) tv.flash = 0.09;
+          const tf = a.fighterById(e.targetId);
+          if (tv && tf) {
+            tv.flash = 0.1;
+            tv.hit = 0.18;
+            const src = a.fighterById(e.sourceId);
+            const sxp = src ? src.x : e.x - tf.faceX * 10;
+            const syp = src ? src.y : e.y - tf.faceY * 10;
+            const d = Math.hypot(tf.x - sxp, tf.y - syp) || 1;
+            tv.hitDx = (tf.x - sxp) / d;
+            tv.hitDy = (tf.y - syp) / d;
+          }
           break;
         }
         case "fx": {
           this.spawnFx(e);
-          const ov = this.fighterViews.get(e.ownerId);
-          if (ov && e.kind !== "death" && e.kind !== "potion") ov.lunge = 0.16;
           break;
         }
         case "eliminated": {
@@ -408,12 +431,26 @@ export class ArenaScene extends Phaser.Scene {
           const k = e.killerId ? a.fighterById(e.killerId) : null;
           const how = e.cause === "zone" ? "bị vòng bo nuốt chửng" : e.cause === "monster" ? "bị quái hạ gục" : `bị ${k?.state.name ?? "?"} hạ gục`;
           this.pushFeed(`☠ ${v?.state.name ?? "?"} ${how} (hạng ${e.placement})`, e.victimId === pid || e.killerId === pid ? "#ffb347" : "#e8d8c8");
+          if (v) this.deathFx(v, true);
           if (e.victimId === pid) this.endMatch(false);
+          break;
+        }
+        case "act": {
+          const av = this.fighterViews.get(e.fighterId);
+          const af = a.fighterById(e.fighterId);
+          if (!av || !af) break;
+          const kind = e.action === "ult" ? "ult" : e.action === "cast" ? "cast" : e.melee ? "melee" : "shot";
+          av.act = { kind, t: 0, dur: kind === "melee" ? 0.3 : kind === "shot" ? 0.18 : kind === "ult" ? 0.7 : 0.45, dx: e.dirX, dy: e.dirY, color: e.color };
+          if (this.nearCamera(af.x, af.y)) {
+            if (kind === "melee") this.slashFx(af.x, af.y - 50 * av.scale, e.dirX, e.dirY, e.color, av.scale);
+            else if (kind === "shot") this.muzzleFx(af.x + e.dirX * 40, af.y - 60 * av.scale + e.dirY * 20, e.color);
+          }
           break;
         }
         case "downed": {
           const v = a.fighterById(e.victimId);
           const k = e.killerId ? a.fighterById(e.killerId) : null;
+          if (v) this.deathFx(v, false);
           this.pushFeed(`✚ ${v?.state.name ?? "?"} gục${k ? ` bởi ${k.state.name}` : ""} – sẽ hồi sinh`, e.victimId === pid ? "#ffb347" : "#b8d8c8");
           if (e.victimId === pid) this.note("BẠN ĐÃ GỤC – hồi sinh sau 5 giây (mất hết đồ & kinh nghiệm)", "#ff9a8a");
           break;
@@ -424,12 +461,16 @@ export class ArenaScene extends Phaser.Scene {
         case "victory":
           if (e.winnerId === pid) this.endMatch(true);
           break;
-        case "monster_killed":
+        case "monster_killed": {
+          const mm = a.monsters.find((m) => m.id === e.monsterId);
+          const mimg = this.monsterViews.get(e.monsterId);
+          if (mm && mimg && this.nearCamera(mm.x, mm.y)) this.monsterDeathFx(mimg, mm.def.color);
           if (e.killerId === pid) {
             dirty = completeTutorialStep(save, "hunt_monsters_and_loot") || dirty;
             if (e.isBoss) this.note("Đã hạ Boss! +Tinh Hoa Boss", "#ffb347");
           }
           break;
+        }
         case "loot":
           if (e.fighterId === pid) this.note(e.text, "#8aff9a");
           break;
@@ -505,6 +546,97 @@ export class ArenaScene extends Phaser.Scene {
       v.aura.setDepth(f.y + 1);
       v.aura.emitting = f.state.alive;
     }
+  }
+
+  private nearCamera(x: number, y: number): boolean {
+    const c = this.cameras.main;
+    return Math.abs(x - c.midPoint.x) < 900 && Math.abs(y - c.midPoint.y) < 600;
+  }
+
+  /** Vệt chém hình lưỡi liềm quét qua theo hướng đánh. */
+  private slashFx(x: number, y: number, dx: number, dy: number, color: number, scale: number): void {
+    const g = this.worldOnly(this.add.graphics().setDepth(5600));
+    const base = Math.atan2(dy, dx);
+    const R = 70 * scale + 20;
+    const state = { p: 0 };
+    const draw = () => {
+      g.clear();
+      const a0 = base - 1.3;
+      const a1 = a0 + 2.6 * Math.min(1, state.p * 1.6);
+      const n = 14;
+      const outer: Phaser.Math.Vector2[] = [];
+      const inner: Phaser.Math.Vector2[] = [];
+      for (let i = 0; i <= n; i++) {
+        const ang = a0 + ((a1 - a0) * i) / n;
+        const thick = Math.sin((i / n) * Math.PI) * 18 * scale + 2;
+        outer.push(new Phaser.Math.Vector2(x + Math.cos(ang) * R, y + Math.sin(ang) * R * 0.75));
+        inner.push(new Phaser.Math.Vector2(x + Math.cos(ang) * (R - thick), y + Math.sin(ang) * (R - thick) * 0.75));
+      }
+      const pts = [...outer, ...inner.reverse()];
+      const al = 1 - Math.max(0, state.p - 0.5) * 2;
+      g.fillStyle(color, 0.75 * al).fillPoints(pts, true);
+      g.lineStyle(3, 0xffffff, 0.95 * al).strokePoints(outer, false);
+    };
+    draw();
+    this.tweens.add({ targets: state, p: 1, duration: 230, onUpdate: draw, onComplete: () => g.destroy() });
+  }
+
+  /** Loé sáng đầu vũ khí khi bắn. */
+  private muzzleFx(x: number, y: number, color: number): void {
+    const g = this.worldOnly(this.add.graphics().setDepth(5600).setBlendMode(Phaser.BlendModes.ADD));
+    g.fillStyle(color, 0.8).fillCircle(x, y, 14);
+    g.fillStyle(0xffffff, 0.9).fillCircle(x, y, 6);
+    this.tweens.add({ targets: g, alpha: 0, duration: 140, onComplete: () => g.destroy() });
+  }
+
+  /** Ngã xuống, chìm & mờ dần, linh hồn bay lên; bị loại thì để lại bia mộ. */
+  private deathFx(f: Arena["fighters"][number], eliminated: boolean): void {
+    const v = this.fighterViews.get(f.id);
+    if (!v) return;
+    const corpse = this.worldOnly(this.add.image(v.img.x, v.img.y, v.texKey, v.texFrame))
+      .setOrigin(0.5, 0.97)
+      .setScale(v.scale)
+      .setFlipX(v.img.flipX)
+      .setDepth(f.y)
+      .setTintFill(0xffffff);
+    const side = v.img.flipX ? 1 : -1;
+    this.time.delayedCall(90, () => corpse.clearTint().setTint(0x9a9ab0));
+    this.tweens.add({ targets: corpse, rotation: side * 1.45, y: corpse.y + 8, duration: 420, ease: "Bounce.easeOut" });
+    this.tweens.add({ targets: corpse, alpha: 0, delay: 900, duration: 700, onComplete: () => corpse.destroy() });
+    if (this.nearCamera(f.x, f.y)) {
+      const em = this.worldOnly(
+        this.add.particles(f.x, f.y - 50, "dot", {
+          speedY: { min: -140, max: -60 },
+          speedX: { min: -30, max: 30 },
+          lifespan: 1200,
+          scale: { start: 0.6, end: 0 },
+          alpha: { start: 0.9, end: 0 },
+          tint: [0xd8e8ff, 0x9ad8ff],
+          blendMode: "ADD",
+          emitting: false,
+        }),
+      ).setDepth(6000);
+      em.explode(24);
+      this.time.delayedCall(1400, () => em.destroy());
+    }
+    // dấu tại chỗ: bia mộ (bị loại) hoặc dấu ✚ (chờ hồi sinh)
+    const mark = eliminated
+      ? this.worldOnly(this.add.image(f.x, f.y, decoTexture(this, "grave")).setOrigin(0.5, 0.9).setDepth(f.y - 1).setAlpha(0))
+      : this.worldOnly(text(this, f.x, f.y - 20, "✚", 34, "#6affb0").setOrigin(0.5).setDepth(f.y - 1).setAlpha(0));
+    this.tweens.add({ targets: mark, alpha: 1, delay: 600, duration: 300 });
+    this.tweens.add({ targets: mark, alpha: 0, delay: eliminated ? 9000 : 4800, duration: 600, onComplete: () => mark.destroy() });
+  }
+
+  /** Quái chết: bẹp xuống rồi tan thành hạt. */
+  private monsterDeathFx(img: Phaser.GameObjects.Image, color: number): void {
+    const ghost = this.worldOnly(this.add.image(img.x, img.y, img.texture.key).setScale(img.scaleX).setDepth(img.depth).setTintFill(0xffffff));
+    this.time.delayedCall(70, () => ghost.clearTint());
+    this.tweens.add({ targets: ghost, scaleY: img.scaleY * 0.2, scaleX: img.scaleX * 1.4, alpha: 0, duration: 380, ease: "Quad.easeIn", onComplete: () => ghost.destroy() });
+    const em = this.worldOnly(
+      this.add.particles(img.x, img.y, "dot", { speed: { min: 60, max: 200 }, lifespan: 500, scale: { start: 0.5, end: 0 }, tint: color, emitting: false }),
+    ).setDepth(5600);
+    em.explode(16);
+    this.time.delayedCall(700, () => em.destroy());
   }
 
   /** Bùng sáng khi tiến hoá (cấp 10) / thức tỉnh (cấp 15). */
@@ -626,6 +758,7 @@ export class ArenaScene extends Phaser.Scene {
         if (v.img.visible) {
           v.img.setVisible(false);
           v.name.setVisible(false);
+          v.glow.setVisible(false);
         }
         continue;
       }
@@ -643,31 +776,91 @@ export class ArenaScene extends Phaser.Scene {
         const evolved = v.key !== "" && v.scale < evolutionScale(f.state.level);
         v.key = key;
         v.scale = evolutionScale(f.state.level);
-        setHeroImage(v.img, f.state.heroId, f.state.branchId, f.state.evolutionId, back, v.scale);
+        const tx = heroTex(this, f.state.heroId, f.state.branchId, f.state.evolutionId, back);
+        v.texKey = tx.key;
+        v.texFrame = tx.frame;
         if (evolved) this.evolveBurst(f.x, f.y, fxColor(f));
       }
-      // ---- hiệu ứng động ----
+      // ---- hoạt ảnh ----
       const dtv = this.game.loop.delta / 1000;
-      v.lunge = Math.max(0, v.lunge - dtv);
       v.flash = Math.max(0, v.flash - dtv);
-      const tt = t * (moving ? 13 : 3) + v.phase;
-      // thở khi đứng, nhún + nghiêng khi chạy
-      const breatheY = moving ? 1 + Math.abs(Math.sin(tt)) * 0.04 : 1 + Math.sin(tt) * 0.028;
-      const breatheX = moving ? 1 - Math.abs(Math.sin(tt)) * 0.02 : 1 - Math.sin(tt) * 0.012;
-      const bob = moving ? -Math.abs(Math.sin(tt)) * 6 : 0;
-      const tilt = moving ? Math.sin(tt) * 0.07 + (f.vx / Math.max(1, speed)) * 0.05 : 0;
-      // lao người về hướng đánh + phóng to nhẹ
-      const lk = v.lunge > 0 ? Math.sin((v.lunge / 0.16) * Math.PI) : 0;
-      const punch = 1 + lk * 0.07;
+      v.hit = Math.max(0, v.hit - dtv);
+      // đi/chạy: 4 khung bước chân, nhịp theo tốc độ
+      const stepRate = 6 + speed / 40;
+      const walkI = moving ? Math.floor((t * stepRate + v.phase) % WALK_FRAMES) : -1;
+      if (walkI >= 0) v.img.setTexture(walkFrameKey(this, v.texKey, v.texFrame, walkI));
+      else v.img.setTexture(v.texKey, v.texFrame);
+      const tt = t * 3 + v.phase;
+      let sx = 1 - Math.sin(tt) * 0.012;
+      let sy = 1 + Math.sin(tt) * 0.026;
+      let rot = moving ? (f.vx / Math.max(1, speed)) * 0.06 : 0;
+      let ox = 0;
+      let oy = 0;
+      // hành động
+      let glowA = 0;
+      if (v.act) {
+        v.act.t += dtv;
+        const p = Math.min(1, v.act.t / v.act.dur);
+        const side = v.act.dx < -0.1 ? -1 : 1;
+        if (v.act.kind === "melee") {
+          // lấy đà ngả ra sau rồi chém ngả tới
+          const swing = p < 0.35 ? -(p / 0.35) * 0.28 : -0.28 + ((p - 0.35) / 0.65) * 0.62 * Math.sin(Math.min(1, (p - 0.35) / 0.3) * Math.PI * 0.5);
+          rot += swing * side * (1 - Math.max(0, p - 0.7) / 0.3);
+          const lk = p < 0.35 ? -p * 0.3 : Math.sin(((p - 0.35) / 0.65) * Math.PI);
+          ox = v.act.dx * lk * 18;
+          oy = v.act.dy * lk * 10;
+          sx *= 1 + Math.max(0, lk) * 0.06;
+          sy *= 1 + Math.max(0, lk) * 0.06;
+        } else if (v.act.kind === "shot") {
+          // giật lùi khi bắn
+          const rk = Math.sin(p * Math.PI);
+          ox = -v.act.dx * rk * 7;
+          oy = -v.act.dy * rk * 4;
+          rot -= side * rk * 0.08;
+        } else {
+          // tung chiêu: vươn người lên, toả sáng
+          const up = Math.sin(p * Math.PI);
+          sy *= 1 + up * (v.act.kind === "ult" ? 0.16 : 0.1);
+          sx *= 1 - up * 0.06;
+          oy = -up * (v.act.kind === "ult" ? 12 : 6);
+          glowA = up * (v.act.kind === "ult" ? 0.85 : 0.6);
+        }
+        if (p >= 1) v.act = null;
+      } else if (moving) {
+        oy = -Math.abs(Math.sin(t * stepRate * Math.PI * 0.5 + v.phase)) * 3;
+      }
+      // trúng đòn: bị đẩy lùi
+      if (v.hit > 0) {
+        const k = v.hit / 0.18;
+        ox += v.hitDx * k * 10;
+        oy += v.hitDy * k * 6;
+        rot += -(v.hitDx >= 0 ? 1 : -1) * k * 0.1;
+      }
       v.img
-        .setPosition(f.x + f.faceX * lk * 14, f.y + bob + f.faceY * lk * 8)
+        .setPosition(f.x + ox, f.y + oy)
         .setDepth(f.y)
         .setFlipX(f.faceX < -0.1)
-        .setRotation(tilt)
-        .setScale(v.scale * breatheX * punch, v.scale * breatheY * punch);
-      // loé trắng khi trúng đòn
-      if (v.flash > 0) v.img.setTintFill(0xffffff);
+        .setRotation(rot)
+        .setOrigin(0.5, 0.97)
+        .setScale(v.scale * sx, v.scale * sy);
+      // loé: trắng (chí mạng/hồi sinh) hoặc đỏ (trúng đòn)
+      // trúng đòn: loé trắng rất ngắn rồi ửng đỏ
+      if (v.flash > 0.06) v.img.setTintFill(0xffffff);
+      else if (v.hit > 0) v.img.setTint(0xff8080);
       else v.img.clearTint();
+      // lớp sáng khi tung chiêu
+      if (glowA > 0.01) {
+        v.glow
+          .setTexture(v.img.texture.key, v.img.frame.name)
+          .setVisible(true)
+          .setPosition(v.img.x, v.img.y)
+          .setDepth(f.y + 0.5)
+          .setFlipX(v.img.flipX)
+          .setRotation(v.img.rotation)
+          .setScale(v.img.scaleX * 1.06, v.img.scaleY * 1.06)
+          .setTintFill(v.act?.color ?? fxColor(f))
+          .setAlpha(glowA);
+      } else v.glow.setVisible(false);
       v.name.setPosition(f.x, f.y - 30 - HERO_FIGURE_H * v.scale).setDepth(5003);
       this.updateAura(f, v);
     }
@@ -692,6 +885,21 @@ export class ArenaScene extends Phaser.Scene {
     for (const f of a.fighters) {
       if (!f.state.alive) continue;
       const isP = f.id === a.playerId;
+      const fv = this.fighterViews.get(f.id);
+      if (fv?.act && (fv.act.kind === "cast" || fv.act.kind === "ult")) {
+        const p = Math.min(1, fv.act.t / fv.act.dur);
+        const big = fv.act.kind === "ult" ? 1.5 : 1;
+        const r = (50 + p * 40) * big;
+        const al = Math.sin(p * Math.PI);
+        const col = fv.act.color;
+        rg.lineStyle(4, col, 0.9 * al).strokeEllipse(f.x, f.y, r * 2.2, r * 0.8);
+        rg.lineStyle(2, 0xffffff, 0.7 * al).strokeEllipse(f.x, f.y, r * 1.7, r * 0.6);
+        for (let k = 0; k < 8; k++) {
+          const ang = (k / 8) * Math.PI * 2 + t * 3;
+          rg.fillStyle(col, al).fillRect(f.x + Math.cos(ang) * r * 0.97 - 4, f.y + Math.sin(ang) * r * 0.35 - 4, 8, 8);
+        }
+        if (fv.act.kind === "ult") rg.fillStyle(col, 0.18 * al).fillRect(f.x - 26, f.y - 260, 52, 260);
+      }
       const tier = evolutionTier(f.state.level);
       if (tier > 0) {
         // tiến hoá: hào quang toả sáng; thức tỉnh: cột sáng + vòng kép
