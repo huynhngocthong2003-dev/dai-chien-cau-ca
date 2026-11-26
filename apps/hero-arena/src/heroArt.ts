@@ -288,3 +288,82 @@ export function skillIcon(scene: Phaser.Scene, kind: SkillKind | "attack", color
     4,
   );
 }
+
+const facingCache = new Map<string, 1 | -1>();
+
+/** Sửa tay hướng gốc cho hình mà cách dò tự động đoán sai (hiệu ứng toả đều hai bên). */
+const FACING_FIX: Record<string, { f?: 1 | -1; b?: 1 | -1 }> = {
+  wind_archer_mst: { b: -1 },
+  fire_mage_atk: { f: -1 },
+};
+
+function fixedFacing(atlasFrame: number): 1 | -1 | undefined {
+  for (const [id, fx] of Object.entries(FACING_FIX)) {
+    const m = SPRITE_MAP[id];
+    if (!m) continue;
+    if (fx.f !== undefined && m.f === atlasFrame) return fx.f;
+    if (fx.b !== undefined && m.b === atlasFrame) return fx.b;
+  }
+  return undefined;
+}
+
+/**
+ * Hướng gốc của hình (1 = nhìn/đánh sang phải, -1 = sang trái): so khối điểm ảnh
+ * chìa ra ở mép trái và mép phải của hình (vũ khí, tay, hiệu ứng).
+ */
+export function nativeFacing(scene: Phaser.Scene, key: string, frame: number | undefined): 1 | -1 {
+  const ck = `${key}:${frame ?? ""}`;
+  const hit = facingCache.get(ck);
+  if (hit) return hit;
+  // khung atlas (hoặc bản nhuộm màu của nó: recol_<khung>_<màu>)
+  const atlasFrame = key === HERO_SHEET ? frame : /^recol_(\d+)_/.test(key) ? Number(/^recol_(\d+)_/.exec(key)?.[1]) : undefined;
+  if (atlasFrame !== undefined) {
+    const fixed = fixedFacing(atlasFrame);
+    if (fixed) {
+      facingCache.set(ck, fixed);
+      return fixed;
+    }
+  }
+  const src = scene.textures.getFrame(key, frame);
+  let res: 1 | -1 = 1;
+  if (src) {
+    const w = src.cutWidth;
+    const h = src.cutHeight;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(src.source.image as CanvasImageSource, src.cutX, src.cutY, w, h, 0, 0, w, h);
+      const d = ctx.getImageData(0, 0, w, h).data;
+      let minX = w;
+      let maxX = 0;
+      let sumX = 0;
+      let n = 0;
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++)
+          if ((d[(y * w + x) * 4 + 3] ?? 0) > 200) {
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            sumX += x;
+            n++;
+          }
+      if (n > 0) {
+        // tâm thân = trọng tâm khối đặc; bên nào chìa ra xa hơn & nhiều hơn là hướng đánh
+        const cx = sumX / n;
+        let left = 0;
+        let right = 0;
+        const edge = (maxX - minX) * 0.22;
+        for (let y = 0; y < h; y++)
+          for (let x = 0; x < w; x++)
+            if ((d[(y * w + x) * 4 + 3] ?? 0) > 200) {
+              if (x < cx - edge) left += cx - x;
+              else if (x > cx + edge) right += x - cx;
+            }
+        res = left > right * 1.1 ? -1 : 1;
+      }
+    }
+  }
+  facingCache.set(ck, res);
+  return res;
+}

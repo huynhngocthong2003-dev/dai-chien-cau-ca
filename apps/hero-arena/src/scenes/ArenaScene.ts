@@ -33,7 +33,7 @@ import {
 import { dotTexture, makeMonsterTextures, monsterTexture, vignetteTexture } from "../art.ts";
 import { decoTexture, type DecoKind } from "../decoArt.ts";
 import { TERRAIN_SCALE, terrainTexture } from "../terrain.ts";
-import { addHeroImage, breathe, evolutionScale, evolutionTier, hasRealArt, heroArtKey, heroTex, HERO_FIGURE_H, setHeroImage, skillIcon, walkFrameKey, WALK_FRAMES } from "../heroArt.ts";
+import { addHeroImage, breathe, evolutionScale, evolutionTier, hasRealArt, heroArtKey, heroTex, HERO_FIGURE_H, nativeFacing, setHeroImage, skillIcon, walkFrameKey, WALK_FRAMES } from "../heroArt.ts";
 import { getSave, newMatchSeed, persist } from "../state.ts";
 import { button, H, hex, panel, pixelBox, pixelCircle, PX, text, toast, W } from "../ui.ts";
 
@@ -94,6 +94,9 @@ interface FighterView {
   hitDy: number;
   /** Lớp phát sáng khi tung chiêu. */
   glow: Phaser.GameObjects.Image;
+  /** Hướng đang quay mặt (1 phải, -1 trái) và thời gian còn lại của động tác quay người. */
+  dir: 1 | -1;
+  turn: number;
   aura: Phaser.GameObjects.Particles.ParticleEmitter | null;
   auraKey: string;
 }
@@ -198,7 +201,7 @@ export class ArenaScene extends Phaser.Scene {
       const glow = this.add.image(f.x, f.y, img.texture.key, img.frame.name).setOrigin(0.5, 0.97).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
       this.fighterViews.set(f.id, {
         img, name, key, lunge: 0, flash: 0, phase, scale: evolutionScale(1), aura: null, auraKey: "",
-        texKey: heroTex(this, f.state.heroId, null, null).key, texFrame: heroTex(this, f.state.heroId, null, null).frame, act: null, hit: 0, hitDx: 0, hitDy: 0, glow,
+        texKey: heroTex(this, f.state.heroId, null, null).key, texFrame: heroTex(this, f.state.heroId, null, null).frame, act: null, hit: 0, hitDx: 0, hitDy: 0, glow, dir: 1, turn: 0,
       });
     }
     this.ringG = this.add.graphics().setDepth(1);
@@ -805,7 +808,8 @@ export class ArenaScene extends Phaser.Scene {
       v.img.setAlpha(t < f.protectUntil ? 0.5 + 0.5 * Math.sin(t * 20) : 1);
       const speed = Math.hypot(f.vx, f.vy);
       const moving = speed > 20;
-      const back = moving && f.faceY < -0.6;
+      // hướng lên → mặt sau (khi đi hoặc khi đánh lên)
+      const back = f.faceY < -0.55;
       const key = `${heroArtKey(f.state.heroId, f.state.branchId, f.state.evolutionId, back)}:${f.state.level}`;
       if (key !== v.key) {
         const evolved = v.key !== "" && v.scale < evolutionScale(f.state.level);
@@ -820,6 +824,13 @@ export class ArenaScene extends Phaser.Scene {
       const dtv = this.game.loop.delta / 1000;
       v.flash = Math.max(0, v.flash - dtv);
       v.hit = Math.max(0, v.hit - dtv);
+      v.turn = Math.max(0, v.turn - dtv);
+      // quay trái/phải theo hướng đi hoặc hướng đánh (có ngưỡng để không lật liên tục)
+      const wantDir: 1 | -1 = f.faceX > 0.15 ? 1 : f.faceX < -0.15 ? -1 : v.dir;
+      if (wantDir !== v.dir) {
+        v.dir = wantDir;
+        v.turn = 0.12;
+      }
       // đi/chạy: 4 khung bước chân, nhịp theo tốc độ
       const stepRate = 6 + speed / 40;
       const walkI = moving ? Math.floor((t * stepRate + v.phase) % WALK_FRAMES) : -1;
@@ -883,10 +894,13 @@ export class ArenaScene extends Phaser.Scene {
         oy += v.hitDy * k * 6;
         rot += -(v.hitDx >= 0 ? 1 : -1) * k * 0.1;
       }
+      // động tác quay người: co chiều ngang trong chốc lát
+      if (v.turn > 0) sx *= 1 - 0.45 * Math.sin((v.turn / 0.12) * Math.PI);
+      const native = nativeFacing(this, v.texKey, v.texFrame);
       v.img
         .setPosition(f.x + ox, f.y + oy)
         .setDepth(f.y)
-        .setFlipX(f.faceX < -0.1)
+        .setFlipX(v.dir !== native)
         .setRotation(rot)
         .setOrigin(0.5, 0.97)
         .setScale(v.scale * sx, v.scale * sy);
