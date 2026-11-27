@@ -1,5 +1,9 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – biểu tượng game] – 2026-11-27
+- Huy hiệu game mới (SVG tự vẽ: khiên viền vàng, quả cầu lửa trung tâm va chạm 2 quả cầu xanh/tím, kiếm chéo, nền tím huyền ảo): `icon.svg`, `icon-512.png`, `icon-192.png`, `apple-touch-icon.png` (180), `favicon-32.png`, ảnh chia sẻ `og-image.png` (1200×630) trong `dau-truong/`; bản gốc `docs/brand/dau-truong-emblem.svg`.
+- Trang game khai báo favicon, biểu tượng "Thêm vào màn hình chính" (iPhone/Android, `manifest.webmanifest`, chạy toàn màn hình), màu thanh trình duyệt và thẻ Open Graph (ảnh xem trước khi gửi link qua Zalo / Messenger / Facebook). Huy hiệu hiện cạnh tiêu đề ở Sảnh.
+
 ## [Đấu Trường Quả Cầu Anime – quay 10 lần] – 2026-11-27
 - Vòng Quay May Mắn có nút **🎰 Quay 10 lần (1.000 Vàng)** (cũng có ở Cửa hàng): mỗi lượt theo đúng tỉ lệ cấp như quay đơn; vòng quay dừng ở phần thưởng tốt nhất rồi hiện **bảng 10 kết quả** (cấp cao trước, "MỚI!" / "+40" cho bóng trùng) và dòng tổng: số bóng mới · số bóng trùng → vàng quy đổi. Nhiệm vụ quay ngày/tuần/tháng được cộng 10 lượt.
 
