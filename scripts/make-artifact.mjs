@@ -4,6 +4,7 @@
  * giữ <title>, font, CSS, nội dung và script.
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import process from "node:process";
 
 // Tham số: thư mục app (mặc định game câu cá). Ví dụ: node scripts/make-artifact.mjs apps/hero-arena
 const appDir = process.argv[2] ?? "apps/game-client";
