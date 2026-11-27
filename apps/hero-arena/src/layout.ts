@@ -106,9 +106,16 @@ export class HudAnchors {
 
   relayout(): void {
     const v = view(this.scene);
-    // cách mép thêm tối thiểu 0 – các nút đã có lề sẵn trong thiết kế
-    this.dx = { [-1]: v.safe.l, 0: v.ox, 1: v.w - W - v.safe.r, 2: 0 };
-    this.dy = { [-1]: v.safe.t, 0: v.oy, 1: v.h - H - v.safe.b, 2: 0 };
+    // máy cảm ứng: luôn chừa lề tối thiểu cho góc bo cong / thanh vuốt (kể cả khi trình duyệt
+    // hoặc khung nhúng không báo vùng an toàn); nút sát mép nhất (PHÁ/QUÁI) cách mép 8 đơn vị thiết kế
+    const touch = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+    const side = touch ? 30 : 0;
+    const bottom = touch ? 18 : 0;
+    const l = Math.max(v.safe.l, side);
+    const r = Math.max(v.safe.r, side);
+    const b = Math.max(v.safe.b, bottom);
+    this.dx = { [-1]: l, 0: v.ox, 1: v.w - W - r, 2: 0 };
+    this.dy = { [-1]: v.safe.t, 0: v.oy, 1: v.h - H - b, 2: 0 };
     this.items = this.items.filter((it) => it.o.active);
     for (const it of this.items) this.place(it);
   }
