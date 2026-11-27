@@ -1,5 +1,14 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Sảnh kiểu mobile & chơi trực tuyến trên GitHub Pages] – 2026-11-27
+- **Chơi trực tuyến + kết bạn trên link GitHub Pages**: phòng đấu, bạn bè, người online dùng **Supabase Realtime** (kênh broadcast công khai, khóa anon) của dự án hiện có; không thêm bảng database. Bước đăng Pages chạy `scripts/build-dau-truong.mjs` để chép supabase-js (bản đã khóa 2.119.0) và ghi `online-config.js` từ biến `SUPABASE_URL` / `SUPABASE_ANON_KEY`. Trên link Claude vẫn dùng kết nối của Claude.
+- **Sảnh Chính kiểu game mobile**: thanh trên (avatar, tên, cấp, ID, vàng, cài đặt) + thanh điều hướng dưới 5 mục (Sảnh · Phòng đấu · Bạn bè · Bộ sưu tập · Hồ sơ) + trang Cửa hàng (Vòng Quay).
+  - Phòng đấu: Tạo phòng · Vào bằng mã · **Ghép trận ngẫu nhiên** (phòng công khai) · Đấu với máy – dùng lại hệ thống phòng sẵn có.
+  - Bạn bè 3 tab: Bạn bè · Lời mời (nhận/đã gửi) · Tìm kiếm theo ID; xem hồ sơ người chơi khác, mời vào phòng, huỷ kết bạn.
+  - Bộ sưu tập: phân loại theo cấp, lọc nguồn gốc / sở hữu, tìm kiếm, trang bị & yêu thích.
+  - Hồ sơ: đổi tên, cấp độ (tính từ số trận/thắng), danh hiệu từ thành tích, trạng thái & biểu cảm, lịch sử 20 trận gần nhất.
+- Dữ liệu người chơi vẫn lưu trên trình duyệt (khóa lưu cũ, thêm trường mới – không mất tiến độ).
+
 ## [Đấu Trường Quả Cầu Anime] – 2026-11-27
 - Thêm game riêng 1 file **Đấu Trường Quả Cầu Anime** tại `apps/game-client/public/dau-truong/index.html` → đăng kèm GitHub Pages ở đường dẫn `/dau-truong/`. Game câu cá không đổi.
 - Gồm: Sảnh Chính (hồ sơ, mã kết bạn, trạng thái & biểu cảm, bóng trưng bày, nhiệm vụ hằng ngày, thành tích, Bộ Sưu Tập 30 bóng có tìm kiếm/lọc) → Phòng Chờ (1v1/2v2/4v4/Hỗn Chiến, ô trống mời người chơi hoặc thêm máy, chọn bóng – bóng sở hữu lên đầu, Sẵn sàng) → Sàn Đấu (đếm ngược 3 giây, chọn hướng xuất phát).

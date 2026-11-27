@@ -50,6 +50,12 @@ jobs:
           case "$host" in *.supabase.co) ;; *) echo "SUPABASE_URL khong dung dang https://xxxx.supabase.co"; exit 1;; esac
           grep -rqF "$host" apps/game-client/dist/assets || { echo "Khong tim thay URL trong ban build"; exit 1; }
           echo "OK: ban build co dia chi may chu tai khoan"
+      # Đấu Trường Quả Cầu Anime (/dau-truong/): chơi trực tuyến & kết bạn qua Supabase Realtime (khóa anon công khai)
+      - name: "Dau Truong: nap ket noi online"
+        run: node scripts/build-dau-truong.mjs
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/game-client/dist

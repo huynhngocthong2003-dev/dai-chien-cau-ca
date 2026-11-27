@@ -365,70 +365,132 @@
   .bdhead { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; }
   .rsep { grid-column: 1 / -1; font-size: 12px; font-weight: 900; color: #86efac; padding: 4px 2px; }
   .rsep.lock { color: #fca5a5; margin-top: 6px; }
+
+  /* ===================== KHUNG GAME MOBILE (thanh trên + thanh điều hướng dưới) ===================== */
+  .appbar { position: sticky; top: 0; z-index: 14; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: calc(8px + env(safe-area-inset-top)) 14px 8px; background: linear-gradient(180deg, rgba(12,9,24,.96), rgba(12,9,24,.86)); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(168,85,247,.25); }
+  .appbar .me { display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 0; text-align: left; min-width: 0; }
+  .appbar .me img { width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 0 0 2px #ffd54a, 0 0 14px rgba(255,213,74,.45); flex: none; }
+  .meinfo { min-width: 0; }
+  .mename { display: flex; align-items: center; gap: 6px; font-size: 15px; white-space: nowrap; }
+  .mename b { overflow: hidden; text-overflow: ellipsis; max-width: 44vw; }
+  .meid { font-size: 11px; color: #a78bfa; font-weight: 800; }
+  .hxp { width: 110px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 3px; }
+  .hxp i, .xpbar i { display: block; height: 100%; background: linear-gradient(90deg,#a855f7,#ffd54a); }
+  .lvpill { font-size: 11px; font-weight: 900; padding: 2px 7px; border-radius: 999px; background: linear-gradient(90deg,#f59e0b,#f97316); color: #1a1030; }
+  .titlepill { font-size: 12px; font-weight: 800; color: #fde68a; }
+  .appright { display: flex; gap: 8px; align-items: center; flex: none; }
+  .iconbtn { padding: 9px 12px; }
+  #hub[hidden], .page[hidden], .bottomnav[hidden] { display: none !important; }
+  #hub { max-width: 980px; margin: 0 auto; padding: 12px 14px 20px; }
+  .page { display: flex; flex-direction: column; gap: 12px; }
+  .pgin { animation: pgIn .28s ease; }
+  @keyframes pgIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .pgtitle { margin: 2px 0; font-size: 22px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pill { font-size: 13px; font-weight: 800; background: rgba(255,213,74,.12); color: var(--gold); border: 1px solid rgba(255,213,74,.3); padding: 4px 10px; border-radius: 999px; }
+  body.nav-on { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .bottomnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 16; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: rgba(12,9,24,.95); backdrop-filter: blur(12px); border-top: 1px solid rgba(168,85,247,.35); }
+  @media (min-width: 760px) { .bottomnav { left: 50%; right: auto; transform: translateX(-50%); width: 620px; bottom: 10px; border-radius: 22px; border: 1px solid rgba(168,85,247,.4); padding-bottom: 6px; box-shadow: 0 10px 40px rgba(0,0,0,.6); } }
+  .bottomnav button { position: relative; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 4px; border-radius: 14px; font-size: 11px; font-weight: 800; color: var(--muted); transition: color .2s, background .2s; }
+  .bottomnav .ic { font-size: 22px; transition: transform .25s, filter .25s; }
+  .bottomnav button.on { color: #fff; background: radial-gradient(ellipse at 50% 30%, rgba(232,121,249,.35), rgba(168,85,247,.12) 60%, transparent 75%); }
+  .bottomnav button.on .ic { transform: translateY(-3px) scale(1.15); filter: drop-shadow(0 0 8px #e879f9) drop-shadow(0 0 2px #ffd54a); }
+  .bottomnav button.on::after { content: ''; position: absolute; bottom: 0; width: 24px; height: 3px; border-radius: 2px; background: linear-gradient(90deg,#ffd54a,#f97316); }
+  .bottomnav .nbadge { position: absolute; top: 2px; right: calc(50% - 22px); margin: 0; }
+  body.kb .bottomnav { display: none; }
+  body.kb.nav-on { padding-bottom: 0; }
+  /* HOME */
+  .hero { text-align: center; overflow: hidden; position: relative; background: radial-gradient(ellipse at 50% 55%, rgba(168,85,247,.28), transparent 65%), radial-gradient(ellipse at 50% 100%, rgba(249,115,22,.15), transparent 60%), var(--panel); }
+  .brand { font-weight: 900; letter-spacing: 2px; font-size: clamp(16px, 4.2vw, 24px); background: linear-gradient(90deg, #ffd54a, #ff6b3b 35%, #c084fc 70%, #60a5fa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .herobtns { display: grid; grid-template-columns: 1.3fr 1fr; gap: 10px; margin-top: 12px; }
+  .btn.big { padding: 16px 10px; font-size: 17px; letter-spacing: .5px; }
+  .herobtns .btn.primary { box-shadow: 0 0 24px rgba(255,107,59,.45); animation: glowp 2.4s ease-in-out infinite; }
+  @keyframes glowp { 50% { box-shadow: 0 0 36px rgba(255,170,60,.75); } }
+  .roomline { margin-top: 10px; font-size: 13px; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tile { border: 1px solid var(--line); background: var(--panel); border-radius: 16px; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tile .ic { font-size: 26px; }
+  .tile small { color: var(--muted); font-size: 11px; }
+  .tile.shop { background: linear-gradient(160deg, rgba(245,158,11,.25), rgba(22,18,38,.9)); border-color: rgba(255,213,74,.35); }
+  .sechead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .evrow { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .evrow span { flex: 1; }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 14px 6px; }
+  /* BATTLE */
+  .bgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .bcard { display: flex; flex-direction: column; gap: 8px; }
+  .bcard h3 { margin: 0; color: var(--text); font-size: 17px; text-transform: none; letter-spacing: 0; }
+  .bcard p { margin: 0; text-align: left; }
+  .bic { font-size: 30px; }
+  .seg.mini button { padding: 7px 4px; font-size: 12px; }
+  .roomnow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; border-color: rgba(74,222,128,.4); }
+  .mmstat { font-weight: 800; color: #fde68a; display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+  /* FRIENDS */
+  .tabs { flex-wrap: wrap; }
+  .pcard { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: rgba(0,0,0,.25); text-align: left; margin: 8px 0; }
+  .pchead { display: flex; gap: 10px; align-items: center; }
+  .pstats3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0; text-align: center; }
+  .pstats3 b { display: block; font-size: 17px; color: var(--gold); }
+  .pstats3 span { font-size: 11px; color: var(--muted); }
+  .minis { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; margin-top: 4px; }
+  .minis span { display: flex; gap: 4px; align-items: center; }
+  /* COLLECTION */
+  .fgroup { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+  .fgroup button { border: 0; padding: 6px 11px; border-radius: 999px; background: rgba(0,0,0,.35); font-weight: 800; font-size: 12px; color: var(--muted); }
+  .fgroup button.on { background: linear-gradient(90deg,#a855f7,#ec4899); color: #fff; }
+  .tierhead { margin: 14px 0 4px; font-weight: 900; display: flex; gap: 8px; align-items: center; }
+  .ctile .cfav { position: absolute; top: 4px; right: 8px; color: #f472b6; }
+  .ctile .clock { right: auto; left: 8px; top: 6px; }
+  .ctile .corig { font-size: 10px; color: var(--muted); }
+  /* PROFILE */
+  .pidrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .xpbar { height: 7px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; margin: 8px 0 3px; }
+  .emofloat { position: absolute; inset: -30px -40px 40px; pointer-events: none; }
+  .emofloat span { position: absolute; bottom: 0; font-size: 30px; animation: emoUp 1.6s ease-out forwards; }
+  .statgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .statgrid .box { text-align: center; padding: 10px 6px; }
+  .statgrid b { display: block; font-size: 20px; color: var(--gold); }
+  .statgrid span { font-size: 12px; color: var(--muted); }
+  @media (max-width: 520px) { .statgrid { grid-template-columns: repeat(2, 1fr); } }
+  .hrow { display: flex; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .hrow .fname { flex: 1; min-width: 0; }
+  .hrow.win b:first-child { color: #4ade80; } .hrow.lose b:first-child { color: #f87171; }
+  .gold { color: var(--gold); }
+  /* SHOP */
+  .shopwheel { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 12px; align-items: center; background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(168,85,247,.15)), var(--panel); border-color: rgba(255,213,74,.35); }
+  .swic { font-size: 46px; animation: spin2 8s linear infinite; }
+  @keyframes spin2 { to { transform: rotate(360deg); } }
+  @media (max-width: 560px) { .shopwheel { grid-template-columns: auto 1fr; } .shopwheel .btn { grid-column: 1 / -1; } .herobtns { grid-template-columns: 1fr; } }
+  #notices { top: calc(70px + env(safe-area-inset-top)); }
+  @media (max-width: 760px) { #notices { top: auto; bottom: calc(84px + env(safe-area-inset-bottom)); left: 50%; right: auto; transform: translateX(-50%); } }
+  .bhead { display: flex; align-items: center; gap: 10px; }
+  .bic { font-size: 26px; }
   footer { color: var(--muted); font-size: 11px; text-align: center; padding: 0 12px 18px; }
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1>⚔ Đấu Trường Quả Cầu Anime</h1>
-    <div class="crumbs" id="crumbs"><button data-v="hall">🏠 Sảnh Chính</button>›<button data-v="lobby">🏟 Phòng Chờ</button>›<span data-v="arena">⚔ Sàn Đấu</span></div>
+<header class="appbar">
+  <button class="me" id="hdrProfile" title="Hồ sơ">
+    <img id="hdrAvatar" alt="Avatar" width="44" height="44">
+    <div class="meinfo"><div class="mename"><b id="hdrName">Đấu Sĩ</b> <span class="lvpill" id="hdrLv">Lv.1</span></div>
+      <div class="meid" id="hdrId">#——</div><div class="hxp"><i id="hdrXp"></i></div></div>
+  </button>
+  <div class="appright">
+    <div class="goldpill" id="goldPill" title="Vàng hiện có">💰 <b id="gold">0</b></div>
+    <button class="btn iconbtn" id="btnSettings" title="Cài đặt">⚙</button>
   </div>
-  <nav class="topbar">
-    <div class="goldpill" id="goldPill" title="Vàng hiện có">💰 <b id="gold">0</b> <span>Vàng</span></div>
-    <div class="ownpill" title="Quả bóng đã mở khóa">🔓 <b id="unlockCount">0/30</b></div>
-    <button class="btn" id="btnFriends" title="Bạn bè">👥<span class="nbadge" id="friendBadge" hidden>0</span></button>
-    <button class="btn gold" id="btnWheel">🎡 Vòng Quay</button>
-    <button class="btn" id="btnSettings" title="Cài đặt">⚙</button>
-  </nav>
 </header>
 
-<!-- ===================== SẢNH CHÍNH ===================== -->
-<section class="hall" id="hall" hidden>
-  <div class="box profile">
-    <div class="avatarwrap"><img id="hallAvatar" alt="Bóng chính"><div id="emoteFloat"></div></div>
-    <div style="min-width:0">
-      <div class="kicker">🏠 Sảnh Chính</div>
-      <div class="pname">
-        <input class="text" id="netName" maxlength="16" placeholder="Tên của bạn">
-        <button class="fidpill" data-fa="copy" title="Sao chép mã kết bạn">🆔 <span id="myFid">#——</span> 📋</button>
-      </div>
-      <div class="pstats" id="hallStats"></div>
-      <div class="statseg" id="statusSeg"></div>
-      <div class="emorow" id="emoteRow">Biểu cảm: <button data-em="👋">👋</button><button data-em="😄">😄</button><button data-em="🔥">🔥</button><button data-em="😎">😎</button><button data-em="🎉">🎉</button><button data-em="😭">😭</button></div>
-    </div>
-  </div>
-
-  <div class="box showbox">
-    <h3>✨ Bóng Trưng Bày</h3>
-    <div class="showcase" id="showcase"></div>
-    <div class="hint" id="showHint"></div>
-  </div>
-
-  <div class="mainacts">
-    <button class="btn primary" id="btnHallPlay">⚔ Vào Phòng Đấu<small>Tạo phòng · mời bạn · thêm máy</small></button>
-    <button class="btn gold" id="btnWheel3">🎡 Vòng Quay<small>100 Vàng / lượt</small></button>
-    <button class="btn purple" id="btnHallColl">📚 Bộ Sưu Tập<small id="collBadge">0/30</small></button>
-  </div>
-  <div class="box">
-    <div class="joinrow"><input class="text" id="hallCode" maxlength="12" placeholder="Có mã phòng? Nhập PHÒNG-123"><button class="btn" id="btnHallJoin">🔑 Vào phòng</button></div>
-    <div class="hint" id="hallMsg" style="text-align:left"></div>
-  </div>
-
-  <div class="box">
-    <div class="tabs" id="hallTabs"><button data-tab="quest" class="on">📜 Nhiệm vụ hôm nay<span class="nbadge" id="questDot" hidden>0</span></button><button data-tab="ach">🏅 Thành tích</button></div>
-    <div id="tabQuest"></div>
-    <div id="tabAch" hidden></div>
-  </div>
-</section>
-
-<aside class="box friendbox" id="friendBox">
-  <div class="fhead"><h3 style="margin:0">👥 Bạn bè</h3><button class="btn sm" id="friendClose">✕</button></div>
-  <div class="hint" style="text-align:left;margin-top:6px">Gửi mã <b>#…</b> ở hồ sơ cho bạn bè, hoặc nhập mã của họ:</div>
-  <div class="joinrow" style="margin-top:6px"><input class="text" id="addFid" maxlength="8" placeholder="Mã bạn bè, vd: #K7P2QX"><button class="btn sm primary" data-fa="addcode">➕ Kết bạn</button></div>
-  <div id="friendLists"></div>
-</aside>
-
+<!-- ===================== SẢNH CHÍNH (5 mục + Cửa hàng) ===================== -->
+<div id="hub" hidden>
+  <section class="page" data-page="home" id="pg-home"></section>
+  <section class="page" data-page="battle" id="pg-battle" hidden></section>
+  <section class="page" data-page="friends" id="pg-friends" hidden></section>
+  <section class="page" data-page="collection" id="pg-collection" hidden></section>
+  <section class="page" data-page="profile" id="pg-profile" hidden></section>
+  <section class="page" data-page="shop" id="pg-shop" hidden></section>
+</div>
 <!-- ===================== PHÒNG CHỜ ===================== -->
 <section class="lobby" id="lobby">
   <div class="lobby-main">
@@ -577,20 +639,11 @@
     <div class="row" style="margin-top:12px"><button class="btn" id="btnReset">🗑 Xoá tiến độ</button><button class="btn primary" id="setClose">Xong</button></div>
   </div>
 </div>
-<!-- ===== Bộ Sưu Tập ===== -->
-<div class="modal" id="collModal">
-  <div class="sheet">
-    <h2>📚 Bộ Sưu Tập <span id="collCount" style="color:var(--gold)"></span></h2>
-    <div class="collbar"><i id="collBar"></i></div>
-    <div class="colltiers" id="collTiers"></div>
-    <input class="text" id="collSearch" placeholder="🔍 Tìm theo tên hoặc chiêu thức…">
-    <div class="filters" id="collFilters" style="justify-content:center;margin-top:8px"></div>
-    <div class="coll" id="collGrid"></div>
-    <div class="row" style="justify-content:center;margin-top:10px"><button class="btn" id="collClose">Đóng</button></div>
-  </div>
-</div>
+<!-- ===== Hồ sơ người chơi khác ===== -->
+<div class="modal" id="playerModal" style="z-index:22"><div class="sheet" id="playerDetail"></div></div>
 <!-- ===== Chi tiết quả bóng ===== -->
 <div class="modal" id="ballModal" style="z-index:22"><div class="sheet" id="ballDetail"></div></div>
+<nav class="bottomnav" id="bottomNav" hidden></nav>
 <div id="notices"></div>
 <div id="toast"></div>
 <footer>Đấu sĩ là quả cầu cách điệu lấy cảm hứng từ phong cách chiêu thức anime – không dùng hình ảnh nhân vật gốc.</footer>
@@ -2739,7 +2792,7 @@ const localMine = () => UI.kinds.map((k, i) => (k === 'me' ? i : -1)).filter((i)
 // ----- lưu tiến độ bằng localStorage (bọc try/catch: trình duyệt có thể chặn) -----
 const SAVE_KEY = 'anime_orb_arena_save_v1';
 const START_UNLOCKED = ['lee', 'naofumi', 'ironclad'];
-const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null };
+const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null, title: '', history: [] };
 function loadSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
@@ -2759,6 +2812,10 @@ function loadSave() {
     Save.friends = people(d.friends); Save.sent = people(d.sent).slice(0, 30);
     if (Array.isArray(d.acc)) Save.acc = d.acc.filter(fidOk2).slice(-30);
     if (['ready', 'farm', 'test', 'busy'].includes(d.status)) Save.status = d.status;
+    if (typeof d.title === 'string') Save.title = d.title.slice(0, 8);
+    if (Array.isArray(d.history)) Save.history = d.history.filter((h) => h && Number.isFinite(h.t) && MODES[h.m]).slice(0, 20)
+      .map((h) => ({ t: h.t, m: h.m, b: DEF_BY_ID[h.b] ? h.b : '', won: h.won ? 1 : 0, g: h.g | 0, lb: String(h.lb || '').slice(0, 40), on: h.on ? 1 : 0 }));
+    for (const fr of Save.friends) { const o = (d.friends || []).find((x) => x && x.f === fr.f); if (o && o.pf && typeof o.pf === 'object') fr.pf = o.pf; }
     if (d.daily && typeof d.daily === 'object' && typeof d.daily.day === 'string') {
       const q = d.daily;
       Save.daily = { day: q.day, matches: q.matches | 0, wins: q.wins | 0, spins: q.spins | 0, lowWins: q.lowWins | 0, claimed: Array.isArray(q.claimed) ? q.claimed.filter((x) => typeof x === 'string') : [] };
@@ -2771,9 +2828,7 @@ const unlockedIds = () => ROSTER.filter((d) => isUnlocked(d.id)).map((d) => d.id
 
 function renderGold(delta = 0) {
   $('gold').textContent = Save.gold.toLocaleString('vi-VN');
-  $('unlockCount').textContent = `${Save.unlockAll ? ROSTER.length : Save.unlocked.length}/${ROSTER.length}`;
-  if (UI.view === 'hall') renderHall();
-  if ($('collModal').classList.contains('show')) renderCollection();
+  if (UI.view === 'hall') renderPage();
   if (delta) {
     const el = $('goldPill');
     el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
@@ -3020,12 +3075,12 @@ function setArena(kind, fromNet = false) {
 /** Chuyển giữa Phòng Chờ và Đấu Trường. */
 function showView(v) {
   UI.view = v;
-  $('hall').hidden = v !== 'hall';
-  document.body.classList.toggle('view-hall', v === 'hall');
-  $('crumbs').querySelectorAll('[data-v]').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  if (v === 'hall') { renderHall(); renderFriends(); }
+  $('hub').hidden = v !== 'hall';
   $('lobby').hidden = v !== 'lobby';
   $('arenaView').hidden = v !== 'arena';
+  $('bottomNav').hidden = v === 'arena';
+  document.body.classList.toggle('nav-on', v !== 'arena');
+  if (v === 'hall') renderPage(); else { renderAppbar(); syncNav(); }
   if (v === 'arena') requestAnimationFrame(resize);
   window.scrollTo(0, 0);
 }
@@ -3063,6 +3118,7 @@ async function openInvite(slot = -1) {
   $('btnAddBot').textContent = slot >= 0 ? '🤖 Thêm máy vào ô này' : '🤖 Thêm máy vào tất cả ô trống';
   $('btnAddBot').hidden = NET.role === 'client';
   renderInviteState();
+  renderInviteFriends();
 }
 async function renderInviteState() {
   const el = $('onlineState');
@@ -3076,7 +3132,7 @@ async function renderInviteState() {
   const api = await getRoomApi();
   el.innerHTML = api
     ? 'Bấm <b>🌐 Mở phòng trực tuyến</b> để bạn bè vào được bằng mã phòng.'
-    : '⚠ Mời bạn bè trực tuyến chỉ hoạt động khi mở game qua <b>link Claude</b>. Vẫn có thể thêm máy để đấu.';
+    : '⚠ Chưa kết nối được máy chủ trực tuyến (mở game qua <b>link GitHub</b> hoặc <b>link Claude</b>). Vẫn có thể thêm máy để đấu.';
   $('btnOpenOnline').disabled = !api;
 }
 function addBotsFromInvite() {
@@ -3429,6 +3485,7 @@ function showVictory() {
     rw = computeReward();
     if (rw) {
       Save.matches++; if (rw.won) Save.wins++;
+      pushHistory(rw);
       questProgress('matches');
       if (rw.won) { questProgress('wins'); if (G.mine.some((i) => ['C', 'D'].includes(G.orbs[i].def.tier))) questProgress('lowWins'); }
       addGold(rw.gold);
@@ -3461,7 +3518,7 @@ function showVictory() {
     <div class="row">
       ${isClient ? '<span class="hint">Chờ chủ phòng bắt đầu ván mới…</span>' : `<button class="btn primary" id="vAgain">↺ ${NET.role === 'host' ? 'Ván Mới' : 'Chơi Lại'}</button>`}
       <button class="btn purple" id="vLobby">🏟 Về Phòng Chờ</button>
-      ${NET.role === 'client' ? '' : '<button class="btn" id="vHall">🏠 Sảnh Chính</button>'}
+      ${NET.role === 'client' ? '' : '<button class="btn" id="vHall">🏠 Sảnh</button>'}
       <button class="btn gold" id="vWheel">🎡 Vòng Quay</button>
       <button class="btn" id="vClose">✕ Đóng</button>
     </div>
@@ -3655,58 +3712,125 @@ const NET = {
   hostTimer: 0, snapTimer: 0, hostLost: 0, lastLob: '', unsub: null,
 };
 
-function mockRoomApi() {
+/**
+ * Phòng chơi dựng trên một kênh phát tin (broadcast) bất kỳ – cùng giao diện với `room` của Claude:
+ * join(name) → { presence(patch), peers(), onPeers(fn), leave() }.
+ * Mỗi máy tự phát trạng thái của mình; máy nào im lặng quá lâu thì coi như đã rời.
+ * openChannel(name) → Promise<{ post(msg), onMsg(fn), close() }>.
+ */
+function broadcastRoomApi(openChannel, opts = {}) {
   const me = Math.random().toString(36).slice(2, 10);
   return {
+    me,
     async join(name) {
-      const ch = new BroadcastChannel('orb-mock-' + name);
+      // Sảnh Chính đông người → nhịp chậm hơn để tiết kiệm lượt gửi tin
+      const slow = /hall/.test(name);
+      const BEAT = slow ? 4000 : 1000, DROP = slow ? 12000 : 4000, MIN_GAP = opts.minGap || 33;
+      const ch = await openChannel(name);
       const others = new Map();
-      let mine = {}, left = false;
+      let mine = {}, left = false, lastSend = 0, pending = null;
       const subs = new Set();
       const list = () => [{ peer: me, isMe: true, presence: mine }, ...[...others].map(([peer, o]) => ({ peer, isMe: false, presence: o.p }))];
-      const notify = () => subs.forEach((f) => f({ peers: list() }));
-      const send = (type) => { try { if (!left || type === 'leave') ch.postMessage({ type, peer: me, p: mine }); } catch { /* đã đóng */ } };
-      ch.onmessage = (e) => {
-        const d = e.data;
-        if (!d || d.peer === me) return;
+      const notify = () => subs.forEach((f) => { try { f({ peers: list() }); } catch (e) { console.warn(e); } });
+      const send = (type) => { if (left && type !== 'leave') return; lastSend = Date.now(); try { ch.post({ type, peer: me, p: mine }); } catch { /* kênh đã đóng */ } };
+      ch.onMsg((d) => {
+        if (!d || typeof d !== 'object' || typeof d.peer !== 'string' || d.peer === me) return;
         if (d.type === 'leave') others.delete(d.peer);
-        else { const isNew = !others.has(d.peer); others.set(d.peer, { p: d.p || {}, seen: Date.now() }); if (isNew) send('state'); }
+        else {
+          const isNew = !others.has(d.peer);
+          others.set(d.peer, { p: d.p && typeof d.p === 'object' ? d.p : {}, seen: Date.now() });
+          if (isNew) send('state');
+        }
         notify();
-      };
+      });
       const beat = setInterval(() => {
-        send('state');
+        if (Date.now() - lastSend >= BEAT - 50) send('state');
         const now = Date.now();
-        for (const [k, o] of others) if (now - o.seen > 4000) { others.delete(k); notify(); }
-      }, 1000);
-      let pending = null;
+        for (const [k, o] of others) if (now - o.seen > DROP) { others.delete(k); notify(); }
+      }, Math.min(1000, BEAT));
       send('state');
       return {
         presence: async (patch) => {
           mine = { ...mine, ...patch };
-          if (!pending) pending = setTimeout(() => { pending = null; send('state'); }, 33);
+          if (!pending) {
+            const wait = Math.max(0, lastSend + MIN_GAP - Date.now());
+            pending = setTimeout(() => { pending = null; send('state'); }, wait);
+          }
           notify();
         },
         peers: list,
         onPeers: (fn) => { subs.add(fn); queueMicrotask(() => fn({ peers: list() })); return () => subs.delete(fn); },
         connected: () => !left,
-        leave: async () => { clearInterval(beat); if (pending) clearTimeout(pending); send('leave'); left = true; ch.close(); },
+        leave: async () => { clearInterval(beat); if (pending) clearTimeout(pending); send('leave'); left = true; setTimeout(() => ch.close(), 150); },
       };
     },
   };
 }
 
+/** Thử nghiệm trên một máy: các tab trò chuyện qua BroadcastChannel (?mockroom). */
+function mockRoomApi() {
+  return broadcastRoomApi(async (name) => {
+    const bc = new BroadcastChannel('orb-mock-' + name);
+    return { post: (m) => bc.postMessage(m), onMsg: (fn) => { bc.onmessage = (e) => fn(e.data); }, close: () => bc.close() };
+  });
+}
+
+/** Tải một file script cạnh trang (trả về false nếu không có). */
+function loadScript(src) {
+  return new Promise((res) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = () => res(true); s.onerror = () => { s.remove(); res(false); };
+    document.head.appendChild(s);
+  });
+}
+
+/** Bản đăng trên GitHub Pages: phòng chơi qua Supabase Realtime (kênh broadcast công khai, khóa anon). */
+async function supabaseRoomApi() {
+  if (!/^https?:$/.test(location.protocol)) return null;
+  if (!(await loadScript('./online-config.js'))) return null;
+  const cfg = window.ORB_ONLINE;
+  if (!cfg || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(cfg.url || '').replace(/\/$/, '')) || !cfg.key) return null;
+  if (!window.supabase && !(await loadScript('./supabase.js'))) return null;
+  if (!window.supabase || !window.supabase.createClient) return null;
+  const client = window.supabase.createClient(cfg.url, cfg.key, {
+    auth: { persistSession: false, autoRefreshToken: false, storageKey: 'orb_arena_auth' },
+    realtime: { params: { eventsPerSecond: 20 } },
+  });
+  const api = broadcastRoomApi((name) => new Promise((resolve, reject) => {
+    const ch = client.channel('orb:' + name, { config: { broadcast: { self: false, ack: false } } });
+    let handler = () => undefined, done = false;
+    ch.on('broadcast', { event: 'm' }, ({ payload }) => handler(payload));
+    const timer = setTimeout(() => { if (!done) { done = true; client.removeChannel(ch); reject(new Error('hết thời gian kết nối máy chủ')); } }, 10000);
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED' && !done) {
+        done = true; clearTimeout(timer);
+        resolve({ post: (m) => { ch.send({ type: 'broadcast', event: 'm', payload: m }).catch(() => undefined); }, onMsg: (fn) => { handler = fn; }, close: () => client.removeChannel(ch) });
+      } else if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !done) {
+        done = true; clearTimeout(timer); client.removeChannel(ch); reject(new Error('máy chủ từ chối kết nối'));
+      }
+    });
+  }), { minGap: 100 });
+  api.kind = 'supabase';
+  return api;
+}
+
 async function getRoomApi() {
   if (NET.api !== undefined) return NET.api;
-  try { if (new URLSearchParams(location.search).has('mockroom')) return (NET.api = mockRoomApi()); } catch { /* bỏ qua */ }
-  try {
-    const use = window.claude && window.claude.use;
-    NET.api = use ? (await window.claude.use('room')) || null : null;
-  } catch { NET.api = null; }
+  if (NET.apiLoading) return NET.apiLoading;
+  NET.apiLoading = (async () => {
+    try { if (new URLSearchParams(location.search).has('mockroom')) return mockRoomApi(); } catch { /* bỏ qua */ }
+    try {
+      if (window.claude && window.claude.use) { const r = await window.claude.use('room'); if (r) return r; }
+    } catch { /* bỏ qua */ }
+    try { return await supabaseRoomApi(); } catch { return null; }
+  })();
+  NET.api = await NET.apiLoading;
   return NET.api;
 }
 
 const cleanName = (s) => [...String(s || '')].filter((ch) => { const c = ch.codePointAt(0); return c >= 32 && c !== 127 && !(c >= 0x200b && c <= 0x200f) && !(c >= 0x202a && c <= 0x202e); }).join('').trim().slice(0, 16);
-const myName = () => cleanName($('netName').value) || 'Đấu Sĩ ' + Save.fid.slice(0, 4);
+const myName = () => cleanName(Save.name) || 'Đấu Sĩ ' + Save.fid.slice(0, 4);
 const mySeats = () => (NET.lob ? NET.lob.seats.map((s, i) => (s.p === NET.me ? i : -1)).filter((i) => i >= 0) : []);
 
 function makeSeats(n) {
@@ -3727,7 +3851,7 @@ function resizeSeats(seats, n) {
 
 async function connectRoom(code, asHost) {
   const api = await getRoomApi();
-  if (!api) { const m = '⚠ Chơi trực tuyến chỉ hoạt động khi mở game qua <b>link Claude</b>. File HTML mở trực tiếp chỉ chơi với máy.'; $('netMsg').innerHTML = m; $('hallMsg').innerHTML = m; toast(m); return false; }
+  if (!api) { const m = '⚠ Chưa kết nối được máy chủ trực tuyến. Hãy mở game qua <b>link GitHub</b> hoặc <b>link Claude</b> (file HTML mở trực tiếp chỉ chơi với máy).'; $('netMsg').innerHTML = m; $('hallMsg').innerHTML = m; toast(m); return false; }
   $('netMsg').textContent = 'Đang kết nối…';
   try {
     NET.room = await api.join('orb-arena-' + code);
@@ -3742,7 +3866,6 @@ async function connectRoom(code, asHost) {
   NET.peers = NET.room.peers ? NET.room.peers() : [];
   NET.me = (NET.peers.find((p) => p.isMe) || {}).peer || '';
   NET.unsub = NET.room.onPeers((c) => onPeers(c.peers || c));
-  Save.name = cleanName($('netName').value); persist();
   return true;
 }
 
@@ -3792,7 +3915,7 @@ function leaveRoom(toView = 'lobby') {
   UI.roomNo = 100 + Math.floor(Math.random() * 900);
   UI.slots = defaultSlots(G.mode);
   UI.meReady = false;
-  HALL.myInv = {}; hallPresence();
+  HALL.myInv = {}; MM.public = false; hallPresence();
   resetToIdle();
   if (toView === 'hall') { $('victory').classList.remove('show'); showView('hall'); } else showLobby();
 }
@@ -4010,7 +4133,8 @@ if (window.ResizeObserver) new ResizeObserver(resize).observe($('arenaWrap'));
 // ---------------------------------------------------------------------
 const fmtSpeed = (v) => (Number.isInteger(v) ? v.toFixed(1) : String(v)) + 'x';
 // ---------------------------------------------------------------------
-// 21. SẢNH CHÍNH · BỘ SƯU TẬP · BẠN BÈ
+// 21. SẢNH CHÍNH KIỂU GAME MOBILE: HOME · PHÒNG ĐẤU · BẠN BÈ · BỘ SƯU TẬP · HỒ SƠ · CỬA HÀNG
+// (dùng lại hệ thống phòng, bạn bè, vàng, vòng quay sẵn có – không tạo hệ thống thứ hai)
 // ---------------------------------------------------------------------
 const FID_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newFid() { let s = ''; for (let i = 0; i < 6; i++) s += FID_CHARS[Math.floor(Math.random() * FID_CHARS.length)]; return s; }
@@ -4018,14 +4142,53 @@ const fidOk = (s) => typeof s === 'string' && /^[A-HJ-NP-Z2-9]{6}$/.test(s);
 const parseFid = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
 const roomCodeOk = (c) => /^\d{3,4}$/.test(String(c || ''));
 const strArr = (a) => (Array.isArray(a) ? a.filter(fidOk).slice(0, 40) : []);
+const MODE_KEYS = ['v1', 'v2', 'v4', 'ffa'];
 
-/** Trạng thái kết nối Sảnh Chính (thấy ai đang online, lời mời kết bạn / vào phòng). */
-const HALL = { myEmote: null, room: null, peers: [], lastPres: '', myInv: {}, invAt: {}, seenInv: new Set(), dismissed: new Set(), notices: [] };
+/** Trạng thái kết nối Sảnh Chính (thấy ai đang online, lời mời kết bạn / vào phòng, phòng công khai để ghép trận). */
+const HALL = { room: null, peers: [], lastPres: '', myInv: {}, invAt: {}, seenInv: new Set(), dismissed: new Set(), notices: [], myEmote: null };
+/** Ghép trận ngẫu nhiên. */
+const MM = { searching: false, mode: 'v1', t0: 0, wait: 0, timer: 0, public: false };
 
 const isFriend = (f) => Save.friends.some((x) => x.f === f);
 const isSent = (f) => Save.sent.some((x) => x.f === f);
 const hallPeer = (f) => HALL.peers.find((p) => p.f === f);
 
+// ----- Cấp độ, danh hiệu, thành tích (tính từ số liệu thật của người chơi) -----
+const xpOf = () => Save.matches * 20 + Save.wins * 30;
+function levelInfo(xp = xpOf()) {
+  let lv = 1, need = 100, rest = xp;
+  while (rest >= need && lv < 99) { rest -= need; lv++; need = 100 + (lv - 1) * 50; }
+  return { lv, cur: rest, need };
+}
+const ownedCount = () => ROSTER.filter((d) => isUnlocked(d.id)).length;
+const ACHIEVEMENTS = [
+  { id: 'a1', name: 'Tân Binh', desc: 'Chơi trận đầu tiên', v: () => Save.matches, goal: 1 },
+  { id: 'a2', name: 'Chiến Binh', desc: 'Thắng 10 trận', v: () => Save.wins, goal: 10 },
+  { id: 'a3', name: 'Lão Làng', desc: 'Chơi 50 trận', v: () => Save.matches, goal: 50 },
+  { id: 'a4', name: 'Nhà Sưu Tầm', desc: 'Sở hữu 10 quả bóng', v: () => ownedCount(), goal: 10 },
+  { id: 'a5', name: 'Đại Gia Bóng', desc: 'Sở hữu đủ 30 quả bóng', v: () => ownedCount(), goal: 30 },
+  { id: 'a6', name: 'Chạm Tới Thần Thoại', desc: 'Sở hữu 1 quả bóng cấp S', v: () => ROSTER.filter((d) => d.tier === 'S' && isUnlocked(d.id)).length, goal: 1 },
+  { id: 'a7', name: 'Kết Nối', desc: 'Có 3 bạn bè', v: () => Save.friends.length, goal: 3 },
+];
+const TITLES = { '': 'Đấu Sĩ Mới', ...Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a.name])) };
+const achDone = (a) => a.v() >= a.goal;
+const myTitleId = () => (Save.title && ACHIEVEMENTS.some((a) => a.id === Save.title && achDone(a)) ? Save.title : '');
+const titleName = (id) => TITLES[id] || TITLES[''];
+
+/** Hồ sơ rút gọn gửi kèm trạng thái online (để người khác xem hồ sơ của mình). */
+function myProfileCard() {
+  return { lv: levelInfo().lv, m: Save.matches, w: Save.wins, t: myTitleId(), mb: UI.myBall, fv: Save.fav.slice(0, 3), o: ownedCount() };
+}
+function cleanProfile(pf) {
+  if (!pf || typeof pf !== 'object') return null;
+  const n = (v, max) => (Number.isFinite(v) ? clamp(Math.floor(v), 0, max) : 0);
+  return {
+    lv: n(pf.lv, 99) || 1, m: n(pf.m, 1e6), w: n(pf.w, 1e6), o: n(pf.o, ROSTER.length),
+    t: TITLES[pf.t] ? pf.t : '', mb: DEF_BY_ID[pf.mb] ? pf.mb : '', fv: Array.isArray(pf.fv) ? pf.fv.filter((id) => DEF_BY_ID[id]).slice(0, 3) : [],
+  };
+}
+
+// ----- kết nối Sảnh Chính -----
 async function initHall() {
   const api = await getRoomApi();
   if (api) {
@@ -4036,7 +4199,8 @@ async function initHall() {
       hallPresence();
     } catch { HALL.room = null; }
   }
-  renderFriends();
+  renderPage();
+  renderFriendBadge();
 }
 
 /** Gửi trạng thái của mình lên Sảnh Chính (chỉ khi có thay đổi). */
@@ -4044,7 +4208,15 @@ function hallPresence() {
   if (!HALL.room) return;
   const now = Date.now();
   for (const f of Object.keys(HALL.myInv)) if (now - (HALL.invAt[f] || 0) > 90000) { delete HALL.myInv[f]; delete HALL.invAt[f]; }
-  const p = { f: Save.fid, n: myName(), st: Save.status, em: HALL.myEmote, rc: NET.room ? NET.code : '', fr: Save.sent.map((x) => x.f).slice(0, 30), ac: Save.acc.slice(-30), iv: HALL.myInv };
+  const p = {
+    f: Save.fid, n: myName(), st: Save.status, em: HALL.myEmote, rc: NET.room ? NET.code : '',
+    fr: Save.sent.map((x) => x.f).slice(0, 30), ac: Save.acc.slice(-30), iv: HALL.myInv, pf: myProfileCard(),
+  };
+  // phòng công khai đang chờ ghép trận
+  if (MM.public && NET.role === 'host' && NET.lob && NET.ph === 'lobby') {
+    const e = NET.lob.seats.filter((s) => !s.p && s.e).length;
+    if (e > 0) p.pub = { c: NET.code, m: NET.lob.mode, e };
+  }
   const j = JSON.stringify(p);
   if (j === HALL.lastPres) return;
   HALL.lastPres = j;
@@ -4059,11 +4231,13 @@ function onHallPeers(peers) {
     const pr = p && p.presence;
     if (!pr || p.isMe || !fidOk(pr.f) || pr.f === Save.fid || seen.has(pr.f)) continue;
     seen.add(pr.f);
+    const pub = pr.pub && typeof pr.pub === 'object' && roomCodeOk(pr.pub.c) && MODE_KEYS.includes(pr.pub.m) && Number.isFinite(pr.pub.e) ? { c: String(pr.pub.c), m: pr.pub.m, e: pr.pub.e | 0 } : null;
     HALL.peers.push({
       f: pr.f, n: cleanName(pr.n) || 'Đấu Sĩ', rc: roomCodeOk(pr.rc) ? String(pr.rc) : '',
       fr: strArr(pr.fr), ac: strArr(pr.ac), iv: pr.iv && typeof pr.iv === 'object' ? pr.iv : {},
       st: STATUSES[pr.st] ? pr.st : 'ready',
       em: Array.isArray(pr.em) && EMOTES.includes(pr.em[0]) && Number.isFinite(pr.em[1]) ? pr.em : null,
+      pf: cleanProfile(pr.pf), pub,
     });
   }
   let changed = false;
@@ -4075,22 +4249,33 @@ function onHallPeers(peers) {
       changed = true;
     }
     const fr = Save.friends.find((x) => x.f === p.f);
-    if (fr && fr.n !== p.n) { fr.n = p.n; changed = true; }
+    if (fr) {
+      if (fr.n !== p.n) { fr.n = p.n; changed = true; }
+      // nhớ hồ sơ gần nhất của bạn bè để xem được cả khi họ offline
+      if (p.pf && JSON.stringify(fr.pf) !== JSON.stringify(p.pf)) { fr.pf = p.pf; changed = true; }
+    }
     // lời mời vào phòng từ bạn bè
     const code = p.iv[Save.fid];
     const key = p.f + ':' + code;
     if (fr && roomCodeOk(code) && !HALL.seenInv.has(key)) {
       HALL.seenInv.add(key);
-      if (!(NET.room && NET.code === String(code))) pushNotice({ kind: 'room', f: p.f, n: p.n, code: String(code) });
+      if (!(NET.room && NET.code === String(code)) && Save.status !== 'busy') pushNotice({ kind: 'room', f: p.f, n: p.n, code: String(code) });
     }
   }
   // lời mời kết bạn mới
   for (const p of incomingRequests()) {
     const key = 'fr:' + p.f;
-    if (!HALL.seenInv.has(key)) { HALL.seenInv.add(key); pushNotice({ kind: 'friend', f: p.f, n: p.n }); }
+    if (!HALL.seenInv.has(key)) { HALL.seenInv.add(key); if (Save.status !== 'busy') pushNotice({ kind: 'friend', f: p.f, n: p.n }); }
+  }
+  // phòng công khai của mình mà chưa ai vào, trong khi có phòng công khai cùng chế độ mã nhỏ hơn → gộp sang đó
+  if (MM.public && NET.role === 'host' && NET.lob && NET.ph === 'lobby' && NET.lob.seats.filter((s) => s.p).length === 1) {
+    const other = HALL.peers.find((p) => p.pub && p.pub.m === NET.lob.mode && p.pub.e > 0 && +p.pub.c < +NET.code);
+    if (other) { MM.public = false; leaveRoom('hall'); joinRoom(other.pub.c).then(() => toast('⚡ Đã ghép vào phòng ' + roomLabel())); }
   }
   if (changed) persist();
-  renderFriends();
+  renderFriendBadge();
+  if (UI.view === 'hall' && ['friends', 'home', 'battle'].includes(UI.page)) renderPage();
+  if ($('inviteModal').classList.contains('show')) renderInviteFriends();
 }
 
 const incomingRequests = () => HALL.peers.filter((p) => p.fr.includes(Save.fid) && !isFriend(p.f) && !HALL.dismissed.has(p.f));
@@ -4101,30 +4286,36 @@ function addFriend(f, n, accept) {
   Save.sent = Save.sent.filter((x) => x.f !== f);
   if (accept && !Save.acc.includes(f)) { Save.acc.push(f); if (Save.acc.length > 30) Save.acc.shift(); }
   HALL.notices = HALL.notices.filter((x) => !(x.kind === 'friend' && x.f === f));
-  persist(); hallPresence(); renderFriends(); renderNotices();
-  if (UI.view === 'lobby') renderSlots();
+  persist(); hallPresence(); renderNotices(); renderFriendBadge();
+  if (UI.view === 'lobby') renderSlots(); else renderPage();
 }
 
 function sendFriendRequest(raw, name = '') {
   const f = parseFid(raw);
-  if (!fidOk(f)) { toast('Mã kết bạn gồm 6 ký tự, ví dụ <b>#K7P2QX</b>.'); return false; }
-  if (f === Save.fid) { toast('Đây là mã kết bạn của chính bạn 🙂'); return false; }
+  if (!fidOk(f)) { toast('ID người chơi gồm 6 ký tự, ví dụ <b>#K7P2QX</b>.'); return false; }
+  if (f === Save.fid) { toast('Đây là ID của chính bạn 🙂'); return false; }
   if (isFriend(f)) { toast('Hai bạn đã là bạn bè.'); return false; }
   const p = hallPeer(f);
   if (p && p.fr.includes(Save.fid)) { addFriend(f, p.n, true); toast(`🤝 Đã kết bạn với <b>${escapeHtml(p.n)}</b>`); return true; }
   if (isSent(f)) { toast('Đã gửi lời mời rồi – chờ họ đồng ý.'); return false; }
   Save.sent.push({ f, n: (p && p.n) || cleanName(name) || '' });
   if (Save.sent.length > 30) Save.sent.shift();
-  persist(); hallPresence(); renderFriends();
-  if (UI.view === 'lobby') renderSlots();
-  toast(`📨 Đã gửi lời mời kết bạn tới <b>${escapeHtml((p && p.n) || name || '#' + f)}</b>` + (HALL.room ? '' : '<br>(cần mở game qua link Claude để gửi đi)'));
+  persist(); hallPresence();
+  if (UI.view === 'lobby') renderSlots(); else renderPage();
+  toast(`📨 Đã gửi lời mời kết bạn tới <b>${escapeHtml((p && p.n) || name || '#' + f)}</b>` + (HALL.room ? '' : '<br>(chưa kết nối máy chủ – lời mời sẽ gửi khi online)'));
   return true;
+}
+function removeFriend(f) {
+  Save.friends = Save.friends.filter((x) => x.f !== f);
+  Save.acc = Save.acc.filter((x) => x !== f);
+  persist(); hallPresence(); renderPage();
+  toast('Đã huỷ kết bạn.');
 }
 
 /** Mời bạn bè vào phòng: nếu chưa có phòng trực tuyến thì mở phòng trước. */
 async function inviteFriend(f) {
   if (!NET.room) {
-    if (UI.view !== 'lobby') enterLobby();
+    enterLobby();
     await createRoom();
     if (!NET.room) { toast('Không mở được phòng trực tuyến.'); return; }
   }
@@ -4133,7 +4324,7 @@ async function inviteFriend(f) {
   hallPresence();
   const fr = Save.friends.find((x) => x.f === f);
   toast(`📨 Đã mời <b>${escapeHtml(fr ? fr.n : '#' + f)}</b> vào ${roomLabel()}`);
-  renderFriends();
+  renderInviteFriends();
 }
 
 async function joinFriendRoom(code) {
@@ -4146,15 +4337,17 @@ async function joinFriendRoom(code) {
 function pushNotice(n) {
   HALL.notices = HALL.notices.filter((x) => !(x.kind === n.kind && x.f === n.f));
   HALL.notices.push({ ...n, id: Math.random().toString(36).slice(2) });
-  if (HALL.notices.length > 4) HALL.notices.shift();
+  if (HALL.notices.length > 3) HALL.notices.shift();
+  const id = HALL.notices[HALL.notices.length - 1].id;
+  // tự ẩn (lời mời kết bạn vẫn nằm trong tab Bạn bè → Lời mời)
+  setTimeout(() => { HALL.notices = HALL.notices.filter((x) => x.id !== id); renderNotices(); }, n.kind === 'room' ? 30000 : 12000);
   Sound.play('coin');
   renderNotices();
 }
 function renderNotices() {
-  const el = $('notices');
-  el.innerHTML = HALL.notices.map((n) => n.kind === 'room'
+  $('notices').innerHTML = HALL.notices.map((n) => n.kind === 'room'
     ? `<div class="notice"><div>📨 <b>${escapeHtml(n.n)}</b> mời bạn vào <b>PHÒNG-${n.code}</b></div><div class="row"><button class="btn primary sm" data-na="go" data-id="${n.id}">⚡ Tham gia ngay</button><button class="btn sm" data-na="x" data-id="${n.id}">Bỏ qua</button></div></div>`
-    : `<div class="notice"><div>🤝 <b>${escapeHtml(n.n)}</b> <span class="fcode">#${n.f}</span> muốn kết bạn</div><div class="row"><button class="btn primary sm" data-na="ok" data-id="${n.id}">Đồng ý</button><button class="btn sm" data-na="no" data-id="${n.id}">Từ chối</button></div></div>`).join('');
+    : `<div class="notice"><div>🤝 <b>${escapeHtml(n.n)}</b> <span class="fcode">#${n.f}</span> muốn kết bạn</div><div class="row"><button class="btn primary sm" data-na="ok" data-id="${n.id}">Đồng ý</button><button class="btn sm" data-na="no" data-id="${n.id}">Từ chối</button><button class="btn sm ghost" data-na="x" data-id="${n.id}">Để sau</button></div></div>`).join('');
 }
 $('notices').addEventListener('click', (e) => {
   const b = e.target.closest('[data-na]');
@@ -4165,68 +4358,8 @@ $('notices').addEventListener('click', (e) => {
   if (!n) return;
   if (b.dataset.na === 'go') joinFriendRoom(n.code);
   else if (b.dataset.na === 'ok') { addFriend(n.f, n.n, true); toast(`🤝 Đã kết bạn với <b>${escapeHtml(n.n)}</b>`); }
-  else if (b.dataset.na === 'no') { HALL.dismissed.add(n.f); renderFriends(); }
+  else if (b.dataset.na === 'no') { HALL.dismissed.add(n.f); renderPage(); renderFriendBadge(); }
 });
-
-// ----- bảng Bạn bè (Sảnh Chính + bảng mời trong Phòng Chờ) -----
-function friendRow(inner, actions) { return `<div class="frow">${inner}<div class="row fact">${actions}</div></div>`; }
-function renderFriends() {
-  const reqs = incomingRequests();
-  const online = new Map(HALL.peers.map((p) => [p.f, p]));
-  const friends = [...Save.friends].sort((a, b) => (online.has(b.f) ? 1 : 0) - (online.has(a.f) ? 1 : 0));
-  const nOn = friends.filter((x) => online.has(x.f)).length;
-  const dot = (on) => `<span class="dot${on ? ' on' : ''}"></span>`;
-  const statusOf = (p) => (!p ? 'Ngoại tuyến' : (p.rc ? `Đang ở PHÒNG-${p.rc}` : 'Ở Sảnh Chính') + ' · ' + STATUSES[p.st]);
-  const emo = (p) => (p && p.em && Date.now() - p.em[1] < 10000 ? `<span class="femo">${p.em[0]}</span>` : '');
-  const friendHtml = (compact) => friends.length ? friends.map((x) => {
-    const p = online.get(x.f);
-    const inv = HALL.myInv[x.f] && NET.room && HALL.myInv[x.f] === NET.code;
-    const acts = (p ? `<button class="btn sm purple" data-fa="inv" data-f="${x.f}">${inv ? '✔ Đã mời' : '📨 Mời vào phòng'}</button>` : '')
-      + (!compact && p && p.rc && p.rc !== NET.code ? `<button class="btn sm" data-fa="join" data-c="${p.rc}">🚪 Vào cùng</button>` : '')
-      + (!compact ? `<button class="btn sm ghost" data-fa="rm" data-f="${x.f}" title="Xoá bạn">🗑</button>` : '');
-    return friendRow(`${dot(!!p)}<div class="fname"><b>${escapeHtml(x.n)}</b> ${emo(p)}<span class="fcode">#${x.f}</span><div class="fst">${statusOf(p)}</div></div>`, acts);
-  }).join('') : '<div class="hint" style="text-align:left">Chưa có bạn bè. Nhập mã kết bạn hoặc bấm <b>➕ Kết bạn</b> với người chơi trong phòng.</div>';
-
-  let h = '';
-  if (!HALL.room) h += '<div class="warn">⚠ Kết bạn & mời bạn bè cần mở game qua <b>link Claude</b> (cả hai cùng mở). Danh sách bạn bè được lưu trên máy này.</div>';
-  if (reqs.length) h += `<h4>🤝 Lời mời kết bạn (${reqs.length})</h4>` + reqs.map((p) => friendRow(`${dot(true)}<div class="fname"><b>${escapeHtml(p.n)}</b> <span class="fcode">#${p.f}</span></div>`,
-    `<button class="btn sm primary" data-fa="ok" data-f="${p.f}">✔ Đồng ý</button><button class="btn sm" data-fa="no" data-f="${p.f}">✕</button>`)).join('');
-  h += `<h4>👥 Bạn bè (${friends.length}) · <span style="color:#4ade80">${nOn} online</span></h4>` + friendHtml(false);
-  if (Save.sent.length) h += `<h4>⏳ Đã gửi lời mời (${Save.sent.length})</h4>` + Save.sent.map((x) => {
-    const p = online.get(x.f);
-    return friendRow(`${dot(!!p)}<div class="fname"><b>${escapeHtml((p && p.n) || x.n || 'Người chơi')}</b> <span class="fcode">#${x.f}</span><div class="fst">Chờ đồng ý</div></div>`,
-      `<button class="btn sm ghost" data-fa="cancel" data-f="${x.f}">Huỷ</button>`);
-  }).join('');
-  const others = HALL.peers.filter((p) => !isFriend(p.f)).slice(0, 20);
-  if (HALL.room) h += `<h4>🌐 Người chơi đang online (${others.length})</h4>` + (others.length ? others.map((p) => friendRow(`${dot(true)}<div class="fname"><b>${escapeHtml(p.n)}</b> <span class="fcode">#${p.f}</span><div class="fst">${statusOf(p)}</div></div>`,
-    isSent(p.f) ? '<span class="fst">⏳ Đã gửi</span>' : `<button class="btn sm" data-fa="add" data-f="${p.f}">➕ Kết bạn</button>`)).join('') : '<div class="hint" style="text-align:left">Chưa có ai khác đang online.</div>');
-  $('friendLists').innerHTML = h;
-  $('inviteFriends').innerHTML = friends.length ? friendHtml(true) : '<div class="hint">Chưa có bạn bè – kết bạn ở <b>Sảnh Chính</b>.</div>';
-  const badge = $('friendBadge');
-  badge.hidden = !reqs.length; badge.textContent = reqs.length;
-  $('myFid').textContent = '#' + Save.fid;
-}
-
-document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-fa]');
-  if (!b) return;
-  const f = b.dataset.f;
-  switch (b.dataset.fa) {
-    case 'copy': (navigator.clipboard ? navigator.clipboard.writeText('#' + Save.fid) : Promise.reject()).then(() => toast('📋 Đã sao chép mã kết bạn #' + Save.fid), () => toast('Mã kết bạn: <b>#' + Save.fid + '</b>')); break;
-    case 'addcode': if (sendFriendRequest($('addFid').value)) $('addFid').value = ''; break;
-    case 'add': sendFriendRequest(f); break;
-    case 'ok': { const p = hallPeer(f); addFriend(f, p ? p.n : '', true); toast(`🤝 Đã kết bạn với <b>${escapeHtml(p ? p.n : '#' + f)}</b>`); break; }
-    case 'no': HALL.dismissed.add(f); renderFriends(); break;
-    case 'cancel': Save.sent = Save.sent.filter((x) => x.f !== f); persist(); hallPresence(); renderFriends(); break;
-    case 'inv': inviteFriend(f); break;
-    case 'join': joinFriendRoom(b.dataset.c); break;
-    case 'rm':
-      if (b.dataset.armed) { Save.friends = Save.friends.filter((x) => x.f !== f); Save.acc = Save.acc.filter((x) => x !== f); persist(); hallPresence(); renderFriends(); toast('Đã xoá bạn.'); }
-      else { b.dataset.armed = '1'; b.textContent = 'Xoá?'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = '🗑'; } }, 3000); }
-      break;
-  }
-});
-$('addFid').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (sendFriendRequest($('addFid').value)) $('addFid').value = ''; } });
 
 /** Nút kết bạn trên ô người chơi trong Phòng Chờ. */
 function friendChip(s) {
@@ -4236,148 +4369,48 @@ function friendChip(s) {
   return `<span class="fchip add" data-fr="${s.fid}" data-nm="${escapeHtml(s.name || '')}">➕ Kết bạn</span>`;
 }
 
-// ----- Bộ Sưu Tập -----
-function renderCollection() {
-  const owned = ROSTER.filter((d) => isUnlocked(d.id)).length;
-  $('collCount').textContent = `${owned}/${ROSTER.length}`;
-  $('collBar').style.width = Math.round((owned / ROSTER.length) * 100) + '%';
-  $('collTiers').innerHTML = TIER_ORDER.map((t) => {
-    const all = ROSTER.filter((d) => d.tier === t);
-    return `<span><span class="badge sm ${t}">${t}</span> ${all.filter((d) => isUnlocked(d.id)).length}/${all.length}</span>`;
-  }).join('');
-  const opts = [['all', 'Tất cả'], ['owned', '🔓 Đã có'], ['locked', '🔒 Chưa có'], ...TIER_ORDER.map((t) => [t, `Cấp ${t}`])];
-  $('collFilters').innerHTML = opts.map(([k, l]) => `<button data-cf="${k}" class="${UI.collFilter === k ? 'on' : ''}">${l}</button>`).join('');
-  const q = norm($('collSearch').value);
-  const list = ROSTER.filter((d) => UI.collFilter === 'all' || d.tier === UI.collFilter
-    || (UI.collFilter === 'owned' && isUnlocked(d.id)) || (UI.collFilter === 'locked' && !isUnlocked(d.id)))
-    .filter((d) => !q || norm(`${d.name} ${d.ult} ${d.skill} ${d.inspire}`).includes(q))
-    .sort((a, b) => (isUnlocked(b.id) - isUnlocked(a.id)) || TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier));
-  $('collGrid').innerHTML = list.map((d) => {
-    const own = isUnlocked(d.id);
-    const main = d.id === UI.myBall;
-    return `<button class="ctile ${d.tier}${own ? '' : ' locked'}${main ? ' main' : ''}" data-ball="${d.id}">
-      ${main ? '<span class="cmain">★ Bóng chính</span>' : ''}${own ? '' : '<span class="clock">🔒</span>'}
-      <img src="${portraitUrl(d, 120)}" width="64" height="64" alt="${d.name}">
-      <div class="cname"><span class="badge sm ${d.tier}">${d.tier}</span> ${d.name}</div>
-    </button>`;
-  }).join('') || '<div class="hint">Không tìm thấy quả bóng phù hợp.</div>';
-}
-/** Bỏ dấu tiếng Việt để tìm kiếm. */
-const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/<[^>]+>/g, '').trim();
-$('collSearch').addEventListener('input', () => renderCollection());
-function openCollection() { renderCollection(); $('collModal').classList.add('show'); }
-$('collModal').addEventListener('click', (e) => { if (e.target === $('collModal') || e.target.id === 'collClose') $('collModal').classList.remove('show'); });
-$('collFilters').addEventListener('click', (e) => { const b = e.target.closest('[data-cf]'); if (b) { UI.collFilter = b.dataset.cf; renderCollection(); } });
-$('collGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-ball]'); if (b) openBall(b.dataset.ball); });
-
-function openBall(id) {
-  const d = DEF_BY_ID[id];
-  if (!d) return;
-  const t = TIERS[d.tier];
-  const own = isUnlocked(id);
-  $('ballDetail').innerHTML = `
-    <div class="bdhead">${orbIconHtml(d, true)}<div style="text-align:left">
-      <div class="nm" style="font-size:22px;font-weight:900"><span class="badge ${d.tier}">${d.tier}</span> ${d.name}</div>
-      <div class="hint" style="text-align:left">Cấp ${d.tier} – ${t.label} · ${d.power ? 'Bóng sức mạnh' : 'Cảm hứng'}: ${d.inspire}</div>
-      <div class="${own ? 'st ok' : 'st wait'}" style="margin-top:6px">${own ? '🔓 Đã sở hữu' : '🔒 Chưa sở hữu'}</div>
-    </div></div>
-    <div class="card" style="cursor:default;margin-top:10px"><div style="grid-column:1/-1" class="stats">
-      ${statBar('HP', d.hp, 350, t.bar)}${statBar('Công', d.atk, 16, 'linear-gradient(90deg,#ef4444,#f97316)')}${statBar('Tốc', d.spd, 280, 'linear-gradient(90deg,#0ea5e9,#22d3ee)')}
-    </div><div class="skill">✦ <b>${d.ult}</b> – ${d.skill}</div></div>
-    <div class="row" style="justify-content:center;margin-top:12px">
-      ${own ? (id === UI.myBall ? '<span class="st ok">★ Đang là bóng chính</span>' : `<button class="btn primary" data-bmain="${id}">⭐ Đặt làm bóng chính</button>`)
-        + `<button class="btn ${Save.fav.includes(id) ? 'purple' : ''}" data-bfav="${id}">${Save.fav.includes(id) ? '💜 Đang trưng bày' : '🤍 Trưng bày ở Sảnh'}</button>`
-        : `<button class="btn gold" data-bwheel="1">🎡 Quay Vòng May Mắn (${SPIN_COST} Vàng)</button>`}
-      <button class="btn" id="ballClose">Đóng</button>
-    </div>`;
-  $('ballModal').classList.add('show');
-}
-$('ballModal').addEventListener('click', (e) => {
-  if (e.target === $('ballModal') || e.target.id === 'ballClose') { $('ballModal').classList.remove('show'); return; }
-  const m = e.target.closest('[data-bmain]');
-  if (m) { setMainBall(m.dataset.bmain); openBall(m.dataset.bmain); return; }
-  const fv = e.target.closest('[data-bfav]');
-  if (fv) { toggleFav(fv.dataset.bfav); openBall(fv.dataset.bfav); return; }
-  if (e.target.closest('[data-bwheel]')) { $('ballModal').classList.remove('show'); openWheel(); }
-});
-
-function setMainBall(id) {
-  if (!isUnlocked(id)) return;
-  UI.myBall = id; Save.main = id; persist();
-  if (!NET.room) { const i = UI.kinds.indexOf('me'); if (i >= 0 && !UI.meReady) UI.slots[i] = id; }
-  renderCollection(); renderHall();
-  toast(`⭐ <b>${DEF_BY_ID[id].name}</b> là bóng chính – tự đặt vào ô của bạn ở Phòng Chờ.`);
-}
-
-// ----- chuyển màn hình: SẢNH CHÍNH → PHÒNG CHỜ → SÀN ĐẤU -----
-function goHall() {
-  if (NET.room) { leaveRoom('hall'); toast('Đã rời phòng trực tuyến.'); return; }
-  if (G.phase !== 'idle') resetToIdle();
-  UI.meReady = false;
-  showView('hall');
-}
-function enterLobby() {
-  if (!NET.room) {
-    const i = UI.kinds.indexOf('me');
-    if (i >= 0 && !UI.meReady && isUnlocked(UI.myBall)) UI.slots[i] = UI.myBall;
-  }
-  showLobby();
-}
-async function hallJoin() {
-  const v = $('hallCode').value;
-  if (!String(v).match(/\d{3,4}/)) { $('hallMsg').textContent = 'Nhập mã phòng dạng PHÒNG-123.'; return; }
-  $('hallMsg').textContent = '';
-  if (NET.room) leaveRoom('hall');
-  await joinRoom(v);
-}
-$('btnHallPlay').onclick = () => { Sound.ensure(); enterLobby(); };
-$('btnHallJoin').onclick = hallJoin;
-$('hallCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); hallJoin(); } });
-$('btnWheel3').onclick = openWheel;
-$('btnToHall').onclick = goHall;
-$('btnFriends').onclick = () => { renderFriends(); if (UI.view === 'hall' && window.matchMedia('(min-width: 1101px)').matches) $('addFid').focus(); else $('friendBox').classList.toggle('open'); };
-$('crumbs').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-v]');
-  if (!b || b.dataset.v === UI.view) return;
-  if (b.dataset.v === 'hall') goHall();
-  else if (b.dataset.v === 'lobby') { if (UI.view === 'arena') goLobby(); else enterLobby(); }
-});
-$('netName').addEventListener('change', () => { Save.name = cleanName($('netName').value); persist(); hallPresence(); if (NET.room) sendMyPresence(); renderFriends(); });
-
 // ----- Trạng thái nhanh & biểu cảm -----
 const STATUSES = { ready: '🟢 Sẵn sàng nhận lời mời', farm: '💰 Đang cày vàng', test: '🧪 Đang test bóng', busy: '🔕 Không làm phiền' };
 const EMOTES = ['👋', '😄', '🔥', '😎', '🎉', '😭'];
-function setStatus(k) { if (!STATUSES[k]) return; Save.status = k; persist(); hallPresence(); renderHall(); toast('Trạng thái: ' + STATUSES[k]); }
+function setStatus(k) { if (!STATUSES[k]) return; Save.status = k; persist(); hallPresence(); renderPage(); toast('Trạng thái: ' + STATUSES[k]); }
 function sendEmote(em) {
   if (!EMOTES.includes(em)) return;
   HALL.myEmote = [em, Date.now()];
   hallPresence();
-  const host = $('emoteFloat');
-  const s = document.createElement('span');
-  s.textContent = em;
-  s.style.left = 20 + Math.random() * 60 + '%';
-  host.appendChild(s);
-  setTimeout(() => s.remove(), 1600);
+  const host = document.querySelector('.emofloat');
+  if (host) {
+    const s = document.createElement('span');
+    s.textContent = em;
+    s.style.left = 20 + Math.random() * 60 + '%';
+    host.appendChild(s);
+    setTimeout(() => s.remove(), 1600);
+  }
   Sound.ensure(); Sound.play('tick');
 }
-$('statusSeg').addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (b) setStatus(b.dataset.st); });
-$('emoteRow').addEventListener('click', (e) => { const b = e.target.closest('[data-em]'); if (b) sendEmote(b.dataset.em); });
 
 // ----- Trưng bày bóng yêu thích (1–3 quả) -----
 function toggleFav(id) {
   if (!isUnlocked(id)) return;
   if (Save.fav.includes(id)) Save.fav = Save.fav.filter((x) => x !== id);
-  else { Save.fav.push(id); if (Save.fav.length > 3) { Save.fav.shift(); toast('Tối đa 3 quả bóng trưng bày – đã thay quả cũ nhất.'); } }
-  persist(); renderHall();
+  else { Save.fav.push(id); if (Save.fav.length > 3) { Save.fav.shift(); toast('Tối đa 3 quả bóng yêu thích – đã thay quả cũ nhất.'); } }
+  persist(); hallPresence(); renderPage();
 }
-function showcaseList() {
-  const fav = Save.fav.filter((id) => DEF_BY_ID[id] && isUnlocked(id));
-  if (fav.length) return { ids: fav, auto: false };
-  // chưa chọn: tự trưng bày 3 quả mạnh nhất đang sở hữu
-  const ids = ROSTER.filter((d) => isUnlocked(d.id))
-    .sort((a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier) || b.hp + b.atk * 10 - (a.hp + a.atk * 10))
-    .slice(0, 3).map((d) => d.id);
-  return { ids, auto: true };
+function showcaseList(fav = Save.fav, owned = isUnlocked) {
+  const ids = fav.filter((id) => DEF_BY_ID[id] && owned(id));
+  if (ids.length) return { ids, auto: false };
+  return {
+    auto: true,
+    ids: ROSTER.filter((d) => owned(d.id))
+      .sort((a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier) || b.hp + b.atk * 10 - (a.hp + a.atk * 10))
+      .slice(0, 3).map((d) => d.id),
+  };
+}
+function setMainBall(id) {
+  if (!isUnlocked(id)) return;
+  UI.myBall = id; Save.main = id; persist(); hallPresence();
+  if (!NET.room) { const i = UI.kinds.indexOf('me'); if (i >= 0 && !UI.meReady) UI.slots[i] = id; }
+  renderAppbar(); renderPage();
+  toast(`⚔ Đã trang bị <b>${DEF_BY_ID[id].name}</b> – tự vào ô của bạn ở Phòng Chờ.`);
 }
 
 // ----- Nhiệm vụ hằng ngày -----
@@ -4392,7 +4425,7 @@ function dailyState() {
   if (!Save.daily || Save.daily.day !== todayKey()) Save.daily = { day: todayKey(), matches: 0, wins: 0, spins: 0, lowWins: 0, claimed: [] };
   return Save.daily;
 }
-function questProgress(key, n = 1) { const d = dailyState(); d[key] = (d[key] | 0) + n; persist(); renderHall(); }
+function questProgress(key, n = 1) { const d = dailyState(); d[key] = (d[key] | 0) + n; persist(); renderPage(); }
 function claimQuest(id) {
   const q = QUESTS.find((x) => x.id === id);
   const d = dailyState();
@@ -4401,64 +4434,542 @@ function claimQuest(id) {
   addGold(q.reward);
   Sound.ensure(); Sound.play('coin');
   toast(`🎁 Nhiệm vụ “${q.name}” · +${q.reward} Vàng`);
-  renderHall();
+  renderPage();
 }
 const questsReady = () => { const d = dailyState(); return QUESTS.filter((q) => !d.claimed.includes(q.id) && (d[q.key] | 0) >= q.goal).length; };
+function resetCountdown() {
+  const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0);
+  const s = Math.max(0, Math.floor((m - n) / 1000));
+  return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
 
-// ----- Thành tích (mốc trọn đời) -----
-const ACHIEVEMENTS = [
-  { name: 'Tân Binh', desc: 'Chơi trận đầu tiên', v: () => Save.matches, goal: 1 },
-  { name: 'Chiến Binh', desc: 'Thắng 10 trận', v: () => Save.wins, goal: 10 },
-  { name: 'Lão Làng', desc: 'Chơi 50 trận', v: () => Save.matches, goal: 50 },
-  { name: 'Nhà Sưu Tầm', desc: 'Sở hữu 10 quả bóng', v: () => ownedCount(), goal: 10 },
-  { name: 'Đại Gia Bóng', desc: 'Sở hữu đủ 30 quả bóng', v: () => ownedCount(), goal: 30 },
-  { name: 'Chạm Tới Thần Thoại', desc: 'Sở hữu 1 quả bóng cấp S', v: () => ROSTER.filter((d) => d.tier === 'S' && isUnlocked(d.id)).length, goal: 1 },
-  { name: 'Kết Nối', desc: 'Có 3 bạn bè', v: () => Save.friends.length, goal: 3 },
-];
-const ownedCount = () => ROSTER.filter((d) => isUnlocked(d.id)).length;
+// ----- Lịch sử đấu -----
+function pushHistory(rw) {
+  const my = G.mine.map((i) => G.orbs[i]).filter(Boolean);
+  Save.history.unshift({ t: Date.now(), m: G.mode, b: my[0] ? my[0].def.id : '', won: rw.won ? 1 : 0, g: rw.gold, lb: rw.label, on: NET.room ? 1 : 0 });
+  if (Save.history.length > 20) Save.history.length = 20;
+  persist();
+}
 
-/** Vẽ lại Sảnh Chính (hồ sơ, trưng bày, nhiệm vụ / thành tích). */
-function renderHall() {
-  const main = DEF_BY_ID[UI.myBall];
-  if (main) $('hallAvatar').src = portraitUrl(main, 160);
-  const owned = ownedCount();
-  $('hallStats').innerHTML = `⚔ ${Save.matches} trận · 🏆 ${Save.wins} thắng · 📚 ${owned}/${ROSTER.length} bóng`;
-  $('statusSeg').innerHTML = Object.entries(STATUSES).map(([k, l]) => `<button data-st="${k}" class="${Save.status === k ? 'on' : ''}" title="${l}">${l}</button>`).join('');
-  $('collBadge').textContent = `${owned}/${ROSTER.length}`;
-  const sc = showcaseList();
-  $('showcase').innerHTML = sc.ids.map((id, k) => {
+// =====================================================================
+// ĐIỀU HƯỚNG: thanh dưới 5 mục + trang Cửa hàng (mở từ Sảnh Chính)
+// =====================================================================
+const NAV = [['home', '🏠', 'Sảnh'], ['battle', '⚔', 'Phòng đấu'], ['friends', '👥', 'Bạn bè'], ['collection', '📚', 'Bộ sưu tập'], ['profile', '👤', 'Hồ sơ']];
+UI.page = 'home';
+UI.ftab = 'list';
+UI.cf = { tier: 'all', origin: 'all', own: 'all' };
+
+function goPage(pg) {
+  if (UI.view === 'arena') return;
+  if (pg === 'battle' && NET.room && UI.view !== 'lobby' && UI.page === 'battle') { enterLobby(); return; }
+  UI.page = pg;
+  if (UI.view !== 'hall') showView('hall'); else { renderPage(); syncNav(); }
+  window.scrollTo(0, 0);
+}
+function syncNav() {
+  const active = UI.view === 'lobby' ? 'battle' : UI.page === 'shop' ? 'home' : UI.page;
+  $('bottomNav').querySelectorAll('[data-nav]').forEach((b) => b.classList.toggle('on', b.dataset.nav === active));
+  document.querySelectorAll('#hub > .page').forEach((p) => {
+    const on = p.dataset.page === UI.page;
+    if (on && p.hidden) { p.hidden = false; p.classList.remove('pgin'); void p.offsetWidth; p.classList.add('pgin'); }
+    else if (!on) p.hidden = true;
+  });
+}
+$('bottomNav').innerHTML = NAV.map(([k, ic, l]) => `<button data-nav="${k}"><span class="ic">${ic}</span><span>${l}</span>${k === 'friends' ? '<span class="nbadge" id="friendBadge" hidden>0</span>' : ''}${k === 'home' ? '<span class="nbadge" id="questDot" hidden>0</span>' : ''}</button>`).join('');
+$('bottomNav').addEventListener('click', (e) => { const b = e.target.closest('[data-nav]'); if (b) goPage(b.dataset.nav); });
+// ẩn thanh dưới khi bàn phím mở (ô nhập đang được chọn)
+document.addEventListener('focusin', (e) => { if (e.target.matches('input.text, textarea')) document.body.classList.add('kb'); });
+document.addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement || !document.activeElement.matches('input.text, textarea')) document.body.classList.remove('kb'); }, 50));
+
+function renderFriendBadge() {
+  const n = incomingRequests().length;
+  const b = $('friendBadge'); b.hidden = !n; b.textContent = n;
+  const q = questsReady(); const d = $('questDot'); d.hidden = !q; d.textContent = q;
+}
+
+/** Thanh trên cùng: avatar, tên, cấp độ, ID, vàng, cài đặt. */
+function renderAppbar() {
+  const d = DEF_BY_ID[UI.myBall];
+  if (d) $('hdrAvatar').src = portraitUrl(d, 96);
+  const li = levelInfo();
+  $('hdrName').textContent = myName();
+  $('hdrLv').textContent = `Lv.${li.lv}`;
+  $('hdrId').textContent = '#' + Save.fid;
+  $('hdrXp').style.width = Math.round((li.cur / li.need) * 100) + '%';
+}
+
+function renderPage() {
+  renderAppbar();
+  renderFriendBadge();
+  if (UI.view !== 'hall') return;
+  const pg = UI.page;
+  if (pg === 'home') renderHome();
+  else if (pg === 'battle') renderBattle();
+  else if (pg === 'friends') renderFriendsPage();
+  else if (pg === 'collection') renderCollection();
+  else if (pg === 'profile') renderProfile();
+  else if (pg === 'shop') renderShop();
+  syncNav();
+}
+// tương thích với lời gọi cũ
+const renderHall = () => renderPage();
+const renderFriends = () => renderPage();
+setInterval(() => { if (UI.view === 'hall' && UI.page === 'home') { const el = $('resetIn'); if (el) el.textContent = resetCountdown(); } }, 1000);
+
+// ----- HOME -----
+function orbShowcaseHtml(ids) {
+  return ids.map((id, k) => {
     const d = DEF_BY_ID[id], t = TIERS[d.tier];
-    return `<button class="sorb ${k === 1 || sc.ids.length === 1 ? 'mid' : ''}" data-ball="${id}" style="--ring:${t.ring}">
+    return `<button class="sorb ${k === 1 || ids.length === 1 ? 'mid' : ''}" data-ball="${id}" style="--ring:${t.ring}">
       <span class="halo"></span><img src="${portraitUrl(d, 220)}" alt="${d.name}">
       <div class="sname"><span class="badge sm ${d.tier}">${d.tier}</span> ${d.name}</div></button>`;
   }).join('');
-  $('showHint').textContent = sc.auto ? 'Đang tự trưng bày 3 quả bóng mạnh nhất · mở Bộ Sưu Tập → 🤍 Trưng bày để chọn quả yêu thích' : `Bóng yêu thích (${sc.ids.length}/3)`;
-  // nhiệm vụ
+}
+function questListHtml() {
   const d = dailyState();
-  const ready = questsReady();
-  $('questDot').hidden = !ready; $('questDot').textContent = ready;
-  $('tabQuest').innerHTML = QUESTS.map((q) => {
+  return QUESTS.map((q) => {
     const v = Math.min(d[q.key] | 0, q.goal), done = v >= q.goal, got = d.claimed.includes(q.id);
     return `<div class="quest${got ? ' got' : ''}"><div class="qn">${q.name}<div class="qbar"><i style="width:${(v / q.goal) * 100}%"></i></div></div>
       <span class="qv">${v}/${q.goal}</span>
       ${got ? '<span class="st ok">✔ Đã nhận</span>' : `<button class="btn sm ${done ? 'gold' : ''}" data-q="${q.id}" ${done ? '' : 'disabled'}>💰 +${q.reward}</button>`}</div>`;
-  }).join('') + '<div class="hint">Nhiệm vụ làm mới mỗi ngày.</div>';
-  $('tabAch').innerHTML = ACHIEVEMENTS.map((a) => {
-    const v = Math.min(a.v(), a.goal), ok = v >= a.goal;
-    return `<div class="quest${ok ? ' got' : ''}"><div class="qn">${ok ? '🏅' : '🔒'} <b>${a.name}</b> – ${a.desc}<div class="qbar"><i style="width:${(v / a.goal) * 100}%"></i></div></div><span class="qv">${v}/${a.goal}</span></div>`;
   }).join('');
 }
-$('showcase').addEventListener('click', (e) => { const b = e.target.closest('[data-ball]'); if (b) openBall(b.dataset.ball); });
-$('tabQuest').addEventListener('click', (e) => { const b = e.target.closest('[data-q]'); if (b) claimQuest(b.dataset.q); });
-$('hallTabs').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-tab]');
+function renderHome() {
+  const sc = showcaseList();
+  const pubs = HALL.peers.filter((p) => p.pub).length;
+  const nFriendsOn = Save.friends.filter((x) => hallPeer(x.f)).length;
+  $('pg-home').innerHTML = `
+    <div class="hero box">
+      <div class="brand">ĐẤU TRƯỜNG QUẢ CẦU ANIME</div>
+      <div class="showcase">${orbShowcaseHtml(sc.ids)}</div>
+      <div class="hint">${sc.auto ? 'Tự trưng bày 3 quả mạnh nhất · chọn ❤ Yêu thích trong Bộ sưu tập để thay' : `Bóng yêu thích (${sc.ids.length}/3)`}</div>
+      <div class="herobtns">
+        <button class="btn primary big" data-go="battle">⚔ VÀO PHÒNG ĐẤU</button>
+        <button class="btn purple big" data-quick="v1">🤖 ĐẤU VỚI MÁY</button>
+      </div>
+      ${NET.room ? `<div class="roomline">🟢 Bạn đang ở <b>${roomLabel()}</b> <button class="btn sm" data-go="lobby">🏟 Về Phòng Chờ</button></div>` : ''}
+    </div>
+    <div class="tiles">
+      <button class="tile shop" data-go="shop"><span class="ic">🛒</span><b>Cửa hàng</b><small>Vòng Quay May Mắn</small></button>
+      <button class="tile" data-go="collection"><span class="ic">📚</span><b>Bộ sưu tập</b><small>${ownedCount()}/${ROSTER.length} quả cầu</small></button>
+      <button class="tile" data-go="friends"><span class="ic">👥</span><b>Bạn bè</b><small>${HALL.room ? `${nFriendsOn} đang online` : 'Chưa kết nối'}</small></button>
+    </div>
+    <div class="box">
+      <div class="sechead"><h3>📜 Nhiệm vụ hôm nay</h3><span class="hint">Làm mới sau <b id="resetIn">${resetCountdown()}</b></span></div>
+      ${questListHtml()}
+    </div>
+    <div class="box">
+      <h3>🎪 Đang diễn ra</h3>
+      <div class="evrow"><span>🌐 Người chơi đang online</span><b>${HALL.room ? HALL.peers.length + 1 : '—'}</b></div>
+      <div class="evrow"><span>⚡ Phòng công khai đang chờ ghép</span><b>${HALL.room ? pubs : '—'}</b>${pubs ? '<button class="btn sm gold" data-mm="any">Ghép ngay</button>' : ''}</div>
+      <div class="evrow"><span>🎡 Vòng Quay: tỉ lệ S 5% · A 10% · B 20% · C 30% · D 35%</span><button class="btn sm" data-go="shop">Quay</button></div>
+      ${HALL.room ? '' : '<div class="warn">⚠ Chưa kết nối máy chủ trực tuyến – vẫn đấu với máy, sưu tập & làm nhiệm vụ bình thường.</div>'}
+      <div class="hint" style="text-align:left">Chưa có sự kiện giới hạn thời gian.</div>
+    </div>`;
+}
+
+// ----- BATTLE – PHÒNG ĐẤU -----
+const modeSel = (id, cur = 'v1') => `<div class="seg mini" data-modesel="${id}">${MODE_KEYS.map((k) => `<button data-m="${k}" class="${k === cur ? 'on' : ''}">${MODES[k].label}</button>`).join('')}</div>`;
+UI.bm = { create: 'v1', mm: 'v1', bot: 'v1' };
+function renderBattle() {
+  const online = !!HALL.room;
+  const mmTxt = MM.searching ? `<div class="mmstat">🔎 Đang tìm trận ${MODES[MM.mode].label}… ${Math.floor((Date.now() - MM.t0) / 1000)}s <button class="btn sm" data-mmcancel="1">Huỷ</button></div>` : '';
+  $('pg-battle').innerHTML = `
+    <h2 class="pgtitle">⚔ Phòng đấu</h2>
+    ${NET.room ? `<div class="box roomnow"><div>🟢 Bạn đang ở <b>${roomLabel()}</b> · ${NET.role === 'host' ? 'chủ phòng' : 'người chơi'}${MM.public ? ' · phòng công khai' : ''}</div>
+      <div class="row"><button class="btn primary sm" data-go="lobby">🏟 Về Phòng Chờ</button><button class="btn sm" data-leave="1">🚪 Rời phòng</button></div></div>` : ''}
+    <div class="bgrid">
+      <div class="box bcard"><div class="bhead"><span class="bic">🏟</span><h3>Tạo phòng</h3></div><p class="hint">Mở Phòng Chờ, mời bạn bè bằng mã phòng hoặc thêm máy vào ô trống.</p>
+        ${modeSel('create', UI.bm.create)}<button class="btn primary" data-create="1">Tạo phòng</button></div>
+      <div class="box bcard"><div class="bhead"><span class="bic">🔑</span><h3>Vào phòng bằng mã</h3></div><p class="hint">Nhập mã bạn bè gửi, ví dụ PHÒNG-123.</p>
+        <div class="joinrow"><input class="text" id="hallCode" maxlength="12" placeholder="PHÒNG-123" inputmode="numeric"><button class="btn" id="btnHallJoin">Vào</button></div>
+        <div class="hint" id="hallMsg" style="text-align:left"></div></div>
+      <div class="box bcard"><div class="bhead"><span class="bic">⚡</span><h3>Ghép trận ngẫu nhiên</h3></div><p class="hint">Vào phòng công khai đang chờ; nếu chưa có, tự mở phòng công khai để người khác ghép vào.</p>
+        ${modeSel('mm', UI.bm.mm)}${mmTxt || `<button class="btn gold" data-mm="1" ${online ? '' : 'disabled'}>Tìm trận</button>`}
+        ${online ? '' : '<div class="hint">⚠ Cần kết nối máy chủ trực tuyến.</div>'}</div>
+      <div class="box bcard"><div class="bhead"><span class="bic">🤖</span><h3>Đấu với máy</h3></div><p class="hint">Vào trận ngay với quả cầu đang trang bị, các ô còn lại là máy.</p>
+        ${modeSel('bot', UI.bm.bot)}<button class="btn purple" data-quick="sel">Đấu ngay</button></div>
+    </div>`;
+  $('btnHallJoin').onclick = hallJoin;
+  $('hallCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); hallJoin(); } });
+}
+async function hallJoin() {
+  const v = $('hallCode').value;
+  if (!String(v).match(/\d{3,4}/)) { $('hallMsg').textContent = 'Nhập mã phòng dạng PHÒNG-123.'; return; }
+  $('hallMsg').textContent = '';
+  if (NET.room) leaveRoom('hall');
+  await joinRoom(v);
+}
+async function createBattleRoom(mode) {
+  if (NET.room) leaveRoom('hall');
+  setMode(mode);
+  enterLobby();
+  if (await getRoomApi()) await createRoom();
+  else toast('Đã mở Phòng Chờ (chưa kết nối máy chủ – chỉ thêm máy được).');
+}
+/** Đấu với máy: dùng quả cầu đang trang bị, lấp ô trống bằng máy, vào trận ngay. */
+function quickBot(mode) {
+  if (NET.room) { toast('Bạn đang ở phòng trực tuyến – rời phòng trước khi đấu với máy.'); return; }
+  Sound.ensure();
+  setMode(mode);
+  const me = UI.kinds.indexOf('me');
+  UI.slots[me] = isUnlocked(UI.myBall) ? UI.myBall : unlockedIds()[0];
+  UI.kinds.forEach((k, i) => { if (k === 'empty') { UI.kinds[i] = 'bot'; UI.slots[i] = randomBall(); } });
+  UI.mePicked = true; UI.meReady = true;
+  $('victory').classList.remove('show');
+  showView('arena');
+  startLocal();
+}
+async function startMatchmaking(mode) {
+  if (!HALL.room) { toast('Ghép trận cần kết nối máy chủ trực tuyến.'); return; }
+  if (NET.room) leaveRoom('hall');
+  Object.assign(MM, { searching: true, mode, t0: Date.now(), wait: 1500 + Math.random() * 2500 });
+  clearInterval(MM.timer);
+  MM.timer = setInterval(mmTick, 500);
+  mmTick();
+}
+function stopMatchmaking() { MM.searching = false; clearInterval(MM.timer); renderPage(); }
+function mmTick() {
+  if (!MM.searching) return;
+  const cand = HALL.peers.filter((p) => p.pub && p.pub.e > 0 && (MM.mode === 'any' || p.pub.m === MM.mode)).sort((a, b) => +a.pub.c - +b.pub.c)[0];
+  if (cand) {
+    stopMatchmaking();
+    if (MODES[cand.pub.m]) setMode(cand.pub.m);
+    joinRoom(cand.pub.c).then(() => toast('⚡ Đã ghép trận – chọn bóng rồi bấm Sẵn sàng!'));
+    return;
+  }
+  if (MM.mode !== 'any' && Date.now() - MM.t0 > MM.wait) {
+    // chưa có phòng nào: tự mở phòng công khai
+    stopMatchmaking();
+    hostPublicRoom(MM.mode);
+    return;
+  }
+  if (MM.mode === 'any' && Date.now() - MM.t0 > 4000) { stopMatchmaking(); toast('Phòng công khai vừa đầy – thử Tìm trận lại nhé.'); return; }
+  if (UI.view === 'hall' && UI.page === 'battle') renderBattle();
+}
+async function hostPublicRoom(mode) {
+  setMode(mode);
+  enterLobby();
+  await createRoom();
+  if (!NET.room) return;
+  MM.public = true;
+  HALL.lastPres = ''; hallPresence();
+  toast('⚡ Đã mở phòng công khai – đang chờ người chơi ghép vào (có thể thêm máy nếu muốn).');
+}
+
+// ----- FRIENDS – BẠN BÈ -----
+const dot = (on) => `<span class="dot${on ? ' on' : ''}"></span>`;
+const emo = (p) => (p && p.em && Date.now() - p.em[1] < 10000 ? `<span class="femo">${p.em[0]}</span>` : '');
+const statusOf = (p) => (!p ? 'Ngoại tuyến' : (p.rc ? `Đang ở PHÒNG-${p.rc}` : 'Ở Sảnh Chính') + ' · ' + STATUSES[p.st]);
+function friendRow(inner, actions) { return `<div class="frow">${inner}<div class="row fact">${actions}</div></div>`; }
+function friendListHtml(compact) {
+  const friends = [...Save.friends].sort((a, b) => (hallPeer(b.f) ? 1 : 0) - (hallPeer(a.f) ? 1 : 0));
+  if (!friends.length) return '<div class="empty">Chưa có bạn bè. Vào tab <b>🔍 Tìm kiếm</b> để kết bạn bằng ID, hoặc bấm <b>➕ Kết bạn</b> với người chơi trong phòng.</div>';
+  return friends.map((x) => {
+    const p = hallPeer(x.f);
+    const inv = HALL.myInv[x.f] && NET.room && HALL.myInv[x.f] === NET.code;
+    const acts = (p ? `<button class="btn sm purple" data-fa="inv" data-f="${x.f}">${inv ? '✔ Đã mời' : '📨 Mời'}</button>` : '')
+      + (!compact && p && p.rc && p.rc !== NET.code ? `<button class="btn sm" data-fa="join" data-c="${p.rc}">🚪 Vào cùng</button>` : '')
+      + (!compact ? `<button class="btn sm" data-fa="view" data-f="${x.f}">👤</button><button class="btn sm ghost" data-fa="rm" data-f="${x.f}" title="Huỷ kết bạn">Huỷ</button>` : '');
+    return friendRow(`${dot(!!p)}<div class="fname"><b>${escapeHtml(x.n)}</b> ${emo(p)}<span class="fcode">#${x.f}</span><div class="fst">${statusOf(p)}</div></div>`, acts);
+  }).join('');
+}
+function renderInviteFriends() { $('inviteFriends').innerHTML = Save.friends.length ? friendListHtml(true) : '<div class="hint">Chưa có bạn bè – kết bạn ở mục <b>👥 Bạn bè</b>.</div>'; }
+function renderFriendsPage() {
+  const reqs = incomingRequests();
+  const nOn = Save.friends.filter((x) => hallPeer(x.f)).length;
+  const tabs = [['list', `👥 Bạn bè (${Save.friends.length})`], ['req', `📨 Lời mời${reqs.length ? ` <span class="nbadge">${reqs.length}</span>` : ''}`], ['find', '🔍 Tìm kiếm']];
+  let body = '';
+  if (UI.ftab === 'list') body = `<div class="hint" style="text-align:left;margin-bottom:6px"><span style="color:#4ade80">● ${nOn} online</span> · ${Save.friends.length - nOn} ngoại tuyến</div>` + friendListHtml(false);
+  else if (UI.ftab === 'req') {
+    body = '<h4>Lời mời nhận được</h4>' + (reqs.length ? reqs.map((p) => friendRow(`${dot(true)}<div class="fname"><b>${escapeHtml(p.n)}</b> <span class="fcode">#${p.f}</span><div class="fst">Lv.${p.pf ? p.pf.lv : 1} · ${titleName(p.pf && p.pf.t)}</div></div>`,
+      `<button class="btn sm" data-fa="view" data-f="${p.f}">👤</button><button class="btn sm primary" data-fa="ok" data-f="${p.f}">Đồng ý</button><button class="btn sm ghost" data-fa="no" data-f="${p.f}">Từ chối</button>`)).join('') : '<div class="empty">Không có lời mời nào.</div>');
+    body += '<h4>Lời mời đã gửi</h4>' + (Save.sent.length ? Save.sent.map((x) => {
+      const p = hallPeer(x.f);
+      return friendRow(`${dot(!!p)}<div class="fname"><b>${escapeHtml((p && p.n) || x.n || 'Người chơi')}</b> <span class="fcode">#${x.f}</span><div class="fst">Chờ đồng ý${p ? '' : ' · gửi đi khi cả hai cùng online'}</div></div>`,
+        `<button class="btn sm ghost" data-fa="cancel" data-f="${x.f}">Huỷ</button>`);
+    }).join('') : '<div class="empty">Chưa gửi lời mời nào.</div>');
+  } else {
+    const q = parseFid(UI.findQ || '');
+    let res = '';
+    if (q.length === 6) {
+      const p = hallPeer(q);
+      if (q === Save.fid) res = '<div class="empty">Đây là ID của bạn.</div>';
+      else if (p) res = playerCardHtml(p.f, p.n, p.pf, true, p);
+      else if (fidOk(q)) res = `<div class="empty">Người chơi <b>#${q}</b> hiện không online nên chưa xem được hồ sơ.${isFriend(q) || isSent(q) ? '' : `<br><button class="btn sm primary" data-fa="add" data-f="${q}" style="margin-top:8px">➕ Vẫn gửi lời mời kết bạn</button>`}</div>`;
+      else res = '<div class="empty">ID không hợp lệ (6 ký tự chữ và số).</div>';
+    }
+    const others = HALL.peers.filter((p) => !isFriend(p.f)).slice(0, 30);
+    body = `<div class="joinrow"><input class="text" id="findFid" maxlength="8" placeholder="Nhập ID người chơi, vd: #K7P2QX" value="${escapeHtml(UI.findQ || '')}"><button class="btn primary" data-fa="find">Tìm</button></div>
+      <div class="hint" style="text-align:left;margin:6px 0">ID của bạn: <b class="fcode" style="font-size:13px">#${Save.fid}</b> <button class="btn sm" data-fa="copy">📋 Sao chép</button></div>
+      ${res}
+      <h4>🌐 Người chơi đang online (${HALL.room ? others.length : 0})</h4>
+      ${!HALL.room ? '<div class="warn">⚠ Chưa kết nối máy chủ trực tuyến.</div>' : others.length ? others.map((p) => friendRow(`${dot(true)}<div class="fname"><b>${escapeHtml(p.n)}</b> ${emo(p)}<span class="fcode">#${p.f}</span><div class="fst">Lv.${p.pf ? p.pf.lv : 1} · ${statusOf(p)}</div></div>`,
+        `<button class="btn sm" data-fa="view" data-f="${p.f}">👤</button>` + (isSent(p.f) ? '<span class="fst">⏳ Đã gửi</span>' : `<button class="btn sm" data-fa="add" data-f="${p.f}">➕ Kết bạn</button>`))).join('') : '<div class="empty">Chưa có ai khác đang online.</div>'}`;
+  }
+  $('pg-friends').innerHTML = `<h2 class="pgtitle">👥 Bạn bè</h2>
+    ${HALL.room ? '' : '<div class="warn">⚠ Chưa kết nối máy chủ trực tuyến – danh sách bạn bè vẫn lưu trên máy này; lời mời gửi đi khi kết nối lại.</div>'}
+    <div class="tabs" id="ftabs">${tabs.map(([k, l]) => `<button data-ftab="${k}" class="${UI.ftab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="box">${body}</div>`;
+  const fi = $('findFid');
+  if (fi) fi.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); UI.findQ = fi.value; renderFriendsPage(); } });
+}
+function playerCardHtml(f, n, pf, withActions, peer) {
+  pf = pf || cleanProfile({});
+  const rate = pf.m ? Math.round((pf.w / pf.m) * 100) : 0;
+  const sc = showcaseList(pf.fv, () => true);
+  const mb = DEF_BY_ID[pf.mb];
+  return `<div class="pcard">
+    <div class="pchead">${mb ? `<img src="${portraitUrl(mb, 96)}" width="56" height="56" alt="">` : ''}<div><b style="font-size:17px">${escapeHtml(n)}</b> <span class="fcode">#${f}</span>
+      <div class="fst">Lv.${pf.lv} · 🎖 ${titleName(pf.t)}${peer ? ' · ' + statusOf(peer) : ''}</div></div></div>
+    <div class="pstats3"><div><b>${pf.m}</b><span>Trận</span></div><div><b>${pf.w}</b><span>Thắng</span></div><div><b>${rate}%</b><span>Tỷ lệ</span></div><div><b>${pf.o}</b><span>Bóng</span></div></div>
+    ${pf.fv.length ? `<div class="hint" style="text-align:left">Bóng yêu thích:</div><div class="minis">${sc.ids.map((id) => `<span><img src="${portraitUrl(DEF_BY_ID[id], 64)}" width="34" height="34" alt="">${DEF_BY_ID[id].name}</span>`).join('')}</div>` : ''}
+    ${withActions && !isFriend(f) && f !== Save.fid ? `<div class="row" style="margin-top:8px">${isSent(f) ? '<span class="fst">⏳ Đã gửi lời mời</span>' : `<button class="btn sm primary" data-fa="add" data-f="${f}">➕ Kết bạn</button>`}</div>` : ''}
+  </div>`;
+}
+function viewPlayer(f) {
+  const p = hallPeer(f);
+  const fr = Save.friends.find((x) => x.f === f);
+  const sentP = Save.sent.find((x) => x.f === f);
+  const name = (p && p.n) || (fr && fr.n) || (sentP && sentP.n) || 'Người chơi';
+  const pf = (p && p.pf) || (fr && cleanProfile(fr.pf));
+  $('playerDetail').innerHTML = `<h2>👤 Hồ sơ người chơi</h2>${playerCardHtml(f, name, pf, true, p)}
+    ${!p && !pf ? '<div class="hint">Người chơi đang ngoại tuyến – chưa có hồ sơ được lưu.</div>' : !p ? '<div class="hint">Ngoại tuyến · hồ sơ lần gần nhất online.</div>' : ''}
+    <div class="row" style="justify-content:center;margin-top:10px">${fr && p ? `<button class="btn purple" data-fa="inv" data-f="${f}">📨 Mời vào phòng</button>` : ''}<button class="btn" data-close="playerModal">Đóng</button></div>`;
+  $('playerModal').classList.add('show');
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-fa]');
   if (!b) return;
-  $('hallTabs').querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('on', x === b));
-  $('tabQuest').hidden = b.dataset.tab !== 'quest';
-  $('tabAch').hidden = b.dataset.tab !== 'ach';
+  const f = b.dataset.f;
+  switch (b.dataset.fa) {
+    case 'copy': (navigator.clipboard ? navigator.clipboard.writeText('#' + Save.fid) : Promise.reject()).then(() => toast('📋 Đã sao chép ID #' + Save.fid), () => toast('ID của bạn: <b>#' + Save.fid + '</b>')); break;
+    case 'find': UI.findQ = $('findFid').value; renderFriendsPage(); break;
+    case 'add': sendFriendRequest(f); if ($('playerModal').classList.contains('show')) viewPlayer(f); break;
+    case 'ok': { const p = hallPeer(f); addFriend(f, p ? p.n : '', true); toast(`🤝 Đã kết bạn với <b>${escapeHtml(p ? p.n : '#' + f)}</b>`); break; }
+    case 'no': HALL.dismissed.add(f); renderPage(); break;
+    case 'cancel': Save.sent = Save.sent.filter((x) => x.f !== f); persist(); hallPresence(); renderPage(); break;
+    case 'inv': $('playerModal').classList.remove('show'); inviteFriend(f); break;
+    case 'join': joinFriendRoom(b.dataset.c); break;
+    case 'view': viewPlayer(f); break;
+    case 'rm':
+      if (b.dataset.armed) removeFriend(f);
+      else { b.dataset.armed = '1'; b.textContent = 'Chắc chưa?'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Huỷ'; } }, 3000); }
+      break;
+  }
 });
-$('btnHallColl').onclick = openCollection;
-$('friendClose').onclick = () => $('friendBox').classList.remove('open');
+
+// ----- COLLECTION – BỘ SƯU TẬP -----
+/** Bỏ dấu tiếng Việt để tìm kiếm. */
+const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/<[^>]+>/g, '').trim();
+function renderCollection() {
+  const owned = ownedCount();
+  const pg = $('pg-collection');
+  if (!pg.dataset.built) {
+    pg.dataset.built = '1';
+    pg.innerHTML = `<h2 class="pgtitle">📚 Bộ sưu tập <span class="pill">Đã sở hữu <b id="unlockCount2"></b></span></h2>
+      <div class="box">
+        <div class="collbar"><i id="collBar"></i></div>
+        <div class="colltiers" id="collTiers"></div>
+        <input class="text" id="collSearch" placeholder="🔍 Tìm theo tên hoặc chiêu thức…">
+        <div class="filters" id="collFilters"></div>
+        <div id="collGrid"></div>
+      </div>`;
+    $('collSearch').addEventListener('input', () => renderCollection());
+    $('collFilters').addEventListener('click', (e) => { const b = e.target.closest('[data-cf]'); if (b) { const [k, v] = b.dataset.cf.split(':'); UI.cf[k] = v; renderCollection(); } });
+    $('collGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-ball]'); if (b) openBall(b.dataset.ball); });
+  }
+  $('unlockCount2').textContent = `${owned}/${ROSTER.length}`;
+  $('collBar').style.width = Math.round((owned / ROSTER.length) * 100) + '%';
+  $('collTiers').innerHTML = TIER_ORDER.map((t) => {
+    const all = ROSTER.filter((d) => d.tier === t);
+    return `<span><span class="badge sm ${t}">${t}</span> ${all.filter((d) => isUnlocked(d.id)).length}/${all.length}</span>`;
+  }).join('');
+  const grp = (k, opts) => `<div class="fgroup">${opts.map(([v, l]) => `<button data-cf="${k}:${v}" class="${UI.cf[k] === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  $('collFilters').innerHTML = grp('tier', [['all', 'Tất cả cấp'], ...TIER_ORDER.map((t) => [t, t])])
+    + grp('origin', [['all', 'Mọi nguồn gốc'], ['anime', '✨ Cảm hứng anime'], ['power', '💠 Bóng sức mạnh']])
+    + grp('own', [['all', 'Tất cả'], ['owned', '🔓 Đã có'], ['locked', '🔒 Chưa có']]);
+  const q = norm($('collSearch').value);
+  const list = ROSTER.filter((d) => (UI.cf.tier === 'all' || d.tier === UI.cf.tier)
+    && (UI.cf.origin === 'all' || (UI.cf.origin === 'power') === !!d.power)
+    && (UI.cf.own === 'all' || (UI.cf.own === 'owned') === isUnlocked(d.id))
+    && (!q || norm(`${d.name} ${d.ult} ${d.skill} ${d.inspire}`).includes(q)));
+  // phân loại theo cấp (S → D), trong từng cấp bóng đã sở hữu lên trước
+  $('collGrid').innerHTML = TIER_ORDER.map((t) => {
+    const items = list.filter((d) => d.tier === t).sort((a, b) => isUnlocked(b.id) - isUnlocked(a.id));
+    if (!items.length) return '';
+    return `<div class="tierhead"><span class="badge ${t}">${t}</span> ${TIERS[t].label} <span class="hint">${items.filter((d) => isUnlocked(d.id)).length}/${items.length}</span></div>
+      <div class="coll">${items.map((d) => {
+        const own = isUnlocked(d.id), main = d.id === UI.myBall, fav = Save.fav.includes(d.id);
+        return `<button class="ctile ${d.tier}${own ? '' : ' locked'}${main ? ' main' : ''}" data-ball="${d.id}">
+          ${main ? '<span class="cmain">⚔ Trang bị</span>' : ''}${fav ? '<span class="cfav">❤</span>' : ''}${own ? '' : '<span class="clock">🔒</span>'}
+          <img src="${portraitUrl(d, 120)}" width="64" height="64" alt="${d.name}">
+          <div class="cname">${d.name}</div><div class="corig">${d.power ? '💠 Sức mạnh' : '✨ Anime'}</div>
+        </button>`;
+      }).join('')}</div>`;
+  }).join('') || '<div class="empty">Không tìm thấy quả cầu phù hợp.</div>';
+}
+function openCollection() { goPage('collection'); }
+
+function openBall(id) {
+  const d = DEF_BY_ID[id];
+  if (!d) return;
+  const t = TIERS[d.tier];
+  const own = isUnlocked(id);
+  $('ballDetail').innerHTML = `
+    <div class="bdhead">${orbIconHtml(d, true)}<div style="text-align:left">
+      <div class="nm" style="font-size:22px;font-weight:900"><span class="badge ${d.tier}">${d.tier}</span> ${d.name}</div>
+      <div class="hint" style="text-align:left">Cấp ${d.tier} – ${t.label} · ${d.power ? '💠 Bóng sức mạnh' : '✨ Cảm hứng anime'}: ${d.inspire}</div>
+      <div class="${own ? 'st ok' : 'st wait'}" style="margin-top:6px">${own ? '🔓 Đã sở hữu' : '🔒 Chưa sở hữu'}${id === UI.myBall ? ' · ⚔ Đang trang bị' : ''}${Save.fav.includes(id) ? ' · ❤ Yêu thích' : ''}</div>
+    </div></div>
+    <div class="card" style="cursor:default;margin-top:10px"><div style="grid-column:1/-1" class="stats">
+      ${statBar('HP', d.hp, 350, t.bar)}${statBar('Công', d.atk, 16, 'linear-gradient(90deg,#ef4444,#f97316)')}${statBar('Tốc', d.spd, 280, 'linear-gradient(90deg,#0ea5e9,#22d3ee)')}
+    </div><div class="skill">✦ <b>${d.ult}</b> – ${d.skill}</div></div>
+    <div class="row" style="justify-content:center;margin-top:12px">
+      ${own ? (id === UI.myBall ? '<span class="st ok" title="Luôn cần trang bị 1 quả cầu – chọn quả khác để đổi">⚔ Đang trang bị</span>' : `<button class="btn primary" data-bmain="${id}">⚔ Trang bị</button>`)
+        + `<button class="btn ${Save.fav.includes(id) ? 'purple' : ''}" data-bfav="${id}">${Save.fav.includes(id) ? '💔 Bỏ yêu thích' : '❤ Yêu thích'}</button>`
+        : `<button class="btn gold" data-go="shop" data-close="ballModal">🎡 Quay Vòng May Mắn (${SPIN_COST} Vàng)</button>`}
+      <button class="btn" data-close="ballModal">Đóng</button>
+    </div>`;
+  $('ballModal').classList.add('show');
+}
+$('ballModal').addEventListener('click', (e) => {
+  if (e.target === $('ballModal')) { $('ballModal').classList.remove('show'); return; }
+  const m = e.target.closest('[data-bmain]');
+  if (m) { setMainBall(m.dataset.bmain); openBall(m.dataset.bmain); return; }
+  const fv = e.target.closest('[data-bfav]');
+  if (fv) { toggleFav(fv.dataset.bfav); openBall(fv.dataset.bfav); }
+});
+
+// ----- PROFILE – HỒ SƠ -----
+function renderProfile() {
+  const li = levelInfo();
+  const rate = Save.matches ? Math.round((Save.wins / Save.matches) * 100) : 0;
+  const d = DEF_BY_ID[UI.myBall];
+  const titles = [['', TITLES['']], ...ACHIEVEMENTS.filter(achDone).map((a) => [a.id, a.name])];
+  const pg = $('pg-profile');
+  const keepName = document.activeElement === $('netName');
+  if (keepName) return; // đang gõ tên – không vẽ lại kẻo mất con trỏ
+  pg.innerHTML = `<h2 class="pgtitle">👤 Hồ sơ</h2>
+    <div class="box profile">
+      <div class="avatarwrap">${d ? `<img src="${portraitUrl(d, 160)}" alt="">` : ''}<div class="emofloat"></div></div>
+      <div style="min-width:0">
+        <div class="pname"><input class="text" id="netName" maxlength="16" placeholder="Tên nhân vật" value="${escapeHtml(Save.name)}"><button class="btn sm primary" id="btnSaveName">Lưu tên</button></div>
+        <div class="pidrow"><button class="fidpill" data-fa="copy" title="Sao chép ID">🆔 #${Save.fid} 📋</button><span class="lvpill">Lv.${li.lv}</span><span class="titlepill">🎖 ${titleName(myTitleId())}</span></div>
+        <div class="xpbar"><i style="width:${Math.round((li.cur / li.need) * 100)}%"></i></div>
+        <div class="fst">${li.cur}/${li.need} KN tới Lv.${li.lv + 1} · mỗi trận +20 KN, thắng thêm +30 KN</div>
+      </div>
+    </div>
+    <div class="statgrid">
+      <div class="box"><b>${Save.matches}</b><span>Tổng trận</span></div>
+      <div class="box"><b>${Save.wins}</b><span>Thắng</span></div>
+      <div class="box"><b>${rate}%</b><span>Tỷ lệ thắng</span></div>
+      <div class="box"><b>${ownedCount()}/${ROSTER.length}</b><span>Quả cầu</span></div>
+    </div>
+    <div class="box">
+      <h3>Danh hiệu</h3>
+      <div class="statseg">${titles.map(([k, l]) => `<button data-title="${k}" class="${myTitleId() === k ? 'on' : ''}">🎖 ${l}</button>`).join('')}</div>
+      <div class="fst" style="margin-top:6px">Mở thêm danh hiệu bằng cách hoàn thành thành tích.</div>
+      <h3 style="margin-top:12px">Trạng thái</h3>
+      <div class="statseg">${Object.entries(STATUSES).map(([k, l]) => `<button data-st="${k}" class="${Save.status === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="emorow">Biểu cảm: ${EMOTES.map((e) => `<button data-em="${e}">${e}</button>`).join('')}</div>
+    </div>
+    <div class="box">
+      <h3>🏅 Thành tích (${ACHIEVEMENTS.filter(achDone).length}/${ACHIEVEMENTS.length})</h3>
+      ${ACHIEVEMENTS.map((a) => {
+        const v = Math.min(a.v(), a.goal), ok = v >= a.goal;
+        return `<div class="quest${ok ? ' got' : ''}"><div class="qn">${ok ? '🏅' : '🔒'} <b>${a.name}</b> – ${a.desc}<div class="qbar"><i style="width:${(v / a.goal) * 100}%"></i></div></div><span class="qv">${v}/${a.goal}</span></div>`;
+      }).join('')}
+    </div>
+    <div class="box">
+      <h3>📜 Lịch sử đấu</h3>
+      ${Save.history.length ? Save.history.map((h) => {
+        const b = DEF_BY_ID[h.b];
+        const dt = new Date(h.t);
+        return `<div class="hrow ${h.won ? 'win' : 'lose'}">${b ? `<img src="${portraitUrl(b, 64)}" width="32" height="32" alt="">` : ''}
+          <div class="fname"><b>${h.won ? 'THẮNG' : 'THUA'}</b> · ${escapeHtml(h.lb || MODES[h.m]?.label || '')}${h.on ? ' · 🌐' : ' · 🤖'}<div class="fst">${b ? b.name : ''} · ${dt.toLocaleDateString('vi-VN')} ${dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div></div>
+          <b class="gold">+${h.g}💰</b></div>`;
+      }).join('') : '<div class="empty">Chưa có trận nào được ghi lại – lịch sử bắt đầu ghi từ phiên bản này.</div>'}
+    </div>`;
+  $('btnSaveName').onclick = saveName;
+  $('netName').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(); $('netName').blur(); } });
+}
+function saveName() {
+  Save.name = cleanName($('netName').value); persist();
+  hallPresence(); if (NET.room) sendMyPresence();
+  renderAppbar();
+  toast(Save.name ? `✔ Đã đổi tên thành <b>${escapeHtml(Save.name)}</b>` : 'Đã dùng tên mặc định ' + escapeHtml(myName()));
+}
+
+// ----- SHOP – CỬA HÀNG -----
+function renderShop() {
+  $('pg-shop').innerHTML = `<h2 class="pgtitle"><button class="btn sm" data-go="home">←</button> 🛒 Cửa hàng</h2>
+    <div class="box shopwheel">
+      <div class="swic">🎡</div>
+      <div><h3 style="margin:0">Vòng Quay May Mắn</h3>
+        <div class="hint" style="text-align:left">Mỗi lượt <b>${SPIN_COST} Vàng</b> · nhận ngẫu nhiên 1 trong ${ROSTER.length} quả cầu · trùng quả đã có → hoàn <b>+${DUP_REFUND} Vàng</b>.</div>
+        <div class="odds" style="margin-top:6px"><span class="badge sm S">S</span> 5% · <span class="badge sm A">A</span> 10% · <span class="badge sm B">B</span> 20% · <span class="badge sm C">C</span> 30% · <span class="badge sm D">D</span> 35%</div>
+      </div>
+      <button class="btn gold big" id="btnShopSpin">🎰 Quay ngay</button>
+    </div>
+    <div class="box">
+      <h3>💰 Vàng của bạn: ${Save.gold.toLocaleString('vi-VN')}</h3>
+      <div class="hint" style="text-align:left;line-height:1.7">Cách kiếm vàng: thắng 1v1 +35 (thua +12) · 2v2 +45/15 · 4v4 +60/20 · Hỗn Chiến hạng 1 +55 · thắng “Vượt Cấp” +20 · nhiệm vụ hằng ngày.<br>Hiện cửa hàng chỉ có Vòng Quay; vật phẩm khác sẽ thêm ở bản sau.</div>
+    </div>`;
+  $('btnShopSpin').onclick = openWheel;
+}
+
+// ----- chuyển màn hình -----
+function goHall() {
+  if (NET.role === 'client' && G.phase !== 'idle' && !G.koDone) { toast('Trận đang diễn ra – chờ kết thúc.'); return; }
+  if (NET.role === 'host' && NET.ph !== 'lobby') hostBackToLobby();
+  if (!NET.room && G.phase !== 'idle') resetToIdle();
+  UI.meReady = false;
+  if (NET.room) sendMyPresence();
+  $('victory').classList.remove('show');
+  if (UI.page === 'battle' && NET.room) UI.page = 'home';
+  showView('hall');
+}
+function enterLobby() {
+  if (!NET.room) {
+    const i = UI.kinds.indexOf('me');
+    if (i >= 0 && !UI.meReady && isUnlocked(UI.myBall)) UI.slots[i] = UI.myBall;
+  }
+  showLobby();
+}
+
+// ----- nút chung (data-go, data-quick, data-mm …) -----
+document.addEventListener('click', (e) => {
+  const c = e.target.closest('[data-close]');
+  if (c) $(c.dataset.close).classList.remove('show');
+  const g = e.target.closest('[data-go]');
+  if (g) { if (g.dataset.go === 'lobby') enterLobby(); else goPage(g.dataset.go); return; }
+  const qb = e.target.closest('[data-quick]');
+  if (qb) { quickBot(qb.dataset.quick === 'sel' ? UI.bm.bot : qb.dataset.quick); return; }
+  const ms = e.target.closest('[data-modesel] [data-m]');
+  if (ms) { UI.bm[ms.closest('[data-modesel]').dataset.modesel] = ms.dataset.m; renderBattle(); return; }
+  if (e.target.closest('[data-create]')) { createBattleRoom(UI.bm.create); return; }
+  const mm = e.target.closest('[data-mm]');
+  if (mm) { startMatchmaking(mm.dataset.mm === 'any' ? 'any' : UI.bm.mm); goPage('battle'); return; }
+  if (e.target.closest('[data-mmcancel]')) { stopMatchmaking(); return; }
+  if (e.target.closest('[data-leave]')) { MM.public = false; leaveRoom('hall'); toast('Đã rời phòng.'); return; }
+  const q = e.target.closest('[data-q]');
+  if (q) { claimQuest(q.dataset.q); return; }
+  const tb = e.target.closest('[data-ftab]');
+  if (tb) { UI.ftab = tb.dataset.ftab; renderFriendsPage(); return; }
+  const st = e.target.closest('[data-st]');
+  if (st && st.closest('#hub')) { setStatus(st.dataset.st); return; }
+  const em = e.target.closest('[data-em]');
+  if (em && em.closest('#hub')) { sendEmote(em.dataset.em); return; }
+  const ti = e.target.closest('[data-title]');
+  if (ti) { Save.title = ti.dataset.title; persist(); hallPresence(); renderPage(); toast('🎖 Danh hiệu: ' + titleName(myTitleId())); return; }
+  const sb = e.target.closest('.sorb[data-ball]');
+  if (sb) openBall(sb.dataset.ball);
+});
+$('playerModal').addEventListener('click', (e) => { if (e.target === $('playerModal')) $('playerModal').classList.remove('show'); });
+$('btnToHall').onclick = goHall;
+$('hdrProfile').onclick = () => goPage('profile');
 
 $('modeSeg').querySelectorAll('button').forEach((b) => (b.onclick = () => setMode(b.dataset.mode)));
 $('arenaSeg').querySelectorAll('button').forEach((b) => (b.onclick = () => setArena(b.dataset.arena)));
@@ -4474,10 +4985,9 @@ $('inviteClose').onclick = () => $('inviteModal').classList.remove('show');
 $('inviteModal').addEventListener('click', (e) => { if (e.target === $('inviteModal')) $('inviteModal').classList.remove('show'); });
 $('btnCopyInvite').onclick = copyInvite;
 $('btnAddBot').onclick = addBotsFromInvite;
-$('btnOpenOnline').onclick = async () => { Save.name = cleanName($('netName').value); persist(); await createRoom(); };
+$('btnOpenOnline').onclick = async () => { await createRoom(); };
 $('btnSound').onclick = () => { Sound.on = !Sound.on; Save.sound = Sound.on; persist(); if (Sound.on) Sound.ensure(); syncButtons(); };
 $('speed').oninput = (e) => { G.speed = +e.target.value; $('speedVal').textContent = fmtSpeed(G.speed); if (NET.role === 'host') hostPublish(); };
-$('btnWheel').onclick = openWheel;
 $('btnWheel2').onclick = openWheel;
 $('btnSpin').onclick = spinWheel;
 $('btnShuffle').onclick = shuffleWheel;
@@ -4492,7 +5002,7 @@ $('btnReset').onclick = () => {
   const b = $('btnReset');
   if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = '⚠ Bấm lần nữa để xoá'; setTimeout(() => { delete b.dataset.armed; b.textContent = '🗑 Xoá tiến độ'; }, 3000); return; }
   delete b.dataset.armed; b.textContent = '🗑 Xoá tiến độ';
-  Object.assign(Save, { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, main: '', fav: [], daily: null });
+  Object.assign(Save, { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, main: '', fav: [], daily: null, title: '', history: [] });
   UI.myBall = unlockedIds()[0];
   persist(); renderGold(); UI.slots = defaultSlots(G.mode); renderSlots(); toast('Đã xoá tiến độ.');
 };
@@ -4511,7 +5021,6 @@ window.addEventListener('beforeunload', () => { if (NET.room) NET.room.leave().c
 loadSave();
 if (!Save.fid) { Save.fid = newFid(); persist(); }
 Sound.on = Save.sound;
-$('netName').value = Save.name;
 UI.myBall = Save.main && isUnlocked(Save.main) ? Save.main : unlockedIds()[0];
 UI.slots = defaultSlots(G.mode);
 renderFilters();
@@ -4523,7 +5032,7 @@ resize();
 syncButtons();
 requestAnimationFrame(frame);
 initHall();
-window.__orbGame = { G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
+window.__orbGame = { MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
 </script>
 </body>
 </html>
