@@ -206,7 +206,7 @@
     if (error) { $('pCount').textContent = viErr(error); return; }
     $('pCount').textContent = `${data.length} người chơi${data.length >= 300 ? ' (hiển thị 300 người mới hoạt động nhất – hãy tìm cụ thể hơn)' : ''}`;
     $('pRows').innerHTML = data.map((p) => `<tr data-id="${esc(p.player_id)}"><td class="id">#${esc(p.player_id)}</td><td>${esc(p.name || '—')}</td><td class="hide-sm">${esc(p.email)}</td>
-      <td>${num(p.gold)}</td><td>${num(p.matches)}</td><td>${num(p.wins)}</td><td class="hide-sm">${p.owned}/30</td><td class="hide-sm">${dt(p.updated_at)}</td><td>${p.mail_unclaimed || ''}</td></tr>`).join('');
+      <td>${num(p.gold)}</td><td>${num(p.matches)}</td><td>${num(p.wins)}</td><td class="hide-sm">${p.owned}</td><td class="hide-sm">${dt(p.updated_at)}</td><td>${p.mail_unclaimed || ''}</td></tr>`).join('');
   }
   $('btnSearch').onclick = search;
   $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
@@ -223,7 +223,7 @@
         <div class="row"><button class="btn sm gold" data-gift="${esc(p.player_id)}">🎁 Gửi quà cho người này</button><button class="btn sm" data-close-detail>✕</button></div></div>
       <div class="detail" style="margin-top:10px">
         <div>${kv('Email', esc(p.email))}${kv('Đăng ký', dt(p.signed_up_at))}${kv('Đăng nhập gần nhất', dt(p.last_sign_in_at))}${kv('Lưu gần nhất', dt(p.updated_at))}${kv('Phiên bản lưu', p.version)}</div>
-        <div>${kv('Vàng', num(p.gold))}${kv('Trận / Thắng', `${num(p.matches)} / ${num(p.wins)} (${rate}%)`)}${kv('Bóng sở hữu', `${(p.unlocked || []).length}/30`)}${kv('Bóng trang bị', esc(p.main || '—'))}${kv('Số lần đổi tên', p.renames ?? 0)}${kv('Bạn bè', (p.friends || []).length)}${kv('Bản sao lưu', p.backups)}</div>
+        <div>${kv('Vàng', num(p.gold))}${kv('Trận / Thắng', `${num(p.matches)} / ${num(p.wins)} (${rate}%)`)}${kv('Bóng sở hữu', `${(p.unlocked || []).length}`)}${kv('Bóng trang bị', esc(p.main || '—'))}${kv('Số lần đổi tên', p.renames ?? 0)}${kv('Bạn bè', (p.friends || []).length)}${kv('Bản sao lưu', p.backups)}</div>
       </div>
       <h2 style="margin-top:14px">Bóng sở hữu</h2><div class="chips">${(p.unlocked || []).map((b) => `<span class="chip">${esc(b)}</span>`).join('') || '<span class="muted">—</span>'}</div>
       <h2 style="margin-top:14px">Bạn bè</h2><div class="chips">${(p.friends || []).map((f) => `<span class="chip">#${esc(f.f)} ${esc(f.n)}</span>`).join('') || '<span class="muted">—</span>'}</div>

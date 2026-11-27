@@ -1,5 +1,15 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – 15 bóng hoạt hình & quà tân thủ] – 2026-11-27
+- **15 quả bóng hoạt hình** (tên riêng, nhân vật gốc ghi ở mục "Cảm hứng"; hình chibi tự vẽ, không dùng hình gốc) – tổng **45 quả**:
+  - S: Mèo Máy Bảo Bối (bảo bối ngẫu nhiên: Cánh Cửa Thần Kỳ / Chong Chóng Tre / Đèn Pin Thu Nhỏ) · Tề Thiên Đại Thánh (3 phân thân + Gậy Như Ý) · Vua Slime Phân Tách (tách đôi tái sinh tối đa 2 lần).
+  - A: Nắm Đấm Co Giãn (tay co giãn đấm xa, va chạm bật mạnh) · Đấm Một Phát (dồn lực, lao +34, đẩy lùi cực mạnh) · Thiên Thạch Hủy Diệt (vòng cảnh báo rồi thiên thạch giáng xuống, rung sân).
+  - B: Xạ Thủ Ngủ Gật (bắn chính xác, 25% chí mạng xuyên thấu) · Nhóc Bút Chì Lém Lỉnh (nhảy tưng, tiếp đất gây choáng) · Thám Tử Sút Bóng (bóng nảy 4 lần, làm chậm).
+  - C: Tia Sét Vàng · Ngôi Sao Hút Lực · Rượt Đuổi Liên Hoàn. D: Slime Con Tách Đôi · Cao Su Tích Lực · Nét Vẽ Bút Chì.
+- Cơ chế mới dùng chung trong trận: thu nhỏ đối thủ, chống chết/tách đôi (`onLethal`), đạn làm chậm, thiên thạch có cảnh báo, phân thân/slime con bám đuổi, tay đấm co giãn, bóng sút nảy. Ngẫu nhiên trong trận dùng RNG có hạt giống (đồng bộ khi chơi trực tuyến).
+- Nguồn gốc mới **🎨 Hoạt hình** (lọc trong Bộ sưu tập); Vòng Quay có đủ 45 ô ghi tên + cấp; bảng chọn bóng vẫn xếp bóng sở hữu lên đầu theo S → D. Thành tích "Đại Gia Bóng" = sở hữu đủ 45 quả.
+- **Quà tân thủ**: lần đầu nhận thưởng đủ 4 nhiệm vụ ngày → **1 quả bóng cấp A ngẫu nhiên** chưa sở hữu (đã có đủ cấp A → 300 vàng), hiện trong màn chúc mừng; có dòng nhắc tiến độ ở tab Hôm nay.
+
 ## [Đấu Trường Quả Cầu Anime – bảng chọn bóng bật lên] – 2026-11-27
 - Phòng Chờ: bỏ danh sách bóng cố định ở cạnh/cuối trang; **bấm vào ô của mình** (hoặc ô máy khi được đổi) → bảng chọn bóng bật lên, **chọn xong tự đóng**. Bấm Sẵn sàng khi chưa chọn cũng mở bảng. Ô của mình nhấp nháy viền vàng + "👆 Bấm để chọn bóng" khi chưa chọn; đã chọn có "✏ Đổi bóng".
 - Đội hình và nút Sẵn sàng / Bắt đầu đưa lên ngay dưới mã phòng; Chế độ & Bối cảnh chuyển xuống dưới. Trên điện thoại thẻ bóng trong bảng được thu gọn (ẩn thanh chỉ số, mô tả chiêu 2 dòng).
