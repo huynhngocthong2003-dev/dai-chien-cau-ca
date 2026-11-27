@@ -4526,6 +4526,8 @@ const ACC = { user: null, ver: null, state: 'off', at: 0, err: '', timer: 0, bus
 /** Dịch lỗi Supabase sang tiếng Việt dễ hiểu. */
 function viErr(msg) {
   const m = String(msg || '').toLowerCase();
+  // bảng orb_* chưa có trên máy chủ (chưa chạy file cài đặt)
+  if (/orb_|schema cache|does not exist|could not find the (table|function)/.test(m)) return 'Máy chủ chưa bật lưu tài khoản Đấu Trường – quản trị viên cần chạy file cài đặt supabase/dau-truong-setup.sql (tiến độ vẫn lưu trên máy này)';
   if (m.includes('invalid login')) return 'Sai email hoặc mật khẩu';
   if (m.includes('already registered') || m.includes('already been registered')) return 'Email này đã có tài khoản – hãy đăng nhập';
   if (m.includes('password') && m.includes('6')) return 'Mật khẩu cần ít nhất 6 ký tự';

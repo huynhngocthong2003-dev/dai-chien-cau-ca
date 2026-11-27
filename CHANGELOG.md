@@ -1,5 +1,9 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – file cài đặt máy chủ gộp] – 2026-11-27
+- `supabase/dau-truong-setup.sql`: gộp 2 migration tài khoản/sao lưu + hòm thư/quản trị để chạy **1 lần** trong SQL Editor (đã thử chạy 2 lần liên tiếp trên PostgreSQL 16, không lỗi).
+- Game: khi máy chủ chưa có bảng Đấu Trường, thẻ Tài khoản báo rõ "Máy chủ chưa bật lưu tài khoản… cần chạy file cài đặt" thay vì lỗi chung.
+
 ## [Đấu Trường Quả Cầu Anime – biểu tượng game] – 2026-11-27
 - Huy hiệu game mới (SVG tự vẽ: khiên viền vàng, quả cầu lửa trung tâm va chạm 2 quả cầu xanh/tím, kiếm chéo, nền tím huyền ảo): `icon.svg`, `icon-512.png`, `icon-192.png`, `apple-touch-icon.png` (180), `favicon-32.png`, ảnh chia sẻ `og-image.png` (1200×630) trong `dau-truong/`; bản gốc `docs/brand/dau-truong-emblem.svg`.
 - Trang game khai báo favicon, biểu tượng "Thêm vào màn hình chính" (iPhone/Android, `manifest.webmanifest`, chạy toàn màn hình), màu thanh trình duyệt và thẻ Open Graph (ảnh xem trước khi gửi link qua Zalo / Messenger / Facebook). Huy hiệu hiện cạnh tiêu đề ở Sảnh.
