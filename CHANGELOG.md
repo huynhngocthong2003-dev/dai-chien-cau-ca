@@ -1,5 +1,10 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Giai đoạn 1: tài khoản & lưu trên máy chủ] – 2026-11-27
+- **Database (migration `20261215000001_orb_accounts.sql`)**: thêm bảng `orb_saves` (1 bản lưu / tài khoản, có số phiên bản, ID người chơi `#XXXXXX` duy nhất) và `orb_save_backups` (sao lưu tự động ≤ 20 bản). RLS: chỉ đọc bản của chính mình; không ghi thẳng vào bảng – mọi lần ghi qua hàm `orb_save_put` (security definer): kiểm tra phiên bản (chống máy cũ ghi đè máy mới), giữ cố định ID người chơi, báo trùng ID. Không sửa bảng nào của game câu cá. Đã chạy thử trên PostgreSQL 16 (kể cả chạy lại lần 2).
+- **Game**: đăng nhập / tạo tài khoản **dùng chung với game câu cá** (cùng phiên đăng nhập `dccc_auth`); tiến độ Khách trên máy được đưa lên tài khoản lần đầu, giữ nguyên ID; đăng nhập máy khác tải đúng tiến độ; xung đột giữa 2 máy → tải bản mới nhất và báo; đăng xuất → quay về tiến độ Khách của máy (không mất). Thẻ Tài khoản ở Hồ sơ, biểu tượng ☁/⏳/⚠ cạnh ID, nhắc đăng nhập ở Sảnh khi đang là Khách.
+- Giới hạn còn lại (giai đoạn 2 sẽ xử lý): vàng và kết quả trận vẫn do trình duyệt tính rồi gửi lên.
+
 ## [Đấu Trường Quả Cầu Anime – phí đổi tên] – 2026-11-27
 - Đổi tên ở Hồ sơ: **lần đầu miễn phí**, sau đó tốn Vàng và **gấp đôi mỗi lần** (100 → 200 → 400 …); bấm 2 lần để xác nhận, báo rõ khi thiếu vàng. Người chơi cũ đã đặt tên coi như đã dùng lượt miễn phí.
 

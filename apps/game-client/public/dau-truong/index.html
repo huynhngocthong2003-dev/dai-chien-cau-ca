@@ -466,6 +466,13 @@
   @media (max-width: 760px) { #notices { top: auto; bottom: calc(84px + env(safe-area-inset-bottom)); left: 50%; right: auto; transform: translateX(-50%); } }
   .bhead { display: flex; align-items: center; gap: 10px; }
   .bic { font-size: 26px; }
+  .authform { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .linkbtn { border: 0; background: none; color: #c4b5fd; font-size: 13px; margin-top: 10px; }
+  .accb { font-size: 11px; font-weight: 800; }
+  .accb.guest { color: #fcd34d; background: rgba(245,158,11,.15); padding: 1px 6px; border-radius: 999px; }
+  .accb.ok { color: #7dd3fc; } .accb.err { color: #fca5a5; }
+  body.nav-on #toast { bottom: calc(92px + env(safe-area-inset-bottom)); }
+  .accnote { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; font-size: 13px; border-color: rgba(56,189,248,.35); }
   footer { color: var(--muted); font-size: 11px; text-align: center; padding: 0 12px 18px; }
 </style>
 </head>
@@ -474,7 +481,7 @@
   <button class="me" id="hdrProfile" title="Hồ sơ">
     <img id="hdrAvatar" alt="Avatar" width="44" height="44">
     <div class="meinfo"><div class="mename"><b id="hdrName">Đấu Sĩ</b> <span class="lvpill" id="hdrLv">Lv.1</span></div>
-      <div class="meid" id="hdrId">#——</div><div class="hxp"><i id="hdrXp"></i></div></div>
+      <div class="meid"><span id="hdrId">#——</span> <span id="hdrAcc"></span></div><div class="hxp"><i id="hdrXp"></i></div></div>
   </button>
   <div class="appright">
     <div class="goldpill" id="goldPill" title="Vàng hiện có">💰 <b id="gold">0</b></div>
@@ -640,6 +647,21 @@
       <label class="chk"><input type="checkbox" id="chkUnlockAll"> Mở khóa tất cả quả bóng (chế độ thử)</label>
     </div>
     <div class="row" style="margin-top:12px"><button class="btn" id="btnReset">🗑 Xoá tiến độ</button><button class="btn primary" id="setClose">Xong</button></div>
+  </div>
+</div>
+<!-- ===== Đăng nhập / tạo tài khoản ===== -->
+<div class="modal" id="authModal" style="z-index:23">
+  <div class="sheet">
+    <h2 id="authTitle">🔑 Đăng nhập</h2>
+    <div class="hint">Dùng chung tài khoản với game <b>Đại Chiến Câu Cá</b>.</div>
+    <div class="authform">
+      <div id="authNameRow" hidden><input class="text" id="authName" maxlength="16" placeholder="Tên hiển thị (2–16 ký tự)" autocomplete="nickname"></div>
+      <input class="text" id="authEmail" type="email" placeholder="Email" autocomplete="email">
+      <input class="text" id="authPass" type="password" placeholder="Mật khẩu (ít nhất 6 ký tự)" autocomplete="current-password">
+    </div>
+    <div class="hint" id="authMsg" style="min-height:18px;margin:8px 0"></div>
+    <div class="row" style="justify-content:center"><button class="btn primary" id="authGo">Đăng nhập</button><button class="btn" id="authClose">Đóng</button></div>
+    <button class="linkbtn" id="authSwitch"></button>
   </div>
 </div>
 <!-- ===== Hồ sơ người chơi khác ===== -->
@@ -2795,11 +2817,20 @@ const localMine = () => UI.kinds.map((k, i) => (k === 'me' ? i : -1)).filter((i)
 // ----- lưu tiến độ bằng localStorage (bọc try/catch: trình duyệt có thể chặn) -----
 const SAVE_KEY = 'anime_orb_arena_save_v1';
 const START_UNLOCKED = ['lee', 'naofumi', 'ironclad'];
-const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null, title: '', history: [], renames: 0 };
+const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null, title: '', history: [], renames: 0, owner: '' };
+const SAVE_DEFAULTS = JSON.parse(JSON.stringify(Save));
 function loadSave() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch { /* dữ liệu hỏng */ }
+  applySaveObject(d);
+}
+/** Nạp một bản lưu (từ trình duyệt hoặc từ tài khoản) – luôn kiểm tra từng trường, thiếu thì dùng mặc định. */
+function applySaveObject(d) {
+  for (const k of Object.keys(Save)) delete Save[k];
+  Object.assign(Save, JSON.parse(JSON.stringify(SAVE_DEFAULTS)));
   try {
-    const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (!d || typeof d !== 'object') return;
+    if (typeof d.owner === 'string' && /^[0-9a-f-]{36}$/.test(d.owner)) Save.owner = d.owner;
     if (Number.isFinite(d.gold)) Save.gold = Math.max(0, Math.floor(d.gold));
     if (Array.isArray(d.unlocked)) Save.unlocked = d.unlocked.filter((id) => DEF_BY_ID[id]);
     for (const id of START_UNLOCKED) if (!Save.unlocked.includes(id)) Save.unlocked.push(id);
@@ -2827,7 +2858,9 @@ function loadSave() {
     }
   } catch { /* bỏ qua dữ liệu hỏng */ }
 }
-function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(Save)); } catch { /* chế độ riêng tư */ } }
+function writeLocal() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(Save)); } catch { /* chế độ riêng tư */ } }
+/** Lưu: luôn ghi trên máy; nếu đã đăng nhập thì gửi lên tài khoản (gộp các lần lưu dồn dập). */
+function persist() { writeLocal(); if (typeof ACC !== 'undefined' && ACC.user) schedulePush(); }
 /** Công cụ thử nghiệm (+100 Vàng, mở khóa tất cả) chỉ bật khi mở link có ?dev (hoặc ?mockroom khi thử nhiều tab). */
 const DEV_MODE = (() => { try { const q = new URLSearchParams(location.search); return q.has('dev') || q.has('mockroom'); } catch { return false; } })();
 const isUnlocked = (id) => (DEV_MODE && Save.unlockAll) || Save.unlocked.includes(id);
@@ -3794,16 +3827,8 @@ function loadScript(src) {
 
 /** Bản đăng trên GitHub Pages: phòng chơi qua Supabase Realtime (kênh broadcast công khai, khóa anon). */
 async function supabaseRoomApi() {
-  if (!/^https?:$/.test(location.protocol)) return null;
-  if (!(await loadScript('./online-config.js'))) return null;
-  const cfg = window.ORB_ONLINE;
-  if (!cfg || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(cfg.url || '').replace(/\/$/, '')) || !cfg.key) return null;
-  if (!window.supabase && !(await loadScript('./supabase.js'))) return null;
-  if (!window.supabase || !window.supabase.createClient) return null;
-  const client = window.supabase.createClient(cfg.url, cfg.key, {
-    auth: { persistSession: false, autoRefreshToken: false, storageKey: 'orb_arena_auth' },
-    realtime: { params: { eventsPerSecond: 20 } },
-  });
+  const client = await getSb();
+  if (!client) return null;
   const api = broadcastRoomApi((name) => new Promise((resolve, reject) => {
     const ch = client.channel('orb:' + name, { config: { broadcast: { self: false, ack: false } } });
     let handler = () => undefined, done = false;
@@ -3835,6 +3860,252 @@ async function getRoomApi() {
   NET.api = await NET.apiLoading;
   return NET.api;
 }
+
+// ---------------------------------------------------------------------
+// TÀI KHOẢN (dùng chung tài khoản với game câu cá – Supabase Auth) + LƯU TIẾN ĐỘ TRÊN MÁY CHỦ (bảng orb_saves)
+// Chỉ có trên link GitHub Pages (cần online-config.js). Ở nơi khác: chơi Khách, lưu trên trình duyệt.
+// ---------------------------------------------------------------------
+let SB, SB_LOADING = null;
+/** Một client Supabase duy nhất cho cả tài khoản lẫn phòng chơi (storageKey chung với game câu cá → đăng nhập 1 lần). */
+async function getSb() {
+  if (SB !== undefined) return SB;
+  SB_LOADING = SB_LOADING || (async () => {
+    if (!/^https?:$/.test(location.protocol)) return null;
+    try { if (new URLSearchParams(location.search).has('mockroom')) return null; } catch { /* bỏ qua */ }
+    // trang trên claude.ai: không có máy chủ tài khoản (dùng phòng chơi của Claude)
+    if (window.claude && window.claude.use) return null;
+    if (!(await loadScript('./online-config.js'))) return null;
+    const cfg = window.ORB_ONLINE;
+    if (!cfg || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(cfg.url || '').replace(/\/$/, '')) || !cfg.key) return null;
+    if (!window.supabase && !(await loadScript('./supabase.js'))) return null;
+    if (!window.supabase || !window.supabase.createClient) return null;
+    return window.supabase.createClient(cfg.url, cfg.key, {
+      auth: { persistSession: true, autoRefreshToken: true, storageKey: 'dccc_auth' },
+      realtime: { params: { eventsPerSecond: 20 } },
+    });
+  })().catch(() => null);
+  SB = await SB_LOADING;
+  return SB;
+}
+
+const GUEST_KEY = 'anime_orb_arena_guest_v1';
+/** state: off (không có máy chủ) · guest · loading · synced · saving · error */
+const ACC = { user: null, ver: null, state: 'off', at: 0, err: '', timer: 0, busy: false, dirty: false, retry: 0 };
+
+/** Dịch lỗi Supabase sang tiếng Việt dễ hiểu. */
+function viErr(msg) {
+  const m = String(msg || '').toLowerCase();
+  if (m.includes('invalid login')) return 'Sai email hoặc mật khẩu';
+  if (m.includes('already registered') || m.includes('already been registered')) return 'Email này đã có tài khoản – hãy đăng nhập';
+  if (m.includes('password') && m.includes('6')) return 'Mật khẩu cần ít nhất 6 ký tự';
+  if (m.includes('email not confirmed')) return 'Email chưa được xác nhận – hãy mở thư xác nhận trong hộp thư';
+  if (m.includes('rate limit') || m.includes('too many')) return 'Thao tác quá nhanh, hãy thử lại sau ít phút';
+  if (m.includes('fetch') || m.includes('network')) return 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
+  return String(msg || 'Lỗi không xác định');
+}
+
+function readLocalJson(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } }
+function writeLocalJson(key, v) { try { if (v === null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(v)); } catch { /* bỏ qua */ } }
+
+/** Vẽ lại mọi thứ phụ thuộc bản lưu sau khi đổi sang bản lưu khác. */
+function refreshAfterSaveSwap() {
+  Sound.on = Save.sound;
+  if (!Save.fid) Save.fid = newFid();
+  UI.myBall = Save.main && isUnlocked(Save.main) ? Save.main : unlockedIds()[0];
+  UI.mePicked = false; UI.meReady = false;
+  if (!NET.room) UI.slots = defaultSlots(G.mode);
+  HALL.lastPres = ''; hallPresence();
+  renderGold(); renderFilters();
+  if (UI.view === 'lobby') renderSlots();
+  renderPage();
+}
+
+async function initAccount() {
+  const sb = await getSb();
+  if (!sb) { ACC.state = 'off'; renderPage(); return; }
+  ACC.state = 'guest';
+  try {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session && data.session.user) await onSignedIn(data.session.user, true);
+  } catch { /* chơi Khách */ }
+  renderPage();
+}
+
+/** Vừa đăng nhập (hoặc mở game khi đã đăng nhập sẵn): lấy tiến độ từ tài khoản. */
+async function onSignedIn(user, silent = false) {
+  ACC.user = { id: user.id, email: user.email || '' };
+  ACC.state = 'loading'; ACC.ver = null; renderPage();
+  const sb = await getSb();
+  let row = null;
+  try {
+    const { data, error } = await sb.from('orb_saves').select('save, version').eq('user_id', user.id).maybeSingle();
+    if (error) throw error;
+    row = data;
+  } catch (e) {
+    ACC.state = 'error'; ACC.err = viErr(e.message || e);
+    toast('⚠ Chưa tải được tiến độ tài khoản: ' + escapeHtml(ACC.err) + ' – sẽ thử lại.');
+    clearTimeout(ACC.retry); ACC.retry = setTimeout(() => { if (ACC.user) onSignedIn(user, true); }, 15000);
+    renderPage();
+    return;
+  }
+  if (row) {
+    // tài khoản đã có tiến độ → dùng tiến độ tài khoản; tiến độ Khách trên máy này được cất riêng (không mất)
+    if (!Save.owner) writeLocalJson(GUEST_KEY, Save);
+    applySaveObject(row.save);
+    Save.owner = user.id;
+    ACC.ver = row.version; ACC.state = 'synced'; ACC.at = Date.now();
+    writeLocal();
+    refreshAfterSaveSwap();
+    if (!silent) toast('☁ Đã tải tiến độ từ tài khoản');
+  } else {
+    // tài khoản chưa chơi Đấu Trường: liên kết tiến độ Khách trên máy này (nếu máy đang giữ tiến độ tài khoản khác thì bắt đầu mới)
+    if (Save.owner && Save.owner !== user.id) { applySaveObject({}); Save.fid = newFid(); }
+    if (!Save.name) {
+      try {
+        const { data } = await sb.from('profiles').select('display_name').eq('id', user.id).maybeSingle();
+        if (data && data.display_name) Save.name = cleanName(data.display_name);
+      } catch { /* dùng tên mặc định */ }
+    }
+    Save.owner = user.id;
+    ACC.ver = 0;
+    writeLocal();
+    refreshAfterSaveSwap();
+    await pushNow();
+    if (!silent && ACC.state === 'synced') toast('☁ Đã lưu tiến độ trên máy này vào tài khoản');
+  }
+}
+
+function schedulePush(ms = 2500) {
+  if (!ACC.user) return;
+  ACC.dirty = true;
+  clearTimeout(ACC.timer);
+  ACC.timer = setTimeout(pushNow, ms);
+}
+
+/** Gửi bản lưu lên tài khoản (máy chủ kiểm tra phiên bản – không ghi đè bản mới hơn từ máy khác). */
+async function pushNow() {
+  clearTimeout(ACC.timer);
+  if (!ACC.user || ACC.ver === null) return;
+  if (ACC.busy) { ACC.dirty = true; return; }
+  const sb = await getSb();
+  if (!sb) return;
+  ACC.busy = true; ACC.dirty = false; ACC.state = 'saving'; renderAccountBits();
+  try {
+    const { data, error } = await sb.rpc('orb_save_put', { p_save: Save, p_expected: ACC.ver });
+    if (error) throw error;
+    if (data && data.ok) { ACC.ver = data.version; ACC.state = 'synced'; ACC.at = Date.now(); ACC.err = ''; }
+    else if (data && data.reason === 'fid_taken') { Save.fid = newFid(); writeLocal(); ACC.dirty = true; ACC.state = 'saving'; }
+    else if (data && data.reason === 'stale') {
+      ACC.busy = false;
+      await onSignedIn({ id: ACC.user.id, email: ACC.user.email }, true);
+      toast('⚠ Tài khoản vừa được lưu từ thiết bị khác – đã tải tiến độ mới nhất.');
+      return;
+    } else throw new Error('Máy chủ trả lời không hợp lệ');
+  } catch (e) {
+    ACC.state = 'error'; ACC.err = viErr(e.message || e); ACC.dirty = true;
+    clearTimeout(ACC.timer); ACC.timer = setTimeout(pushNow, 15000);
+  } finally {
+    ACC.busy = false;
+    if (ACC.dirty && ACC.state !== 'error') { clearTimeout(ACC.timer); ACC.timer = setTimeout(pushNow, 600); }
+    renderAccountBits();
+  }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && ACC.dirty) pushNow(); });
+
+async function signInAcc(email, password) {
+  const sb = await getSb();
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) return viErr(error.message);
+  await onSignedIn(data.user);
+  return '';
+}
+async function signUpAcc(email, password, name) {
+  const sb = await getSb();
+  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { display_name: name || 'Đấu Sĩ' } } });
+  if (error) return viErr(error.message);
+  if (!data.session) return 'confirm';
+  if (name && !Save.name) Save.name = name;
+  await onSignedIn(data.user);
+  return '';
+}
+async function signOutAcc() {
+  if (ACC.dirty) await pushNow();
+  const sb = await getSb();
+  try { await sb.auth.signOut(); } catch { /* bỏ qua */ }
+  if (NET.room) leaveRoom('hall');
+  // quay lại tiến độ Khách của máy này (nếu có), không giữ tiến độ tài khoản trên máy
+  const guest = readLocalJson(GUEST_KEY);
+  applySaveObject(guest || {});
+  Save.owner = '';
+  writeLocalJson(GUEST_KEY, null);
+  Object.assign(ACC, { user: null, ver: null, state: 'guest', err: '', dirty: false });
+  clearTimeout(ACC.timer);
+  writeLocal();
+  refreshAfterSaveSwap();
+  toast('Đã đăng xuất – đang chơi bằng tài khoản Khách trên máy này.');
+}
+
+// ----- giao diện tài khoản -----
+function accBadge() {
+  if (ACC.state === 'off') return '';
+  if (!ACC.user) return '<span class="accb guest">Khách</span>';
+  if (ACC.state === 'saving' || ACC.state === 'loading') return '<span class="accb">⏳</span>';
+  if (ACC.state === 'error') return '<span class="accb err" title="Chưa lưu được lên tài khoản">⚠</span>';
+  return '<span class="accb ok" title="Đã lưu trên tài khoản">☁</span>';
+}
+function renderAccountBits() {
+  const b = $('hdrAcc'); if (b) b.innerHTML = accBadge();
+  const c = $('accCard'); if (c) c.innerHTML = accountCardHtml();
+}
+function accountCardHtml() {
+  if (ACC.state === 'off') return `<h3>☁ Tài khoản</h3><div class="hint" style="text-align:left">Đăng nhập & lưu tiến độ trên máy chủ có ở <b>link GitHub</b> của game (dùng chung tài khoản game câu cá). Ở đây tiến độ lưu trên trình duyệt này.</div>`;
+  if (!ACC.user) return `<h3>☁ Tài khoản</h3><div class="hint" style="text-align:left">Bạn đang chơi <b>Khách</b> – tiến độ chỉ lưu trên máy này. Đăng nhập (dùng chung tài khoản game câu cá) để lưu tiến độ trên máy chủ và chơi tiếp trên mọi thiết bị.</div>
+    <div class="row" style="margin-top:8px"><button class="btn primary" data-auth="login">🔑 Đăng nhập</button><button class="btn" data-auth="register">✨ Tạo tài khoản</button></div>`;
+  const when = ACC.at ? new Date(ACC.at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+  const st = ACC.state === 'synced' ? `<span class="st ok">☁ Đã lưu lên tài khoản lúc ${when}</span>`
+    : ACC.state === 'error' ? `<span class="st wait">⚠ Chưa lưu được: ${escapeHtml(ACC.err)} – tự thử lại</span>`
+    : '<span class="st pick">⏳ Đang đồng bộ…</span>';
+  return `<h3>☁ Tài khoản</h3><div style="text-align:left"><b>${escapeHtml(ACC.user.email)}</b><div style="margin-top:4px">${st}</div></div>
+    <div class="row" style="margin-top:8px">${ACC.state === 'error' ? '<button class="btn sm" data-auth="sync">↻ Lưu lại ngay</button>' : ''}<button class="btn sm ghost" data-auth="logout">🚪 Đăng xuất</button></div>`;
+}
+function openAuth(mode) {
+  UI.authMode = mode;
+  $('authMsg').textContent = '';
+  $('authTitle').textContent = mode === 'register' ? '✨ Tạo tài khoản' : '🔑 Đăng nhập';
+  $('authNameRow').hidden = mode !== 'register';
+  $('authGo').textContent = mode === 'register' ? 'Tạo tài khoản' : 'Đăng nhập';
+  $('authSwitch').innerHTML = mode === 'register' ? 'Đã có tài khoản? <b>Đăng nhập</b>' : 'Chưa có tài khoản? <b>Tạo tài khoản</b>';
+  $('authModal').classList.add('show');
+  setTimeout(() => $('authEmail').focus(), 50);
+}
+async function submitAuth() {
+  const email = $('authEmail').value.trim(), pw = $('authPass').value;
+  const name = cleanName($('authName').value);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $('authMsg').textContent = 'Email không hợp lệ.'; return; }
+  if (pw.length < 6) { $('authMsg').textContent = 'Mật khẩu cần ít nhất 6 ký tự.'; return; }
+  if (UI.authMode === 'register' && name.length < 2) { $('authMsg').textContent = 'Tên cần 2–16 ký tự.'; return; }
+  $('authGo').disabled = true; $('authMsg').textContent = 'Đang kết nối…';
+  try {
+    const r = UI.authMode === 'register' ? await signUpAcc(email, pw, name) : await signInAcc(email, pw);
+    if (r === 'confirm') { $('authMsg').innerHTML = '📧 Đã gửi thư xác nhận tới <b>' + escapeHtml(email) + '</b>. Mở thư, bấm xác nhận rồi quay lại đăng nhập.'; return; }
+    if (r) { $('authMsg').textContent = r; return; }
+    $('authModal').classList.remove('show');
+    $('authPass').value = '';
+  } catch (e) { $('authMsg').textContent = viErr(e && e.message); }
+  finally { $('authGo').disabled = false; }
+}
+$('authGo').onclick = submitAuth;
+$('authPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitAuth(); } });
+$('authSwitch').onclick = () => openAuth(UI.authMode === 'register' ? 'login' : 'register');
+$('authModal').addEventListener('click', (e) => { if (e.target === $('authModal') || e.target.id === 'authClose') $('authModal').classList.remove('show'); });
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-auth]');
+  if (!b) return;
+  const a = b.dataset.auth;
+  if (a === 'login' || a === 'register') openAuth(a);
+  else if (a === 'logout') { if (b.dataset.armed) signOutAcc(); else { b.dataset.armed = '1'; b.textContent = 'Bấm lần nữa để đăng xuất'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = '🚪 Đăng xuất'; } }, 3000); } }
+  else if (a === 'sync') pushNow();
+});
 
 const cleanName = (s) => [...String(s || '')].filter((ch) => { const c = ch.codePointAt(0); return c >= 32 && c !== 127 && !(c >= 0x200b && c <= 0x200f) && !(c >= 0x202a && c <= 0x202e); }).join('').trim().slice(0, 16);
 const myName = () => cleanName(Save.name) || 'Đấu Sĩ ' + Save.fid.slice(0, 4);
@@ -4503,6 +4774,7 @@ function renderAppbar() {
   $('hdrLv').textContent = `Lv.${li.lv}`;
   $('hdrId').textContent = '#' + Save.fid;
   $('hdrXp').style.width = Math.round((li.cur / li.need) * 100) + '%';
+  $('hdrAcc').innerHTML = accBadge();
 }
 
 function renderPage() {
@@ -4556,6 +4828,7 @@ function renderHome() {
       </div>
       ${NET.room ? `<div class="roomline">🟢 Bạn đang ở <b>${roomLabel()}</b> <button class="btn sm" data-go="lobby">🏟 Về Phòng Chờ</button></div>` : ''}
     </div>
+    ${ACC.state !== 'off' && !ACC.user ? '<div class="box accnote"><span>☁ Đang chơi <b>Khách</b> – đăng nhập để lưu tiến độ trên mọi thiết bị.</span><button class="btn sm primary" data-auth="login">Đăng nhập</button></div>' : ''}
     <div class="tiles">
       <button class="tile shop" data-go="shop"><span class="ic">🛒</span><b>Cửa hàng</b><small>Vòng Quay May Mắn</small></button>
       <button class="tile" data-go="collection"><span class="ic">📚</span><b>Bộ sưu tập</b><small>${ownedCount()}/${ROSTER.length} quả cầu</small></button>
@@ -4859,6 +5132,7 @@ function renderProfile() {
   const keepName = document.activeElement === $('netName');
   if (keepName) return; // đang gõ tên – không vẽ lại kẻo mất con trỏ
   pg.innerHTML = `<h2 class="pgtitle">👤 Hồ sơ</h2>
+    <div class="box" id="accCard">${accountCardHtml()}</div>
     <div class="box profile">
       <div class="avatarwrap">${d ? `<img src="${portraitUrl(d, 160)}" alt="">` : ''}<div class="emofloat"></div></div>
       <div style="min-width:0">
@@ -5062,7 +5336,8 @@ resize();
 syncButtons();
 requestAnimationFrame(frame);
 initHall();
-window.__orbGame = { MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
+initAccount();
+window.__orbGame = { ACC, getSb, pushNow, signOutAcc, MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
 </script>
 </body>
 </html>
