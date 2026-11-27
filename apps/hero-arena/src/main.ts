@@ -8,7 +8,7 @@ import mapUrl from "./assets/lobby-map.jpg";
 import heroesUrl from "./assets/heroes-atlas.png";
 import { HERO_CELL_H, HERO_CELL_W, HERO_SHEET } from "./heroArt.ts";
 import { H, W } from "./ui.ts";
-import { tryLockLandscape } from "./layout.ts";
+import { fitToVisibleViewport, tryLockLandscape } from "./layout.ts";
 
 class BootScene extends Phaser.Scene {
   constructor() {
@@ -46,6 +46,7 @@ async function start(): Promise<void> {
     scene: [BootScene, LobbyScene, HeroSelectScene, ArenaScene, ResultScene, MultiplayerScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
+  fitToVisibleViewport(game);
 }
 
 tryLockLandscape();

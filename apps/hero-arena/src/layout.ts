@@ -135,3 +135,58 @@ export function tryLockLandscape(): void {
   };
   window.addEventListener("pointerdown", once);
 }
+
+/**
+ * Khớp khung game với vùng NHÌN THẤY thật (visualViewport) thay vì kích thước trang:
+ * Safari/Chrome điện thoại có thanh địa chỉ co giãn, bàn phím ảo, hoặc trang bị phóng to → khung game
+ * to hơn màn hình và bị cắt mép. Đồng thời chặn phóng to bằng chạm 2 lần / chụm 2 ngón (iOS bỏ qua user-scalable=no).
+ */
+export function fitToVisibleViewport(game: Phaser.Game): void {
+  const el = document.getElementById("game");
+  if (!el) return;
+  const vv = window.visualViewport;
+  let raf = 0;
+  const apply = () => {
+    raf = 0;
+    const w = Math.round(vv?.width ?? window.innerWidth);
+    const h = Math.round(vv?.height ?? window.innerHeight);
+    el.style.left = `${Math.round(vv?.offsetLeft ?? 0)}px`;
+    el.style.top = `${Math.round(vv?.offsetTop ?? 0)}px`;
+    el.style.width = `${w}px`;
+    el.style.height = `${h}px`;
+    game.scale.refresh();
+  };
+  const schedule = () => {
+    if (!raf) raf = requestAnimationFrame(apply);
+  };
+  vv?.addEventListener("resize", schedule);
+  vv?.addEventListener("scroll", schedule);
+  window.addEventListener("resize", schedule);
+  // xoay máy: kích thước ổn định sau một nhịp
+  window.addEventListener("orientationchange", () => setTimeout(apply, 350));
+  apply();
+
+  const isField = (t: EventTarget | null) => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement;
+  // iOS: chụm 2 ngón
+  for (const ev of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+  // chạm 2 lần liên tiếp để phóng to
+  let lastEnd = 0;
+  document.addEventListener(
+    "touchend",
+    (e) => {
+      const now = Date.now();
+      if (now - lastEnd < 320 && !isField(e.target)) e.preventDefault();
+      lastEnd = now;
+    },
+    { passive: false },
+  );
+  document.addEventListener("dblclick", (e) => e.preventDefault(), { passive: false });
+  // chụm nhiều ngón (trình duyệt khác)
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (e.touches.length > 1 && (e as TouchEvent & { scale?: number }).scale !== undefined && (e as TouchEvent & { scale?: number }).scale !== 1) e.preventDefault();
+    },
+    { passive: false },
+  );
+}
