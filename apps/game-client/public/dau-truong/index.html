@@ -3889,6 +3889,7 @@ async function getSb() {
 }
 
 const GUEST_KEY = 'anime_orb_arena_guest_v1';
+const LOCAL_BAK_KEY = 'anime_orb_arena_local_backup_v1';
 /** state: off (không có máy chủ) · guest · loading · synced · saving · error */
 const ACC = { user: null, ver: null, state: 'off', at: 0, err: '', timer: 0, busy: false, dirty: false, retry: 0 };
 
@@ -3951,6 +3952,12 @@ async function onSignedIn(user, silent = false) {
   if (row) {
     // tài khoản đã có tiến độ → dùng tiến độ tài khoản; tiến độ Khách trên máy này được cất riêng (không mất)
     if (!Save.owner) writeLocalJson(GUEST_KEY, Save);
+    else {
+      // giữ 3 bản sao gần nhất của dữ liệu trên máy trước khi thay bằng bản của tài khoản (phòng khi cần khôi phục)
+      const ring = readLocalJson(LOCAL_BAK_KEY) || [];
+      ring.unshift({ t: Date.now(), save: JSON.parse(JSON.stringify(Save)) });
+      writeLocalJson(LOCAL_BAK_KEY, ring.slice(0, 3));
+    }
     applySaveObject(row.save);
     Save.owner = user.id;
     ACC.ver = row.version; ACC.state = 'synced'; ACC.at = Date.now();
