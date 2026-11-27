@@ -304,14 +304,26 @@ export function applySnapshot(a: Arena, snap: Snapshot, lastSeq: number): { targ
 
 /** Thao tác người chơi gửi lên chủ phòng (qua "trạng thái người tham gia"). */
 export interface NetInput {
-  /** [moveX×100, moveY×100, đánh 0/1, chế độ khoá 0..2, số lần dùng kỹ năng, ô kỹ năng (0..3), số lần uống bình]. */
+  /** [moveX×100, moveY×100, đánh 0/1, chế độ khoá 0..2, số lần dùng kỹ năng, ô kỹ năng (0..3), số lần uống bình,
+   *  hướng ngắm chiêu dx×100, dy×100, khoảng cách ngắm (0 = tự ngắm)]. */
   i: number[];
   /** Lựa chọn gần nhất: [số thứ tự, loại 0 Dạng 2 / 1 Dạng 3 / 2 thẻ, mã]. */
   c?: [number, number, string];
 }
 
-export function encodeInput(inp: FighterInput, castSeq: number, castSlot: SkillSlot | null, potionSeq: number): number[] {
-  return [Math.round(inp.moveX * 100), Math.round(inp.moveY * 100), inp.attack ? 1 : 0, MODES.indexOf(inp.targetMode ?? "auto"), castSeq, castSlot ? SLOTS.indexOf(castSlot) : 0, potionSeq];
+export function encodeInput(
+  inp: FighterInput,
+  castSeq: number,
+  castSlot: SkillSlot | null,
+  potionSeq: number,
+  castAim?: { dx: number; dy: number; dist: number } | null,
+): number[] {
+  const out = [Math.round(inp.moveX * 100), Math.round(inp.moveY * 100), inp.attack ? 1 : 0, MODES.indexOf(inp.targetMode ?? "auto"), castSeq, castSlot ? SLOTS.indexOf(castSlot) : 0, potionSeq];
+  if (castAim) {
+    const len = Math.hypot(castAim.dx, castAim.dy) || 1;
+    out.push(Math.round((castAim.dx / len) * 100), Math.round((castAim.dy / len) * 100), Math.max(1, Math.round(castAim.dist)));
+  }
+  return out;
 }
 
 /** Phía chủ phòng: biến thao tác mạng thành FighterInput (kỹ năng/bình máu chỉ kích một lần mỗi số thứ tự). */
@@ -322,11 +334,13 @@ export class RemoteInput {
 
   decode(raw: unknown): FighterInput {
     const a = Array.isArray(raw) ? (raw as unknown[]).map((v) => (typeof v === "number" && Number.isFinite(v) ? v : 0)) : [];
-    const [mx = 0, my = 0, atk = 0, mode = 0, castSeq = 0, slot = 0, potSeq = 0] = a;
+    const [mx = 0, my = 0, atk = 0, mode = 0, castSeq = 0, slot = 0, potSeq = 0, adx = 0, ady = 0, adist = 0] = a;
     let cast: SkillSlot | null = null;
+    let castAim: FighterInput["castAim"];
     if (castSeq > this.lastCast) {
       this.lastCast = castSeq;
       cast = SLOTS[Math.max(0, Math.min(3, slot))] ?? null;
+      if (adist > 0 && (adx !== 0 || ady !== 0)) castAim = { dx: adx / 100, dy: ady / 100, dist: Math.min(2000, adist) };
     }
     let usePotion = false;
     if (potSeq > this.lastPotion) {
@@ -334,7 +348,9 @@ export class RemoteInput {
       usePotion = true;
     }
     const clamp = (v: number) => Math.max(-1, Math.min(1, v / 100));
-    return { moveX: clamp(mx), moveY: clamp(my), attack: atk === 1, cast, usePotion, targetMode: MODES[Math.max(0, Math.min(2, mode))] ?? "auto" };
+    const out: FighterInput = { moveX: clamp(mx), moveY: clamp(my), attack: atk === 1, cast, usePotion, targetMode: MODES[Math.max(0, Math.min(2, mode))] ?? "auto" };
+    if (castAim) out.castAim = castAim;
+    return out;
   }
 
   /** Lựa chọn mới (chưa áp dụng) hoặc null. */

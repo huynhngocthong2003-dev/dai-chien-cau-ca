@@ -59,3 +59,58 @@ describe("chơi chung", () => {
     expect(r.choice([1, 0, "fire_mage"])).toBeNull();
   });
 });
+
+describe("canh chỉnh chiêu (kéo nút để ngắm)", () => {
+  const ready = (heroId: string, branch: string) => {
+    const a = new Arena({ seed: 12, playerName: "Tôi", heroId, gender: "male", players: 2 });
+    for (const m of a.monsters) m.alive = false;
+    const p = a.player;
+    p.state.level = 5;
+    p.state.needsBranch = true;
+    a.chooseBranch(p.id, branch);
+    p.state.pendingOffers = [];
+    p.state.mana = p.state.maxMana;
+    // đối thủ ở hướng đông – nếu tự ngắm sẽ bắn về phía đông
+    const o = a.fighters[1]!;
+    o.bot = null;
+    o.x = p.x + 200;
+    o.y = p.y;
+    return a;
+  };
+
+  it("chiêu bắn thẳng đi đúng hướng người chơi kéo, không theo tự khoá", () => {
+    const a = ready("mage", "fire_mage");
+    const shape = a.aimShape(a.player, "s1");
+    expect(shape?.shape).toBe("line");
+    a.tick(1 / 60, { ...IDLE_INPUT, cast: "s1", castAim: { dx: 0, dy: -1, dist: 300 } });
+    const pr = a.projectiles.find((q) => q.ownerId === a.playerId);
+    expect(pr).toBeDefined();
+    expect(pr!.vy).toBeLessThan(0);
+    expect(Math.abs(pr!.vx)).toBeLessThan(1);
+  });
+
+  it("chiêu chọn điểm rơi đặt đúng khoảng cách kéo (giới hạn trong tầm)", () => {
+    const a = ready("mage", "fire_mage");
+    const shape = a.aimShape(a.player, "s3");
+    expect(shape?.shape).toBe("point");
+    const p = a.player;
+    a.tick(1 / 60, { ...IDLE_INPUT, cast: "s3", castAim: { dx: -1, dy: 0, dist: 150 } });
+    const fd = a.fields.find((f) => f.ownerId === p.id);
+    expect(fd).toBeDefined();
+    expect(fd!.x).toBeCloseTo(p.x - 150, -1);
+    expect(fd!.y).toBeCloseTo(p.y, -1);
+  });
+
+  it("hướng ngắm đi qua mạng: mã hoá → chủ phòng giải mã một lần theo số thứ tự", () => {
+    const raw = encodeInput({ ...IDLE_INPUT, cast: "s1" }, 3, "s1", 0, { dx: 3, dy: 4, dist: 250 });
+    const ri = new RemoteInput();
+    const d1 = ri.decode(raw);
+    expect(d1.cast).toBe("s1");
+    expect(d1.castAim).toEqual({ dx: 0.6, dy: 0.8, dist: 250 });
+    const d2 = ri.decode(raw);
+    expect(d2.cast).toBeNull();
+    expect(d2.castAim).toBeUndefined();
+    // không ngắm tay → tự ngắm như cũ
+    expect(ri.decode(encodeInput({ ...IDLE_INPUT }, 4, "s2", 0)).castAim).toBeUndefined();
+  });
+});

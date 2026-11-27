@@ -120,6 +120,16 @@ interface FighterView {
   auraKey: string;
 }
 
+type CastAim = { dx: number; dy: number; dist: number };
+/** Kéo dưới ngưỡng này = chạm nhanh (tự ngắm). */
+const AIM_DEAD = 22;
+/** Kéo hết cỡ (đơn vị màn hình) = tầm tối đa với chiêu chọn điểm rơi. */
+const AIM_MAX = 120;
+/** Ô "Hủy chiêu" (toạ độ thiết kế, neo góc dưới-phải). */
+const CANCEL_X = 1000;
+const CANCEL_Y = 404;
+const CANCEL_R = 38;
+
 interface SkillButton {
   slot: SkillSlot | "attack" | "potion" | "atk_monster" | "atk_prop";
   icon: Phaser.GameObjects.Image;
@@ -184,6 +194,14 @@ export class ArenaScene extends Phaser.Scene {
   private netTargets: NetTargets | null = null;
   private castSeq = 0;
   private lastCastSlot: SkillSlot | null = null;
+  /** Hướng ngắm chiêu tay gần nhất (gửi kèm số thứ tự chiêu khi chơi chung). */
+  private lastCastAim: CastAim | null = null;
+  private pendingAim: CastAim | null = null;
+  /** Đang giữ nút/phím chiêu để canh chỉnh hướng. */
+  private aiming: { slot: SkillSlot; pid: number; bx: number; by: number; x: number; y: number; kb: boolean } | null = null;
+  private mouseSeen = false;
+  private cancelG!: Phaser.GameObjects.Graphics;
+  private cancelText!: Phaser.GameObjects.Text;
   private potionSeq = 0;
   private choiceSeq = 0;
   private lastChoice: [number, number, string] | null = null;
@@ -241,6 +259,9 @@ export class ArenaScene extends Phaser.Scene {
     this.modal = null;
     this.attackHeld.clear();
     this.pendingCast = null;
+    this.pendingAim = null;
+    this.lastCastAim = null;
+    this.aiming = null;
     if (completeTutorialStep(save, "select_hero_and_gender")) persist();
 
     this.cameras.main.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
@@ -366,7 +387,8 @@ export class ArenaScene extends Phaser.Scene {
           this.modeHeld.set(p.id, slot === "atk_monster" ? "monster" : "prop");
         }
         else if (slot === "potion") this.pendingPotion = true;
-        else this.pendingCast = slot;
+        // giữ nút chiêu để canh chỉnh: kéo để ngắm, thả để tung, chạm nhanh = tự ngắm
+        else if (!this.aiming) this.aiming = { slot, pid: p.id, bx: zone.x, by: zone.y, x: p.x, y: p.y, kb: false };
       });
       this.skillButtons.push({ slot, icon, cdG, x, y, r, g, label, key: k });
     };
@@ -379,6 +401,9 @@ export class ArenaScene extends Phaser.Scene {
     // nút nhỏ kiểu Liên Quân: chỉ đánh quái / chỉ phá vật thể
     mk("atk_monster", 1246, 500, 26, "Z");
     mk("atk_prop", 1246, 424, 26, "X");
+    // ô hủy chiêu (chỉ hiện khi đang kéo ngắm)
+    this.cancelG = A.pin(fixed(this.add.graphics(), 9050), 1, 1);
+    this.cancelText = A.pin(fixed(text(this, CANCEL_X, CANCEL_Y, "✕\nHủy", 15, "#ffffff").setOrigin(0.5).setAlign("center").setVisible(false), 9051), 1, 1);
     this.cameras.main.ignore(this.children.list.filter((o) => (o as unknown as { scrollFactorX: number }).scrollFactorX === 0));
     hudCam.ignore(this.children.list.filter((o) => (o as unknown as { scrollFactorX: number }).scrollFactorX !== 0));
     this.onResize();
@@ -415,14 +440,23 @@ export class ArenaScene extends Phaser.Scene {
     const kb = this.input.keyboard;
     if (kb) {
       this.keys = kb.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,Q,E,R,F,H,Z,X,ONE,TWO,THREE,FOUR") as Record<string, Phaser.Input.Keyboard.Key>;
-      kb.on("keydown-Q", () => (this.pendingCast = "s1"));
-      kb.on("keydown-ONE", () => (this.pendingCast = "s1"));
-      kb.on("keydown-E", () => (this.pendingCast = "s2"));
-      kb.on("keydown-TWO", () => (this.pendingCast = "s2"));
-      kb.on("keydown-R", () => (this.pendingCast = "s3"));
-      kb.on("keydown-THREE", () => (this.pendingCast = "s3"));
-      kb.on("keydown-F", () => (this.pendingCast = "ult"));
-      kb.on("keydown-FOUR", () => (this.pendingCast = "ult"));
+      // giữ phím chiêu: hiện vùng ngắm theo chuột; thả phím: tung chiêu
+      const bind = (key: string, slot: SkillSlot) => {
+        kb.on(`keydown-${key}`, () => {
+          if (!this.aiming && !this.modal) this.aiming = { slot, pid: -2, bx: 0, by: 0, x: 0, y: 0, kb: true };
+        });
+        kb.on(`keyup-${key}`, () => {
+          if (this.aiming?.kb && this.aiming.slot === slot) this.releaseAim();
+        });
+      };
+      bind("Q", "s1");
+      bind("ONE", "s1");
+      bind("E", "s2");
+      bind("TWO", "s2");
+      bind("R", "s3");
+      bind("THREE", "s3");
+      bind("F", "ult");
+      bind("FOUR", "ult");
       kb.on("keydown-H", () => (this.pendingPotion = true));
     }
     this.input.on("pointerdown", (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
@@ -430,18 +464,131 @@ export class ArenaScene extends Phaser.Scene {
       if (p.x < this.scale.gameSize.width * 0.55 && this.joy.id === -1) this.joy = { id: p.id, bx: p.x, by: p.y, x: p.x, y: p.y };
     });
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
+      if (!p.wasTouch) this.mouseSeen = true;
+      if (this.aiming && !this.aiming.kb && p.id === this.aiming.pid) {
+        this.aiming.x = p.x;
+        this.aiming.y = p.y;
+      }
       if (p.id === this.joy.id) {
         this.joy.x = p.x;
         this.joy.y = p.y;
       }
     });
     const up = (p: Phaser.Input.Pointer) => {
+      if (this.aiming && !this.aiming.kb && p.id === this.aiming.pid) {
+        this.aiming.x = p.x;
+        this.aiming.y = p.y;
+        this.releaseAim();
+      }
       if (p.id === this.joy.id) this.joy.id = -1;
       this.attackHeld.delete(p.id);
       this.modeHeld.delete(p.id);
     };
     this.input.on("pointerup", up);
     this.input.on("pointerupoutside", up);
+  }
+
+  /** Vị trí ô hủy chiêu trên màn hình (đã neo). */
+  private inCancel(x: number, y: number): boolean {
+    return this.aiming !== null && !this.aiming.kb && Math.hypot(x - this.cancelText.x, y - this.cancelText.y) < CANCEL_R + 6;
+  }
+
+  /** Hướng ngắm hiện tại (null = chưa kéo đủ / chiêu quanh bản thân → tự ngắm). */
+  private currentAim(): CastAim | null {
+    const am = this.aiming;
+    const a = this.arena;
+    if (!am) return null;
+    const shape = a.aimShape(a.player, am.slot);
+    if (!shape || shape.shape === "self") return null;
+    if (am.kb) {
+      if (!this.mouseSeen) return null;
+      const w = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+      const dx = w.x - a.player.x;
+      const dy = w.y - a.player.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 4) return null;
+      return { dx: dx / len, dy: dy / len, dist: shape.shape === "point" ? Math.min(len, shape.range) : shape.range };
+    }
+    const dx = am.x - am.bx;
+    const dy = am.y - am.by;
+    const len = Math.hypot(dx, dy);
+    if (len < AIM_DEAD) return null;
+    const k = Math.min(1, (len - AIM_DEAD * 0.5) / AIM_MAX);
+    return { dx: dx / len, dy: dy / len, dist: shape.shape === "point" ? Math.max(0.15, k) * shape.range : shape.range };
+  }
+
+  /** Thả nút/phím chiêu: hủy nếu kéo vào ô Hủy, ngược lại tung chiêu theo hướng đã canh. */
+  private releaseAim(): void {
+    const am = this.aiming;
+    if (!am) return;
+    if (this.inCancel(am.x, am.y)) {
+      this.aiming = null;
+      this.note("Đã hủy chiêu", "#c8c0b0");
+      return;
+    }
+    this.pendingAim = this.currentAim();
+    this.pendingCast = am.slot;
+    this.aiming = null;
+  }
+
+  /** Vẽ chỉ dẫn canh chỉnh chiêu (đường bắn / quạt chém / điểm rơi / vòng quanh bản thân). */
+  private drawAim(g: Phaser.GameObjects.Graphics): void {
+    const am = this.aiming;
+    const a = this.arena;
+    const p = a.player;
+    const showCancel = !!am && !am.kb;
+    this.cancelText.setVisible(showCancel);
+    this.cancelG.clear();
+    if (showCancel) {
+      const hot = this.inCancel(am.x, am.y);
+      pixelCircle(this.cancelG, CANCEL_X, CANCEL_Y, CANCEL_R, hot ? 0xd83a3a : 0x5a2a2a, { alpha: hot ? 0.95 : 0.75 });
+    }
+    if (!am || !p.state.alive) return;
+    const shape = a.aimShape(p, am.slot);
+    if (!shape) return;
+    const col = fxColor(p);
+    const aim = this.currentAim();
+    if (shape.shape === "self") {
+      g.fillStyle(col, 0.18).fillCircle(p.x, p.y, shape.radius);
+      g.lineStyle(3, col, 0.85).strokeCircle(p.x, p.y, shape.radius);
+      return;
+    }
+    // vòng tầm tối đa
+    g.lineStyle(2, 0xffffff, 0.35).strokeCircle(p.x, p.y, shape.range);
+    if (!aim) {
+      g.fillStyle(0xffffff, 0.05).fillCircle(p.x, p.y, shape.range);
+      return;
+    }
+    const ang = Math.atan2(aim.dy, aim.dx);
+    if (shape.shape === "line") {
+      const nx = -aim.dy;
+      const ny = aim.dx;
+      const w = Math.max(14, shape.radius);
+      const ex = p.x + aim.dx * shape.range;
+      const ey = p.y + aim.dy * shape.range;
+      g.fillStyle(col, 0.28);
+      g.fillPoints([
+        { x: p.x + nx * w, y: p.y + ny * w },
+        { x: ex - aim.dx * 30 + nx * w, y: ey - aim.dy * 30 + ny * w },
+        { x: ex - aim.dx * 30 - nx * w, y: ey - aim.dy * 30 - ny * w },
+        { x: p.x - nx * w, y: p.y - ny * w },
+      ] as Phaser.Types.Math.Vector2Like[], true);
+      g.fillStyle(col, 0.7).fillTriangle(ex, ey, ex - aim.dx * 34 + nx * w * 1.8, ey - aim.dy * 34 + ny * w * 1.8, ex - aim.dx * 34 - nx * w * 1.8, ey - aim.dy * 34 - ny * w * 1.8);
+    } else if (shape.shape === "cone") {
+      const half = (shape.arc ?? 1.5) / 2;
+      g.fillStyle(col, 0.28);
+      g.slice(p.x, p.y, shape.range, ang - half, ang + half, false);
+      g.fillPath();
+      g.lineStyle(3, col, 0.85);
+      g.slice(p.x, p.y, shape.range, ang - half, ang + half, false);
+      g.strokePath();
+    } else {
+      const tx = p.x + aim.dx * aim.dist;
+      const ty = p.y + aim.dy * aim.dist;
+      g.lineStyle(2, col, 0.6).lineBetween(p.x, p.y, tx, ty);
+      g.fillStyle(col, 0.25).fillCircle(tx, ty, shape.radius);
+      g.lineStyle(3, col, 0.9).strokeCircle(tx, ty, shape.radius);
+    }
   }
 
   /** Chế độ khoá mục tiêu theo nút đang giữ (mặc định tự động). */
@@ -478,7 +625,10 @@ export class ArenaScene extends Phaser.Scene {
     if (this.pendingCast) {
       this.castSeq++;
       this.lastCastSlot = this.pendingCast;
+      this.lastCastAim = this.pendingAim;
+      if (this.pendingAim) input.castAim = this.pendingAim;
     }
+    this.pendingAim = null;
     if (this.pendingPotion) this.potionSeq++;
     this.pendingCast = null;
     this.pendingPotion = false;
@@ -628,7 +778,7 @@ export class ArenaScene extends Phaser.Scene {
     this.inputTimer -= dt;
     if (this.inputTimer <= 0) {
       this.inputTimer = 1 / 20;
-      const patch: Record<string, unknown> = { in: encodeInput(input, this.castSeq, this.lastCastSlot, this.potionSeq) };
+      const patch: Record<string, unknown> = { in: encodeInput(input, this.castSeq, this.lastCastSlot, this.potionSeq, this.lastCastAim) };
       if (this.lastChoice) patch.c = this.lastChoice;
       void net.room.presence(patch).catch(() => undefined);
     }
@@ -1314,6 +1464,7 @@ export class ArenaScene extends Phaser.Scene {
         }
       }
     }
+    this.drawAim(rg);
     if (a.respawnOpen()) {
       for (const pt of a.respawnPoints) {
         const pulse = 0.5 + 0.5 * Math.sin(t * 3 + pt.x);
@@ -1585,6 +1736,7 @@ export class ArenaScene extends Phaser.Scene {
     const hero = heroById(s.heroId);
     if (!hero) return;
     this.joy.id = -1;
+    this.aiming = null;
     this.attackHeld.clear();
     const off = this.anchors.offset(0, 0);
     const c = this.hudOnly(this.add.container(off.x, off.y).setScrollFactor(0).setDepth(9500));

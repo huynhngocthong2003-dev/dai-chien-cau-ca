@@ -66,6 +66,20 @@ export interface FighterInput {
   /** Điểm ngắm (toạ độ thế giới); không có thì tự ngắm mục tiêu gần nhất. */
   aimX?: number;
   aimY?: number;
+  /** Người chơi tự ngắm chiêu (kéo nút chiêu): hướng (dx, dy) + khoảng cách, tương đối với nhân vật. */
+  castAim?: { dx: number; dy: number; dist: number };
+}
+
+/** Hình dạng vùng ngắm của chiêu để vẽ chỉ dẫn canh chỉnh. */
+export interface AimShape {
+  /** line: bắn thẳng/lướt · cone: chém hình quạt · point: chọn điểm rơi · self: quanh bản thân. */
+  shape: "line" | "cone" | "point" | "self";
+  /** Tầm tối đa (đơn vị thế giới). */
+  range: number;
+  /** Bán kính vùng ảnh hưởng (point/self) hoặc nửa bề rộng (line). */
+  radius: number;
+  /** Góc quạt (radian) cho cone. */
+  arc?: number;
 }
 
 export type TargetMode = "auto" | "monster" | "prop";
@@ -644,7 +658,15 @@ export class Arena {
       }
     }
     if (input.attack && f.attackCd <= 0) this.basicAttack(f, aimX, aimY, ev);
-    if (input.cast) this.castSkill(f, input.cast, aimX, aimY, ev);
+    if (input.cast) {
+      const ca = input.castAim;
+      const len = ca ? Math.hypot(ca.dx, ca.dy) : 0;
+      if (ca && len > 1e-6 && Number.isFinite(ca.dist)) {
+        // ngắm tay: theo đúng hướng & khoảng cách người chơi kéo (tối thiểu 1 để giữ hướng)
+        const d = Math.max(1, Math.min(2000, ca.dist));
+        this.castSkill(f, input.cast, f.x + (ca.dx / len) * d, f.y + (ca.dy / len) * d, ev);
+      } else this.castSkill(f, input.cast, aimX, aimY, ev);
+    }
   }
 
   private clampToIsland(f: { x: number; y: number }): void {
@@ -799,6 +821,34 @@ export class Arena {
   skillCooldownMax(f: Fighter, slot: SkillSlot): number {
     const awakened = slot === "ult" && f.state.level >= AWAKENING_LEVEL;
     return SKILL_COOLDOWN[slot] * (1 - f.state.bonus.cooldownPct) * (awakened ? 0.7 : 1);
+  }
+
+  /** Vùng ngắm của chiêu ở ô `slot` (null nếu chưa mở). Khớp đúng tầm dùng trong castSkill. */
+  aimShape(f: Fighter, slot: SkillSlot): AimShape | null {
+    const hero = heroById(f.state.heroId);
+    const skill = hero ? skillFor(hero, f.state, slot) : null;
+    if (!hero || !skill) return null;
+    const rg = this.rangeOf(f);
+    switch (skill.kind) {
+      case "bolt":
+        return { shape: "line", range: rg * 1.35 + 60, radius: 16 };
+      case "cleave":
+        return { shape: "cone", range: rg + 60, radius: 0, arc: 2.2 };
+      case "dash":
+        return { shape: "line", range: 230, radius: 24 };
+      case "nova":
+        return { shape: "self", range: 0, radius: 160 };
+      case "shield":
+        return { shape: "self", range: 0, radius: 40 };
+      case "heal":
+        return { shape: "self", range: 0, radius: 120 };
+      case "trap":
+        return { shape: "point", range: rg + 120, radius: 110 };
+      case "storm": {
+        const radius = (hero.ranged ? 210 : 240) * (slot === "ult" && f.state.level >= AWAKENING_LEVEL ? 1.2 : 1);
+        return hero.ranged ? { shape: "point", range: rg + 100, radius } : { shape: "self", range: 0, radius };
+      }
+    }
   }
 
   private castSkill(f: Fighter, slot: SkillSlot, ax: number, ay: number, ev: ArenaEvent[]): void {

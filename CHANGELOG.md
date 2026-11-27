@@ -1,5 +1,11 @@
 # Changelog
 
+## [HERO ARENA 0.4.0] – 2026-11-27 – Cân bằng theo bậc, tự khớp màn hình, canh chỉnh chiêu
+### Thêm mới
+- **Canh chỉnh chiêu**: giữ nút chiêu rồi kéo để ngắm – hiện đường bắn (chiêu bắn thẳng/lướt), hình quạt (chém), vòng điểm rơi (chiêu đặt bẫy/chiêu cuối tầm xa) hoặc vòng quanh bản thân; thả tay để tung, chạm nhanh vẫn tự ngắm, kéo vào ô **Hủy** để bỏ chiêu. Máy tính: giữ Q/E/R/F ngắm theo chuột, thả phím để tung. Hướng ngắm gửi qua mạng khi chơi chung.
+- **Tự khớp mọi màn hình điện thoại**: Scale.EXPAND (giữ trọn khung 1280×720, nới cạnh theo tỉ lệ máy, không méo, không viền đen); HUD neo theo 4 góc và tránh **vùng an toàn** (tai thỏ, viền cong, thanh điều hướng); bảng chọn & thông báo luôn ở giữa; camera giữ diện tích nhìn thấy tương đương trên màn hình dài; thử khóa màn hình ngang khi chạm lần đầu.
+- **Ngân sách chỉ số có đánh đổi**: mỗi hướng Dạng 2 có vai trò – *hiệu ứng* (thiêu/độc mạnh, sát thương nổ −15%, máu −5%), *công-tốc-chí mạng* (công +12%, máu −12%, tầm xa thêm tầm), *công-thủ* (máu +18%, công −12%, chạy chậm hơn). Dạng 3 mở **cơ chế** thay vì nhân chỉ số: Tấn Công = Kết liễu (+40% lên mục tiêu dưới 30% máu), Phòng Thủ = Khiên tử thủ (dưới 40% máu bật khiên 25% máu, 20 giây/lần), Tinh Thông = Lây lan hiệu ứng + hạ gục giảm hồi chiêu. Hiển thị vai trò & đánh đổi ở màn chọn anh hùng và bảng chọn dạng.
+
 ## [HERO ARENA 0.3.0] – 2026-11-27 – Chơi chung, vật thể phá được, vung vũ khí
 ### Thêm mới
 - **Chơi chung thời gian thực**: VÀO TRẬN → chọn anh hùng → màn **mời bạn** (phòng tự tạo, mã mời, sao chép mã) → người chơi bấm **Bắt đầu** khi có từ 2 người; máy lấp cho đủ 20. "Vào phòng bạn" để nhập mã. Máy chủ phòng chạy trận, phát ảnh chụp ~15 lần/giây qua kênh `room` của trang; người khác gửi thao tác, tự đoán trước chuyển động của mình. Có "Chơi một mình".
