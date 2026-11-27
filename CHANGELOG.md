@@ -1,5 +1,9 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – bảng chọn bóng bật lên] – 2026-11-27
+- Phòng Chờ: bỏ danh sách bóng cố định ở cạnh/cuối trang; **bấm vào ô của mình** (hoặc ô máy khi được đổi) → bảng chọn bóng bật lên, **chọn xong tự đóng**. Bấm Sẵn sàng khi chưa chọn cũng mở bảng. Ô của mình nhấp nháy viền vàng + "👆 Bấm để chọn bóng" khi chưa chọn; đã chọn có "✏ Đổi bóng".
+- Đội hình và nút Sẵn sàng / Bắt đầu đưa lên ngay dưới mã phòng; Chế độ & Bối cảnh chuyển xuống dưới. Trên điện thoại thẻ bóng trong bảng được thu gọn (ẩn thanh chỉ số, mô tả chiêu 2 dòng).
+
 ## [Đấu Trường Quả Cầu Anime – nhiệm vụ tuần & tháng] – 2026-11-27
 - Khung Nhiệm vụ ở Sảnh có 3 tab **Hôm nay · Tuần này · Tháng này** (số nhiệm vụ chờ nhận trên từng tab, đếm ngược tới lúc làm mới).
 - **Tuần** (làm mới thứ Hai 0:00): chơi 15 trận +80 · thắng 8 +120 · quay 3 lần +60 · 3 trận trực tuyến +100 · thắng 2 trận Hỗn Chiến +90.
