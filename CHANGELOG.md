@@ -1,5 +1,10 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime] – 2026-11-27
+- Thêm game riêng 1 file **Đấu Trường Quả Cầu Anime** tại `apps/game-client/public/dau-truong/index.html` → đăng kèm GitHub Pages ở đường dẫn `/dau-truong/`. Game câu cá không đổi.
+- Gồm: Sảnh Chính (hồ sơ, mã kết bạn, trạng thái & biểu cảm, bóng trưng bày, nhiệm vụ hằng ngày, thành tích, Bộ Sưu Tập 30 bóng có tìm kiếm/lọc) → Phòng Chờ (1v1/2v2/4v4/Hỗn Chiến, ô trống mời người chơi hoặc thêm máy, chọn bóng – bóng sở hữu lên đầu, Sẵn sàng) → Sàn Đấu (đếm ngược 3 giây, chọn hướng xuất phát).
+- Chơi trực tuyến và kết bạn chỉ hoạt động khi mở qua link Claude; bản GitHub Pages chơi với máy (hiện cảnh báo rõ ràng).
+
 ## [Gỡ HERO ARENA] – 2026-11-27
 - Theo yêu cầu chủ dự án: gỡ hoàn toàn game riêng HERO ARENA (`apps/hero-arena`, `packages/hero-arena-core`, script, E2E, bước đăng `/hero-arena/` trên GitHub Pages, bản trên claude.ai). Game câu cá không đổi. Code cũ vẫn còn trong lịch sử git (commit a77a1c8 → 23486dc) nếu cần khôi phục.
 
