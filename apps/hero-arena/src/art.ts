@@ -1,5 +1,4 @@
 import Phaser from "phaser";
-import { MONSTERS, type MonsterDef } from "@hero-arena/core";
 
 // Vẽ thủ tục bằng Canvas2D: anh hùng (theo lớp, nhánh, giới tính), quái, trang trí bản đồ.
 
@@ -80,55 +79,6 @@ export function pixelTex(scene: Phaser.Scene, key: string, w: number, h: number,
     c.imageSmoothingEnabled = false;
     c.drawImage(lo, 0, 0, sw * px, sh * px);
   });
-}
-
-export function monsterTexture(scene: Phaser.Scene, def: MonsterDef): string {
-  const key = `mon_${def.id}`;
-  const s = def.size;
-  const size = Math.ceil(s * 2.6);
-  return pixelTex(scene, key, size, size, (c) => {
-    const cx = size / 2;
-    const cy = size / 2 + s * 0.1;
-    c.fillStyle = "rgba(0,0,0,0.35)";
-    c.beginPath();
-    c.ellipse(cx, cy + s * 0.9, s * 0.9, s * 0.28, 0, 0, Math.PI * 2);
-    c.fill();
-    const g = c.createRadialGradient(cx - s * 0.3, cy - s * 0.4, s * 0.1, cx, cy, s);
-    g.addColorStop(0, css(shade(def.color, 1.3)));
-    g.addColorStop(1, css(shade(def.color, 0.65)));
-    c.fillStyle = g;
-    c.beginPath();
-    c.ellipse(cx, cy, s, s * 0.85, 0, 0, Math.PI * 2);
-    c.fill();
-    c.strokeStyle = "rgba(10,10,20,0.8)";
-    c.lineWidth = 2;
-    c.stroke();
-    if (def.isBoss) {
-      c.fillStyle = css(0xf0e0c0);
-      for (const sx of [-1, 1]) {
-        c.beginPath();
-        c.moveTo(cx + sx * s * 0.4, cy - s * 0.6);
-        c.lineTo(cx + sx * s * 0.75, cy - s * 1.25);
-        c.lineTo(cx + sx * s * 0.15, cy - s * 0.75);
-        c.fill();
-      }
-    }
-    // mắt đỏ
-    c.fillStyle = def.isBoss ? "#ff3030" : "#ffe060";
-    c.beginPath();
-    c.arc(cx - s * 0.32, cy - s * 0.15, s * 0.13, 0, Math.PI * 2);
-    c.arc(cx + s * 0.32, cy - s * 0.15, s * 0.13, 0, Math.PI * 2);
-    c.fill();
-    c.fillStyle = "#1a0a0a";
-    c.beginPath();
-    c.arc(cx - s * 0.3, cy - s * 0.12, s * 0.06, 0, Math.PI * 2);
-    c.arc(cx + s * 0.34, cy - s * 0.12, s * 0.06, 0, Math.PI * 2);
-    c.fill();
-  });
-}
-
-export function makeMonsterTextures(scene: Phaser.Scene): void {
-  for (const m of MONSTERS) monsterTexture(scene, m);
 }
 
 /** Chấm sáng tròn dùng cho đạn/hạt. */

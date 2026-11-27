@@ -43,7 +43,8 @@ import {
   type SkillSlot,
   type UpgradeChoice,
 } from "@hero-arena/core";
-import { dotTexture, makeMonsterTextures, monsterTexture, vignetteTexture } from "../art.ts";
+import { dotTexture, vignetteTexture } from "../art.ts";
+import { makeMonsterTextures, monsterDisplayScale, monsterTexture } from "../monsterArt.ts";
 import { decoTexture, type DecoKind } from "../decoArt.ts";
 import { TERRAIN_SCALE, terrainTexture } from "../terrain.ts";
 import { addHeroImage, armRig, breathe, evolutionScale, evolutionTier, hasRealArt, heroArtKey, heroTex, HERO_FIGURE_H, nativeFacing, setHeroImage, skillIcon, walkFrameKey, WALK_FRAMES, type ArmRig } from "../heroArt.ts";
@@ -154,6 +155,8 @@ export class ArenaScene extends Phaser.Scene {
   private ending = false;
   private fighterViews = new Map<string, FighterView>();
   private monsterViews = new Map<string, Phaser.GameObjects.Image>();
+  /** Vị trí khung trước + hướng nhìn của quái (để quay mặt & chạy hoạt ảnh bước). */
+  private monsterAnim = new Map<string, { px: number; py: number; face: number; moving: number }>();
   private bars!: Phaser.GameObjects.Graphics;
   private ringG!: Phaser.GameObjects.Graphics;
   private portraitKey = "init";
@@ -253,6 +256,7 @@ export class ArenaScene extends Phaser.Scene {
     this.fighterViews.clear();
     this.propViews.clear();
     this.monsterViews.clear();
+    this.monsterAnim.clear();
     this.skillButtons = [];
     this.feed = [];
     this.dmgPool = [];
@@ -272,7 +276,7 @@ export class ArenaScene extends Phaser.Scene {
     this.drawWorld(seed);
 
     for (const m of this.arena.monsters) {
-      const img = this.add.image(m.x, m.y, monsterTexture(this, m.def)).setScale(1.5);
+      const img = this.add.image(m.x, m.y, monsterTexture(this, m.def)).setScale(monsterDisplayScale(m.def));
       this.monsterViews.set(m.id, img);
     }
     for (const f of this.arena.fighters) {
@@ -1158,7 +1162,7 @@ export class ArenaScene extends Phaser.Scene {
 
   /** Quái chết: bẹp xuống rồi tan thành hạt. */
   private monsterDeathFx(img: Phaser.GameObjects.Image, color: number): void {
-    const ghost = this.worldOnly(this.add.image(img.x, img.y, img.texture.key).setScale(img.scaleX).setDepth(img.depth).setTintFill(0xffffff));
+    const ghost = this.worldOnly(this.add.image(img.x, img.y, img.texture.key).setScale(img.scaleX).setFlipX(img.flipX).setDepth(img.depth).setTintFill(0xffffff));
     this.time.delayedCall(70, () => ghost.clearTint());
     this.tweens.add({ targets: ghost, scaleY: img.scaleY * 0.2, scaleX: img.scaleX * 1.4, alpha: 0, duration: 380, ease: "Quad.easeIn", onComplete: () => ghost.destroy() });
     const em = this.worldOnly(
@@ -1445,7 +1449,26 @@ export class ArenaScene extends Phaser.Scene {
       const img = this.monsterViews.get(m.id);
       if (!img) continue;
       img.setVisible(m.alive);
-      if (m.alive) img.setPosition(m.x, m.y).setDepth(m.y);
+      if (!m.alive) continue;
+      // hoạt ảnh: bước chân/vỗ cánh khi di chuyển, thở chậm khi đứng; quay mặt theo hướng đi
+      let st = this.monsterAnim.get(m.id);
+      if (!st) {
+        st = { px: m.x, py: m.y, face: 1, moving: 0 };
+        this.monsterAnim.set(m.id, st);
+      }
+      const mdx = m.x - st.px;
+      const md = Math.hypot(mdx, m.y - st.py);
+      st.moving = md > 0.4 ? 0.25 : Math.max(0, st.moving - this.game.loop.delta / 1000);
+      if (Math.abs(mdx) > 0.3) st.face = mdx > 0 ? 1 : -1;
+      st.px = m.x;
+      st.py = m.y;
+      const ph = (m.homeX % 7) * 0.3;
+      const fr = st.moving > 0 ? Math.floor(t * 7 + ph) % 2 : Math.floor(t * 1.6 + ph) % 2;
+      const key = monsterTexture(this, m.def, fr);
+      if (img.texture.key !== key) img.setTexture(key);
+      const breath = st.moving > 0 ? 0 : Math.sin(t * 3 + ph) * 0.025;
+      const ms = monsterDisplayScale(m.def);
+      img.setFlipX(st.face < 0).setScale(ms * (1 - breath * 0.5), ms * (1 + breath)).setPosition(m.x, m.y).setDepth(m.y);
     }
     // vòng sáng dưới chân (màu nhánh; người chơi viền vàng)
     const rg = this.ringG;
@@ -1526,8 +1549,10 @@ export class ArenaScene extends Phaser.Scene {
     for (const m of a.monsters) {
       if (!m.alive || m.hp >= m.maxHp) continue;
       const w = m.def.isBoss ? 90 : 40;
-      b.fillStyle(0x0b0f18, 0.85).fillRect(m.x - w / 2 - 1, m.y - m.def.size - 13, w + 2, 6);
-      b.fillStyle(m.def.isBoss ? 0xff8a2a : 0xd0b040, 1).fillRect(m.x - w / 2, m.y - m.def.size - 12, (w * m.hp) / m.maxHp, 4);
+      // trên đầu quái (hình mới cao hơn hình tròn cũ)
+      const by = m.y - (this.monsterViews.get(m.id)?.displayHeight ?? m.def.size * 2) * 0.44;
+      b.fillStyle(0x0b0f18, 0.85).fillRect(m.x - w / 2 - 1, by - 1, w + 2, 6);
+      b.fillStyle(m.def.isBoss ? 0xff8a2a : 0xd0b040, 1).fillRect(m.x - w / 2, by, (w * m.hp) / m.maxHp, 4);
     }
     // đạn & vùng hiệu ứng
     const fx = this.fxG;
