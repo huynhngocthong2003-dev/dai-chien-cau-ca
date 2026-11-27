@@ -2,13 +2,6 @@
 
 Cập nhật: 2026-11-22 (v0.35.0)
 
-## HERO ARENA (game riêng – `apps/hero-arena`, `packages/hero-arena-core`)
-- ✅ 0.4.0: cân bằng theo bậc (đánh đổi chỉ số theo vai trò, Dạng 3 mở cơ chế), tự khớp màn hình điện thoại (EXPAND + vùng an toàn + neo HUD), kéo nút để canh chỉnh chiêu (có ô Hủy, đồng bộ mạng), quái pixel-art 12 loài có hoạt ảnh, link web GitHub Pages `/hero-arena/` (chơi chung qua Supabase Realtime – chưa thử trên máy chủ thật, chỉ thử bằng kênh giả lập).
-- ✅ 0.3.0: chơi chung thời gian thực (kênh `room`, E2E 2 tab `tests/e2e/hero-arena-mp.mjs` với `?mockroom`), vật thể phá được/công trình, nút quái/phá, tay + vũ khí tách lớp.
-- ✅ 0.2.0: 10 lớp × cây tiến hoá (1 → 3 → 9), hồi sinh đầu trận, pixel-art, quà/hòm thư/hướng dẫn.
-- 🟡 Hình nhân vật: có ảnh thật cho 45 nút (đủ cây Pháp Sư); các nút còn lại tạm nhuộm màu – chờ chủ dự án gửi thêm ảnh cây tiến hoá cho 9 lớp còn lại.
-- Chơi chung chạy trên máy chủ phòng (không có máy chủ riêng): chủ phòng tắt trang là trận dừng. Chưa có: âm thanh. Khung hình trên Chromium headless thấp (~10–20 fps), cần kiểm tra trên máy thật. Canvas vẽ ở độ phân giải logic (~720p) rồi phóng theo màn hình – chưa vẽ theo devicePixelRatio đầy đủ (Phaser 3 không hỗ trợ `resolution`); khóa ngang chỉ hoạt động nơi trình duyệt cho phép toàn màn hình.
-
 ## ĐẠI TU (Master Prompt 11 phần – xem docs/GIAI_DOAN_1_BAO_CAO.md)
 | GĐ đại tu | Trạng thái |
 |---|---|

@@ -7,7 +7,6 @@ Game câu cá 2D hoạt hình: quăng cần, chống lại cá quái vật vùng
 ## Chơi ngay
 - Web: https://huynhngocthong2003-dev.github.io/dai-chien-cau-ca/
 - Bản trên claude.ai: https://claude.ai/artifact/UUQjn9CvJUM84c6iH2vXTZ
-- **HERO ARENA** (game riêng, Battle Royale 20 anh hùng, chơi chung): https://huynhngocthong2003-dev.github.io/dai-chien-cau-ca/hero-arena/
 
 ## Chạy trên máy
 Cần Node.js ≥ 22 và pnpm 10.

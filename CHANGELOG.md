@@ -1,41 +1,7 @@
 # Changelog
 
-## [HERO ARENA 0.4.0] – 2026-11-27 – Cân bằng theo bậc, tự khớp màn hình, canh chỉnh chiêu
-### Thêm mới
-- **Hình đại diện game** (ảnh hiệp sĩ tóc vàng của chủ dự án, `scripts/hero-arena-icon.py`): biểu tượng tab, biểu tượng cài ra màn hình chính (manifest, chạy toàn màn hình ngang), ảnh xem trước 1200×630 khi gửi link (Facebook/Zalo/Messenger).
-- **Link web như game câu cá**: HERO ARENA được đăng kèm lên GitHub Pages tại `/hero-arena/`; chơi chung trên web qua Supabase Realtime (kênh phát sóng, dùng khóa anon công khai sẵn có, không cần bảng dữ liệu mới); gộp tối đa 10 tin/giây mỗi người để không vượt hạn mức.
-- **Quái vẽ lại pixel-art** (`apps/hero-arena/src/monsterArt.ts`): 12 loài có dáng riêng theo vùng – Ma Trơi, Cổ Thụ Hắc Ám, Thạch Quỷ, Vu Vương (sọ đội vương miện, gậy cầu tím), Bọ Cạp Cát, Giun Cát (miệng tròn đầy răng), Thổ Phỉ, Thủ Lĩnh Thổ Phỉ (mũ sừng, rìu, áo choàng), Người Tuyết Con/Vua Người Tuyết, Sói Băng, Băng Long; 2 khung hoạt ảnh (bước/vỗ cánh/lắc đuôi), thở khi đứng, quay mặt theo hướng đi; quái nhỏ vẽ chi tiết hơn và to hơn; thanh máu quái nằm trên đầu.
-- **Canh chỉnh chiêu**: giữ nút chiêu rồi kéo để ngắm – hiện đường bắn (chiêu bắn thẳng/lướt), hình quạt (chém), vòng điểm rơi (chiêu đặt bẫy/chiêu cuối tầm xa) hoặc vòng quanh bản thân; thả tay để tung, chạm nhanh vẫn tự ngắm, kéo vào ô **Hủy** để bỏ chiêu. Máy tính: giữ Q/E/R/F ngắm theo chuột, thả phím để tung. Hướng ngắm gửi qua mạng khi chơi chung.
-- **Tự khớp mọi màn hình điện thoại**: Scale.EXPAND (giữ trọn khung 1280×720, nới cạnh theo tỉ lệ máy, không méo, không viền đen); HUD neo theo 4 góc và tránh **vùng an toàn** (tai thỏ, viền cong, thanh điều hướng); bảng chọn & thông báo luôn ở giữa; camera giữ diện tích nhìn thấy tương đương trên màn hình dài; thử khóa màn hình ngang khi chạm lần đầu.
-- **Ngân sách chỉ số có đánh đổi**: mỗi hướng Dạng 2 có vai trò – *hiệu ứng* (thiêu/độc mạnh, sát thương nổ −15%, máu −5%), *công-tốc-chí mạng* (công +12%, máu −12%, tầm xa thêm tầm), *công-thủ* (máu +18%, công −12%, chạy chậm hơn). Dạng 3 mở **cơ chế** thay vì nhân chỉ số: Tấn Công = Kết liễu (+40% lên mục tiêu dưới 30% máu), Phòng Thủ = Khiên tử thủ (dưới 40% máu bật khiên 25% máu, 20 giây/lần), Tinh Thông = Lây lan hiệu ứng + hạ gục giảm hồi chiêu. Hiển thị vai trò & đánh đổi ở màn chọn anh hùng và bảng chọn dạng.
-
-## [HERO ARENA 0.3.0] – 2026-11-27 – Chơi chung, vật thể phá được, vung vũ khí
-### Thêm mới
-- **Chơi chung thời gian thực**: VÀO TRẬN → chọn anh hùng → màn **mời bạn** (phòng tự tạo, mã mời, sao chép mã) → người chơi bấm **Bắt đầu** khi có từ 2 người; máy lấp cho đủ 20. "Vào phòng bạn" để nhập mã. Máy chủ phòng chạy trận, phát ảnh chụp ~15 lần/giây qua kênh `room` của trang; người khác gửi thao tác, tự đoán trước chuyển động của mình. Có "Chơi một mình".
-- **Vật thể trên bản đồ**: cây, đá, thùng… phá được (rơi vàng/KN/bình máu); nhà, giếng, cổng, tường, cột, tượng, núi là công trình không phá được, chắn đường & đạn.
-- **Nút QUÁI (Z) / PHÁ (X)** kiểu Liên Quân; tự khoá mục tiêu + tự chạy tới khi giữ nút đánh.
-- **Tay + vũ khí tách lớp**: chém (kiếm) và vung gậy (trượng) thật sự, giật khi bắn cung/súng, giơ cao khi tung chiêu, đung đưa khi chạy.
-- Cây tiến hoá **Đấu Sĩ** đủ 13 hình (tạo bằng Gemini 3 Pro Image qua ElevenLabs).
-### Thay đổi
-- Kỹ năng mạnh hơn ~1,5 lần, chiêu tối thượng mạnh nhất (~2 lần); hạ gục nhanh hơn.
-- Mô phỏng 60 lần/giây; nhân vật quay theo hướng đi/đánh; bỏ quầng sáng quanh Trợ Thủ & Pháp Sư Dạng 1.
-
-## [HERO ARENA 0.2.0] – 2026-11-26 – Cây tiến hoá pixel-art, hồi sinh đầu trận, bản đồ pixel
-### Thay đổi theo góp ý chủ dự án
-- **10 lớp** (Đấu Sĩ, Trợ Thủ, Xạ Thủ, Pháo Thủ, Sát Thủ, Hỗ Trợ, Triệu Hồi Sư, Kiếm Khách, Pháp Sư, Tiên Tri), mỗi lớp là **cây tiến hoá**: Dạng 1 (cấp 1–4) → cấp 5 chọn 1 trong **3 hướng Dạng 2** cùng cấp bậc (thiêu đốt / nhiễm độc / làm chậm / hút máu / công-thủ…) → cấp 10 chọn 1 trong **3 Dạng 3 của hướng đó** (Tấn Công / Phòng Thủ / Tinh Thông, mở chiêu tối thượng) → cấp 15 thức tỉnh. 30 hướng Dạng 2, 90 hướng Dạng 3.
-- Pháp Sư theo đúng ảnh cây tiến hoá (Hỏa / Độc / Hộ Pháp Sư và 9 Dạng 3).
-- Hiệu ứng mới **Nhiễm độc** (5 giây, cộng dồn riêng với thiêu đốt).
-- **Đồ hoạ pixel-art** từ ảnh của chủ dự án (`scripts/hero-arena-atlas.py` cắt ảnh → `heroes-atlas.png` + `spriteMap.ts`); nút chưa có ảnh tạm nhuộm màu hình gần nhất. Bỏ toàn bộ hình 3D.
-- Hiệu ứng động: thở, nhún & nghiêng khi chạy, lao người khi đánh, loé trắng khi trúng đòn, hạt sáng theo màu dạng, bùng sáng khi tiến hoá; nhân vật lớn dần theo cấp.
-- **Không có thời gian hoà bình** – giao tranh từ giây đầu; **hồi sinh 1 lần trong 5 phút đầu** tại 8 điểm hồi sinh ngẫu nhiên mỗi trận (mất hết đồ & kinh nghiệm, bất tử 3 giây).
-- Trận dài hơn (bo 7 giai đoạn ~17,7 phút, đảo bán kính 2300).
-- Giao diện & bản đồ pixel: nút/khung góc bậc thang, nút kỹ năng tròn pixel, mặt đất vẽ từng điểm ảnh (cỏ rêu, đá lát, cát nứt, tuyết, băng, vách đá, biển), 30 loại trang trí.
-
-## [HERO ARENA 0.1.0] – 2026-11-26 – Game riêng: Battle Royale 20 người
-### Thêm mới (tách hoàn toàn khỏi game câu cá)
-- `packages/hero-arena-core`: logic thuần, tất định theo seed – 8 lớp × 3 nhánh, cấp 1→15, khóa nhánh ở cấp 5, chọn 1 trong 3 thẻ, chiêu tối thượng cấp 10 / thức tỉnh cấp 15, vòng bo 7 giai đoạn + biến đổi môi trường theo 6 vùng (sương độc / bão cát / đất đóng băng), quái + Boss + rơi đồ + trang bị, 19 đối thủ máy; Quà tặng (mã quà), Hòm thư, Hướng dẫn tân thủ, thưởng trận – mọi thay đổi tài nguyên qua `applyReward` có txId + sổ cái. 26 unit test.
-- `apps/hero-arena` (Phaser 3, cổng 5174): Sảnh, Chọn anh hùng & giới tính, Trận đấu (bàn phím / cần ảo cảm ứng, bản đồ nhỏ, nút kỹ năng có hồi chiêu), Kết quả. `pnpm dev:arena`, `pnpm build:arena`, `pnpm test:e2e:arena`.
-- Sửa lỗi so với bản code mẫu: bỏ Date.now/Math.random trong logic, thẻ nâng cấp có hiệu ứng thật, hàng đợi lượt chọn không mất thẻ, bỏ qua hướng dẫn không được thưởng, quà/thư/trận chống nhận trùng.
+## [Gỡ HERO ARENA] – 2026-11-27
+- Theo yêu cầu chủ dự án: gỡ hoàn toàn game riêng HERO ARENA (`apps/hero-arena`, `packages/hero-arena-core`, script, E2E, bước đăng `/hero-arena/` trên GitHub Pages, bản trên claude.ai). Game câu cá không đổi. Code cũ vẫn còn trong lịch sử git (commit a77a1c8 → 23486dc) nếu cần khôi phục.
 
 ## [0.60.1] – 2026-11-24
 ### Sửa lỗi
