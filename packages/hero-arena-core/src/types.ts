@@ -53,15 +53,33 @@ export interface HeroEvolution {
   name: string;
   descVi: string;
   color: number;
-  /** 0 = Tấn công, 1 = Phòng thủ, 2 = Tinh thông nguyên tố. */
+  /** 0 = Tấn công (Kết liễu), 1 = Phòng thủ (Khiên tử thủ), 2 = Tinh thông (Lây lan). */
   style: number;
+  /** Đánh đổi chỉ số khi chọn nhánh này. */
+  mods: StatMods;
   passive: { id: string; nameVi: string; effect: PassiveEffect };
   ultimate: SkillDef;
   awakening: SkillDef;
 }
 
+/** Vai trò của hướng Dạng 2 (quyết định đánh đổi chỉ số). */
+export type DirectionRole = "effect" | "offense" | "defense";
+
+/** Thay đổi chỉ số theo tỉ lệ (âm = điểm yếu). */
+export interface StatMods {
+  hpPct?: number;
+  atkPct?: number;
+  burstPct?: number;
+  speedPct?: number;
+  rangePct?: number;
+}
+
 /** Dạng 2 – một trong 3 hướng nâng cấp cùng cấp bậc (chọn ở cấp 5). */
 export interface HeroBranch {
+  /** Hiệu ứng (DoT) / Công-tốc-chí mạng / Công-thủ. */
+  role: DirectionRole;
+  /** Đánh đổi chỉ số khi chọn hướng này. */
+  mods: StatMods;
   id: string;
   name: string;
   descVi: string;
@@ -162,7 +180,12 @@ export interface PlayerMatchState {
   needsBranch: boolean;
   /** Đang chờ chọn Dạng 3 (đạt cấp 10). */
   needsEvolution: boolean;
-  bonus: Required<Omit<UpgradeEffect, "passive" | "maxHp" | "maxMana">>;
+  bonus: Required<Omit<UpgradeEffect, "passive" | "maxHp" | "maxMana">> & {
+    /** Hệ số sát thương đòn trực tiếp (không tính thiêu/độc) – hướng hiệu ứng bị giảm. */
+    burstPct: number;
+    speedPct: number;
+    rangePct: number;
+  };
   passive: Required<PassiveEffect>;
 }
 

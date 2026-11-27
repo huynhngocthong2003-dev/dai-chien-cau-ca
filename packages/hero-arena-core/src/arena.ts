@@ -115,6 +115,8 @@ export interface Fighter {
   protectUntil: number;
   /** Số bình máu bị mất khi gục (tính vào bình kho đã tiêu). */
   lostPotions: number;
+  /** Khiên tử thủ sẵn sàng lại từ thời điểm này. */
+  lastStandAt: number;
 }
 
 export interface BotBrain {
@@ -337,6 +339,7 @@ export class Arena {
       respawnAt: null,
       protectUntil: 0,
       lostPotions: 0,
+      lastStandAt: 0,
       bot: isBot
         ? { wanderX: WORLD_CENTER, wanderY: WORLD_CENTER, retarget: 0, lastX: 0, lastY: 0, stuckCheck: 1, sidestep: 0, sideX: 0, sideY: 0, aimError: this.rng.range(0.05, 0.3), retreatAt: this.rng.range(0.3, 0.5), aggression: this.rng.range(0.2, 1), targetId: null }
         : null,
@@ -535,7 +538,7 @@ export class Arena {
     const eqSpeed = (f.equipped.weapon?.bonusMoveSpeed ?? 0) + (f.equipped.armor?.bonusMoveSpeed ?? 0) + (f.equipped.accessory?.bonusMoveSpeed ?? 0);
     const hz = HAZARD_EFFECTS[f.state.activeHazard];
     const slow = this.time < f.slowUntil ? f.slowPct : 0;
-    return (f.state.moveSpeed + eqSpeed) * (1 + pas.moveSpeedPct) * hz.speedMul * (1 - slow);
+    return (f.state.moveSpeed + eqSpeed) * (1 + pas.moveSpeedPct + f.state.bonus.speedPct) * hz.speedMul * (1 - slow);
   }
 
   attackOf(f: Fighter): number {
@@ -545,7 +548,7 @@ export class Arena {
 
   rangeOf(f: Fighter): number {
     const hero = heroById(f.state.heroId);
-    return (hero?.attackRange ?? 90) * HAZARD_EFFECTS[f.state.activeHazard].rangeMul;
+    return (hero?.attackRange ?? 90) * (1 + f.state.bonus.rangePct) * HAZARD_EFFECTS[f.state.activeHazard].rangeMul;
   }
 
   private updateFighter(f: Fighter, input: FighterInput, dt: number, ev: ArenaEvent[]): void {
@@ -916,10 +919,42 @@ export class Arena {
     }
   }
 
+  /** Hệ số đòn trực tiếp: đánh đổi "nổ" của hướng hiệu ứng × Kết liễu (Dạng 3 Tấn Công). */
+  private directMul(src: Fighter, targetHpRatio: number): number {
+    let m = 1 + src.state.bonus.burstPct;
+    if (this.evoStyle(src) === 0 && targetHpRatio < 0.3) m *= 1.4;
+    return Math.max(0.3, m);
+  }
+
+  /** Kiểu Dạng 3 của đấu thủ (0 tấn công / 1 phòng thủ / 2 tinh thông) hoặc -1. */
+  evoStyle(f: Fighter): number {
+    const hero = heroById(f.state.heroId);
+    return (hero && evolutionById(hero, f.state.branchId, f.state.evolutionId)?.style) ?? -1;
+  }
+
   private rollCrit(f: Fighter, damage: number): { dmg: number; crit: boolean } {
     const pas = totalPassive(f.state);
     if (pas.critChance > 0 && this.rng.chance(pas.critChance)) return { dmg: damage * 1.75, crit: true };
     return { dmg: damage, crit: false };
+  }
+
+  /** Lây lan (Dạng 3 Tinh Thông): hiệu ứng thiêu/độc/chậm lan sang kẻ địch trong 110 quanh mục tiêu. */
+  private spreadEffects(src: Fighter, x: number, y: number, exceptId: string): void {
+    if (this.evoStyle(src) !== 2) return;
+    for (const o of this.fighters) {
+      if (o === src || o.id === exceptId || !o.state.alive) continue;
+      if (Math.hypot(o.x - x, o.y - y) <= 110) this.applyOnHit(src, o);
+    }
+    for (const m of this.monsters) {
+      if (!m.alive || m.id === exceptId) continue;
+      if (Math.hypot(m.x - x, m.y - y) <= 110 + m.def.size) this.applyOnHit(src, m);
+    }
+  }
+
+  /** Hạ gục: Tinh Thông được giảm hồi chiêu. */
+  private onKill(killer: Fighter): void {
+    if (this.evoStyle(killer) !== 2) return;
+    for (const k of Object.keys(killer.cd) as SkillSlot[]) killer.cd[k] = Math.max(0, killer.cd[k] - 1.5);
   }
 
   private applyOnHit(src: Fighter, target: { slowPct: number; slowUntil: number; dotDps: number; dotUntil: number; dotSourceId: string | null; poisonDps: number; poisonUntil: number }): void {
@@ -943,9 +978,10 @@ export class Arena {
 
   private hitFighter(src: Fighter, target: Fighter, base: number, ev: ArenaEvent[], melee: boolean, isSkill: boolean | "ult"): void {
     const pvp = isSkill === "ult" ? PVP_ULT_MUL : isSkill ? PVP_SKILL_MUL : PVP_DAMAGE_MUL;
-    const { dmg, crit } = this.rollCrit(src, base * pvp);
+    const { dmg, crit } = this.rollCrit(src, base * pvp * this.directMul(src, target.state.hp / target.state.maxHp));
     const dealt = this.damageFighter(target, dmg, src, ev, "fighter", crit, false);
     this.applyOnHit(src, target);
+    this.spreadEffects(src, target.x, target.y, target.id);
     const pas = totalPassive(src.state);
     if (pas.lifesteal > 0 && src.state.alive) src.state.hp = Math.min(src.state.maxHp, src.state.hp + dealt * pas.lifesteal);
     // phản sát thương
@@ -967,6 +1003,13 @@ export class Arena {
     }
     s.hp -= dmg;
     target.combatUntil = this.time + 3;
+    // Khiên tử thủ (Dạng 3 Phòng Thủ): tụt dưới 40% máu → khiên 25% máu tối đa, 20 giây/lần
+    if (s.hp > 0 && s.hp < s.maxHp * 0.4 && this.time >= target.lastStandAt && this.evoStyle(target) === 1) {
+      target.lastStandAt = this.time + 20;
+      target.shieldHp = s.maxHp * 0.25;
+      target.shieldUntil = this.time + 5;
+      ev.push({ type: "fx", kind: "shield", x: target.x, y: target.y, radius: 40, color: 0xffe07a, ownerId: target.id });
+    }
     if (src) {
       target.lastHitBy = src.id;
       target.pvpUntil = this.time + 4;
@@ -1003,6 +1046,7 @@ export class Arena {
     const killerAlive = killer && killer.state.alive && killer !== victim ? killer : null;
     if (killerAlive) {
       killerAlive.state.kills += 1;
+      this.onKill(killerAlive);
       gainExpEv(this, killerAlive, 100 + 25 * s.level, ev);
       killerAlive.gold += 25;
       // nhặt một nửa bình máu của nạn nhân
@@ -1013,10 +1057,11 @@ export class Arena {
   }
 
   private hitMonster(src: Fighter, m: Monster, base: number, ev: ArenaEvent[]): void {
-    const { dmg, crit } = this.rollCrit(src, base);
+    const { dmg, crit } = this.rollCrit(src, base * this.directMul(src, m.hp / m.maxHp));
     m.hp -= dmg;
     m.aggroId = src.id;
     this.applyOnHit(src, m);
+    this.spreadEffects(src, m.x, m.y, m.id);
     const pas = totalPassive(src.state);
     if (pas.lifesteal > 0) src.state.hp = Math.min(src.state.maxHp, src.state.hp + dmg * pas.lifesteal);
     ev.push({ type: "hit", x: m.x, y: m.y, amount: Math.round(dmg), crit, targetId: m.id, sourceId: src.id });
@@ -1031,6 +1076,7 @@ export class Arena {
     ev.push({ type: "monster_killed", monsterId: m.id, killerId: killer.id, isBoss: m.def.isBoss });
     ev.push({ type: "fx", kind: "death", x: m.x, y: m.y, radius: m.def.size, color: m.def.color, ownerId: killer.id });
     if (!killer.state.alive) return;
+    this.onKill(killer);
     const loot = rollLoot(m.def.loot, this.rng);
     killer.gold += loot.gold;
     gainExpEv(this, killer, loot.exp, ev);

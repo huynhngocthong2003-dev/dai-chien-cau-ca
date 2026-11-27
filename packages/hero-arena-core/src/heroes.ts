@@ -1,4 +1,4 @@
-import type { Gender, GenderAppearance, HeroBaseStats, HeroBranch, HeroClassConfig, HeroEvolution, PassiveEffect, SkillDef, SkillKind } from "./types.ts";
+import type { DirectionRole, Gender, GenderAppearance, HeroBaseStats, HeroBranch, HeroClassConfig, HeroEvolution, PassiveEffect, SkillDef, SkillKind, StatMods } from "./types.ts";
 
 // 10 lớp, mỗi lớp là một cây tiến hoá (chỉ dữ liệu):
 //   Cấp 1–4  : Dạng 1 – nhân vật bình thường, mọi người như nhau.
@@ -44,13 +44,56 @@ function mix(c1: number, c2: number, t: number): number {
 }
 
 export const EVOLUTION_STYLE_VI = ["Tấn Công", "Phòng Thủ", "Tinh Thông"] as const;
+export const EVOLUTION_MECHANIC_VI = [
+  "Kết liễu: +40% sát thương lên mục tiêu dưới 30% máu",
+  "Khiên tử thủ: tụt dưới 40% máu tự bật khiên 25% máu tối đa (20 giây/lần)",
+  "Lây lan: hiệu ứng lan sang kẻ địch đứng cạnh; hạ gục giảm 1,5 giây hồi chiêu",
+] as const;
+export const ROLE_VI: Record<DirectionRole, string> = { effect: "Sát thương hiệu ứng", offense: "Công · Tốc · Chí mạng", defense: "Công – Thủ" };
+
+/** Mô tả ngắn điểm mạnh/yếu của một bộ đánh đổi chỉ số, ví dụ "Công +12% · Máu −12%". */
+export function modsText(m: StatMods): string {
+  const label: Array<[keyof StatMods, string]> = [
+    ["atkPct", "Công"],
+    ["hpPct", "Máu"],
+    ["burstPct", "Nổ"],
+    ["speedPct", "Tốc chạy"],
+    ["rangePct", "Tầm"],
+  ];
+  return label
+    .filter(([k]) => m[k])
+    .map(([k, l]) => `${l} ${m[k]! > 0 ? "+" : "−"}${Math.round(Math.abs(m[k]!) * 100)}%`)
+    .join(" · ");
+}
+
+/**
+ * Ngân sách chỉ số có đánh đổi (cùng bậc tổng sức mạnh tương đương):
+ * - hiệu ứng: DoT mạnh nhưng sát thương nổ 1 đòn thấp hơn, máu hơi thấp;
+ * - công/tốc/chí mạng: công cao, máu/giáp thấp (tầm xa được thêm tầm đánh);
+ * - công-thủ: máu & giáp cao, công & cơ động thấp.
+ */
+function roleOf(e: PassiveEffect): DirectionRole {
+  if ((e.damageReduction ?? 0) > 0 || (e.thorns ?? 0) > 0) return "defense";
+  if ((e.dotPct ?? 0) > 0 || (e.poisonPct ?? 0) > 0 || (e.slowPct ?? 0) >= 0.15) return "effect";
+  if ((e.lifesteal ?? 0) >= 0.1) return "defense";
+  return "offense";
+}
+
+function roleMods(role: DirectionRole, ranged: boolean): StatMods {
+  if (role === "effect") return { burstPct: -0.15, hpPct: -0.05 };
+  if (role === "offense") return ranged ? { atkPct: 0.12, hpPct: -0.12, rangePct: 0.08 } : { atkPct: 0.12, hpPct: -0.12 };
+  return { hpPct: 0.18, atkPct: -0.12, speedPct: -0.06 };
+}
+
+const STYLE_MODS: StatMods[] = [{ atkPct: 0.08, hpPct: -0.06 }, { hpPct: 0.15, atkPct: -0.05 }, {}];
 
 /** 3 hướng Dạng 3 sinh từ Dạng 2: tấn công (chí mạng, tốc đánh), phòng thủ (giảm sát thương, hút máu), tinh thông (nhân đôi hiệu ứng). */
 function evolutions(dirId: string, dirName: string, color: number, base: PassiveEffect, names: [string, string, string], ults: [string, string, string]): [HeroEvolution, HeroEvolution, HeroEvolution] {
+  // Dạng 3 mở CƠ CHẾ (kết liễu / khiên tử thủ / lây lan) nên chỉ số thô chỉ cộng vừa phải
   const effects: PassiveEffect[] = [
-    add({ critChance: 0.12, attackSpeedPct: 0.1 }, scale(base, 0.5)),
-    add({ damageReduction: 0.14, lifesteal: 0.06 }, scale(base, 0.3)),
-    add({ critChance: 0.05 }, scale(base, 1)),
+    add({ critChance: 0.08, attackSpeedPct: 0.06 }, scale(base, 0.4)),
+    add({ damageReduction: 0.1, lifesteal: 0.04 }, scale(base, 0.25)),
+    add({ critChance: 0.03 }, scale(base, 0.7)),
   ];
   const descs = [
     `Hướng tấn công của ${dirName}: chí mạng và tốc đánh cao.`,
@@ -67,6 +110,7 @@ function evolutions(dirId: string, dirName: string, color: number, base: Passive
       descVi: descs[i] ?? "",
       color: colors[i] ?? color,
       style: i,
+      mods: STYLE_MODS[i] ?? {},
       passive: { id: `${id}_passive`, nameVi: `${EVOLUTION_STYLE_VI[i]} · ${name}`, effect: effects[i] ?? {} },
       ultimate: sk(slug(ult), ult, "storm"),
       awakening: sk(`awakened_${slug(ult)}`, `${ult} · Thức Tỉnh`, "storm"),
@@ -74,18 +118,21 @@ function evolutions(dirId: string, dirName: string, color: number, base: Passive
   }) as [HeroEvolution, HeroEvolution, HeroEvolution];
 }
 
-function dirs(heroId: string, rows: [DirRow, DirRow, DirRow]): [HeroBranch, HeroBranch, HeroBranch] {
+function dirs(heroId: string, ranged: boolean, rows: [DirRow, DirRow, DirRow]): [HeroBranch, HeroBranch, HeroBranch] {
   return rows.map(([id, name, desc, color, [pName, pEff], s1, s2, s3, evoNames, ults, look], form) => {
     const appearances: Record<Gender, GenderAppearance> = {
       male: { gender: "male", spriteKey: `${heroId}_${id}_male`, visualNotes: look },
       female: { gender: "female", spriteKey: `${heroId}_${id}_female`, visualNotes: look },
     };
+    const role = roleOf(pEff);
     return {
       id,
       name,
       descVi: desc,
       color,
       form,
+      role,
+      mods: roleMods(role, ranged),
       passive: { id: `${id}_passive`, nameVi: pName, effect: pEff },
       skills: [sk(slug(s1[0]), s1[0], s1[1]), sk(slug(s2), s2, "dash"), sk(slug(s3[0]), s3[0], s3[1])],
       evolutions: evolutions(id, name, color, pEff, evoNames, ults),
@@ -95,7 +142,7 @@ function dirs(heroId: string, rows: [DirRow, DirRow, DirRow]): [HeroBranch, Hero
 }
 
 function hero(id: string, nameVi: string, baseNameVi: string, roleVi: string, ranged: boolean, attackRange: number, baseStats: HeroBaseStats, base: [string, K], rows: [DirRow, DirRow, DirRow]): HeroClassConfig {
-  return { id, name: id, nameVi, baseNameVi, roleVi, ranged, attackRange, baseStats, baseSkill: sk(slug(base[0]), base[0], base[1]), branches: dirs(id, rows) };
+  return { id, name: id, nameVi, baseNameVi, roleVi, ranged, attackRange, baseStats, baseSkill: sk(slug(base[0]), base[0], base[1]), branches: dirs(id, ranged, rows) };
 }
 
 const st = (hp: number, mana: number, stamina: number, moveSpeed: number, attackPower: number): HeroBaseStats => ({ hp, mana, stamina, moveSpeed, attackPower });

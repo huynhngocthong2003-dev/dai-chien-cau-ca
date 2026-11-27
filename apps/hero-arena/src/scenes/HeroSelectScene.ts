@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { HEROES, heroById, passiveText, type Gender } from "@hero-arena/core";
+import { HEROES, heroById, modsText, passiveText, ROLE_VI, type Gender } from "@hero-arena/core";
 import { addHeroImage, breathe, skillIcon } from "../heroArt.ts";
 import { getSave, persist } from "../state.ts";
 import { button, H, hex, panel, text, W } from "../ui.ts";
@@ -77,7 +77,7 @@ export class HeroSelectScene extends Phaser.Scene {
       breathe(this, add(addHeroImage(this, x + 99, 300, h.id, br.id, null, 0.78)));
       add(text(this, x + 99, 302, br.name, 21, hex(br.color)).setOrigin(0.5, 0));
       add(text(this, x + 99, 330, br.descVi, 13, "#d8d0c0", 500).setOrigin(0.5, 0).setWordWrapWidth(186).setAlign("center"));
-      add(text(this, x + 99, 366, passiveText(br.passive.effect), 13, "#ffcf5a", 500).setOrigin(0.5, 0).setWordWrapWidth(186).setAlign("center"));
+      add(text(this, x + 99, 366, `${ROLE_VI[br.role]}: ${passiveText(br.passive.effect)}\n${modsText(br.mods)}`, 12, "#ffcf5a", 500).setOrigin(0.5, 0).setWordWrapWidth(186).setAlign("center"));
       br.skills.forEach((sk, j) => {
         add(this.add.image(x + 46 + j * 53, 410, skillIcon(this, sk.kind, br.color)).setDisplaySize(30, 30));
       });

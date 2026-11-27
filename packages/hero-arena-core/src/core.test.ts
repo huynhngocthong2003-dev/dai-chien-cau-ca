@@ -75,7 +75,8 @@ describe("cấp độ & nhánh chuyên môn", () => {
     const hpBefore = p.maxHp;
     expect(chooseSpecializationBranch(p, "flame_blade", rng)).toBe(true);
     expect(p.specializationLocked).toBe(true);
-    expect(p.maxHp).toBe(hpBefore + 120);
+    // Hỏa Kiếm là hướng hiệu ứng: +120 máu rồi −5% (đánh đổi)
+    expect(p.maxHp).toBe(Math.round((hpBefore + 120) * 0.95));
     expect(chooseSpecializationBranch(p, "inferno_armor", rng)).toBe(false);
     expect(p.branchId).toBe("flame_blade");
     expect(getActiveSpriteKey(p)).toBe("fighter_flame_blade_male");
@@ -140,8 +141,8 @@ describe("cấp độ & nhánh chuyên môn", () => {
     expect(hero.branches[0].evolutions.map((e) => e.name)).toEqual(["Xạ Hỏa Pháp Sư", "Ma Pháp Núi Lửa", "Hỏa Thần Pháp"]);
     expect(skillFor(hero, p, "ult")?.nameVi).toBe("Phượng Hoàng Lửa");
     expect(getActiveSpriteKey(p)).toBe("mage_fire_mage_mst_male");
-    // bị động cộng dồn: Dạng 2 (thiêu 14%) + Tinh Thông (thêm 14%)
-    expect(totalPassive(p).dotPct).toBeCloseTo(0.28);
+    // bị động cộng dồn: Dạng 2 (thiêu 14%) + Tinh Thông (thêm 70% của 14%)
+    expect(totalPassive(p).dotPct).toBeCloseTo(0.14 + 0.098);
     gainExp(p, 1e9, rng);
     expect(skillFor(hero, p, "ult")?.nameVi).toBe("Phượng Hoàng Lửa · Thức Tỉnh");
   });
@@ -418,5 +419,97 @@ describe("nút đánh quái / phá vật", () => {
     expect(pr).not.toBeNull();
     const prop = a.props.find((x) => x.id === pr!.id)!;
     expect(prop.maxHp).toBeGreaterThan(0);
+  });
+});
+
+describe("cân bằng theo bậc (ngân sách chỉ số có đánh đổi)", () => {
+  function lv5(heroId: string, branchId: string) {
+    const rng = new Rng(9);
+    const p = createMatchPlayer("p", "A", heroId, "male");
+    gainExp(p, expTo(5), rng);
+    chooseSpecializationBranch(p, branchId, rng);
+    return p;
+  }
+
+  it("mỗi hướng Dạng 2 có vai trò & điểm yếu: công thì máu thấp, thủ thì công thấp, hiệu ứng thì nổ thấp", () => {
+    for (const h of HEROES) {
+      for (const b of h.branches) {
+        const p = lv5(h.id, b.id);
+        if (b.role === "offense") {
+          expect(p.bonus.attackPct).toBeGreaterThan(0);
+          expect(b.mods.hpPct ?? 0).toBeLessThan(0);
+        } else if (b.role === "defense") {
+          expect(b.mods.hpPct ?? 0).toBeGreaterThan(0);
+          expect(p.bonus.attackPct).toBeLessThan(0);
+        } else {
+          expect(p.bonus.burstPct).toBeLessThan(0);
+          const e = b.passive.effect;
+          expect((e.dotPct ?? 0) + (e.poisonPct ?? 0) + (e.slowPct ?? 0)).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it("cùng lớp: hướng thủ trâu hơn hướng công/hiệu ứng", () => {
+    for (const h of HEROES) {
+      const def = h.branches.filter((b) => b.role === "defense");
+      const other = h.branches.filter((b) => b.role !== "defense");
+      for (const d of def) for (const o of other) expect(lv5(h.id, d.id).maxHp).toBeGreaterThan(lv5(h.id, o.id).maxHp);
+    }
+  });
+
+  it("Dạng 3 mở cơ chế: Kết liễu, Khiên tử thủ (20 giây/lần), Lây lan", () => {
+    const mk = (branch: string, evo: string) => {
+      const a = new Arena({ seed: 91, playerName: "Tôi", heroId: "fighter", gender: "male", players: 3 });
+      for (const m of a.monsters) m.alive = false;
+      const p = a.player;
+      gainExp(p.state, expTo(10), a.rng);
+      a.chooseBranch(p.id, branch);
+      a.chooseEvolution(p.id, evo);
+      while (p.state.pendingOffers.length) a.chooseUpgrade(p.id, p.state.pendingOffers[0]![0]!.id);
+      for (const f of a.fighters.slice(1)) {
+        f.bot = null;
+        f.x = p.x + 60;
+        f.y = p.y;
+      }
+      a.fighters[2]!.y = p.y + 40;
+      return a;
+    };
+    // Khiên tử thủ: tụt dưới 40% máu → khiên, không bật lại ngay
+    const a1 = mk("sword_shield", "sword_shield_def");
+    const p1 = a1.player;
+    expect(a1.evoStyle(p1)).toBe(1);
+    p1.state.hp = p1.state.maxHp * 0.42;
+    a1.fighters[1]!.state.hp = 1e6;
+    a1.fighters[1]!.state.maxHp = 1e6;
+    for (let i = 0; i < 400 && p1.shieldHp === 0; i++) a1.tick(1 / 60, { moveX: 0, moveY: 0, attack: false, cast: null, usePotion: false });
+    // cho đối thủ đánh: dùng chính hàm trúng đòn qua vùng bo
+    a1.zone.centerX = 0;
+    a1.zone.centerY = 0;
+    a1.zone.radius = 1;
+    a1.zone.phase = "done";
+    a1.zone.dps = 30;
+    p1.protectUntil = 0;
+    let shields = 0;
+    let prev = 0;
+    for (let i = 0; i < 300; i++) {
+      a1.tick(1 / 60, { moveX: 0, moveY: 0, attack: false, cast: null, usePotion: false });
+      if (p1.shieldHp > prev + 1) shields++;
+      prev = p1.shieldHp;
+    }
+    // bo không bị khiên chặn nhưng vẫn kích hoạt khiên đúng 1 lần trong 5 giây
+    expect(shields).toBe(1);
+    // Lây lan: đánh một đối thủ, đối thủ đứng cạnh cũng dính thiêu đốt
+    const a2 = mk("flame_blade", "flame_blade_mst");
+    const p2 = a2.player;
+    expect(a2.evoStyle(p2)).toBe(2);
+    const t1 = a2.fighters[1]!;
+    const t2 = a2.fighters[2]!;
+    t2.x = t1.x + 50;
+    t2.y = t1.y;
+    t1.state.hp = t1.state.maxHp = 1e6;
+    t2.state.hp = t2.state.maxHp = 1e6;
+    for (let i = 0; i < 60; i++) a2.tick(1 / 60, { moveX: 0, moveY: 0, attack: true, cast: null, usePotion: false, aimX: t1.x, aimY: t1.y });
+    expect(t2.dotUntil).toBeGreaterThan(a2.time);
   });
 });

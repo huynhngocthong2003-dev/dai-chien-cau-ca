@@ -10,6 +10,9 @@ import {
   type NetTargets,
   type Snapshot,
   EVOLUTION_STYLE_VI,
+  EVOLUTION_MECHANIC_VI,
+  ROLE_VI,
+  modsText,
   passiveText,
   ALTAR_RADIUS,
   BIOME_NAME_VI,
@@ -1578,13 +1581,13 @@ export class ArenaScene extends Phaser.Scene {
       hero.branches.forEach((br, i) => {
         const x = 70 + i * 390;
         c.add(panel(this, x, 140, 360, 520));
-        c.add(text(this, x + 180, 150, `HƯỚNG ${i + 1}`, 18, hex(br.color)).setOrigin(0.5, 0));
+        c.add(text(this, x + 180, 150, `HƯỚNG ${i + 1} · ${ROLE_VI[br.role].toUpperCase()}`, 18, hex(br.color)).setOrigin(0.5, 0));
         const fig = addHeroImage(this, x + 180, 342, hero.id, br.id, null, 1.15);
         c.add(fig);
         breathe(this, fig);
         c.add(text(this, x + 180, 346, br.name, 30, hex(br.color)).setOrigin(0.5, 0));
         c.add(text(this, x + 180, 384, br.descVi, 17, "#e8e0d0", 500).setOrigin(0.5, 0).setWordWrapWidth(320).setAlign("center"));
-        c.add(text(this, x + 24, 432, `Bị động: ${br.passive.nameVi}\nQ ${br.skills[0].nameVi} · E ${br.skills[1].nameVi} · R ${br.skills[2].nameVi}\nCấp 10 → ${br.evolutions.map((e) => e.name).join(" / ")}`, 16, "#d8d0c0", 500).setWordWrapWidth(320));
+        c.add(text(this, x + 24, 432, `Bị động: ${br.passive.nameVi}\n${modsText(br.mods)}\nQ ${br.skills[0].nameVi} · E ${br.skills[1].nameVi} · R ${br.skills[2].nameVi}\nCấp 10 → ${br.evolutions.map((e) => e.name).join(" / ")}`, 16, "#d8d0c0", 500).setWordWrapWidth(320));
         c.add(
           button(this, x + 180, 610, 260, 60, "Chọn dạng này", () => {
             if (this.choose(0, br.id)) {
@@ -1614,7 +1617,7 @@ export class ArenaScene extends Phaser.Scene {
         breathe(this, fig);
         c.add(text(this, x + 180, 358, evo.name, 28, hex(evo.color)).setOrigin(0.5, 0).setWordWrapWidth(330).setAlign("center"));
         c.add(text(this, x + 180, 396, evo.descVi, 16, "#e8e0d0", 500).setOrigin(0.5, 0).setWordWrapWidth(320).setAlign("center"));
-        c.add(text(this, x + 24, 446, `${passiveText(evo.passive.effect)}\nTối thượng: ${evo.ultimate.nameVi}${hasRealArt(hero.id, br.id, evo.id) ? "" : "\n(hình tạm – chờ ảnh nhân vật)"}`, 16, "#d8d0c0", 500).setWordWrapWidth(320));
+        c.add(text(this, x + 24, 446, `${EVOLUTION_MECHANIC_VI[evo.style] ?? ""}\n${[modsText(evo.mods), passiveText(evo.passive.effect)].filter(Boolean).join(" · ")}\nTối thượng: ${evo.ultimate.nameVi}${hasRealArt(hero.id, br.id, evo.id) ? "" : "\n(hình tạm – chờ ảnh nhân vật)"}`, 16, "#d8d0c0", 500).setWordWrapWidth(320));
         c.add(
           button(this, x + 180, 616, 260, 58, "Tiến hoá", () => {
             if (this.choose(1, evo.id)) this.note(`TIẾN HOÁ: ${evo.name}!`, hex(evo.color));

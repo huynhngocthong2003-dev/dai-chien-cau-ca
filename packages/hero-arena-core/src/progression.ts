@@ -1,6 +1,6 @@
 import { branchById, evolutionById, heroById, HEROES } from "./heroes.ts";
 import type { Rng } from "./rng.ts";
-import type { Gender, PassiveEffect, PlayerMatchState, Rarity, UpgradeChoice, UpgradeDef } from "./types.ts";
+import type { Gender, PassiveEffect, PlayerMatchState, Rarity, StatMods, UpgradeChoice, UpgradeDef } from "./types.ts";
 
 // Hệ thống cấp độ trong trận: cấp 1 → 15, khóa nhánh ở cấp 5, chọn 1 trong 3 thẻ khi lên cấp.
 
@@ -121,7 +121,7 @@ export function createMatchPlayer(playerId: string, name: string, heroId: string
     pendingOffers: [],
     needsBranch: false,
     needsEvolution: false,
-    bonus: { attackPct: 0, cooldownPct: 0, skillDamagePct: 0 },
+    bonus: { attackPct: 0, cooldownPct: 0, skillDamagePct: 0, burstPct: 0, speedPct: 0, rangePct: 0 },
     passive: emptyPassive(),
   };
 }
@@ -184,6 +184,15 @@ export function gainExp(p: PlayerMatchState, amount: number, rng: Rng): ExpResul
   return res;
 }
 
+/** Áp đánh đổi chỉ số của một hướng/nhánh (âm là điểm yếu). */
+function applyMods(p: PlayerMatchState, m: StatMods): void {
+  if (m.hpPct) p.maxHp = Math.max(100, Math.round(p.maxHp * (1 + m.hpPct)));
+  p.bonus.attackPct += m.atkPct ?? 0;
+  p.bonus.burstPct += m.burstPct ?? 0;
+  p.bonus.speedPct += m.speedPct ?? 0;
+  p.bonus.rangePct += m.rangePct ?? 0;
+}
+
 /** Khóa nhánh chuyên môn (chỉ một lần, từ cấp 5). */
 export function chooseSpecializationBranch(p: PlayerMatchState, branchId: string, rng: Rng): boolean {
   if (p.specializationLocked) return false;
@@ -195,6 +204,7 @@ export function chooseSpecializationBranch(p: PlayerMatchState, branchId: string
   p.specializationLocked = true;
   p.needsBranch = false;
   p.maxHp += BRANCH_HP_BONUS;
+  applyMods(p, br.mods);
   p.hp = p.maxHp;
   p.pendingOffers.push(rollRandom3Choices(p, rng));
   // chọn Dạng 2 muộn (đã quá cấp 10) → phải chọn tiếp Dạng 3
@@ -211,6 +221,7 @@ export function chooseEvolution(p: PlayerMatchState, evolutionId: string, rng: R
   p.evolutionId = evo.id;
   p.needsEvolution = false;
   p.maxHp += EVOLUTION_HP_BONUS;
+  applyMods(p, evo.mods);
   p.hp = p.maxHp;
   p.pendingOffers.push(rollRandom3Choices(p, rng));
   return true;
