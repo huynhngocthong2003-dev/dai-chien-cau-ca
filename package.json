@@ -21,7 +21,7 @@
     "test:db": "bash tests/db/run.sh",
     "dev:arena": "pnpm --filter @hero-arena/client dev",
     "build:arena": "pnpm --filter @hero-arena/client build:single && node scripts/make-artifact.mjs apps/hero-arena",
-    "test:e2e:arena": "node tests/e2e/hero-arena.mjs"
+    "test:e2e:arena": "node tests/e2e/hero-arena.mjs && node tests/e2e/hero-arena-mp.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

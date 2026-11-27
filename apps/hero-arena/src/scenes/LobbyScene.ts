@@ -55,6 +55,7 @@ export class LobbyScene extends Phaser.Scene {
     side(150, "🎁 Quà Tặng", "gift");
     side(235, "✉ Hòm Thư", "mail");
     side(320, "📘 Hướng Dẫn", "tutorial");
+    button(this, 1130, 420, 230, 72, "👥 Vào phòng bạn", () => this.scene.start("Multiplayer", { auto: false }), 0xc8461e, 24);
   }
 
   private drawHud(): void {

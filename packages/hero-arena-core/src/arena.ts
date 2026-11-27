@@ -218,6 +218,13 @@ export interface ArenaConfig {
   bonusPotions?: number;
   /** Số người (mặc định 20 = 1 người + 19 máy). */
   players?: number;
+  /**
+   * Chơi chung: danh sách người chơi thật (theo thứ tự cố định để mọi máy dựng trận giống nhau).
+   * Có danh sách này thì playerName/heroId/gender ở trên bị bỏ qua; máy lấp cho đủ `players`.
+   */
+  humans?: Array<{ id: string; name: string; heroId: string }>;
+  /** Người chơi thật trên máy này (camera theo, điều khiển). Mặc định: người đầu tiên. */
+  localId?: string;
 }
 
 const BOT_NAMES = [
@@ -255,7 +262,7 @@ export class Arena {
   private propGrid: PropGrid = new PropGrid([]);
   /** Điểm hồi sinh – mỗi trận một bộ vị trí ngẫu nhiên theo seed. */
   readonly respawnPoints: Array<{ x: number; y: number }> = [];
-  readonly playerId = "p0";
+  readonly playerId: string;
   time = 0;
   finished = false;
   winnerId: string | null = null;
@@ -266,10 +273,15 @@ export class Arena {
     this.rng = new Rng(cfg.seed);
     this.zone = createZone(this.rng);
     const total = Math.min(MAX_PLAYERS, Math.max(2, cfg.players ?? MAX_PLAYERS));
-    // Người chơi
-    this.addFighter(this.playerId, cfg.playerName, cfg.heroId, cfg.gender, false, Math.min(3, cfg.bonusPotions ?? 0));
-    // 19 đối thủ máy
-    for (let i = 1; i < total; i++) {
+    // Người chơi thật (1 người khi chơi một mình, nhiều người khi chơi chung)
+    const humans = cfg.humans?.length ? cfg.humans.slice(0, total) : [{ id: "p0", name: cfg.playerName, heroId: cfg.heroId }];
+    this.playerId = cfg.localId && humans.some((h) => h.id === cfg.localId) ? cfg.localId : (humans[0]?.id ?? "p0");
+    for (const h of humans) {
+      const potions = h.id === this.playerId ? Math.min(3, cfg.bonusPotions ?? 0) : 0;
+      this.addFighter(h.id, h.name, heroById(h.heroId) ? h.heroId : "fighter", cfg.gender, false, potions);
+    }
+    // máy lấp cho đủ chỗ
+    for (let i = humans.length; i < total; i++) {
       const hero = this.rng.pick(HEROES);
       const gender: Gender = this.rng.chance(0.5) ? "male" : "female";
       this.addFighter(`b${i}`, BOT_NAMES[i % BOT_NAMES.length] ?? `Máy ${i}`, hero.id, gender, true, 0);
@@ -284,7 +296,7 @@ export class Arena {
   }
 
   get player(): Fighter {
-    return this.fighters[0] as Fighter;
+    return (this.fighterById(this.playerId) ?? this.fighters[0]) as Fighter;
   }
 
   getAliveCount(): number {
@@ -458,6 +470,11 @@ export class Arena {
 
   // ------------------------------------------------------------------ vòng tick
   tick(dt: number, playerInput: FighterInput): ArenaEvent[] {
+    return this.tickMulti(dt, { [this.playerId]: playerInput });
+  }
+
+  /** Một bước mô phỏng với thao tác của nhiều người chơi thật (theo id đấu thủ). */
+  tickMulti(dt: number, inputs: Record<string, FighterInput>): ArenaEvent[] {
     const ev: ArenaEvent[] = [];
     if (this.finished) return ev;
     this.time += dt;
@@ -471,7 +488,7 @@ export class Arena {
     }
     for (const f of this.fighters) {
       if (!f.state.alive) continue;
-      const input = f.bot ? this.botThink(f, dt) : playerInput;
+      const input = f.bot ? this.botThink(f, dt) : (inputs[f.id] ?? IDLE_INPUT);
       this.updateFighter(f, input, dt, ev);
     }
     this.updateMonsters(dt, ev);
@@ -512,7 +529,8 @@ export class Arena {
     return ev;
   }
 
-  private speedOf(f: Fighter): number {
+  /** Tốc chạy hiện tại (máy khách dùng để đoán trước chuyển động khi chơi chung). */
+  speedOf(f: Fighter): number {
     const pas = totalPassive(f.state);
     const eqSpeed = (f.equipped.weapon?.bonusMoveSpeed ?? 0) + (f.equipped.armor?.bonusMoveSpeed ?? 0) + (f.equipped.accessory?.bonusMoveSpeed ?? 0);
     const hz = HAZARD_EFFECTS[f.state.activeHazard];

@@ -1,5 +1,16 @@
 # Changelog
 
+## [HERO ARENA 0.3.0] – 2026-11-27 – Chơi chung, vật thể phá được, vung vũ khí
+### Thêm mới
+- **Chơi chung thời gian thực**: VÀO TRẬN → chọn anh hùng → màn **mời bạn** (phòng tự tạo, mã mời, sao chép mã) → người chơi bấm **Bắt đầu** khi có từ 2 người; máy lấp cho đủ 20. "Vào phòng bạn" để nhập mã. Máy chủ phòng chạy trận, phát ảnh chụp ~15 lần/giây qua kênh `room` của trang; người khác gửi thao tác, tự đoán trước chuyển động của mình. Có "Chơi một mình".
+- **Vật thể trên bản đồ**: cây, đá, thùng… phá được (rơi vàng/KN/bình máu); nhà, giếng, cổng, tường, cột, tượng, núi là công trình không phá được, chắn đường & đạn.
+- **Nút QUÁI (Z) / PHÁ (X)** kiểu Liên Quân; tự khoá mục tiêu + tự chạy tới khi giữ nút đánh.
+- **Tay + vũ khí tách lớp**: chém (kiếm) và vung gậy (trượng) thật sự, giật khi bắn cung/súng, giơ cao khi tung chiêu, đung đưa khi chạy.
+- Cây tiến hoá **Đấu Sĩ** đủ 13 hình (tạo bằng Gemini 3 Pro Image qua ElevenLabs).
+### Thay đổi
+- Kỹ năng mạnh hơn ~1,5 lần, chiêu tối thượng mạnh nhất (~2 lần); hạ gục nhanh hơn.
+- Mô phỏng 60 lần/giây; nhân vật quay theo hướng đi/đánh; bỏ quầng sáng quanh Trợ Thủ & Pháp Sư Dạng 1.
+
 ## [HERO ARENA 0.2.0] – 2026-11-26 – Cây tiến hoá pixel-art, hồi sinh đầu trận, bản đồ pixel
 ### Thay đổi theo góp ý chủ dự án
 - **10 lớp** (Đấu Sĩ, Trợ Thủ, Xạ Thủ, Pháo Thủ, Sát Thủ, Hỗ Trợ, Triệu Hồi Sư, Kiếm Khách, Pháp Sư, Tiên Tri), mỗi lớp là **cây tiến hoá**: Dạng 1 (cấp 1–4) → cấp 5 chọn 1 trong **3 hướng Dạng 2** cùng cấp bậc (thiêu đốt / nhiễm độc / làm chậm / hút máu / công-thủ…) → cấp 10 chọn 1 trong **3 Dạng 3 của hướng đó** (Tấn Công / Phòng Thủ / Tinh Thông, mở chiêu tối thượng) → cấp 15 thức tỉnh. 30 hướng Dạng 2, 90 hướng Dạng 3.

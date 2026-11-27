@@ -1,6 +1,14 @@
 import Phaser from "phaser";
 import {
   Arena,
+  applySnapshot,
+  IDLE_INPUT,
+  encodeInput,
+  encodeSnapshot,
+  EventLog,
+  RemoteInput,
+  type NetTargets,
+  type Snapshot,
   EVOLUTION_STYLE_VI,
   passiveText,
   ALTAR_RADIUS,
@@ -35,8 +43,9 @@ import {
 import { dotTexture, makeMonsterTextures, monsterTexture, vignetteTexture } from "../art.ts";
 import { decoTexture, type DecoKind } from "../decoArt.ts";
 import { TERRAIN_SCALE, terrainTexture } from "../terrain.ts";
-import { addHeroImage, breathe, evolutionScale, evolutionTier, hasRealArt, heroArtKey, heroTex, HERO_FIGURE_H, nativeFacing, setHeroImage, skillIcon, walkFrameKey, WALK_FRAMES } from "../heroArt.ts";
+import { addHeroImage, armRig, breathe, evolutionScale, evolutionTier, hasRealArt, heroArtKey, heroTex, HERO_FIGURE_H, nativeFacing, setHeroImage, skillIcon, walkFrameKey, WALK_FRAMES, type ArmRig } from "../heroArt.ts";
 import { getSave, newMatchSeed, persist } from "../state.ts";
+import { leaveNet, netSession, type NetSession } from "../net/room.ts";
 import { button, H, hex, panel, pixelBox, pixelCircle, PX, text, toast, W } from "../ui.ts";
 
 /** Bước mô phỏng 60 lần/giây – khớp tốc độ khung hình, chuyển động mượt. */
@@ -60,6 +69,9 @@ const BIOME_GROUND: Record<BiomeType, DecoKind[]> = {
   mountain: ["snowdrift", "pebbles"],
   glacier: ["snowdrift", "pebbles"],
 };
+
+/** Lớp cầm gậy/trượng – đánh thường là vung gậy. */
+const STAFF_CLASSES = new Set(["helper", "mage", "support", "summoner", "seer"]);
 
 /** Màu mảnh vỡ khi phá vật. */
 const PROP_DEBRIS: Partial<Record<PropKind, number>> = {
@@ -86,7 +98,7 @@ interface FighterView {
   texKey: string;
   texFrame: number | undefined;
   /** Hành động đang diễn: chém / bắn / tung chiêu / tối thượng. */
-  act: { kind: "melee" | "shot" | "cast" | "ult"; t: number; dur: number; dx: number; dy: number; color: number } | null;
+  act: { kind: "melee" | "wave" | "shot" | "cast" | "ult"; t: number; dur: number; dx: number; dy: number; color: number } | null;
   /** Trúng đòn: thời gian còn lại + hướng bị đẩy. */
   hit: number;
   hitDx: number;
@@ -96,6 +108,10 @@ interface FighterView {
   /** Hướng đang quay mặt (1 phải, -1 trái) và thời gian còn lại của động tác quay người. */
   dir: 1 | -1;
   turn: number;
+  /** Lớp tay + vũ khí (xoay quanh vai khi đánh) và cách tách hình hiện tại. */
+  arm: Phaser.GameObjects.Image;
+  rig: ArmRig | null;
+  armAngle: number;
   aura: Phaser.GameObjects.Particles.ParticleEmitter | null;
   auraKey: string;
 }
@@ -153,6 +169,23 @@ export class ArenaScene extends Phaser.Scene {
   private pendingPotion = false;
   private dmgPool: Phaser.GameObjects.Text[] = [];
   private dust!: Phaser.GameObjects.Particles.ParticleEmitter;
+  // ---- chơi chung ----
+  private net: NetSession | null = null;
+  private eventLog = new EventLog();
+  private remoteInputs = new Map<string, RemoteInput>();
+  private snapTimer = 0;
+  private lastSnapT = -1;
+  private lastSeq = 0;
+  private netTargets: NetTargets | null = null;
+  private castSeq = 0;
+  private lastCastSlot: SkillSlot | null = null;
+  private potionSeq = 0;
+  private choiceSeq = 0;
+  private lastChoice: [number, number, string] | null = null;
+  private choiceWaitUntil = 0;
+  private inputTimer = 0;
+  private hostGoneSince = 0;
+  private spectating = false;
   private propViews = new Map<string, Phaser.GameObjects.Image>();
   private lastStep = new Map<string, number>();
 
@@ -160,17 +193,37 @@ export class ArenaScene extends Phaser.Scene {
     super("Arena");
   }
 
-  init(data: { heroId?: string; gender?: Gender }): void {
+  init(data: { heroId?: string; gender?: Gender; net?: boolean }): void {
     this.heroId = data.heroId ?? "mage";
     this.gender = data.gender ?? "male";
+    this.net = data.net ? netSession() : null;
   }
 
   create(): void {
     const save = getSave();
-    const seed = newMatchSeed();
-    this.matchId = `${seed.toString(36)}_${Date.now().toString(36)}`;
-    this.storePotions = potionsAvailable(save);
-    this.arena = new Arena({ seed, playerName: save.name, heroId: this.heroId, gender: this.gender, bonusPotions: this.storePotions });
+    const net = this.net;
+    const seed = net?.seed ?? newMatchSeed();
+    this.matchId = net ? `mp_${net.code}_${seed.toString(36)}` : `${seed.toString(36)}_${Date.now().toString(36)}`;
+    // chơi chung: không mang bình máu kho vào trận (công bằng cho mọi người)
+    this.storePotions = net ? 0 : potionsAvailable(save);
+    this.arena = new Arena({
+      seed, playerName: save.name, heroId: this.heroId, gender: this.gender, bonusPotions: this.storePotions,
+      humans: net?.humans.map((h) => ({ id: h.id, name: h.name, heroId: h.heroId })),
+      localId: net?.localId,
+    });
+    this.eventLog = new EventLog();
+    this.remoteInputs.clear();
+    this.snapTimer = 0;
+    this.lastSnapT = -1;
+    this.lastSeq = 0;
+    this.netTargets = null;
+    this.castSeq = 0;
+    this.potionSeq = 0;
+    this.choiceSeq = 0;
+    this.lastChoice = null;
+    this.choiceWaitUntil = 0;
+    this.hostGoneSince = 0;
+    this.spectating = false;
     this.acc = 0;
     this.ending = false;
     this.timeScale = 1;
@@ -202,9 +255,11 @@ export class ArenaScene extends Phaser.Scene {
       const phase = this.fighterViews.size * 0.7;
       const name = text(this, f.x, f.y, f.isBot ? f.state.name : `★ ${f.state.name}`, 15, f.isBot ? "#f0e0d0" : "#ffe14a").setOrigin(0.5, 1);
       const glow = this.add.image(f.x, f.y, img.texture.key, img.frame.name).setOrigin(0.5, 0.97).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+      const arm = this.add.image(f.x, f.y, img.texture.key, img.frame.name).setVisible(false);
       this.fighterViews.set(f.id, {
         img, name, key, lunge: 0, flash: 0, phase, scale: evolutionScale(1), aura: null, auraKey: "",
-        texKey: heroTex(this, f.state.heroId, null, null).key, texFrame: heroTex(this, f.state.heroId, null, null).frame, act: null, hit: 0, hitDx: 0, hitDy: 0, glow, dir: 1, turn: 0,
+        texKey: heroTex(this, f.state.heroId, null, null).key, texFrame: heroTex(this, f.state.heroId, null, null).frame, act: null, hit: 0, hitDx: 0, hitDy: 0, glow, dir: 1, turn: 0, arm, armAngle: 0,
+        rig: armRig(this, heroTex(this, f.state.heroId, null, null).key, heroTex(this, f.state.heroId, null, null).frame),
       });
     }
     this.ringG = this.add.graphics().setDepth(1);
@@ -398,6 +453,11 @@ export class ArenaScene extends Phaser.Scene {
     }
     const attack = this.attackHeld.size > 0 || !!k?.SPACE?.isDown || !!k?.J?.isDown || !!k?.Z?.isDown || !!k?.X?.isDown;
     const input: FighterInput = { moveX: mx, moveY: my, attack, cast: this.pendingCast, usePotion: this.pendingPotion, targetMode: this.currentMode() };
+    if (this.pendingCast) {
+      this.castSeq++;
+      this.lastCastSlot = this.pendingCast;
+    }
+    if (this.pendingPotion) this.potionSeq++;
     this.pendingCast = null;
     this.pendingPotion = false;
     return input;
@@ -406,26 +466,193 @@ export class ArenaScene extends Phaser.Scene {
   // ------------------------------------------------------------------ vòng lặp
   override update(_t: number, deltaMs: number): void {
     const a = this.arena;
-    if (!this.ending && a.playerNeedsChoice() && !a.player.bot) {
-      if (!this.modal) this.openChoice();
+    const real = this.game.loop.rawDelta || deltaMs;
+    if (this.net?.role === "client") {
+      this.updateClient(Math.min(0.25, real / 1000));
       this.render();
       return;
     }
-    if (!this.ending) {
+    const needs = !this.ending && !this.spectating && a.playerNeedsChoice() && !a.player.bot;
+    if (needs && !this.modal) this.openChoice();
+    // chơi một mình: tạm dừng khi chọn; chơi chung: trận vẫn chạy
+    if (needs && !this.net) {
+      this.render();
+      return;
+    }
+    if (!this.ending || (this.net && !a.finished)) {
       // dùng thời gian thật (delta của Phaser bị làm mượt, chậm hơn thực tế khi máy yếu)
-      const real = this.game.loop.rawDelta || deltaMs;
       this.acc += Math.min(0.25, real / 1000) * this.timeScale;
       let steps = 0;
       while (this.acc >= STEP && steps < 60 * Math.max(1, this.timeScale / 2)) {
         this.acc -= STEP;
         steps++;
         const input = this.readInput();
-        const ev = a.tick(STEP, input);
+        const ev = this.net ? a.tickMulti(STEP, this.hostInputs(input)) : a.tick(STEP, input);
+        if (this.net) this.eventLog.push(ev, a.time, new Set(this.net.humans.map((h) => h.id)));
         this.handleEvents(ev);
-        if (this.ending || (a.playerNeedsChoice() && !a.player.bot)) break;
+        if (!this.net && (this.ending || a.playerNeedsChoice())) break;
       }
     }
+    if (this.net) this.hostBroadcast(real / 1000);
     this.render();
+  }
+
+  // ------------------------------------------------------------------ chơi chung: chủ phòng
+  /** Thao tác của mọi người chơi thật: của mình đọc tại chỗ, của người khác đọc từ phòng. */
+  private hostInputs(local: FighterInput): Record<string, FighterInput> {
+    const net = this.net;
+    const out: Record<string, FighterInput> = { [this.arena.playerId]: this.spectating ? IDLE_INPUT : local };
+    if (!net) return out;
+    const peers = net.room.peers();
+    for (const h of net.humans) {
+      if (h.id === this.arena.playerId) continue;
+      const pr = peers.find((p) => p.peer === h.peer)?.presence as { in?: unknown; c?: unknown } | undefined;
+      if (!pr) continue;
+      let ri = this.remoteInputs.get(h.id);
+      if (!ri) {
+        ri = new RemoteInput();
+        this.remoteInputs.set(h.id, ri);
+      }
+      out[h.id] = ri.decode(pr.in);
+      const ch = ri.choice(pr.c);
+      if (ch) this.applyChoice(h.id, ch.kind, ch.id);
+    }
+    return out;
+  }
+
+  private applyChoice(fighterId: string, kind: number, id: string): boolean {
+    const a = this.arena;
+    if (kind === 0) return a.chooseBranch(fighterId, id);
+    if (kind === 1) return a.chooseEvolution(fighterId, id);
+    const f = a.fighterById(fighterId);
+    const ch = f?.state.pendingOffers[0]?.find((c) => c.upgradeId === id || c.id === id);
+    return ch ? a.chooseUpgrade(fighterId, ch.id) : false;
+  }
+
+  /** Phát ảnh chụp trạng thái trận ~15 lần/giây. */
+  private hostBroadcast(dt: number): void {
+    const net = this.net;
+    if (!net) return;
+    this.snapTimer -= dt;
+    if (this.snapTimer > 0) return;
+    this.snapTimer = 1 / 15;
+    const room = net.room;
+    const me = room.peers().find((p) => p.isMe && p.sameTab);
+    const others = me ? JSON.stringify({ ...me.presence, s: undefined }).length : 1200;
+    const snap = encodeSnapshot(this.arena, this.eventLog, net.humans.map((h) => h.id), Math.max(1500, 3950 - others));
+    void room.presence({ s: snap }).catch(() => undefined);
+  }
+
+  // ------------------------------------------------------------------ chơi chung: khách
+  private updateClient(dt: number): void {
+    const net = this.net;
+    if (!net) return;
+    const a = this.arena;
+    const now = Date.now();
+    const host = net.room.peers().find((p) => p.peer === net.hostPeer);
+    if (!host) {
+      if (!this.hostGoneSince) this.hostGoneSince = now;
+      if (now - this.hostGoneSince > 5000 && !this.ending) {
+        this.note("Chủ phòng đã rời – trận kết thúc", "#ff9a8a");
+        this.endMatch(false);
+      }
+    } else this.hostGoneSince = 0;
+    const snap = host?.presence.s as Snapshot | undefined;
+    if (snap && typeof snap === "object" && snap.v === 1 && snap.t !== this.lastSnapT) {
+      this.lastSnapT = snap.t;
+      // giữ vị trí đang hiển thị, chỉ lấy đích (trượt dần tới cho mượt)
+      const keep = new Map(a.fighters.map((f) => [f.id, { x: f.x, y: f.y, alive: f.state.alive }]));
+      const keepM = new Map(a.monsters.map((m) => [m.id, { x: m.x, y: m.y, alive: m.alive }]));
+      const r = applySnapshot(a, snap, this.lastSeq);
+      for (const f of a.fighters) {
+        const k = keep.get(f.id);
+        if (k && k.alive && f.state.alive) {
+          f.x = k.x;
+          f.y = k.y;
+        }
+      }
+      for (const m of a.monsters) {
+        const k = keepM.get(m.id);
+        if (k && k.alive && m.alive) {
+          m.x = k.x;
+          m.y = k.y;
+        }
+      }
+      this.lastSeq = r.lastSeq;
+      this.netTargets = r.targets;
+      this.handleEvents(r.events);
+    }
+    // thao tác của mình: gửi lên chủ phòng + đoán trước chuyển động
+    const input = this.readInput();
+    const me = a.player;
+    if (me.state.alive && !this.ending) {
+      const sp = a.speedOf(me);
+      me.x += input.moveX * sp * dt;
+      me.y += input.moveY * sp * dt;
+      if (Math.hypot(input.moveX, input.moveY) > 0.1) {
+        const l = Math.hypot(input.moveX, input.moveY);
+        me.faceX = input.moveX / l;
+        me.faceY = input.moveY / l;
+        me.vx = input.moveX * sp;
+        me.vy = input.moveY * sp;
+      }
+      const d = Math.hypot(me.x - WORLD_CENTER, me.y - WORLD_CENTER);
+      if (d > ISLAND_RADIUS - 30) {
+        me.x = WORLD_CENTER + ((me.x - WORLD_CENTER) / d) * (ISLAND_RADIUS - 30);
+        me.y = WORLD_CENTER + ((me.y - WORLD_CENTER) / d) * (ISLAND_RADIUS - 30);
+      }
+      a.collideProps(me, 18);
+    }
+    this.inputTimer -= dt;
+    if (this.inputTimer <= 0) {
+      this.inputTimer = 1 / 20;
+      const patch: Record<string, unknown> = { in: encodeInput(input, this.castSeq, this.lastCastSlot, this.potionSeq) };
+      if (this.lastChoice) patch.c = this.lastChoice;
+      void net.room.presence(patch).catch(() => undefined);
+    }
+    // trượt dần tới vị trí chủ phòng gửi
+    const t = this.netTargets;
+    if (t) {
+      const k = Math.min(1, dt * 12);
+      for (const f of a.fighters) {
+        const g = t.fighters.get(f.id);
+        if (!g) continue;
+        const own = f.id === a.playerId;
+        const gap = Math.hypot(g.x - f.x, g.y - f.y);
+        if (gap > (own ? 160 : 300)) {
+          f.x = g.x;
+          f.y = g.y;
+        } else {
+          const kk = own ? Math.min(1, dt * 4) : k;
+          f.x += (g.x - f.x) * kk;
+          f.y += (g.y - f.y) * kk;
+        }
+      }
+      for (const m of a.monsters) {
+        const g = t.monsters.get(m.id);
+        if (!g) continue;
+        m.x += (g.x - m.x) * k;
+        m.y += (g.y - m.y) * k;
+      }
+    }
+    for (const p of a.projectiles) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+    // bảng chọn (không tạm dừng; chờ chủ phòng xác nhận lựa chọn trước khi mở lại)
+    if (!this.ending && !this.modal && me.state.alive && now > this.choiceWaitUntil && a.playerNeedsChoice()) this.openChoice();
+  }
+
+  /** Chọn Dạng 2 (0) / Dạng 3 (1) / thẻ (2): chơi chung gửi lên chủ phòng, còn lại áp dụng ngay. */
+  private choose(kind: number, id: string): boolean {
+    if (this.net?.role === "client") {
+      this.choiceSeq++;
+      this.lastChoice = [this.choiceSeq, kind, id];
+      this.choiceWaitUntil = Date.now() + 1200;
+      void this.net.room.presence({ c: this.lastChoice }).catch(() => undefined);
+      return true;
+    }
+    return this.applyChoice(this.arena.playerId, kind, id);
   }
 
   private handleEvents(evs: ArenaEvent[]): void {
@@ -494,11 +721,14 @@ export class ArenaScene extends Phaser.Scene {
           const av = this.fighterViews.get(e.fighterId);
           const af = a.fighterById(e.fighterId);
           if (!av || !af) break;
-          const kind = e.action === "ult" ? "ult" : e.action === "cast" ? "cast" : e.melee ? "melee" : "shot";
-          av.act = { kind, t: 0, dur: kind === "melee" ? 0.36 : kind === "shot" ? 0.2 : kind === "ult" ? 0.7 : 0.45, dx: e.dirX, dy: e.dirY, color: e.color };
+          // lớp cầm gậy/trượng: đánh thường = vung gậy; cung/súng: giật khi bắn
+          const staff = STAFF_CLASSES.has(af.state.heroId);
+          const kind = e.action === "ult" ? "ult" : e.action === "cast" ? "cast" : e.melee ? "melee" : staff ? "wave" : "shot";
+          av.act = { kind, t: 0, dur: kind === "melee" ? 0.36 : kind === "wave" ? 0.32 : kind === "shot" ? 0.2 : kind === "ult" ? 0.7 : 0.45, dx: e.dirX, dy: e.dirY, color: e.color };
           if (this.nearCamera(af.x, af.y)) {
             if (kind === "melee") this.slashFx(af.x, af.y - 50 * av.scale, e.dirX, e.dirY, e.color, av.scale);
             else if (kind === "shot") this.muzzleFx(af.x + e.dirX * 40, af.y - 60 * av.scale + e.dirY * 20, e.color);
+            else if (kind === "wave") this.time.delayedCall(90, () => this.muzzleFx(af.x + e.dirX * 55, af.y - 90 * av.scale + e.dirY * 20, e.color));
           }
           break;
         }
@@ -514,6 +744,12 @@ export class ArenaScene extends Phaser.Scene {
           if (e.fighterId === pid) this.note("ĐÃ HỒI SINH! Không còn mạng hồi sinh nào nữa", "#8aff9a");
           break;
         case "victory":
+          if (this.spectating && this.net?.role === "host") {
+            const w = a.fighterById(e.winnerId);
+            this.pushFeed(`🏆 ${w?.state.name ?? "?"} là THE LAST HERO!`, "#ffe14a");
+            this.spectating = false;
+            this.endMatch(false);
+          }
           if (e.winnerId === pid) this.endMatch(true);
           break;
         case "monster_killed": {
@@ -549,10 +785,20 @@ export class ArenaScene extends Phaser.Scene {
 
   private endMatch(won: boolean): void {
     if (this.ending) return;
+    // chủ phòng bị loại khi trận chưa xong: tiếp tục chạy trận cho người khác (xem)
+    if (this.net?.role === "host" && !won && !this.arena.finished) {
+      if (!this.spectating) {
+        this.spectating = true;
+        this.pushFeed("Bạn đã bị loại – máy bạn vẫn chạy trận cho mọi người, đừng tắt trang", "#ffb347");
+        this.followNextHuman();
+      }
+      return;
+    }
     this.ending = true;
     const s = this.arena.playerSummary();
     this.pushFeed(won ? "🏆 BẠN LÀ THE LAST HERO!" : `Bạn đã bị loại – hạng ${s.placement}`, won ? "#ffe14a" : "#ff9a8a");
-    this.time.delayedCall(won ? 2200 : 1600, () => {
+    this.time.delayedCall(won || this.net?.role === "host" ? 2800 : 1600, () => {
+      if (this.net) void leaveNet();
       this.scene.start("Result", {
         matchId: this.matchId,
         heroId: this.heroId,
@@ -567,6 +813,40 @@ export class ArenaScene extends Phaser.Scene {
         storePotionsUsed: Math.min(this.storePotions, s.potionsUsed + this.arena.player.lostPotions),
       });
     });
+  }
+
+  /** Đặt lớp tay + vũ khí: gắn ở vai của thân (theo vị trí/tỉ lệ/lật/xoay của thân), xoay thêm theo động tác. */
+  private placeArm(v: FighterView, armA: number, walkI: number): void {
+    const r = v.rig;
+    if (!r || !v.img.visible) {
+      v.arm.setVisible(false);
+      return;
+    }
+    v.armAngle += (armA - v.armAngle) * 0.6;
+    const img = v.img;
+    const flip = img.flipX;
+    let lx = r.px - r.w * 0.5;
+    const ly = r.py - r.h * 0.97 + (walkI >= 0 ? ([3, -3, 3, -3][walkI] ?? 0) : 0);
+    if (flip) lx = -lx;
+    const sx = lx * img.scaleX;
+    const sy = ly * img.scaleY;
+    const c = Math.cos(img.rotation);
+    const sn = Math.sin(img.rotation);
+    // hướng "phía trước" của hình gốc là bên cầm vũ khí; lật hình thì đảo chiều xoay
+    const native = r.side;
+    v.arm
+      .setTexture(r.armKey)
+      .setVisible(true)
+      .setFlipX(flip)
+      .setOrigin(flip ? 1 - r.px / r.w : r.px / r.w, r.py / r.h)
+      .setPosition(img.x + sx * c - sy * sn, img.y + sx * sn + sy * c)
+      .setRotation(img.rotation + v.armAngle * native * (flip ? -1 : 1))
+      .setScale(img.scaleX, img.scaleY)
+      .setDepth(img.depth + 0.2)
+      .setAlpha(img.alpha);
+    if (img.isTinted && img.tintFill) v.arm.setTintFill(img.tintTopLeft);
+    else if (img.isTinted) v.arm.setTint(img.tintTopLeft);
+    else v.arm.clearTint();
   }
 
   /** Hạt sáng màu dạng bay quanh nhân vật – dày hơn khi tiến hoá / thức tỉnh. */
@@ -735,6 +1015,15 @@ export class ArenaScene extends Phaser.Scene {
     this.time.delayedCall(1200, () => em.destroy());
   }
 
+  /** Camera theo người chơi thật còn sống (khi chủ phòng đang xem). */
+  private followNextHuman(): void {
+    const a = this.arena;
+    const ids = new Set(this.net?.humans.map((h) => h.id) ?? []);
+    const t = a.fighters.find((f) => f.state.alive && ids.has(f.id)) ?? a.fighters.find((f) => f.state.alive);
+    const v = t ? this.fighterViews.get(t.id) : undefined;
+    if (v) this.cameras.main.startFollow(v.img, true, 0.15, 0.15);
+  }
+
   private pushFeed(msg: string, color: string): void {
     for (let i = this.feed.length - 1; i > 0; i--) {
       const cur = this.feed[i] as Phaser.GameObjects.Text;
@@ -836,6 +1125,7 @@ export class ArenaScene extends Phaser.Scene {
           v.img.setVisible(false);
           v.name.setVisible(false);
           v.glow.setVisible(false);
+          v.arm.setVisible(false);
         }
         continue;
       }
@@ -857,6 +1147,7 @@ export class ArenaScene extends Phaser.Scene {
         const tx = heroTex(this, f.state.heroId, f.state.branchId, f.state.evolutionId, back);
         v.texKey = tx.key;
         v.texFrame = tx.frame;
+        v.rig = armRig(this, tx.key, tx.frame);
         if (evolved) this.evolveBurst(f.x, f.y, fxColor(f));
       }
       // ---- hoạt ảnh ----
@@ -873,12 +1164,16 @@ export class ArenaScene extends Phaser.Scene {
       // đi/chạy: 4 khung bước chân, nhịp theo tốc độ
       const stepRate = 6 + speed / 40;
       const walkI = moving ? Math.floor((t * stepRate + v.phase) % WALK_FRAMES) : -1;
+      const bodyKey = v.rig ? v.rig.bodyKey : v.texKey;
+      const bodyFrame = v.rig ? undefined : v.texFrame;
       if (walkI >= 0) {
-        v.img.setTexture(walkFrameKey(this, v.texKey, v.texFrame, walkI));
+        v.img.setTexture(walkFrameKey(this, bodyKey, bodyFrame, walkI));
         // chân chạm đất (khung 0 và 2) → tung bụi
         if ((walkI === 0 || walkI === 2) && this.lastStep.get(f.id) !== walkI && this.nearCamera(f.x, f.y)) this.dust.emitParticleAt(f.x - f.faceX * 12, f.y - 2, 3);
         this.lastStep.set(f.id, walkI);
-      } else v.img.setTexture(v.texKey, v.texFrame);
+      } else v.img.setTexture(bodyKey, bodyFrame);
+      // góc tay: >0 là vung về phía trước-xuống, <0 là giơ lên ra sau
+      let armA = moving ? Math.sin(t * stepRate * Math.PI * 0.5 + v.phase) * 0.22 : Math.sin(t * 3 + v.phase) * 0.05;
       const tt = t * 3 + v.phase;
       let sx = 1 - Math.sin(tt) * 0.012;
       let sy = 1 + Math.sin(tt) * 0.026;
@@ -892,6 +1187,10 @@ export class ArenaScene extends Phaser.Scene {
         v.act.t += dtv;
         const p = Math.min(1, v.act.t / v.act.dur);
         const side = v.act.dx < -0.1 ? -1 : 1;
+        if (v.act.kind === "wave") armA = 0.8 * (p < 0.3 ? -1.1 * (p / 0.3) : p < 0.55 ? -1.1 + 2.9 * ((p - 0.3) / 0.25) : 1.8 * (1 - (p - 0.55) / 0.45));
+        else if (v.act.kind === "melee") armA = p < 0.3 ? -1.1 * (p / 0.3) : p < 0.55 ? -1.1 + 2.9 * ((p - 0.3) / 0.25) : 1.8 * (1 - (p - 0.55) / 0.45);
+        else if (v.act.kind === "shot") armA = -0.3 * Math.sin(p * Math.PI);
+        else armA = -1.3 * Math.sin(p * Math.PI);
         if (v.act.kind === "melee") {
           // lấy đà ngả ra sau (0–30%), vung mạnh tới (30–55%), giữ thế rồi thu về
           let swing: number;
@@ -906,6 +1205,11 @@ export class ArenaScene extends Phaser.Scene {
           sy *= 1 - Math.max(0, lk) * 0.04 + (p < 0.3 ? 0.06 : 0);
           // bóng mờ nối đuôi lúc vung
           if (p > 0.3 && p < 0.6 && this.nearCamera(f.x, f.y) && Math.random() < 0.6) this.afterImage(v, v.act.color);
+        } else if (v.act.kind === "wave") {
+          // vung gậy: thân nghiêng theo nhịp vung, nhẹ hơn chém
+          const sw = p < 0.3 ? -(p / 0.3) * 0.2 : p < 0.55 ? -0.2 + ((p - 0.3) / 0.25) * 0.45 : 0.25 * (1 - (p - 0.55) / 0.45);
+          rot += sw * side;
+          ox = v.act.dx * Math.max(0, Math.sin(p * Math.PI)) * 8;
         } else if (v.act.kind === "shot") {
           // giật lùi khi bắn
           const rk = Math.sin(p * Math.PI);
@@ -961,6 +1265,7 @@ export class ArenaScene extends Phaser.Scene {
           .setTintFill(v.act?.color ?? fxColor(f))
           .setAlpha(glowA);
       } else v.glow.setVisible(false);
+      this.placeArm(v, armA, walkI);
       v.name.setPosition(f.x, f.y - 30 - HERO_FIGURE_H * v.scale).setDepth(5003);
       this.updateAura(f, v);
     }
@@ -1282,7 +1587,7 @@ export class ArenaScene extends Phaser.Scene {
         c.add(text(this, x + 24, 432, `Bị động: ${br.passive.nameVi}\nQ ${br.skills[0].nameVi} · E ${br.skills[1].nameVi} · R ${br.skills[2].nameVi}\nCấp 10 → ${br.evolutions.map((e) => e.name).join(" / ")}`, 16, "#d8d0c0", 500).setWordWrapWidth(320));
         c.add(
           button(this, x + 180, 610, 260, 60, "Chọn dạng này", () => {
-            if (a.chooseBranch(a.playerId, br.id)) {
+            if (this.choose(0, br.id)) {
               if (completeTutorialStep(getSave(), "lock_branch_at_lv5")) persist();
               this.note(`Đã nâng cấp thành ${br.name}!`, hex(br.color));
             }
@@ -1312,7 +1617,7 @@ export class ArenaScene extends Phaser.Scene {
         c.add(text(this, x + 24, 446, `${passiveText(evo.passive.effect)}\nTối thượng: ${evo.ultimate.nameVi}${hasRealArt(hero.id, br.id, evo.id) ? "" : "\n(hình tạm – chờ ảnh nhân vật)"}`, 16, "#d8d0c0", 500).setWordWrapWidth(320));
         c.add(
           button(this, x + 180, 616, 260, 58, "Tiến hoá", () => {
-            if (a.chooseEvolution(a.playerId, evo.id)) this.note(`TIẾN HOÁ: ${evo.name}!`, hex(evo.color));
+            if (this.choose(1, evo.id)) this.note(`TIẾN HOÁ: ${evo.name}!`, hex(evo.color));
             close();
           }, 0xc8641e).root,
         );
@@ -1342,7 +1647,7 @@ export class ArenaScene extends Phaser.Scene {
       c.add(text(this, x + 170, 330, ch.description, 21, "#e8e0d0", 500).setOrigin(0.5, 0).setWordWrapWidth(300).setAlign("center"));
       c.add(
         button(this, x + 170, 540, 240, 62, "Chọn", () => {
-          if (a.chooseUpgrade(a.playerId, ch.id)) {
+          if (this.choose(2, ch.upgradeId)) {
             if (completeTutorialStep(getSave(), "pick_random_upgrade")) persist();
           }
           close();

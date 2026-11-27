@@ -3,6 +3,7 @@ import { LobbyScene } from "./scenes/LobbyScene.ts";
 import { HeroSelectScene } from "./scenes/HeroSelectScene.ts";
 import { ArenaScene } from "./scenes/ArenaScene.ts";
 import { ResultScene } from "./scenes/ResultScene.ts";
+import { MultiplayerScene } from "./scenes/MultiplayerScene.ts";
 import mapUrl from "./assets/lobby-map.jpg";
 import heroesUrl from "./assets/heroes-atlas.png";
 import { HERO_CELL_H, HERO_CELL_W, HERO_SHEET } from "./heroArt.ts";
@@ -40,7 +41,7 @@ async function start(): Promise<void> {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
     input: { activePointers: 4 },
     render: { antialias: true },
-    scene: [BootScene, LobbyScene, HeroSelectScene, ArenaScene, ResultScene],
+    scene: [BootScene, LobbyScene, HeroSelectScene, ArenaScene, ResultScene, MultiplayerScene],
   });
   (window as unknown as { __game: Phaser.Game }).__game = game;
 }

@@ -89,19 +89,26 @@ def drop_edge_fragments(im):
                 px[x, y] = (0, 0, 0, 0)
 
 
-def strip_halo(im):
+def strip_halo(im, hue=(0.22, 0.5, 0.12), protect_legs=False):
     """Bỏ quầng sáng xanh bao quanh nhân vật: loang từ vùng trong suốt vào các điểm ảnh
     xanh lá của quầng (dừng ở đường viền tối của nhân vật), rồi xoá các mảnh rời nhỏ còn sót."""
     import colorsys
     W, H = im.size
     px = im.load()
+    bb = im.getbbox() or (0, 0, W, H)
+    fig_h = bb[3] - bb[1]
+    mid = (bb[0] + bb[2]) / 2
+
+    def protected(x, y):
+        # vùng chân: 28% dưới cùng, giữa thân
+        return protect_legs and y > bb[3] - fig_h * 0.28 and abs(x - mid) < fig_h * 0.13
 
     def halo(c):
         r, g, b, a = c
         if a == 0:
             return False
         h, s_, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-        return 0.22 < h < 0.5 and s_ > 0.25 and 0.12 < v < 0.75
+        return hue[0] < h < hue[1] and s_ > 0.25 and hue[2] < v < 0.97
 
     seen = bytearray(W * H)
     q = deque()
@@ -109,7 +116,7 @@ def strip_halo(im):
         for x in range(W):
             if px[x, y][3] == 0:
                 for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-                    if 0 <= nx < W and 0 <= ny < H and px[nx, ny][3] and halo(px[nx, ny]):
+                    if 0 <= nx < W and 0 <= ny < H and px[nx, ny][3] and halo(px[nx, ny]) and not protected(nx, ny):
                         q.append((nx, ny))
     while q:
         x, y = q.popleft()
@@ -117,7 +124,7 @@ def strip_halo(im):
         if seen[i]:
             continue
         seen[i] = 1
-        if not halo(px[x, y]):
+        if not halo(px[x, y]) or protected(x, y):
             continue
         px[x, y] = (0, 0, 0, 0)
         for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
@@ -157,7 +164,7 @@ def keep_main(im, ratio=0.04):
 
 
 # nút cần bỏ quầng sáng bao quanh (theo góp ý chủ dự án)
-STRIP_HALO = {"helper:base"}
+STRIP_HALO = {"helper:base": ((0.22, 0.5, 0.12), False), "mage:base": ((0.45, 0.7, 0.12), True)}
 
 
 def erase_label(key, rect):
@@ -248,7 +255,7 @@ for nid, key, fb, back in NODES:
         erase = (1040, 790, 1115, 865) if k2 == "X" else None
         c = cut(k2, box, erase)
         if nid in STRIP_HALO:
-            strip_halo(c)
+            strip_halo(c, *STRIP_HALO[nid])
             c = c.crop(c.getbbox())
         s = min(TARGET_H / c.height, (CW - 2) / c.width)
         c = c.resize((max(1, round(c.width * s)), max(1, round(c.height * s))), Image.BOX)

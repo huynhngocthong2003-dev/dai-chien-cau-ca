@@ -86,7 +86,11 @@ await waitScene("HeroSelect");
 await page.mouse.click(314, 174);
 await page.waitForTimeout(300);
 await shot("04-select");
-await page.mouse.click(1000, 676);
+await page.mouse.click(1000, 676); // Tiếp tục → màn mời bạn
+await waitScene("Multiplayer");
+await page.waitForTimeout(600);
+await shot("04b-invite");
+await page.mouse.click(640, 400); // ngoài claude.ai: chỉ có "Chơi một mình"
 await waitScene("Arena");
 await page.waitForTimeout(800);
 const info = await page.evaluate(() => {

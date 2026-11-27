@@ -367,3 +367,100 @@ export function nativeFacing(scene: Phaser.Scene, key: string, frame: number | u
   facingCache.set(ck, res);
   return res;
 }
+
+export interface ArmRig {
+  /** Thân (đã bỏ phần tay + vũ khí). */
+  bodyKey: string;
+  /** Tay + vũ khí (cùng kích thước khung, phần còn lại trong suốt). */
+  armKey: string;
+  /** Vai (điểm xoay) trong toạ độ khung. */
+  px: number;
+  py: number;
+  w: number;
+  h: number;
+  /** Bên cầm vũ khí trong hình gốc (1 phải, -1 trái) – chiều "vung tới". */
+  side: 1 | -1;
+}
+
+const rigCache = new Map<string, ArmRig | null>();
+
+/**
+ * Tách lớp "tay + vũ khí": phần hình chìa ra ở bên cầm vũ khí (hướng gốc của hình),
+ * ngoài thân giữa và phía trên chân. Lớp này xoay quanh vai khi chém / bắn / tung chiêu.
+ */
+export function armRig(scene: Phaser.Scene, key: string, frame: number | undefined): ArmRig | null {
+  const ck = `${key}:${frame ?? ""}`;
+  if (rigCache.has(ck)) return rigCache.get(ck) ?? null;
+  const src = scene.textures.getFrame(key, frame);
+  let rig: ArmRig | null = null;
+  if (src) {
+    const w = src.cutWidth;
+    const h = src.cutHeight;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(src.source.image as CanvasImageSource, src.cutX, src.cutY, w, h, 0, 0, w, h);
+      const img = ctx.getImageData(0, 0, w, h);
+      const d = img.data;
+      let top = h;
+      let bottom = 0;
+      let sumX = 0;
+      let n = 0;
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++)
+          if ((d[(y * w + x) * 4 + 3] ?? 0) > 200) {
+            top = Math.min(top, y);
+            bottom = Math.max(bottom, y);
+            sumX += x;
+            n++;
+          }
+      if (n > 50) {
+        const figH = bottom - top;
+        const cx = sumX / n;
+        const core = figH * 0.19; // nửa bề ngang thân
+        const legTop = bottom - figH * 0.22;
+        // bên cầm vũ khí = bên có phần chìa xa khỏi thân nhiều nhất (gậy/kiếm dài hơn tay áo)
+        let farL = 0;
+        let farR = 0;
+        for (let y = 0; y < legTop; y++)
+          for (let x = 0; x < w; x++)
+            if ((d[(y * w + x) * 4 + 3] ?? 0) > 200) {
+              const dx = x - cx;
+              if (dx < -core * 1.25) farL += -dx - core * 1.25;
+              else if (dx > core * 1.25) farR += dx - core * 1.25;
+            }
+        const side: 1 | -1 = farL > farR ? -1 : 1;
+        const cut = cx + side * core;
+        const body = new Uint8ClampedArray(d);
+        const arm = new Uint8ClampedArray(d.length);
+        let armPx = 0;
+        for (let y = 0; y < h; y++)
+          for (let x = 0; x < w; x++) {
+            const inArm = y < legTop && (side > 0 ? x > cut : x < cut);
+            if (!inArm) continue;
+            const o = (y * w + x) * 4;
+            if ((d[o + 3] ?? 0) > 0) armPx++;
+            for (let k = 0; k < 4; k++) arm[o + k] = d[o + k] ?? 0;
+            body[o + 3] = 0;
+          }
+        // đủ "tay" mới tách (hình không chìa vũ khí ra ngoài thì giữ nguyên)
+        if (armPx > n * 0.04) {
+          const bodyKey = `rigb_${ck}`;
+          const armKey = `riga_${ck}`;
+          for (const [k2, data] of [[bodyKey, body], [armKey, arm]] as const) {
+            const t = scene.textures.createCanvas(k2, w, h);
+            if (!t) continue;
+            t.getContext().putImageData(new ImageData(data, w, h), 0, 0);
+            t.refresh();
+            t.setFilter(Phaser.Textures.FilterMode.NEAREST);
+          }
+          rig = { bodyKey, armKey, px: cut, py: top + figH * 0.36, w, h, side };
+        }
+      }
+    }
+  }
+  rigCache.set(ck, rig);
+  return rig;
+}

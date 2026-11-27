@@ -89,11 +89,12 @@ export class HeroSelectScene extends Phaser.Scene {
       });
     });
     add(
-      button(this, 1000, 676, 380, 56, "⚔ VÀO TRẬN (20 người)", () => {
+      button(this, 1000, 676, 380, 56, "Tiếp tục → Mời bạn", () => {
         const s = getSave();
         s.lastHero = { heroId: this.heroId, gender: this.gender };
         persist();
-        this.scene.start("Arena", { heroId: this.heroId, gender: this.gender });
+        // vào màn mời bạn trước, người chơi tự bấm bắt đầu
+        this.scene.start("Multiplayer", { auto: true });
       }, 0xc8461e, 26).root,
     );
   }
