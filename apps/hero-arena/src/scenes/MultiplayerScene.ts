@@ -4,6 +4,7 @@ import { addHeroImage, breathe } from "../heroArt.ts";
 import { getLobby, leaveNet, setNetSession, type NetLobby, type NetPeer, type NetRoom } from "../net/room.ts";
 import { getSave, newMatchSeed, persist } from "../state.ts";
 import { button, H, htmlInput, panel, text, toast, W } from "../ui.ts";
+import { centerMenu } from "../layout.ts";
 
 // Phòng chờ chơi chung: tạo phòng (mã), vào phòng bằng mã, chọn anh hùng.
 // Chủ phòng bấm Bắt đầu khi có từ 2 người; thiếu bao nhiêu máy lấp cho đủ 20.
@@ -64,8 +65,8 @@ export class MultiplayerScene extends Phaser.Scene {
     const s = getSave();
     this.heroIdx = Math.max(0, HEROES.findIndex((h) => h.id === s.lastHero?.heroId));
     const bg = this.add.image(W / 2, H / 2, "lobby_map");
-    bg.setScale(Math.max(W / bg.width, H / bg.height));
-    this.add.rectangle(0, 0, W, H, 0x070a14, 0.78).setOrigin(0);
+    centerMenu(this, bg);
+    this.add.rectangle(-W, -H, W * 3, H * 3, 0x070a14, 0.78).setOrigin(0);
     text(this, 30, 14, this.auto ? "MỜI BẠN CÙNG CHƠI" : "VÀO PHÒNG BẠN", 40, "#ffcf5a", 800);
     text(this, this.auto ? 470 : 380, 30, `Từ ${MIN_PLAYERS} người trở lên là bắt đầu được · thiếu bao nhiêu máy lấp cho đủ ${MAX_PLAYERS}`, 18, "#c8c0b0", 500);
     button(this, 1186, 40, 150, 50, "← Sảnh", () => void this.back(), 0x4a4f5a, 22);

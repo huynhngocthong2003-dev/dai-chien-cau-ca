@@ -8,6 +8,7 @@ import mapUrl from "./assets/lobby-map.jpg";
 import heroesUrl from "./assets/heroes-atlas.png";
 import { HERO_CELL_H, HERO_CELL_W, HERO_SHEET } from "./heroArt.ts";
 import { H, W } from "./ui.ts";
+import { tryLockLandscape } from "./layout.ts";
 
 class BootScene extends Phaser.Scene {
   constructor() {
@@ -38,7 +39,8 @@ async function start(): Promise<void> {
     type: Phaser.AUTO,
     parent: "game",
     backgroundColor: "#0d1320",
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
+    // EXPAND: giữ trọn 1280×720 không méo, nới thêm cạnh theo tỉ lệ màn hình (không viền đen)
+    scale: { mode: Phaser.Scale.EXPAND, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
     input: { activePointers: 4 },
     render: { antialias: true },
     scene: [BootScene, LobbyScene, HeroSelectScene, ArenaScene, ResultScene, MultiplayerScene],
@@ -46,4 +48,5 @@ async function start(): Promise<void> {
   (window as unknown as { __game: Phaser.Game }).__game = game;
 }
 
+tryLockLandscape();
 void start();

@@ -3,6 +3,7 @@ import { HEROES, heroById, modsText, passiveText, ROLE_VI, type Gender } from "@
 import { addHeroImage, breathe, skillIcon } from "../heroArt.ts";
 import { getSave, persist } from "../state.ts";
 import { button, H, hex, panel, text, W } from "../ui.ts";
+import { centerMenu } from "../layout.ts";
 
 export class HeroSelectScene extends Phaser.Scene {
   private heroId = "fighter";
@@ -20,8 +21,8 @@ export class HeroSelectScene extends Phaser.Scene {
       this.heroId = s.lastHero.heroId;
     }
     const bg = this.add.image(W / 2, H / 2, "lobby_map");
-    bg.setScale(Math.max(W / bg.width, H / bg.height));
-    this.add.rectangle(0, 0, W, H, 0x070a14, 0.8).setOrigin(0);
+    centerMenu(this, bg);
+    this.add.rectangle(-W, -H, W * 3, H * 3, 0x070a14, 0.8).setOrigin(0);
     text(this, 30, 12, "CHỌN ANH HÙNG", 40, "#ffcf5a", 800);
     text(this, 372, 28, "10 lớp · mỗi lớp 3 dạng tiến hoá", 18, "#c8c0b0", 500);
     button(this, 1186, 40, 150, 50, "← Sảnh", () => this.scene.start("Lobby"), 0x4a4f5a, 22);
@@ -77,11 +78,11 @@ export class HeroSelectScene extends Phaser.Scene {
       breathe(this, add(addHeroImage(this, x + 99, 300, h.id, br.id, null, 0.78)));
       add(text(this, x + 99, 302, br.name, 21, hex(br.color)).setOrigin(0.5, 0));
       add(text(this, x + 99, 330, br.descVi, 13, "#d8d0c0", 500).setOrigin(0.5, 0).setWordWrapWidth(186).setAlign("center"));
-      add(text(this, x + 99, 366, `${ROLE_VI[br.role]}: ${passiveText(br.passive.effect)}\n${modsText(br.mods)}`, 12, "#ffcf5a", 500).setOrigin(0.5, 0).setWordWrapWidth(186).setAlign("center"));
+      add(text(this, x + 99, 360, `${ROLE_VI[br.role]}: ${passiveText(br.passive.effect)}\n${modsText(br.mods)}`, 12, "#ffcf5a", 500).setOrigin(0.5, 0).setWordWrapWidth(186).setAlign("center"));
       br.skills.forEach((sk, j) => {
-        add(this.add.image(x + 46 + j * 53, 410, skillIcon(this, sk.kind, br.color)).setDisplaySize(30, 30));
+        add(this.add.image(x + 46 + j * 53, 424, skillIcon(this, sk.kind, br.color)).setDisplaySize(30, 30));
       });
-      add(text(this, x + 8, 430, "Dạng 3 (cấp 10):", 12, "#a8a090", 500));
+      add(text(this, x + 8, 444, "Dạng 3 (cấp 10):", 12, "#a8a090", 500));
       br.evolutions.forEach((evo, j) => {
         const ex = x + 34 + j * 65;
         add(addHeroImage(this, ex, 550, h.id, br.id, evo.id, 0.46));

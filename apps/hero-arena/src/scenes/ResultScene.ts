@@ -3,6 +3,7 @@ import { applyMatchResult, completeTutorialStep, heroById, rewardText, type Gend
 import { addHeroImage, breathe, evolutionScale } from "../heroArt.ts";
 import { getSave, now, persist } from "../state.ts";
 import { button, H, panel, text, W } from "../ui.ts";
+import { centerMenu } from "../layout.ts";
 
 interface ResultData extends MatchResult {
   heroId: string;
@@ -23,9 +24,9 @@ export class ResultScene extends Phaser.Scene {
     if (d.placement <= 10) completeTutorialStep(save, "claim_last_hero_victory");
     persist();
 
-    this.add.rectangle(0, 0, W, H, 0x0d1320).setOrigin(0);
+    this.add.rectangle(-W, -H, W * 3, H * 3, 0x0d1320).setOrigin(0);
     const bg = this.add.image(W / 2, H / 2, "lobby_map").setAlpha(0.25);
-    bg.setScale(Math.max(W / bg.width, H / bg.height));
+    centerMenu(this, bg);
     panel(this, 240, 70, 800, 560);
     text(this, W / 2, 96, d.won ? "🏆 THE LAST HERO!" : `BỊ LOẠI · HẠNG #${d.placement}`, 52, d.won ? "#ffe14a" : "#ff9a8a", 800).setOrigin(0.5, 0);
     breathe(this, addHeroImage(this, 420, 480, d.heroId, d.branchId, d.evolutionId ?? null, 1.6 * (evolutionScale(d.level) / evolutionScale(1))));

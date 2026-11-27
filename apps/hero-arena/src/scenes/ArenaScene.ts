@@ -50,6 +50,7 @@ import { addHeroImage, armRig, breathe, evolutionScale, evolutionTier, hasRealAr
 import { getSave, newMatchSeed, persist } from "../state.ts";
 import { leaveNet, netSession, type NetSession } from "../net/room.ts";
 import { button, H, hex, panel, pixelBox, pixelCircle, PX, text, toast, W } from "../ui.ts";
+import { HudAnchors, view } from "../layout.ts";
 
 /** Bước mô phỏng 60 lần/giây – khớp tốc độ khung hình, chuyển động mượt. */
 const STEP = 1 / 60;
@@ -157,6 +158,7 @@ export class ArenaScene extends Phaser.Scene {
   private statText!: Phaser.GameObjects.Text;
   private infoText!: Phaser.GameObjects.Text;
   private feed: Phaser.GameObjects.Text[] = [];
+  private anchors!: HudAnchors;
   private hazardTint!: Phaser.GameObjects.Rectangle;
   private vignette!: Phaser.GameObjects.Image;
   private portrait!: Phaser.GameObjects.Image;
@@ -329,30 +331,34 @@ export class ArenaScene extends Phaser.Scene {
       o.setDepth(d);
       return o;
     };
-    this.hazardTint = fixed(this.add.rectangle(0, 0, W / 0.9 + 200, H / 0.9 + 200, 0x000000, 0).setOrigin(0.5), 8000);
-    this.vignette = fixed(this.add.image(W / 2, H / 2, vignetteTexture(this, W, H)).setAlpha(0), 8001);
-    this.hazardTint.setPosition(W / 2, H / 2);
+    // neo giao diện theo góc màn hình + tránh tai thỏ/viền cong (vùng an toàn)
+    const A = (this.anchors = new HudAnchors(this));
+    // lớp phủ toàn màn hình: phủ rộng hơn mọi tỉ lệ máy
+    this.hazardTint = A.pin(fixed(this.add.rectangle(W / 2, H / 2, W * 2.4, H * 2.4, 0x000000, 0).setOrigin(0.5), 8000), 0, 0);
+    this.vignette = A.pin(fixed(this.add.image(W / 2, H / 2, vignetteTexture(this, W, H)).setAlpha(0), 8001), 0, 0);
     // camera zoom làm lệch toạ độ HUD → dùng camera riêng cho HUD
     const hudCam = this.cameras.add(0, 0, W, H);
     hudCam.setName("hud");
-    this.hudG = fixed(this.add.graphics());
-    this.miniG = fixed(this.add.graphics());
-    this.joyG = fixed(this.add.graphics(), 9100);
-    this.aliveText = fixed(text(this, W - 24, 18, "", 30, "#ffe08a").setOrigin(1, 0));
-    this.zoneText = fixed(text(this, W - 24, 58, "", 22).setOrigin(1, 0));
-    this.hazardText = fixed(text(this, W - 24, 92, "", 22, "#ff7a6a").setOrigin(1, 0));
-    this.statText = fixed(text(this, 132, 610, "", 17, "#f3ead8", 500));
-    this.infoText = fixed(text(this, 250, 20, "", 18, "#d8d0c0", 500));
-    this.portrait = fixed(addHeroImage(this, 68, 700, this.heroId, null, null, 0.62));
-    for (let i = 0; i < 5; i++) this.feed.push(fixed(text(this, W - 24, 130 + i * 24, "", 17, "#f3ead8", 500).setOrigin(1, 0)));
+    this.hudG = A.pin(fixed(this.add.graphics()), -1, 1);
+    this.miniG = A.pin(fixed(this.add.graphics()), -1, -1);
+    // cần điều khiển vẽ theo toạ độ chạm thật → không dời
+    this.joyG = A.pin(fixed(this.add.graphics(), 9100), 2, 2);
+    this.aliveText = A.pin(fixed(text(this, W - 24, 18, "", 30, "#ffe08a").setOrigin(1, 0)), 1, -1);
+    this.zoneText = A.pin(fixed(text(this, W - 24, 58, "", 22).setOrigin(1, 0)), 1, -1);
+    this.hazardText = A.pin(fixed(text(this, W - 24, 92, "", 22, "#ff7a6a").setOrigin(1, 0)), 1, -1);
+    this.statText = A.pin(fixed(text(this, 130, 606, "", 17, "#f3ead8", 500)), -1, 1);
+    this.infoText = A.pin(fixed(text(this, 250, 20, "", 18, "#d8d0c0", 500)), -1, -1);
+    this.portrait = A.pin(fixed(addHeroImage(this, 68, 700, this.heroId, null, null, 0.62)), -1, 1);
+    for (let i = 0; i < 5; i++) this.feed.push(A.pin(fixed(text(this, W - 24, 130 + i * 24, "", 17, "#f3ead8", 500).setOrigin(1, 0)), 1, -1));
 
     const mk = (slot: SkillButton["slot"], x: number, y: number, r: number, key: string) => {
-      const g = fixed(this.add.graphics());
-      const icon = fixed(this.add.image(x, y, skillIcon(this, "attack", 0xd06a3a)).setDisplaySize(r * 1.42, r * 1.42).setVisible(slot === "attack"));
-      const cdG = fixed(this.add.graphics());
-      const label = fixed(text(this, x, y, "", r > 50 ? 18 : 15, "#ffffff").setOrigin(0.5));
-      const k = fixed(text(this, x + r * 0.62, y - r * 0.82, key, 13, "#ffe08a").setOrigin(0.5));
-      const zone = fixed(this.add.zone(x, y, r * 2, r * 2).setInteractive());
+      // nút kỹ năng neo góc dưới-phải; graphics vẽ theo toạ độ thiết kế nên chỉ dời gốc
+      const g = A.pin(fixed(this.add.graphics()), 1, 1);
+      const icon = A.pin(fixed(this.add.image(x, y, skillIcon(this, "attack", 0xd06a3a)).setDisplaySize(r * 1.42, r * 1.42).setVisible(slot === "attack")), 1, 1);
+      const cdG = A.pin(fixed(this.add.graphics()), 1, 1);
+      const label = A.pin(fixed(text(this, x, y, "", r > 50 ? 18 : 15, "#ffffff").setOrigin(0.5)), 1, 1);
+      const k = A.pin(fixed(text(this, x + r * 0.62, y - r * 0.82, key, 13, "#ffe08a").setOrigin(0.5)), 1, 1);
+      const zone = A.pin(fixed(this.add.zone(x, y, r * 2, r * 2).setInteractive()), 1, 1);
       zone.on("pointerdown", (p: Phaser.Input.Pointer) => {
         if (slot === "attack") this.attackHeld.add(p.id);
         else if (slot === "atk_monster" || slot === "atk_prop") {
@@ -375,6 +381,19 @@ export class ArenaScene extends Phaser.Scene {
     mk("atk_prop", 1246, 424, 26, "X");
     this.cameras.main.ignore(this.children.list.filter((o) => (o as unknown as { scrollFactorX: number }).scrollFactorX === 0));
     hudCam.ignore(this.children.list.filter((o) => (o as unknown as { scrollFactorX: number }).scrollFactorX !== 0));
+    this.onResize();
+    this.scale.on("resize", this.onResize, this);
+    this.events.once("shutdown", () => this.scale.off("resize", this.onResize, this));
+  }
+
+  /** Đổi kích thước/xoay máy: nới camera, giữ diện tích nhìn thấy tương đương, neo lại HUD. */
+  private onResize(): void {
+    const v = view(this);
+    this.cameras.getCamera("hud")?.setSize(v.w, v.h);
+    // màn hình dài (20:9, 21:9) không được nhìn xa hơn quá nhiều: giữ diện tích ≈ 1280×720
+    this.cameras.main.setZoom(Math.sqrt((v.w * v.h) / (W * H)));
+    this.anchors.relayout();
+    if (this.modal) this.modal.setPosition(v.ox, v.oy);
   }
 
   private note(msg: string, color?: string): void {
@@ -408,7 +427,7 @@ export class ArenaScene extends Phaser.Scene {
     }
     this.input.on("pointerdown", (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (over.length > 0 || this.modal) return;
-      if (p.x < W * 0.55 && this.joy.id === -1) this.joy = { id: p.id, bx: p.x, by: p.y, x: p.x, y: p.y };
+      if (p.x < this.scale.gameSize.width * 0.55 && this.joy.id === -1) this.joy = { id: p.id, bx: p.x, by: p.y, x: p.x, y: p.y };
     });
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
       if (p.id === this.joy.id) {
@@ -1446,7 +1465,6 @@ export class ArenaScene extends Phaser.Scene {
     const need = EXP_TO_NEXT[s.level] ?? 1;
     bar(696, s.level >= MAX_LEVEL ? 1 : s.exp / need, 0x9a5aff);
     this.statText.setText(`Cấp ${s.level}${s.level >= MAX_LEVEL ? " (tối đa)" : ""}   Máu ${Math.ceil(s.hp)}/${s.maxHp}`);
-    this.statText.setPosition(130, 606);
 
     // nút kỹ năng
     for (const sb of this.skillButtons) {
@@ -1568,9 +1586,11 @@ export class ArenaScene extends Phaser.Scene {
     if (!hero) return;
     this.joy.id = -1;
     this.attackHeld.clear();
-    const c = this.hudOnly(this.add.container(0, 0).setScrollFactor(0).setDepth(9500));
+    const off = this.anchors.offset(0, 0);
+    const c = this.hudOnly(this.add.container(off.x, off.y).setScrollFactor(0).setDepth(9500));
     this.modal = c;
-    c.add(this.add.rectangle(0, 0, W, H, 0x000000, 0.65).setOrigin(0).setInteractive());
+    // nền tối phủ kín mọi tỉ lệ màn hình
+    c.add(this.add.rectangle(-W, -H, W * 3, H * 3, 0x000000, 0.65).setOrigin(0).setInteractive());
     const close = () => {
       c.destroy();
       this.modal = null;

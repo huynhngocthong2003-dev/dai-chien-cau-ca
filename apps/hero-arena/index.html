@@ -14,7 +14,8 @@
   :root { --bg: #0d1320; --fg: #f3ead8; --accent: #ffb347; color-scheme: dark; }
   html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
   body { font-family: "Baloo 2", system-ui, sans-serif; }
-  #game { position: fixed; inset: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) 0; display: flex; align-items: center; justify-content: center; }
+  /* canvas phủ kín cả vùng tai thỏ; game tự tránh vùng an toàn khi đặt nút */
+  #game { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
   #game canvas { display: block; }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 22px; font-weight: 700; pointer-events: none; }
   #rotate { position: fixed; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; text-align: center; padding: 24px; background: var(--bg); font-size: 20px; font-weight: 700; }

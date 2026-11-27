@@ -24,6 +24,7 @@ import {
 } from "@hero-arena/core";
 import { getSave, now, persist } from "../state.ts";
 import { button, H, htmlInput, panel, text, toast, W } from "../ui.ts";
+import { centerMenu } from "../layout.ts";
 
 type Overlay = "gift" | "mail" | "tutorial" | null;
 
@@ -42,9 +43,9 @@ export class LobbyScene extends Phaser.Scene {
     this.overlay = null;
     this.overlayKind = null;
     const bg = this.add.image(W / 2, H / 2, "lobby_map");
-    bg.setScale(Math.max(W / bg.width, H / bg.height));
-    this.add.rectangle(0, 0, W, H, 0x05070c, 0.45).setOrigin(0);
-    this.add.rectangle(0, 0, 470, H, 0x05070c, 0.55).setOrigin(0);
+    centerMenu(this, bg);
+    this.add.rectangle(-W, -H, W * 3, H * 3, 0x05070c, 0.45).setOrigin(0);
+    this.add.rectangle(-W, -H, 470 + W, H * 3, 0x05070c, 0.55).setOrigin(0);
     text(this, 40, 26, "HERO ARENA", 64, "#ffb347", 800);
     text(this, 44, 104, "Đấu trường sinh tồn 20 anh hùng · The Last Hero", 20, "#d8cfc0", 500);
     this.hud = this.add.container(0, 0).setDepth(10);
@@ -124,7 +125,7 @@ export class LobbyScene extends Phaser.Scene {
     this.overlayKind = kind;
     const c = this.add.container(0, 0).setDepth(100);
     this.overlay = c;
-    const dim = this.add.rectangle(0, 0, W, H, 0x000000, 0.6).setOrigin(0).setInteractive();
+    const dim = this.add.rectangle(-W, -H, W * 3, H * 3, 0x000000, 0.6).setOrigin(0).setInteractive();
     c.add(dim);
     c.add(panel(this, 160, 60, 960, 600, 0.97));
     c.add(button(this, 1080, 96, 56, 48, "✕", () => this.closeOverlay(), 0x8a2a2a, 26).root);

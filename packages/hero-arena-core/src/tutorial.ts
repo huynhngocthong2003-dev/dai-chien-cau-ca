@@ -10,7 +10,7 @@ export interface TutorialStep {
 }
 
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
-  { id: "select_hero_and_gender", title: "Chọn Anh hùng & Giới tính", instruction: "Chọn lớp nhân vật và giới tính (Nam/Nữ) rồi vào trận Battle Royale 20 người." },
+  { id: "select_hero_and_gender", title: "Chọn Anh hùng", instruction: "Chọn 1 trong 10 lớp nhân vật rồi vào trận Battle Royale 20 người." },
   { id: "hunt_monsters_and_loot", title: "Săn quái & Thu thập", instruction: "Hạ quái để nhận KN, vàng, nguyên liệu, bình máu và trang bị." },
   { id: "lock_branch_at_lv5", title: "Khóa nhánh ở Cấp 5", instruction: "Đạt cấp 5 và chọn 1 nhánh chuyên môn cố định – không đổi được trong trận." },
   { id: "pick_random_upgrade", title: "Chọn 1 trong 3 thẻ", instruction: "Mỗi lần lên cấp, chọn 1 trong 3 thẻ nâng cấp ngẫu nhiên." },

@@ -131,7 +131,9 @@ export function panel(scene: Phaser.Scene, x: number, y: number, w: number, h: n
 }
 
 export function toast(scene: Phaser.Scene, msg: string, color = "#ffe08a", y = 150): Phaser.GameObjects.Text {
-  const t = text(scene, W / 2, y, msg, 26, color).setOrigin(0.5).setDepth(1000).setScrollFactor(0);
+  // cố định trên màn hình → căn giữa theo kích thước canvas thật (Scale.EXPAND)
+  y += (scene.scale.gameSize.height - H) / 2;
+  const t = text(scene, scene.scale.gameSize.width / 2, y, msg, 26, color).setOrigin(0.5).setDepth(1000).setScrollFactor(0);
   scene.tweens.add({ targets: t, y: y - 30, alpha: 0, delay: 1600, duration: 500, onComplete: () => t.destroy() });
   return t;
 }
@@ -150,10 +152,13 @@ export function htmlInput(scene: Phaser.Scene, x: number, y: number, w: number, 
   el.spellcheck = false;
   document.body.appendChild(el);
   const place = () => {
+    // canvas giãn theo tỉ lệ máy (Scale.EXPAND), nội dung thiết kế nằm giữa
     const canvas = scene.game.canvas.getBoundingClientRect();
-    const s = canvas.width / W;
-    el.style.left = `${canvas.left + x * s}px`;
-    el.style.top = `${canvas.top + y * s}px`;
+    const gw = scene.scale.gameSize.width;
+    const gh = scene.scale.gameSize.height;
+    const s = canvas.width / gw;
+    el.style.left = `${canvas.left + (x + (gw - W) / 2) * s}px`;
+    el.style.top = `${canvas.top + (y + (gh - H) / 2) * s}px`;
     el.style.width = `${w * s - 28}px`;
     el.style.fontSize = `${Math.max(16, 20 * s)}px`;
   };
