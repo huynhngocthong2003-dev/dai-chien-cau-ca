@@ -1,5 +1,9 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Hỗn Chiến 6 người, bắt buộc tài khoản] – 2026-11-27
+- **Hỗn Chiến**: tối đa **6 ô**, chỉ cần **2** người chơi/máy là bắt đầu được – ô trống tự bỏ qua; vị trí xuất phát chia đều theo vòng tròn (2–6 quả). Trực tuyến: chủ phòng gửi kèm danh sách ô vào trận để mọi máy khớp đúng quả bóng của mình. Các chế độ đội (1v1, 2v2, 4v4) vẫn phải đủ ô.
+- **Người chơi mới / chưa đăng nhập** (trên link GitHub): màn "Chào mừng" bắt buộc tạo tài khoản hoặc đăng nhập để sao lưu tiến độ; tiến độ đang có trên máy được giữ. Không kết nối được máy chủ → có nút chơi tạm. Link Claude không có máy chủ tài khoản nên không bắt buộc.
+
 ## [Đấu Trường Quả Cầu Anime – Giai đoạn 1: tài khoản & lưu trên máy chủ] – 2026-11-27
 - **Database (migration `20261215000001_orb_accounts.sql`)**: thêm bảng `orb_saves` (1 bản lưu / tài khoản, có số phiên bản, ID người chơi `#XXXXXX` duy nhất) và `orb_save_backups` (sao lưu tự động ≤ 20 bản). RLS: chỉ đọc bản của chính mình; không ghi thẳng vào bảng – mọi lần ghi qua hàm `orb_save_put` (security definer): kiểm tra phiên bản (chống máy cũ ghi đè máy mới), giữ cố định ID người chơi, báo trùng ID. Không sửa bảng nào của game câu cá. Đã chạy thử trên PostgreSQL 16 (kể cả chạy lại lần 2).
 - **Game**: đăng nhập / tạo tài khoản **dùng chung với game câu cá** (cùng phiên đăng nhập `dccc_auth`); tiến độ Khách trên máy được đưa lên tài khoản lần đầu, giữ nguyên ID; đăng nhập máy khác tải đúng tiến độ; xung đột giữa 2 máy → tải bản mới nhất và báo; đăng xuất → quay về tiến độ Khách của máy (không mất). Thẻ Tài khoản ở Hồ sơ, biểu tượng ☁/⏳/⚠ cạnh ID, nhắc đăng nhập ở Sảnh khi đang là Khách.

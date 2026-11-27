@@ -467,6 +467,7 @@
   .bhead { display: flex; align-items: center; gap: 10px; }
   .bic { font-size: 26px; }
   .authform { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .welcome { text-align: left; font-size: 14px; line-height: 1.55; background: rgba(168,85,247,.14); border: 1px solid rgba(168,85,247,.35); border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
   .linkbtn { border: 0; background: none; color: #c4b5fd; font-size: 13px; margin-top: 10px; }
   .accb { font-size: 11px; font-weight: 800; }
   .accb.guest { color: #fcd34d; background: rgba(245,158,11,.15); padding: 1px 6px; border-radius: 999px; }
@@ -653,6 +654,7 @@
 <div class="modal" id="authModal" style="z-index:23">
   <div class="sheet">
     <h2 id="authTitle">🔑 Đăng nhập</h2>
+    <div class="welcome" id="authIntro" hidden>Tạo tài khoản để <b>sao lưu tiến độ</b> (vàng, quả cầu, bạn bè) trên máy chủ – đổi máy hay xoá trình duyệt cũng không mất. Tiến độ đang có trên máy này sẽ được giữ lại.</div>
     <div class="hint">Dùng chung tài khoản với game <b>Đại Chiến Câu Cá</b>.</div>
     <div class="authform">
       <div id="authNameRow" hidden><input class="text" id="authName" maxlength="16" placeholder="Tên hiển thị (2–16 ký tự)" autocomplete="nickname"></div>
@@ -662,6 +664,7 @@
     <div class="hint" id="authMsg" style="min-height:18px;margin:8px 0"></div>
     <div class="row" style="justify-content:center"><button class="btn primary" id="authGo">Đăng nhập</button><button class="btn" id="authClose">Đóng</button></div>
     <button class="linkbtn" id="authSwitch"></button>
+    <button class="btn ghost sm" id="authOffline" hidden style="margin-top:8px">Chơi tạm khi chưa có mạng (chưa sao lưu)</button>
   </div>
 </div>
 <!-- ===== Hồ sơ người chơi khác ===== -->
@@ -2803,7 +2806,8 @@ const MODES = {
   v1: { label: '1 vs 1', n: 2, teams: true, size: 1 },
   v2: { label: '2 vs 2', n: 4, teams: true, size: 0.9 },
   v4: { label: '4 vs 4', n: 8, teams: true, size: 0.74 },
-  ffa: { label: 'Hỗn Chiến', n: 4, teams: false, size: 0.95 },
+  // Hỗn Chiến: tối đa 6 ô, chỉ cần 2 ô có người/máy là bắt đầu được (ô trống bị bỏ qua)
+  ffa: { label: 'Hỗn Chiến', n: 6, teams: false, size: 0.86, minStart: 2 },
 };
 const TEAM = [{ name: 'Đội Xanh', color: '#38bdf8' }, { name: 'Đội Đỏ', color: '#f87171' }];
 /** Thưởng vàng theo kết quả (Hỗn Chiến theo hạng). */
@@ -3197,8 +3201,13 @@ function copyInvite() {
 // ---------------------------------------------------------------------
 // 14. TRẬN ĐẤU: dàn trận → chọn hướng → đếm ngược → xuất phát
 // ---------------------------------------------------------------------
-function spawnPositions(mode) {
+function spawnPositions(mode, count = MODES[mode].n) {
   const c = W / 2;
+  if (mode === 'ffa') {
+    // chia đều trên vòng tròn quanh tâm sân (2–6 quả)
+    const r = count <= 2 ? 220 : 250, a0 = count === 2 ? Math.PI : -Math.PI / 2 - Math.PI / count;
+    return [...Array(count).keys()].map((i) => { const a = a0 + (i * 2 * Math.PI) / count; return [Math.round(c + Math.cos(a) * r), Math.round(c + Math.sin(a) * r)]; });
+  }
   switch (mode) {
     case 'v1': return [[190, c], [610, c]];
     case 'v2': return [[180, 270], [180, 530], [620, 270], [620, 530]];
@@ -3224,7 +3233,7 @@ function setupMatch(spec) {
   G.mode = spec.mode;
   G.sizeMul = MODES[spec.mode].size;
   G.rng = mulberry32(spec.seed);
-  const pos = spawnPositions(spec.mode);
+  const pos = spawnPositions(spec.mode, spec.balls.length);
   G.orbs = spec.balls.map((id, i) => {
     const o = makeOrb(DEF_BY_ID[id] || ROSTER[0], pos[i][0], pos[i][1], i, teamOfSlot(i, spec.mode));
     o.owner = (spec.owners && spec.owners[i]) || '';
@@ -3251,10 +3260,15 @@ function previewOrbs() {
 /** Chơi với máy: dàn trận và cho người chơi chọn hướng. */
 function startLocal() {
   Sound.ensure();
-  const mine = localMine();
-  const bad = mine.filter((i) => !isUnlocked(UI.slots[i]));
+  const bad = localMine().filter((i) => !isUnlocked(UI.slots[i]));
   if (bad.length) { toast('🔒 Quả bóng của bạn chưa mở khóa.'); return; }
-  setupMatch({ mode: G.mode, seed: (Math.random() * 2 ** 31) | 0, balls: UI.slots, mine, owners: UI.kinds.map((k) => (k === 'me' ? 'Bạn' : '')) });
+  // ô thật sự vào trận (Hỗn Chiến bỏ qua ô trống)
+  const seats = UI.kinds.map((k, i) => (k === 'empty' && MODES[G.mode].minStart ? -1 : i)).filter((i) => i >= 0);
+  setupMatch({
+    mode: G.mode, seed: (Math.random() * 2 ** 31) | 0,
+    balls: seats.map((i) => UI.slots[i]), owners: seats.map((i) => (UI.kinds[i] === 'me' ? 'Bạn' : '')),
+    mine: seats.map((i, oi) => (UI.kinds[i] === 'me' ? oi : -1)).filter((oi) => oi >= 0),
+  });
   startCount();
 }
 
@@ -3271,8 +3285,9 @@ function startCount() {
 /** Hết đếm ngược: mọi quả cầu cùng xuất phát theo hướng đã chọn. */
 function beginRun() {
   // chủ phòng: lấy hướng xuất phát mới nhất của từng người chơi
-  if (NET.role === 'host' && NET.lob) NET.lob.seats.forEach((s, i) => {
-    if (!s.p || s.p === NET.me) return;
+  if (NET.role === 'host' && NET.lob) G.orbs.forEach((_, i) => {
+    const s = NET.lob.seats[NET.spec && Array.isArray(NET.spec.seats) ? NET.spec.seats[i] : i];
+    if (!s || !s.p || s.p === NET.me) return;
     const pr = NET.peers.find((x) => x.peer === s.p);
     const d = pr && pr.presence && pr.presence.d && pr.presence.d[i];
     if (Array.isArray(d) && d.length === 2 && d.every(Number.isFinite) && (d[0] || d[1])) G.dirs[i] = d;
@@ -3346,7 +3361,9 @@ function syncLobbyButtons() {
   const en = $('btnEnter');
   if (NET.role === 'client') { en.disabled = true; en.textContent = '⏳ Chờ chủ phòng bắt đầu'; }
   else { en.disabled = !!why; en.textContent = '⚔ Bắt đầu trận'; }
-  $('startHint').textContent = why || (NET.role === 'client' ? '' : 'Tất cả đã sẵn sàng – bấm Bắt đầu trận!');
+  const emptyN = lobbySeats().filter((x) => x.kind === 'empty').length;
+  const skip = emptyN && MODES[NET.room && NET.lob ? NET.lob.mode : G.mode].minStart ? ` (${emptyN} ô trống sẽ bỏ qua – trận ${lobbySeats().length - emptyN} người)` : '';
+  $('startHint').textContent = why || (NET.role === 'client' ? '' : 'Tất cả đã sẵn sàng – bấm Bắt đầu trận!' + skip);
 }
 
 /** Lý do chưa thể bắt đầu (rỗng = được bắt đầu). */
@@ -3354,14 +3371,18 @@ function startBlocker() {
   if (NET.room) {
     if (!NET.lob) return 'Đang nhận thông tin phòng…';
     const emp = NET.lob.seats.filter((s) => !s.p && s.e).length;
-    if (emp) return `Còn ${emp} ô trống – chờ người chơi vào hoặc bấm 🤖 Thêm máy.`;
+    const minS = MODES[NET.lob.mode].minStart;
+    if (minS) { if (NET.lob.seats.length - emp < minS) return `Hỗn Chiến cần ít nhất ${minS} người chơi hoặc máy.`; }
+    else if (emp) return `Còn ${emp} ô trống – chờ người chơi vào hoặc bấm 🤖 Thêm máy.`;
     const humans = NET.lob.seats.filter((s) => s.p);
     const waiting = humans.filter((s) => !s.k || !s.r);
     if (waiting.length) return 'Chờ sẵn sàng: ' + waiting.map((s) => s.n || 'Người chơi').join(', ');
     return '';
   }
   const emp = UI.kinds.filter((k) => k === 'empty').length;
-  if (emp) return `Còn ${emp} ô trống – bấm ＋ Mời người chơi hoặc 🤖 Thêm máy.`;
+  const minS = MODES[G.mode].minStart;
+  if (minS) { if (UI.kinds.length - emp < minS) return `Hỗn Chiến cần ít nhất ${minS} người chơi hoặc máy – bấm ＋ Mời người chơi hoặc 🤖 Thêm máy.`; }
+  else if (emp) return `Còn ${emp} ô trống – bấm ＋ Mời người chơi hoặc 🤖 Thêm máy.`;
   if (!UI.mePicked) return 'Hãy chọn quả bóng của bạn ở danh sách bên phải.';
   if (!UI.meReady) return 'Bấm ✅ Sẵn sàng khi đã chọn xong.';
   return '';
@@ -3930,6 +3951,8 @@ async function initAccount() {
     if (data && data.session && data.session.user) await onSignedIn(data.session.user, true);
   } catch { /* chơi Khách */ }
   renderPage();
+  // người chơi mới / chưa đăng nhập: bắt buộc tạo tài khoản (hoặc đăng nhập) để tiến độ được sao lưu
+  if (!ACC.user) openAuth(Save.matches || Save.owner ? 'login' : 'register', true);
 }
 
 /** Vừa đăng nhập (hoặc mở game khi đã đăng nhập sẵn): lấy tiến độ từ tài khoản. */
@@ -4049,7 +4072,8 @@ async function signOutAcc() {
   clearTimeout(ACC.timer);
   writeLocal();
   refreshAfterSaveSwap();
-  toast('Đã đăng xuất – đang chơi bằng tài khoản Khách trên máy này.');
+  toast('Đã đăng xuất.');
+  openAuth('login', true);
 }
 
 // ----- giao diện tài khoản -----
@@ -4075,10 +4099,14 @@ function accountCardHtml() {
   return `<h3>☁ Tài khoản</h3><div style="text-align:left"><b>${escapeHtml(ACC.user.email)}</b><div style="margin-top:4px">${st}</div></div>
     <div class="row" style="margin-top:8px">${ACC.state === 'error' ? '<button class="btn sm" data-auth="sync">↻ Lưu lại ngay</button>' : ''}<button class="btn sm ghost" data-auth="logout">🚪 Đăng xuất</button></div>`;
 }
-function openAuth(mode) {
+function openAuth(mode, required = UI.authRequired) {
   UI.authMode = mode;
+  UI.authRequired = !!required;
   $('authMsg').textContent = '';
-  $('authTitle').textContent = mode === 'register' ? '✨ Tạo tài khoản' : '🔑 Đăng nhập';
+  $('authClose').hidden = UI.authRequired;
+  $('authIntro').hidden = !UI.authRequired;
+  $('authOffline').hidden = true;
+  $('authTitle').textContent = UI.authRequired && mode === 'register' ? '👋 Chào mừng đến Đấu Trường!' : mode === 'register' ? '✨ Tạo tài khoản' : '🔑 Đăng nhập';
   $('authNameRow').hidden = mode !== 'register';
   $('authGo').textContent = mode === 'register' ? 'Tạo tài khoản' : 'Đăng nhập';
   $('authSwitch').innerHTML = mode === 'register' ? 'Đã có tài khoản? <b>Đăng nhập</b>' : 'Chưa có tài khoản? <b>Tạo tài khoản</b>';
@@ -4095,16 +4123,33 @@ async function submitAuth() {
   try {
     const r = UI.authMode === 'register' ? await signUpAcc(email, pw, name) : await signInAcc(email, pw);
     if (r === 'confirm') { $('authMsg').innerHTML = '📧 Đã gửi thư xác nhận tới <b>' + escapeHtml(email) + '</b>. Mở thư, bấm xác nhận rồi quay lại đăng nhập.'; return; }
-    if (r) { $('authMsg').textContent = r; return; }
+    if (r) {
+      $('authMsg').textContent = r;
+      // không tới được máy chủ: cho chơi tạm để không bị khóa game
+      if (UI.authRequired && /kết nối|mạng/i.test(r)) $('authOffline').hidden = false;
+      return;
+    }
+    UI.authRequired = false;
     $('authModal').classList.remove('show');
     $('authPass').value = '';
-  } catch (e) { $('authMsg').textContent = viErr(e && e.message); }
+  } catch (e) {
+    $('authMsg').textContent = viErr(e && e.message);
+    if (UI.authRequired) $('authOffline').hidden = false;
+  }
   finally { $('authGo').disabled = false; }
 }
 $('authGo').onclick = submitAuth;
 $('authPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitAuth(); } });
 $('authSwitch').onclick = () => openAuth(UI.authMode === 'register' ? 'login' : 'register');
-$('authModal').addEventListener('click', (e) => { if (e.target === $('authModal') || e.target.id === 'authClose') $('authModal').classList.remove('show'); });
+$('authModal').addEventListener('click', (e) => {
+  if (UI.authRequired) return; // bắt buộc: không đóng bằng cách bấm ra ngoài
+  if (e.target === $('authModal') || e.target.id === 'authClose') $('authModal').classList.remove('show');
+});
+$('authOffline').onclick = () => {
+  UI.authRequired = false;
+  $('authModal').classList.remove('show');
+  toast('⚠ Đang chơi tạm – tiến độ chỉ lưu trên máy này. Vào Hồ sơ để đăng nhập khi có mạng.');
+};
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-auth]');
   if (!b) return;
@@ -4270,14 +4315,16 @@ function hostStartMatch(force = false) {
 
 function hostStartCount() {
   const lob = NET.lob;
-  const dirs = lob.seats.map((s, i) => {
-    const o = G.orbs[i];
-    const dd = o ? defaultDir(o) : [1, 0];
-    return [Math.round(dd[0] * 100), Math.round(dd[1] * 100)];
+  // ô vào trận: Hỗn Chiến bỏ qua ô trống; các chế độ đội thì đủ ô (đã kiểm tra ở startBlocker)
+  const seats = lob.seats.map((s, i) => (!s.p && s.e && MODES[lob.mode].minStart ? -1 : i)).filter((i) => i >= 0);
+  const pos = spawnPositions(lob.mode, seats.length);
+  const dirs = pos.map(([x, y]) => {
+    const a = Math.atan2(H / 2 - y, W / 2 - x) + (Math.random() - 0.5) * 1.2;
+    return [Math.round(Math.cos(a) * 100), Math.round(Math.sin(a) * 100)];
   });
   NET.spec = {
-    mode: lob.mode, arena: lob.arena, seed: (Math.random() * 2 ** 31) | 0,
-    balls: lob.seats.map((s) => s.b), owners: lob.seats.map((s) => s.n || ''), dirs,
+    mode: lob.mode, arena: lob.arena, seed: (Math.random() * 2 ** 31) | 0, seats,
+    balls: seats.map((i) => lob.seats[i].b), owners: seats.map((i) => lob.seats[i].n || ''), dirs,
   };
   NET.ph = 'count'; NET.sq++;
   enterCountFromSpec(NET.spec);
@@ -4373,7 +4420,9 @@ function previewFromLobby() {
 function enterCountFromSpec(spec) {
   if (spec.arena && spec.arena !== G.arena) setArena(spec.arena, true);
   showView('arena');
-  const mine = NET.lob ? mySeats() : [];
+  const my = NET.lob ? mySeats() : [];
+  // chỉ số quả bóng trong trận ↔ chỉ số ô trong phòng
+  const mine = Array.isArray(spec.seats) ? spec.seats.map((si, oi) => (my.includes(si) ? oi : -1)).filter((oi) => oi >= 0) : my;
   setupMatch({ ...spec, mine });
   startCount();
 }
