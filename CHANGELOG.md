@@ -1,5 +1,11 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – chúc mừng mỗi lần nhận quà] – 2026-11-27
+- Có quà mới trong hòm thư → thông báo nổi "🎁 Bạn có quà mới!" (tên quà, số vàng, nút Mở hòm thư).
+- Nhận nhiều thư cùng lúc → màn chúc mừng hiện **từng món quà** (kèm tên thư) và tổng vàng; nhận thưởng **nhiệm vụ hằng ngày** cũng hiện màn chúc mừng.
+- Khi chưa tải được tiến độ tài khoản: chỉ báo 1 lần (không lặp mỗi 15 giây).
+- `docs/DAU_TRUONG_SETUP.md`: hướng dẫn chạy migration Đấu Trường trong SQL Editor (workflow Deploy Supabase đang bỏ qua vì repo chưa có khóa bí mật).
+
 ## [Đấu Trường Quả Cầu Anime – Hòm thư & app quản trị] – 2026-11-27
 - **Database (`20261216000001_orb_mail_admin.sql`)**: chụp toàn bộ bản lưu trước khi nâng cấp; bảng `orb_mail`, `orb_admin_log`; hàm người chơi `orb_mail_read`, `orb_mail_hide`, `orb_mail_claim` (máy chủ cộng vàng + đánh dấu đã nhận trong 1 giao dịch, kiểm tra phiên bản bản lưu); hàm admin `orb_admin_stats`, `orb_admin_players`, `orb_admin_player`, `orb_admin_send_mail` (từng người / tất cả, ≤ 1.000.000 vàng/thư, hạn nhận), `orb_admin_mail_log`. Tất cả hàm admin kiểm tra bảng `admins` ở máy chủ.
 - **Game**: nút 📬 hòm thư ở thanh trên (số thư mới, rung nhẹ khi có thư mới), mở thư, nhận quà / nhận tất cả, đánh dấu đã đọc, xoá thư đã nhận; **màn mở quà** (nền tối, tia sáng, hộp quà mở, vàng đếm lên, "Chúc mừng", Xác nhận) – không phát lại khi mở thư đã nhận.

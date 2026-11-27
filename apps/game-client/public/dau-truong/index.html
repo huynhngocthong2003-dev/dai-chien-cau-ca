@@ -496,12 +496,16 @@
     animation: rvrays .6s .4s ease forwards, rvspin 14s .4s linear infinite; }
   @keyframes rvrays { to { opacity: 1; } }
   @keyframes rvspin { to { transform: rotate(360deg); } }
-  .rv-box { position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px; }
+  .rv-box { max-height: 100vh; overflow-y: auto; position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px; }
   .rv-chest { font-size: 96px; filter: drop-shadow(0 0 30px rgba(255,213,74,.8)); animation: rvchest 1.1s .3s ease both; }
   @keyframes rvchest { 0% { transform: scale(0); } 35% { transform: scale(1.1); } 50% { transform: scale(1) rotate(-10deg); } 60% { transform: rotate(10deg); } 70% { transform: rotate(-6deg); } 85% { transform: scale(1.25); } 100% { transform: scale(.75) translateY(-6px); opacity: .9; } }
   .rv-items { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
   .rv-item { display: flex; align-items: center; gap: 8px; font-size: 26px; padding: 12px 20px; border-radius: 16px; background: linear-gradient(135deg, rgba(245,158,11,.35), rgba(168,85,247,.3)); border: 1px solid rgba(255,213,74,.6);
     box-shadow: 0 0 30px rgba(255,213,74,.45); animation: rvitem .5s ease both; }
+  .rv-item { flex-wrap: wrap; justify-content: center; }
+  .rv-item .rlabel { flex-basis: 100%; text-align: center; font-size: 12px; color: #e9d5ff; margin-top: -2px; }
+  .notice.gift { border-color: #fbbf24; background: linear-gradient(135deg, rgba(146,64,14,.97), rgba(40,20,60,.97)); animation: fadein .3s, giftpulse 1.6s ease-in-out 3; }
+  @keyframes giftpulse { 50% { box-shadow: 0 0 26px rgba(251,191,36,.7); } }
   .rv-item .ri { font-size: 34px; } .rv-item b { color: var(--gold); font-size: 32px; }
   @keyframes rvitem { from { opacity: 0; transform: translateY(20px) scale(.6); } }
   .rv-title { font-size: 28px; font-weight: 900; color: #fde68a; text-shadow: 0 0 18px rgba(255,170,60,.8); animation: rvitem .5s 1.5s ease both; }
@@ -4019,7 +4023,7 @@ async function onSignedIn(user, silent = false) {
     row = data;
   } catch (e) {
     ACC.state = 'error'; ACC.err = viErr(e.message || e);
-    toast('⚠ Chưa tải được tiến độ tài khoản: ' + escapeHtml(ACC.err) + ' – sẽ thử lại.');
+    if (!ACC.errShown) { ACC.errShown = true; toast('⚠ Chưa tải được tiến độ tài khoản: ' + escapeHtml(ACC.err) + ' – game vẫn lưu trên máy và sẽ tự thử lại.'); }
     clearTimeout(ACC.retry); ACC.retry = setTimeout(() => { if (ACC.user) onSignedIn(user, true); }, 15000);
     renderPage();
     return;
@@ -4035,7 +4039,7 @@ async function onSignedIn(user, silent = false) {
     }
     applySaveObject(row.save);
     Save.owner = user.id;
-    ACC.ver = row.version; ACC.state = 'synced'; ACC.at = Date.now();
+    ACC.ver = row.version; ACC.state = 'synced'; ACC.at = Date.now(); ACC.errShown = false;
     writeLocal();
     refreshAfterSaveSwap();
     loadMail();
@@ -4123,7 +4127,7 @@ async function signOutAcc() {
   Save.owner = '';
   writeLocalJson(GUEST_KEY, null);
   Object.assign(ACC, { user: null, ver: null, state: 'guest', err: '', dirty: false });
-  MAIL.list = []; renderMailBadge(); $('mailModal').classList.remove('show');
+  MAIL.list = []; MAIL.loaded = false; renderMailBadge(); $('mailModal').classList.remove('show');
   clearTimeout(ACC.timer);
   writeLocal();
   refreshAfterSaveSwap();
@@ -4524,7 +4528,7 @@ const fmtSpeed = (v) => (Number.isInteger(v) ? v.toFixed(1) : String(v)) + 'x';
 // ---------------------------------------------------------------------
 // HÒM THƯ (bảng orb_mail) + MÀN MỞ QUÀ. Nhận quà do máy chủ cộng vàng (orb_mail_claim) – không nhận được 2 lần.
 // ---------------------------------------------------------------------
-const MAIL = { list: [], open: null, busy: false, lastNew: 0 };
+const MAIL = { list: [], open: null, busy: false, lastNew: 0, loaded: false };
 const MAIL_ICON = { gift: '🎁', system: '📢', event: '🎪', ranking: '🏆' };
 const mailClaimable = (m) => m.gold > 0 && !m.claimed_at && !(m.expires_at && new Date(m.expires_at) < new Date());
 const mailNew = (m) => !m.read_at || mailClaimable(m);
@@ -4540,6 +4544,11 @@ async function loadMail() {
     const before = new Set(MAIL.list.map((m) => m.id));
     MAIL.list = data || [];
     if (MAIL.list.some((m) => !before.has(m.id) && mailNew(m)) && before.size + MAIL.list.length > 0) MAIL.lastNew = Date.now();
+    // thông báo nổi khi có quà: lần tải đầu → tóm tắt quà chưa nhận; các lần sau → từng thư quà mới
+    const gifts = MAIL.list.filter(mailClaimable);
+    if (!MAIL.loaded) { if (gifts.length) pushNotice({ kind: 'gift', f: 'sum', n: gifts.length > 1 ? `Bạn có ${gifts.length} quà chưa nhận` : gifts[0].title, gold: gifts.reduce((a, m) => a + m.gold, 0) }); }
+    else for (const m of gifts) if (!before.has(m.id)) pushNotice({ kind: 'gift', f: 'm' + m.id, n: m.title, gold: m.gold });
+    MAIL.loaded = true;
     renderMailBadge();
     if ($('mailModal').classList.contains('show')) renderMail();
   } catch { /* thử lại ở lần sau */ }
@@ -4615,6 +4624,7 @@ async function claimMail(ids) {
   MAIL.busy = true;
   const sb = await getSb();
   let total = 0, got = 0, err = '';
+  const items = [];
   try {
     for (let k = 0; k < 20 && (ACC.busy || ACC.dirty); k++) { if (!ACC.busy) await pushNow(); else await new Promise((r) => setTimeout(r, 150)); }
     if (ACC.ver === null) throw new Error('Chưa đồng bộ được tài khoản – thử lại sau giây lát');
@@ -4631,6 +4641,7 @@ async function claimMail(ids) {
       if (d.ok) {
         Save.gold = d.gold; ACC.ver = d.version; ACC.at = Date.now(); ACC.state = 'synced';
         total += d.added; got++;
+        items.push({ kind: 'gold', amount: d.added, label: m ? m.title : '' });
         if (m) { m.claimed_at = new Date().toISOString(); m.read_at = m.read_at || m.claimed_at; }
       } else if (d.reason === 'claimed' && m) m.claimed_at = m.claimed_at || new Date().toISOString();
       else if (d.reason === 'expired') err = 'Có thư đã hết hạn.';
@@ -4642,7 +4653,7 @@ async function claimMail(ids) {
     writeLocal();
     renderGold(total); renderAccountBits(); renderPage();
     renderMail(); renderMailBadge();
-    if (total > 0) showRewardReveal([{ kind: 'gold', amount: total }], got > 1 ? `Đã nhận quà từ ${got} thư` : '');
+    if (items.length) showRewardReveal(items, got > 1 ? `Đã nhận ${got} phần quà · tổng +${total.toLocaleString('vi-VN')} Vàng` : '');
     if (err) toast('⚠ ' + escapeHtml(err));
     loadMail();
   }
@@ -4669,7 +4680,8 @@ $('btnMail').onclick = openMailbox;
 /** Màn mở quà: nền tối dần → ánh sáng → rương mở → vật phẩm hiện ra → lời chúc → Xác nhận. */
 function showRewardReveal(items, sub = '') {
   const el = $('reveal');
-  const label = (it) => (it.kind === 'gold' ? `<span class="ri">💰</span><b class="rcount" data-to="${it.amount}">0</b><span>Vàng</span>` : `<span class="ri">${it.icon || '🎁'}</span><b>${escapeHtml(it.name || '')}</b>`);
+  const label = (it) => (it.kind === 'gold' ? `<span class="ri">💰</span><b class="rcount" data-to="${it.amount}">0</b><span>Vàng</span>` : `<span class="ri">${it.icon || '🎁'}</span><b>${escapeHtml(it.name || '')}</b>`)
+    + (it.label ? `<small class="rlabel">${escapeHtml(it.label)}</small>` : '');
   el.innerHTML = `<div class="rv-bg"></div><div class="rv-rays"></div>
     <div class="rv-box"><div class="rv-chest">🎁</div>
       <div class="rv-items">${items.map((it, i) => `<div class="rv-item" style="animation-delay:${1.15 + i * 0.15}s">${label(it)}</div>`).join('')}</div>
@@ -4895,12 +4907,14 @@ function pushNotice(n) {
   if (HALL.notices.length > 3) HALL.notices.shift();
   const id = HALL.notices[HALL.notices.length - 1].id;
   // tự ẩn (lời mời kết bạn vẫn nằm trong tab Bạn bè → Lời mời)
-  setTimeout(() => { HALL.notices = HALL.notices.filter((x) => x.id !== id); renderNotices(); }, n.kind === 'room' ? 30000 : 12000);
+  setTimeout(() => { HALL.notices = HALL.notices.filter((x) => x.id !== id); renderNotices(); }, n.kind === 'room' ? 30000 : n.kind === 'gift' ? 20000 : 12000);
   Sound.play('coin');
   renderNotices();
 }
 function renderNotices() {
-  $('notices').innerHTML = HALL.notices.map((n) => n.kind === 'room'
+  $('notices').innerHTML = HALL.notices.map((n) => n.kind === 'gift'
+    ? `<div class="notice gift"><div>🎁 <b>Bạn có quà mới!</b><br>${escapeHtml(n.n)} · 💰 <b>${(n.gold || 0).toLocaleString('vi-VN')}</b> Vàng</div><div class="row"><button class="btn gold sm" data-na="mail" data-id="${n.id}">📬 Mở hòm thư</button><button class="btn sm ghost" data-na="x" data-id="${n.id}">Để sau</button></div></div>`
+    : n.kind === 'room'
     ? `<div class="notice"><div>📨 <b>${escapeHtml(n.n)}</b> mời bạn vào <b>PHÒNG-${n.code}</b></div><div class="row"><button class="btn primary sm" data-na="go" data-id="${n.id}">⚡ Tham gia ngay</button><button class="btn sm" data-na="x" data-id="${n.id}">Bỏ qua</button></div></div>`
     : `<div class="notice"><div>🤝 <b>${escapeHtml(n.n)}</b> <span class="fcode">#${n.f}</span> muốn kết bạn</div><div class="row"><button class="btn primary sm" data-na="ok" data-id="${n.id}">Đồng ý</button><button class="btn sm" data-na="no" data-id="${n.id}">Từ chối</button><button class="btn sm ghost" data-na="x" data-id="${n.id}">Để sau</button></div></div>`).join('');
 }
@@ -4912,6 +4926,7 @@ $('notices').addEventListener('click', (e) => {
   renderNotices();
   if (!n) return;
   if (b.dataset.na === 'go') joinFriendRoom(n.code);
+  else if (b.dataset.na === 'mail') openMailbox();
   else if (b.dataset.na === 'ok') { addFriend(n.f, n.n, true); toast(`🤝 Đã kết bạn với <b>${escapeHtml(n.n)}</b>`); }
   else if (b.dataset.na === 'no') { HALL.dismissed.add(n.f); renderPage(); renderFriendBadge(); }
 });
@@ -4988,7 +5003,7 @@ function claimQuest(id) {
   d.claimed.push(id);
   addGold(q.reward);
   Sound.ensure(); Sound.play('coin');
-  toast(`🎁 Nhiệm vụ “${q.name}” · +${q.reward} Vàng`);
+  showRewardReveal([{ kind: 'gold', amount: q.reward, label: 'Nhiệm vụ: ' + q.name }]);
   renderPage();
 }
 const questsReady = () => { const d = dailyState(); return QUESTS.filter((q) => !d.claimed.includes(q.id) && (d[q.key] | 0) >= q.goal).length; };
