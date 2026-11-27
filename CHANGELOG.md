@@ -1,5 +1,8 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – phí đổi tên] – 2026-11-27
+- Đổi tên ở Hồ sơ: **lần đầu miễn phí**, sau đó tốn Vàng và **gấp đôi mỗi lần** (100 → 200 → 400 …); bấm 2 lần để xác nhận, báo rõ khi thiếu vàng. Người chơi cũ đã đặt tên coi như đã dùng lượt miễn phí.
+
 ## [Đấu Trường Quả Cầu Anime – Sảnh kiểu mobile & chơi trực tuyến trên GitHub Pages] – 2026-11-27
 - **Chơi trực tuyến + kết bạn trên link GitHub Pages**: phòng đấu, bạn bè, người online dùng **Supabase Realtime** (kênh broadcast công khai, khóa anon) của dự án hiện có; không thêm bảng database. Bước đăng Pages chạy `scripts/build-dau-truong.mjs` để chép supabase-js (bản đã khóa 2.119.0) và ghi `online-config.js` từ biến `SUPABASE_URL` / `SUPABASE_ANON_KEY`. Trên link Claude vẫn dùng kết nối của Claude.
 - **Sảnh Chính kiểu game mobile**: thanh trên (avatar, tên, cấp, ID, vàng, cài đặt) + thanh điều hướng dưới 5 mục (Sảnh · Phòng đấu · Bạn bè · Bộ sưu tập · Hồ sơ) + trang Cửa hàng (Vòng Quay).

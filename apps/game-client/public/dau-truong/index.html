@@ -2795,7 +2795,7 @@ const localMine = () => UI.kinds.map((k, i) => (k === 'me' ? i : -1)).filter((i)
 // ----- lưu tiến độ bằng localStorage (bọc try/catch: trình duyệt có thể chặn) -----
 const SAVE_KEY = 'anime_orb_arena_save_v1';
 const START_UNLOCKED = ['lee', 'naofumi', 'ironclad'];
-const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null, title: '', history: [] };
+const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null, title: '', history: [], renames: 0 };
 function loadSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
@@ -2816,6 +2816,8 @@ function loadSave() {
     if (Array.isArray(d.acc)) Save.acc = d.acc.filter(fidOk2).slice(-30);
     if (['ready', 'farm', 'test', 'busy'].includes(d.status)) Save.status = d.status;
     if (typeof d.title === 'string') Save.title = d.title.slice(0, 8);
+    // số lần đã đổi tên; người chơi cũ đã đặt tên rồi thì coi như đã dùng lượt miễn phí
+    Save.renames = Number.isFinite(d.renames) ? Math.max(0, d.renames | 0) : (Save.name ? 1 : 0);
     if (Array.isArray(d.history)) Save.history = d.history.filter((h) => h && Number.isFinite(h.t) && MODES[h.m]).slice(0, 20)
       .map((h) => ({ t: h.t, m: h.m, b: DEF_BY_ID[h.b] ? h.b : '', won: h.won ? 1 : 0, g: h.g | 0, lb: String(h.lb || '').slice(0, 40), on: h.on ? 1 : 0 }));
     for (const fr of Save.friends) { const o = (d.friends || []).find((x) => x && x.f === fr.f); if (o && o.pf && typeof o.pf === 'object') fr.pf = o.pf; }
@@ -4860,7 +4862,8 @@ function renderProfile() {
     <div class="box profile">
       <div class="avatarwrap">${d ? `<img src="${portraitUrl(d, 160)}" alt="">` : ''}<div class="emofloat"></div></div>
       <div style="min-width:0">
-        <div class="pname"><input class="text" id="netName" maxlength="16" placeholder="Tên nhân vật" value="${escapeHtml(Save.name)}"><button class="btn sm primary" id="btnSaveName">Lưu tên</button></div>
+        <div class="pname"><input class="text" id="netName" maxlength="16" placeholder="Tên nhân vật" value="${escapeHtml(Save.name)}"><button class="btn sm primary" id="btnSaveName">${renameLabel()}</button></div>
+        <div class="fst" id="renameHint">${renameCost() ? `Đã đổi tên ${Save.renames} lần · lần này tốn <b class="gold">${renameCost()} Vàng</b> (mỗi lần sau gấp đôi)` : 'Được đổi tên <b>miễn phí 1 lần</b> – các lần sau tốn vàng, mỗi lần gấp đôi.'}</div>
         <div class="pidrow"><button class="fidpill" data-fa="copy" title="Sao chép ID">🆔 #${Save.fid} 📋</button><span class="lvpill">Lv.${li.lv}</span><span class="titlepill">🎖 ${titleName(myTitleId())}</span></div>
         <div class="xpbar"><i style="width:${Math.round((li.cur / li.need) * 100)}%"></i></div>
         <div class="fst">${li.cur}/${li.need} KN tới Lv.${li.lv + 1} · mỗi trận +20 KN, thắng thêm +30 KN</div>
@@ -4898,13 +4901,34 @@ function renderProfile() {
       }).join('') : '<div class="empty">Chưa có trận nào được ghi lại – lịch sử bắt đầu ghi từ phiên bản này.</div>'}
     </div>`;
   $('btnSaveName').onclick = saveName;
-  $('netName').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(); $('netName').blur(); } });
+  $('netName').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(); } });
 }
+/** Đổi tên: lần đầu miễn phí, sau đó 100 Vàng và gấp đôi mỗi lần (100 → 200 → 400 …). */
+const RENAME_BASE = 100;
+const renameCost = () => (Save.renames < 1 ? 0 : RENAME_BASE * 2 ** Math.min(Save.renames - 1, 20));
+const renameLabel = () => (renameCost() ? `Đổi tên (${renameCost().toLocaleString('vi-VN')} 💰)` : 'Đổi tên (miễn phí)');
 function saveName() {
-  Save.name = cleanName($('netName').value); persist();
+  const btn = $('btnSaveName');
+  const name = cleanName($('netName').value);
+  if (!name) { toast('Tên không được để trống.'); $('netName').value = Save.name; return; }
+  if (name === Save.name) { toast('Tên mới giống tên hiện tại.'); return; }
+  const cost = renameCost();
+  if (cost > Save.gold) { toast(`Cần <b>${cost.toLocaleString('vi-VN')} Vàng</b> để đổi tên (bạn có ${Save.gold.toLocaleString('vi-VN')}).`); return; }
+  // bấm lần 2 để xác nhận
+  if (!btn.dataset.armed) {
+    btn.dataset.armed = '1';
+    btn.textContent = cost ? `Xác nhận −${cost.toLocaleString('vi-VN')} 💰` : 'Xác nhận đổi tên';
+    setTimeout(() => { if (btn.isConnected && btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = renameLabel(); } }, 4000);
+    return;
+  }
+  delete btn.dataset.armed;
+  if (cost) addGold(-cost);
+  Save.name = name; Save.renames++; persist();
   hallPresence(); if (NET.room) sendMyPresence();
   renderAppbar();
-  toast(Save.name ? `✔ Đã đổi tên thành <b>${escapeHtml(Save.name)}</b>` : 'Đã dùng tên mặc định ' + escapeHtml(myName()));
+  $('netName').blur();
+  renderProfile();
+  toast(`✔ Đã đổi tên thành <b>${escapeHtml(name)}</b>${cost ? ` · −${cost.toLocaleString('vi-VN')} Vàng` : ''}`);
 }
 
 // ----- SHOP – CỬA HÀNG -----
