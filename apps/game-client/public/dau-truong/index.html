@@ -634,8 +634,11 @@
   <div class="sheet">
     <h2>⚙ Cài đặt</h2>
     <p class="hint" style="text-align:left">Tiến độ (vàng, quả bóng đã mở) được lưu tự động trên trình duyệt này.</p>
-    <div class="row"><button class="btn gold" id="btnGold100">+100 Vàng (thử nghiệm)</button></div>
-    <label class="chk"><input type="checkbox" id="chkUnlockAll"> Mở khóa tất cả quả bóng (chế độ thử)</label>
+    <div id="devTools" hidden>
+      <div class="warn">🧪 Công cụ thử nghiệm – chỉ hiện khi mở link có <b>?dev</b>, không có ở bản chơi thật.</div>
+      <div class="row"><button class="btn gold" id="btnGold100">+100 Vàng (thử nghiệm)</button></div>
+      <label class="chk"><input type="checkbox" id="chkUnlockAll"> Mở khóa tất cả quả bóng (chế độ thử)</label>
+    </div>
     <div class="row" style="margin-top:12px"><button class="btn" id="btnReset">🗑 Xoá tiến độ</button><button class="btn primary" id="setClose">Xong</button></div>
   </div>
 </div>
@@ -2823,7 +2826,9 @@ function loadSave() {
   } catch { /* bỏ qua dữ liệu hỏng */ }
 }
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(Save)); } catch { /* chế độ riêng tư */ } }
-const isUnlocked = (id) => Save.unlockAll || Save.unlocked.includes(id);
+/** Công cụ thử nghiệm (+100 Vàng, mở khóa tất cả) chỉ bật khi mở link có ?dev (hoặc ?mockroom khi thử nhiều tab). */
+const DEV_MODE = (() => { try { const q = new URLSearchParams(location.search); return q.has('dev') || q.has('mockroom'); } catch { return false; } })();
+const isUnlocked = (id) => (DEV_MODE && Save.unlockAll) || Save.unlocked.includes(id);
 const unlockedIds = () => ROSTER.filter((d) => isUnlocked(d.id)).map((d) => d.id);
 
 function renderGold(delta = 0) {
@@ -4993,10 +4998,11 @@ $('btnSpin').onclick = spinWheel;
 $('btnShuffle').onclick = shuffleWheel;
 $('wheelClose').onclick = closeWheel;
 $('wheelModal').addEventListener('click', (e) => { if (e.target === $('wheelModal')) closeWheel(); });
+$('devTools').hidden = !DEV_MODE;
 $('btnSettings').onclick = () => { $('chkUnlockAll').checked = Save.unlockAll; $('settingsModal').classList.add('show'); };
 $('setClose').onclick = () => $('settingsModal').classList.remove('show');
 $('settingsModal').addEventListener('click', (e) => { if (e.target === $('settingsModal')) $('settingsModal').classList.remove('show'); });
-$('btnGold100').onclick = () => { addGold(100); Sound.ensure(); Sound.play('coin'); toast('+100 Vàng (thử nghiệm)'); };
+$('btnGold100').onclick = () => { if (!DEV_MODE) return; addGold(100); Sound.ensure(); Sound.play('coin'); toast('+100 Vàng (thử nghiệm)'); };
 $('chkUnlockAll').onchange = (e) => { Save.unlockAll = e.target.checked; persist(); renderGold(); renderRoster(); toast(Save.unlockAll ? '🔓 Đã bật mở khóa tất cả (chế độ thử)' : 'Đã tắt mở khóa tất cả'); };
 $('btnReset').onclick = () => {
   const b = $('btnReset');

@@ -8,6 +8,7 @@
   - Bộ sưu tập: phân loại theo cấp, lọc nguồn gốc / sở hữu, tìm kiếm, trang bị & yêu thích.
   - Hồ sơ: đổi tên, cấp độ (tính từ số trận/thắng), danh hiệu từ thành tích, trạng thái & biểu cảm, lịch sử 20 trận gần nhất.
 - Dữ liệu người chơi vẫn lưu trên trình duyệt (khóa lưu cũ, thêm trường mới – không mất tiến độ).
+- Ẩn công cụ thử nghiệm (+100 Vàng, Mở khóa tất cả) khỏi bản chơi thật; chỉ hiện khi mở link có `?dev`.
 
 ## [Đấu Trường Quả Cầu Anime] – 2026-11-27
 - Thêm game riêng 1 file **Đấu Trường Quả Cầu Anime** tại `apps/game-client/public/dau-truong/index.html` → đăng kèm GitHub Pages ở đường dẫn `/dau-truong/`. Game câu cá không đổi.
