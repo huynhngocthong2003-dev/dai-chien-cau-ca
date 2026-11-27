@@ -1,5 +1,9 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – khôi phục dữ liệu] – 2026-11-27
+- Hồ sơ → **🛟 Khôi phục dữ liệu**: liệt kê mọi bản sao tìm được – tiến độ Khách & bản sao trên máy này, bản sao lưu trên tài khoản (orb_save_backups, chỉ của chính mình) – kèm tên, vàng, số trận, số bóng, thời gian; bấm 2 lần để khôi phục (bản đang dùng được cất lại để hoàn tác; giữ tài khoản & ID).
+- **Mã chuyển dữ liệu** (DTQC1:…): sao chép ở nơi có dữ liệu cũ (vd. link Claude, trình duyệt khác) → dán ở nơi mới → khôi phục và lưu lên tài khoản.
+
 ## [Đấu Trường Quả Cầu Anime – file cài đặt máy chủ gộp] – 2026-11-27
 - `supabase/dau-truong-setup.sql`: gộp 2 migration tài khoản/sao lưu + hòm thư/quản trị để chạy **1 lần** trong SQL Editor (đã thử chạy 2 lần liên tiếp trên PostgreSQL 16, không lỗi).
 - Game: khi máy chủ chưa có bảng Đấu Trường, thẻ Tài khoản báo rõ "Máy chủ chưa bật lưu tài khoản… cần chạy file cài đặt" thay vì lỗi chung.

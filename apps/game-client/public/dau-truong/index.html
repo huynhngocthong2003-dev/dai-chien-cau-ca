@@ -561,6 +561,11 @@
   .x10nm { font-size: 11px; font-weight: 800; text-align: center; line-height: 1.2; }
   .x10tag { position: absolute; top: 3px; right: 4px; font-size: 10px; font-weight: 900; color: #1a1030; background: #fde047; border-radius: 6px; padding: 0 4px; }
   .x10tag.dup { background: rgba(255,255,255,.15); color: #fde68a; }
+  .rbox { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .rrow { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .rrow .fname { flex: 1; min-width: 0; }
+  .rcur { font-size: 13px; background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.3); border-radius: 10px; padding: 8px 10px; margin: 8px 0; }
+  #restoreModal h4 { margin: 12px 0 4px; color: #e9d5ff; }
   .authform { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .welcome { text-align: left; font-size: 14px; line-height: 1.55; background: rgba(168,85,247,.14); border: 1px solid rgba(168,85,247,.35); border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
   .linkbtn { border: 0; background: none; color: #c4b5fd; font-size: 13px; margin-top: 10px; }
@@ -751,6 +756,13 @@
     <div class="hint" id="pickHint" style="text-align:left;margin:4px 0 8px"></div>
     <div class="filters" id="filters"></div>
     <div class="roster" id="roster"></div>
+  </div>
+</div>
+<!-- ===== Khôi phục dữ liệu ===== -->
+<div class="modal" id="restoreModal" style="z-index:24">
+  <div class="sheet" style="width:min(100%,600px);text-align:left">
+    <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:nowrap"><h2 style="margin:0">🛟 Khôi phục dữ liệu</h2><button class="btn sm" id="restoreClose">✕</button></div>
+    <div id="restoreBody"></div>
   </div>
 </div>
 <!-- ===== Hòm thư ===== -->
@@ -5082,6 +5094,100 @@ if (window.ResizeObserver) new ResizeObserver(resize).observe($('arenaWrap'));
 // ---------------------------------------------------------------------
 const fmtSpeed = (v) => (Number.isInteger(v) ? v.toFixed(1) : String(v)) + 'x';
 // ---------------------------------------------------------------------
+// KHÔI PHỤC DỮ LIỆU: bản sao trên máy + bản sao lưu trên tài khoản + mã chuyển dữ liệu giữa link / trình duyệt
+// ---------------------------------------------------------------------
+const RESTORE = { list: [], busy: false };
+const saveSummary = (sv) => {
+  const s = sv && typeof sv === 'object' ? sv : {};
+  const n = (v) => (Number.isFinite(v) ? Math.floor(v) : 0);
+  return { name: String(s.name || '').slice(0, 16) || '(chưa đặt tên)', gold: n(s.gold), matches: n(s.matches), wins: n(s.wins), balls: Array.isArray(s.unlocked) ? s.unlocked.filter((id) => DEF_BY_ID[id]).length : 0, fid: typeof s.fid === 'string' ? s.fid : '' };
+};
+/** Mã chuyển dữ liệu: JSON bản lưu → base64 (UTF-8) kèm tiền tố. */
+function exportCode() {
+  const json = JSON.stringify({ v: 1, save: Save });
+  return 'DTQC1:' + btoa(String.fromCharCode(...new TextEncoder().encode(json)));
+}
+function parseCode(code) {
+  const m = String(code || '').trim().match(/^DTQC1:([A-Za-z0-9+/=]+)$/);
+  if (!m) return null;
+  try { const o = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(m[1]), (c) => c.charCodeAt(0)))); return o && o.save && typeof o.save === 'object' ? o.save : null; } catch { return null; }
+}
+
+async function openRestore() {
+  RESTORE.list = []; RESTORE.err = '';
+  const g = readLocalJson(GUEST_KEY);
+  if (g) RESTORE.list.push({ src: 'Tiến độ Khách trên máy này', at: null, save: g });
+  for (const r of readLocalJson(LOCAL_BAK_KEY) || []) if (r && r.save) RESTORE.list.push({ src: 'Bản sao trên máy này', at: r.t, save: r.save });
+  renderRestore(true);
+  $('restoreModal').classList.add('show');
+  if (ACC.user) {
+    try {
+      const sb = await getSb();
+      const { data, error } = await sb.from('orb_save_backups').select('id, save, version, reason, created_at').order('created_at', { ascending: false }).limit(40);
+      if (error) throw error;
+      for (const r of data || []) RESTORE.list.push({ src: `Sao lưu trên tài khoản (${r.reason === 'daily' ? 'theo ngày' : r.reason === 'auto' ? 'tự động' : r.reason})`, at: Date.parse(r.created_at), save: r.save });
+    } catch (e) { RESTORE.err = viErr(e && e.message); }
+  }
+  renderRestore(false);
+}
+function renderRestore(loading) {
+  const cur = saveSummary(Save);
+  const row = (r, i) => {
+    const s = saveSummary(r.save);
+    return `<div class="rrow"><div class="fname"><b>${escapeHtml(s.name)}</b>${s.fid ? ` <span class="fcode">#${escapeHtml(s.fid)}</span>` : ''}
+      <div class="fst">💰 ${s.gold.toLocaleString('vi-VN')} · ⚔ ${s.matches} trận · 🏆 ${s.wins} thắng · 📚 ${s.balls}/${ROSTER.length} bóng</div>
+      <div class="fst">${escapeHtml(r.src)}${r.at ? ' · ' + new Date(r.at).toLocaleString('vi-VN') : ''}</div></div>
+      <button class="btn sm gold" data-restore="${i}">Khôi phục</button></div>`;
+  };
+  $('restoreBody').innerHTML = `
+    <div class="rcur">Đang dùng: <b>${escapeHtml(cur.name)}</b> · 💰 ${cur.gold.toLocaleString('vi-VN')} · ⚔ ${cur.matches} trận · 📚 ${cur.balls}/${ROSTER.length} bóng${ACC.user ? ` · ☁ ${escapeHtml(ACC.user.email)}` : ' · Khách'}</div>
+    <h4>Các bản sao tìm thấy</h4>
+    ${RESTORE.list.length ? RESTORE.list.map(row).join('') : `<div class="empty">${loading ? 'Đang tìm…' : 'Không có bản sao nào trên máy này' + (ACC.user ? ' hay trên tài khoản.' : '. Đăng nhập để xem bản sao lưu trên tài khoản.')}</div>`}
+    ${RESTORE.err ? `<div class="warn">${escapeHtml(RESTORE.err)}</div>` : ''}
+    <h4>Chuyển dữ liệu từ link / trình duyệt khác</h4>
+    <div class="hint" style="text-align:left">1. Mở game ở <b>nơi có dữ liệu cũ</b> (vd. link Claude) → Hồ sơ → 🛟 Khôi phục dữ liệu → <b>Sao chép mã của tôi</b>.<br>2. Quay lại đây, dán mã vào ô dưới → <b>Nhập mã</b>.</div>
+    <div class="row" style="margin:8px 0"><button class="btn sm" id="btnCopyCode">📤 Sao chép mã của tôi</button></div>
+    <textarea class="text" id="importCode" rows="3" placeholder="Dán mã dữ liệu bắt đầu bằng DTQC1:…" style="width:100%"></textarea>
+    <div class="row" style="margin-top:6px"><button class="btn sm primary" id="btnImportCode">📥 Nhập mã</button></div>
+    <div class="hint" id="restoreMsg" style="text-align:left;margin-top:6px"></div>`;
+  $('btnCopyCode').onclick = () => {
+    const c = exportCode();
+    (navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast('📋 Đã sao chép mã dữ liệu – dán vào game ở nơi mới'), () => { $('importCode').value = c; $('importCode').select(); toast('Hãy nhấn giữ ô bên dưới → Sao chép'); });
+  };
+  $('btnImportCode').onclick = () => {
+    const sv = parseCode($('importCode').value);
+    if (!sv) { $('restoreMsg').textContent = '⚠ Mã không hợp lệ – hãy sao chép lại đầy đủ (bắt đầu bằng DTQC1:).'; return; }
+    RESTORE.list.unshift({ src: 'Từ mã dữ liệu vừa dán', at: Date.now(), save: sv });
+    renderRestore(false);
+    $('restoreMsg').textContent = '✔ Đã đọc mã – bấm Khôi phục ở bản trên cùng.';
+  };
+}
+/** Khôi phục một bản: cất bản hiện tại vào bản sao trên máy trước (có thể hoàn tác), giữ tài khoản & ID hiện tại. */
+function doRestore(i, btn) {
+  const r = RESTORE.list[i];
+  if (!r) return;
+  if (!btn.dataset.armed) { btn.dataset.armed = '1'; btn.textContent = 'Bấm lần nữa'; setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = 'Khôi phục'; } }, 3000); return; }
+  const ring = readLocalJson(LOCAL_BAK_KEY) || [];
+  ring.unshift({ t: Date.now(), save: JSON.parse(JSON.stringify(Save)) });
+  writeLocalJson(LOCAL_BAK_KEY, ring.slice(0, 5));
+  const keepOwner = Save.owner, keepFid = Save.fid;
+  applySaveObject(r.save);
+  Save.owner = keepOwner;
+  if (ACC.user) Save.fid = keepFid; // ID gắn với tài khoản, máy chủ giữ cố định
+  persist();
+  if (ACC.user) pushNow();
+  refreshAfterSaveSwap();
+  $('restoreModal').classList.remove('show');
+  const s = saveSummary(Save);
+  toast(`🛟 Đã khôi phục: ${escapeHtml(s.name)} · ${s.gold.toLocaleString('vi-VN')} vàng · ${s.balls} bóng${ACC.user ? ' – đang lưu lên tài khoản' : ''}`);
+}
+$('restoreModal').addEventListener('click', (e) => {
+  if (e.target === $('restoreModal') || e.target.id === 'restoreClose') { $('restoreModal').classList.remove('show'); return; }
+  const b = e.target.closest('[data-restore]');
+  if (b) doRestore(+b.dataset.restore, b);
+});
+
+// ---------------------------------------------------------------------
 // HÒM THƯ (bảng orb_mail) + MÀN MỞ QUÀ. Nhận quà do máy chủ cộng vàng (orb_mail_claim) – không nhận được 2 lần.
 // ---------------------------------------------------------------------
 const MAIL = { list: [], open: null, busy: false, lastNew: 0, loaded: false };
@@ -6040,6 +6146,7 @@ function renderProfile() {
   if (keepName) return; // đang gõ tên – không vẽ lại kẻo mất con trỏ
   pg.innerHTML = `<h2 class="pgtitle">👤 Hồ sơ</h2>
     <div class="box" id="accCard">${accountCardHtml()}</div>
+    <div class="box rbox"><div><b>🛟 Khôi phục dữ liệu</b><div class="fst">Lấy lại tiến độ cũ (bản sao trên máy / trên tài khoản) hoặc chuyển dữ liệu từ link Claude, trình duyệt khác.</div></div><button class="btn sm purple" data-openrestore="1">Mở</button></div>
     <div class="box profile">
       <div class="avatarwrap">${d ? `<img src="${portraitUrl(d, 160)}" alt="">` : ''}<div class="emofloat"></div></div>
       <div style="min-width:0">
@@ -6175,6 +6282,7 @@ document.addEventListener('click', (e) => {
   if (st && st.closest('#hub')) { setStatus(st.dataset.st); return; }
   const em = e.target.closest('[data-em]');
   if (em && em.closest('#hub')) { sendEmote(em.dataset.em); return; }
+  if (e.target.closest('[data-openrestore]')) { openRestore(); return; }
   const ti = e.target.closest('[data-title]');
   if (ti) { Save.title = ti.dataset.title; persist(); hallPresence(); renderPage(); toast('🎖 Danh hiệu: ' + titleName(myTitleId())); return; }
   const sb = e.target.closest('.sorb[data-ball]');
@@ -6270,7 +6378,7 @@ $('chkWake').onchange = (e) => {
   if (Save.wake) wakeOn(); else wakeOff();
   toast(Save.wake ? '☀ Đã bật giữ màn hình sáng' : 'Đã tắt giữ màn hình sáng');
 };
-window.__orbGame = { WAKE, _step: (dt) => step(dt), _beginRun: () => beginRun(), MAIL, loadMail, claimMail, openMailbox, ACC, getSb, pushNow, signOutAcc, MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
+window.__orbGame = { openRestore, exportCode, parseCode, WAKE, _step: (dt) => step(dt), _beginRun: () => beginRun(), MAIL, loadMail, claimMail, openMailbox, ACC, getSb, pushNow, signOutAcc, MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
 </script>
 </body>
 </html>
