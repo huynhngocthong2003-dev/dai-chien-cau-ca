@@ -1,5 +1,8 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – giữ màn hình sáng] – 2026-11-27
+- Điện thoại không còn tự tắt màn hình giữa trận (trận tự đánh, người chơi không chạm): dùng **Screen Wake Lock** khi đang mở game, tự xin lại khi quay lại tab / sau lần chạm đầu. Công tắc **☀ Giữ màn hình sáng khi chơi** trong Cài đặt (mặc định bật, lưu theo tài khoản). Trình duyệt chưa hỗ trợ → hiện hướng dẫn tăng "Tự động khóa".
+
 ## [Đấu Trường Quả Cầu Anime – 15 bóng hoạt hình & quà tân thủ] – 2026-11-27
 - **15 quả bóng hoạt hình** (tên riêng, nhân vật gốc ghi ở mục "Cảm hứng"; hình chibi tự vẽ, không dùng hình gốc) – tổng **45 quả**:
   - S: Mèo Máy Bảo Bối (bảo bối ngẫu nhiên: Cánh Cửa Thần Kỳ / Chong Chóng Tre / Đèn Pin Thu Nhỏ) · Tề Thiên Đại Thánh (3 phân thân + Gậy Như Ý) · Vua Slime Phân Tách (tách đôi tái sinh tối đa 2 lần).

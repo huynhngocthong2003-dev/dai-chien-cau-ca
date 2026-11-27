@@ -704,6 +704,8 @@
   <div class="sheet">
     <h2>⚙ Cài đặt</h2>
     <p class="hint" style="text-align:left">Tiến độ (vàng, quả bóng đã mở) được lưu tự động trên trình duyệt này.</p>
+    <label class="chk"><input type="checkbox" id="chkWake"> ☀ Giữ màn hình sáng khi chơi</label>
+    <div class="hint" id="wakeNote" style="text-align:left;margin:-4px 0 8px 26px"></div>
     <div id="devTools" hidden>
       <div class="warn">🧪 Công cụ thử nghiệm – chỉ hiện khi mở link có <b>?dev</b>, không có ở bản chơi thật.</div>
       <div class="row"><button class="btn gold" id="btnGold100">+100 Vàng (thử nghiệm)</button></div>
@@ -3325,7 +3327,7 @@ const localMine = () => UI.kinds.map((k, i) => (k === 'me' ? i : -1)).filter((i)
 // ----- lưu tiến độ bằng localStorage (bọc try/catch: trình duyệt có thể chặn) -----
 const SAVE_KEY = 'anime_orb_arena_save_v1';
 const START_UNLOCKED = ['lee', 'naofumi', 'ironclad'];
-const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null, weekly: null, monthly: null, title: '', history: [], renames: 0, owner: '', newbieA: false };
+const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, wake: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null, weekly: null, monthly: null, title: '', history: [], renames: 0, owner: '', newbieA: false };
 const SAVE_DEFAULTS = JSON.parse(JSON.stringify(Save));
 function loadSave() {
   let d = null;
@@ -3346,6 +3348,7 @@ function applySaveObject(d) {
     Save.matches = d.matches | 0; Save.wins = d.wins | 0;
     Save.name = typeof d.name === 'string' ? d.name.slice(0, 16) : '';
     Save.sound = d.sound !== false;
+    Save.wake = d.wake !== false;
     const fidOk2 = (x) => typeof x === 'string' && /^[A-HJ-NP-Z2-9]{6}$/.test(x);
     if (fidOk2(d.fid)) Save.fid = d.fid;
     if (DEF_BY_ID[d.main]) Save.main = d.main;
@@ -6163,7 +6166,29 @@ syncButtons();
 requestAnimationFrame(frame);
 initHall();
 initAccount();
-window.__orbGame = { _step: (dt) => step(dt), _beginRun: () => beginRun(), MAIL, loadMail, claimMail, openMailbox, ACC, getSb, pushNow, signOutAcc, MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
+
+// ----- Giữ màn hình sáng khi đang mở game (điện thoại không tự khóa giữa trận) -----
+const WAKE = { lock: null, supported: 'wakeLock' in navigator };
+async function wakeOn() {
+  if (!Save.wake || !WAKE.supported || WAKE.lock || document.visibilityState !== 'visible') return;
+  try {
+    WAKE.lock = await navigator.wakeLock.request('screen');
+    WAKE.lock.addEventListener('release', () => { WAKE.lock = null; });
+  } catch { /* trình duyệt từ chối (vd. chế độ tiết kiệm pin) – thử lại ở lần chạm sau */ }
+}
+function wakeOff() { if (WAKE.lock) { WAKE.lock.release().catch(() => undefined); WAKE.lock = null; } }
+// trình duyệt tự thả khóa khi ẩn trang → xin lại khi quay lại; một số máy cần thao tác chạm trước
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wakeOn(); });
+document.addEventListener('pointerdown', () => wakeOn(), { passive: true });
+wakeOn();
+$('chkWake').checked = Save.wake;
+$('wakeNote').textContent = WAKE.supported ? 'Màn hình không tự tắt khi đang mở game.' : 'Trình duyệt này chưa hỗ trợ – hãy tăng thời gian "Tự động khóa" trong cài đặt điện thoại.';
+$('chkWake').onchange = (e) => {
+  Save.wake = e.target.checked; persist();
+  if (Save.wake) wakeOn(); else wakeOff();
+  toast(Save.wake ? '☀ Đã bật giữ màn hình sáng' : 'Đã tắt giữ màn hình sáng');
+};
+window.__orbGame = { WAKE, _step: (dt) => step(dt), _beginRun: () => beginRun(), MAIL, loadMail, claimMail, openMailbox, ACC, getSb, pushNow, signOutAcc, MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
 </script>
 </body>
 </html>
