@@ -50,6 +50,13 @@ jobs:
           case "$host" in *.supabase.co) ;; *) echo "SUPABASE_URL khong dung dang https://xxxx.supabase.co"; exit 1;; esac
           grep -rqF "$host" apps/game-client/dist/assets || { echo "Khong tim thay URL trong ban build"; exit 1; }
           echo "OK: ban build co dia chi may chu tai khoan"
+      # HERO ARENA (game riêng) – đăng kèm tại /hero-arena/, chơi chung qua Supabase Realtime (khóa anon công khai)
+      - name: Build HERO ARENA
+        run: pnpm build:arena:web
+        env:
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+      - run: cp -r apps/hero-arena/dist apps/game-client/dist/hero-arena
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/game-client/dist

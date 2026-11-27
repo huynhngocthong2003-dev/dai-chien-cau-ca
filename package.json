@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "build:artifact": "pnpm build:single && node scripts/make-artifact.mjs",
     "test:db": "bash tests/db/run.sh",
+    "build:arena:web": "pnpm --filter @hero-arena/client build",
     "dev:arena": "pnpm --filter @hero-arena/client dev",
     "build:arena": "pnpm --filter @hero-arena/client build:single && node scripts/make-artifact.mjs apps/hero-arena",
     "test:e2e:arena": "node tests/e2e/hero-arena.mjs && node tests/e2e/hero-arena-mp.mjs"

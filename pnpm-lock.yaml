@@ -75,6 +75,9 @@ importers:
       '@hero-arena/core':
         specifier: workspace:*
         version: link:../../packages/hero-arena-core
+      '@supabase/supabase-js':
+        specifier: 2.119.0
+        version: 2.119.0
       phaser:
         specifier: 3.90.0
         version: 3.90.0

@@ -2,6 +2,7 @@
 
 ## [HERO ARENA 0.4.0] – 2026-11-27 – Cân bằng theo bậc, tự khớp màn hình, canh chỉnh chiêu
 ### Thêm mới
+- **Link web như game câu cá**: HERO ARENA được đăng kèm lên GitHub Pages tại `/hero-arena/`; chơi chung trên web qua Supabase Realtime (kênh phát sóng, dùng khóa anon công khai sẵn có, không cần bảng dữ liệu mới); gộp tối đa 10 tin/giây mỗi người để không vượt hạn mức.
 - **Quái vẽ lại pixel-art** (`apps/hero-arena/src/monsterArt.ts`): 12 loài có dáng riêng theo vùng – Ma Trơi, Cổ Thụ Hắc Ám, Thạch Quỷ, Vu Vương (sọ đội vương miện, gậy cầu tím), Bọ Cạp Cát, Giun Cát (miệng tròn đầy răng), Thổ Phỉ, Thủ Lĩnh Thổ Phỉ (mũ sừng, rìu, áo choàng), Người Tuyết Con/Vua Người Tuyết, Sói Băng, Băng Long; 2 khung hoạt ảnh (bước/vỗ cánh/lắc đuôi), thở khi đứng, quay mặt theo hướng đi; quái nhỏ vẽ chi tiết hơn và to hơn; thanh máu quái nằm trên đầu.
 - **Canh chỉnh chiêu**: giữ nút chiêu rồi kéo để ngắm – hiện đường bắn (chiêu bắn thẳng/lướt), hình quạt (chém), vòng điểm rơi (chiêu đặt bẫy/chiêu cuối tầm xa) hoặc vòng quanh bản thân; thả tay để tung, chạm nhanh vẫn tự ngắm, kéo vào ô **Hủy** để bỏ chiêu. Máy tính: giữ Q/E/R/F ngắm theo chuột, thả phím để tung. Hướng ngắm gửi qua mạng khi chơi chung.
 - **Tự khớp mọi màn hình điện thoại**: Scale.EXPAND (giữ trọn khung 1280×720, nới cạnh theo tỉ lệ máy, không méo, không viền đen); HUD neo theo 4 góc và tránh **vùng an toàn** (tai thỏ, viền cong, thanh điều hướng); bảng chọn & thông báo luôn ở giữa; camera giữ diện tích nhìn thấy tương đương trên màn hình dài; thử khóa màn hình ngang khi chạm lần đầu.

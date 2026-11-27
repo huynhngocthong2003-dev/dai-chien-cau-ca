@@ -112,7 +112,7 @@ export class MultiplayerScene extends Phaser.Scene {
     this.ui.add(panel(this, 240, 160, 800, 300));
     this.ui.add(text(this, W / 2, 200, "Chưa chơi chung được ở đây", 30, "#ffb347").setOrigin(0.5, 0));
     this.ui.add(
-      text(this, W / 2, 260, "Chơi chung cần mở game trên trang claude.ai và đăng nhập.\nNgười được mời phải được chủ trò chơi chia sẻ trang (nút Share).", 20, "#e8e0d0", 500)
+      text(this, W / 2, 260, "Chơi chung cần mở game qua link web của game hoặc trang claude.ai.\nKiểm tra kết nối mạng rồi thử lại.", 20, "#e8e0d0", 500)
         .setOrigin(0.5, 0)
         .setAlign("center"),
     );
