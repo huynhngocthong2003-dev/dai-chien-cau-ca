@@ -320,6 +320,7 @@
   .quest { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
   .quest.got { opacity: .6; }
   .quest .qv { color: var(--muted); font-size: 12px; font-weight: 800; }
+  .qtabs { margin: 6px 0 4px; } .qtabs button { padding: 6px 12px; font-size: 12px; }
   .qbar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); margin-top: 5px; overflow: hidden; }
   .qbar i { display: block; height: 100%; background: linear-gradient(90deg,#f59e0b,#fde047); border-radius: 3px; }
   .btn.sm { padding: 6px 10px; font-size: 12px; border-radius: 9px; }
@@ -2876,7 +2877,7 @@ const localMine = () => UI.kinds.map((k, i) => (k === 'me' ? i : -1)).filter((i)
 // ----- lưu tiến độ bằng localStorage (bọc try/catch: trình duyệt có thể chặn) -----
 const SAVE_KEY = 'anime_orb_arena_save_v1';
 const START_UNLOCKED = ['lee', 'naofumi', 'ironclad'];
-const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null, title: '', history: [], renames: 0, owner: '' };
+const Save = { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, name: '', sound: true, fid: '', main: '', fav: [], friends: [], sent: [], acc: [], status: 'ready', daily: null, weekly: null, monthly: null, title: '', history: [], renames: 0, owner: '' };
 const SAVE_DEFAULTS = JSON.parse(JSON.stringify(Save));
 function loadSave() {
   let d = null;
@@ -2911,9 +2912,13 @@ function applySaveObject(d) {
     if (Array.isArray(d.history)) Save.history = d.history.filter((h) => h && Number.isFinite(h.t) && MODES[h.m]).slice(0, 20)
       .map((h) => ({ t: h.t, m: h.m, b: DEF_BY_ID[h.b] ? h.b : '', won: h.won ? 1 : 0, g: h.g | 0, lb: String(h.lb || '').slice(0, 40), on: h.on ? 1 : 0 }));
     for (const fr of Save.friends) { const o = (d.friends || []).find((x) => x && x.f === fr.f); if (o && o.pf && typeof o.pf === 'object') fr.pf = o.pf; }
-    if (d.daily && typeof d.daily === 'object' && typeof d.daily.day === 'string') {
-      const q = d.daily;
-      Save.daily = { day: q.day, matches: q.matches | 0, wins: q.wins | 0, spins: q.spins | 0, lowWins: q.lowWins | 0, claimed: Array.isArray(q.claimed) ? q.claimed.filter((x) => typeof x === 'string') : [] };
+    // tiến độ nhiệm vụ ngày / tuần / tháng
+    for (const p of ['daily', 'weekly', 'monthly']) {
+      const q = d[p];
+      if (!q || typeof q !== 'object' || typeof q.day !== 'string') continue;
+      const st = { day: q.day.slice(0, 20), claimed: Array.isArray(q.claimed) ? q.claimed.filter((x) => typeof x === 'string').slice(0, 30) : [] };
+      for (const k of ['matches', 'wins', 'spins', 'lowWins', 'online', 'ffaWins', 'unlocks']) st[k] = Math.max(0, q[k] | 0);
+      Save[p] = st;
     }
   } catch { /* bỏ qua dữ liệu hỏng */ }
 }
@@ -3604,6 +3609,8 @@ function showVictory() {
       pushHistory(rw);
       questProgress('matches');
       if (rw.won) { questProgress('wins'); if (G.mine.some((i) => ['C', 'D'].includes(G.orbs[i].def.tier))) questProgress('lowWins'); }
+      if (NET.room) questProgress('online');
+      if (rw.won && G.mode === 'ffa') questProgress('ffaWins');
       addGold(rw.gold);
       Sound.play('coin');
     }
@@ -3800,6 +3807,7 @@ function finishSpin() {
     Sound.play('coin');
   } else {
     Save.unlocked.push(d.id); persist();
+    questProgress('unlocks');
     msg = `<div class="new">🎉 MỞ KHÓA MỚI! Có thể chọn đấu ngay.</div>`;
     Sound.play(d.tier === 'S' || d.tier === 'A' ? 'jackpot' : 'win');
   }
@@ -4984,33 +4992,69 @@ function setMainBall(id) {
 }
 
 // ----- Nhiệm vụ hằng ngày -----
-const QUESTS = [
-  { id: 'play3', name: 'Chơi 3 trận', key: 'matches', goal: 3, reward: 20 },
-  { id: 'win2', name: 'Thắng 2 trận', key: 'wins', goal: 2, reward: 35 },
-  { id: 'spin1', name: 'Quay Vòng May Mắn 1 lần', key: 'spins', goal: 1, reward: 25 },
-  { id: 'low1', name: 'Thắng 1 trận bằng bóng cấp C/D', key: 'lowWins', goal: 1, reward: 40 },
-];
-const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
-function dailyState() {
-  if (!Save.daily || Save.daily.day !== todayKey()) Save.daily = { day: todayKey(), matches: 0, wins: 0, spins: 0, lowWins: 0, claimed: [] };
-  return Save.daily;
+const QKEYS = ['matches', 'wins', 'spins', 'lowWins', 'online', 'ffaWins', 'unlocks'];
+const pad2 = (n) => String(n).padStart(2, '0');
+const ymd = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+/** Mốc đầu kỳ (giờ máy người chơi): ngày → 0:00; tuần → thứ Hai 0:00; tháng → ngày 1 0:00. */
+const PERIODS = {
+  daily: { label: 'Hôm nay', short: 'ngày', icon: '📅', start: (n) => new Date(n.getFullYear(), n.getMonth(), n.getDate()), next: (st) => new Date(st.getFullYear(), st.getMonth(), st.getDate() + 1) },
+  weekly: { label: 'Tuần này', short: 'tuần', icon: '🗓', start: (n) => new Date(n.getFullYear(), n.getMonth(), n.getDate() - ((n.getDay() + 6) % 7)), next: (st) => new Date(st.getFullYear(), st.getMonth(), st.getDate() + 7) },
+  monthly: { label: 'Tháng này', short: 'tháng', icon: '📆', start: (n) => new Date(n.getFullYear(), n.getMonth(), 1), next: (st) => new Date(st.getFullYear(), st.getMonth() + 1, 1) },
+};
+const QUESTS = {
+  daily: [
+    { id: 'play3', name: 'Chơi 3 trận', key: 'matches', goal: 3, reward: 20 },
+    { id: 'win2', name: 'Thắng 2 trận', key: 'wins', goal: 2, reward: 35 },
+    { id: 'spin1', name: 'Quay Vòng May Mắn 1 lần', key: 'spins', goal: 1, reward: 25 },
+    { id: 'low1', name: 'Thắng 1 trận bằng bóng cấp C/D', key: 'lowWins', goal: 1, reward: 40 },
+  ],
+  weekly: [
+    { id: 'w_play15', name: 'Chơi 15 trận', key: 'matches', goal: 15, reward: 80 },
+    { id: 'w_win8', name: 'Thắng 8 trận', key: 'wins', goal: 8, reward: 120 },
+    { id: 'w_spin3', name: 'Quay Vòng May Mắn 3 lần', key: 'spins', goal: 3, reward: 60 },
+    { id: 'w_online3', name: 'Chơi 3 trận trực tuyến', key: 'online', goal: 3, reward: 100 },
+    { id: 'w_ffa2', name: 'Thắng 2 trận Hỗn Chiến', key: 'ffaWins', goal: 2, reward: 90 },
+  ],
+  monthly: [
+    { id: 'm_play60', name: 'Chơi 60 trận', key: 'matches', goal: 60, reward: 300 },
+    { id: 'm_win30', name: 'Thắng 30 trận', key: 'wins', goal: 30, reward: 450 },
+    { id: 'm_low10', name: 'Thắng 10 trận bằng bóng cấp C/D', key: 'lowWins', goal: 10, reward: 250 },
+    { id: 'm_online10', name: 'Chơi 10 trận trực tuyến', key: 'online', goal: 10, reward: 350 },
+    { id: 'm_spin10', name: 'Quay Vòng May Mắn 10 lần', key: 'spins', goal: 10, reward: 200 },
+    { id: 'm_unlock3', name: 'Mở khóa 3 quả cầu mới', key: 'unlocks', goal: 3, reward: 300 },
+  ],
+};
+/** Trạng thái kỳ nhiệm vụ; sang kỳ mới thì làm lại từ đầu. */
+function questState(p) {
+  const k = ymd(PERIODS[p].start(new Date()));
+  if (!Save[p] || Save[p].day !== k) { Save[p] = { day: k, claimed: [] }; for (const q of QKEYS) Save[p][q] = 0; }
+  return Save[p];
 }
-function questProgress(key, n = 1) { const d = dailyState(); d[key] = (d[key] | 0) + n; persist(); renderPage(); }
+const dailyState = () => questState('daily');
+/** Cộng tiến độ cho cả nhiệm vụ ngày, tuần và tháng. */
+function questProgress(key, n = 1) {
+  for (const p of Object.keys(PERIODS)) { const st = questState(p); st[key] = (st[key] | 0) + n; }
+  persist(); renderPage();
+}
 function claimQuest(id) {
-  const q = QUESTS.find((x) => x.id === id);
-  const d = dailyState();
-  if (!q || d.claimed.includes(id) || (d[q.key] | 0) < q.goal) return;
-  d.claimed.push(id);
+  const p = Object.keys(QUESTS).find((k) => QUESTS[k].some((q) => q.id === id));
+  if (!p) return;
+  const q = QUESTS[p].find((x) => x.id === id);
+  const st = questState(p);
+  if (st.claimed.includes(id) || (st[q.key] | 0) < q.goal) return;
+  st.claimed.push(id);
   addGold(q.reward);
   Sound.ensure(); Sound.play('coin');
-  showRewardReveal([{ kind: 'gold', amount: q.reward, label: 'Nhiệm vụ: ' + q.name }]);
+  showRewardReveal([{ kind: 'gold', amount: q.reward, label: `Nhiệm vụ ${PERIODS[p].short}: ${q.name}` }]);
   renderPage();
 }
-const questsReady = () => { const d = dailyState(); return QUESTS.filter((q) => !d.claimed.includes(q.id) && (d[q.key] | 0) >= q.goal).length; };
-function resetCountdown() {
-  const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0);
-  const s = Math.max(0, Math.floor((m - n) / 1000));
-  return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+const questsReadyIn = (p) => { const st = questState(p); return QUESTS[p].filter((q) => !st.claimed.includes(q.id) && (st[q.key] | 0) >= q.goal).length; };
+const questsReady = () => Object.keys(PERIODS).reduce((a, p) => a + questsReadyIn(p), 0);
+/** Thời gian còn lại tới lúc làm mới (ngày: hh:mm:ss; tuần/tháng: "x ngày hh:mm"). */
+function resetCountdown(p = 'daily') {
+  const now = new Date(), nx = PERIODS[p].next(PERIODS[p].start(now));
+  const s = Math.max(0, Math.floor((nx - now) / 1000)), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+  return d ? `${d} ngày ${pad2(h)}:${pad2(m)}` : `${pad2(h)}:${pad2(m)}:${pad2(s % 60)}`;
 }
 
 // ----- Lịch sử đấu -----
@@ -5085,7 +5129,7 @@ function renderPage() {
 // tương thích với lời gọi cũ
 const renderHall = () => renderPage();
 const renderFriends = () => renderPage();
-setInterval(() => { if (UI.view === 'hall' && UI.page === 'home') { const el = $('resetIn'); if (el) el.textContent = resetCountdown(); } }, 1000);
+setInterval(() => { if (UI.view === 'hall' && UI.page === 'home') { const el = $('resetIn'); if (el) el.textContent = resetCountdown(UI.qtab || 'daily'); } }, 1000);
 
 // ----- HOME -----
 function orbShowcaseHtml(ids) {
@@ -5096,9 +5140,9 @@ function orbShowcaseHtml(ids) {
       <div class="sname"><span class="badge sm ${d.tier}">${d.tier}</span> ${d.name}</div></button>`;
   }).join('');
 }
-function questListHtml() {
-  const d = dailyState();
-  return QUESTS.map((q) => {
+function questListHtml(p = UI.qtab || 'daily') {
+  const d = questState(p);
+  return QUESTS[p].map((q) => {
     const v = Math.min(d[q.key] | 0, q.goal), done = v >= q.goal, got = d.claimed.includes(q.id);
     return `<div class="quest${got ? ' got' : ''}"><div class="qn">${q.name}<div class="qbar"><i style="width:${(v / q.goal) * 100}%"></i></div></div>
       <span class="qv">${v}/${q.goal}</span>
@@ -5127,7 +5171,8 @@ function renderHome() {
       <button class="tile" data-go="friends"><span class="ic">👥</span><b>Bạn bè</b><small>${HALL.room ? `${nFriendsOn} đang online` : 'Chưa kết nối'}</small></button>
     </div>
     <div class="box">
-      <div class="sechead"><h3>📜 Nhiệm vụ hôm nay</h3><span class="hint">Làm mới sau <b id="resetIn">${resetCountdown()}</b></span></div>
+      <div class="sechead"><h3>📜 Nhiệm vụ</h3><span class="hint">Làm mới sau <b id="resetIn">${resetCountdown(UI.qtab || 'daily')}</b></span></div>
+      <div class="tabs qtabs">${Object.entries(PERIODS).map(([k, v]) => { const n = questsReadyIn(k); return `<button data-qtab="${k}" class="${(UI.qtab || 'daily') === k ? 'on' : ''}">${v.icon} ${v.label}${n ? `<span class="nbadge">${n}</span>` : ''}</button>`; }).join('')}</div>
       ${questListHtml()}
     </div>
     <div class="box">
@@ -5549,6 +5594,8 @@ document.addEventListener('click', (e) => {
   if (mm) { startMatchmaking(mm.dataset.mm === 'any' ? 'any' : UI.bm.mm); goPage('battle'); return; }
   if (e.target.closest('[data-mmcancel]')) { stopMatchmaking(); return; }
   if (e.target.closest('[data-leave]')) { MM.public = false; leaveRoom('hall'); toast('Đã rời phòng.'); return; }
+  const qt = e.target.closest('[data-qtab]');
+  if (qt) { UI.qtab = qt.dataset.qtab; renderHome(); return; }
   const q = e.target.closest('[data-q]');
   if (q) { claimQuest(q.dataset.q); return; }
   const tb = e.target.closest('[data-ftab]');
@@ -5598,7 +5645,7 @@ $('btnReset').onclick = () => {
   const b = $('btnReset');
   if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = '⚠ Bấm lần nữa để xoá'; setTimeout(() => { delete b.dataset.armed; b.textContent = '🗑 Xoá tiến độ'; }, 3000); return; }
   delete b.dataset.armed; b.textContent = '🗑 Xoá tiến độ';
-  Object.assign(Save, { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, main: '', fav: [], daily: null, title: '', history: [] });
+  Object.assign(Save, { gold: 100, unlocked: [...START_UNLOCKED], unlockAll: false, matches: 0, wins: 0, main: '', fav: [], daily: null, weekly: null, monthly: null, title: '', history: [] });
   UI.myBall = unlockedIds()[0];
   persist(); renderGold(); UI.slots = defaultSlots(G.mode); renderSlots(); toast('Đã xoá tiến độ.');
 };

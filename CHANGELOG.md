@@ -1,5 +1,11 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – nhiệm vụ tuần & tháng] – 2026-11-27
+- Khung Nhiệm vụ ở Sảnh có 3 tab **Hôm nay · Tuần này · Tháng này** (số nhiệm vụ chờ nhận trên từng tab, đếm ngược tới lúc làm mới).
+- **Tuần** (làm mới thứ Hai 0:00): chơi 15 trận +80 · thắng 8 +120 · quay 3 lần +60 · 3 trận trực tuyến +100 · thắng 2 trận Hỗn Chiến +90.
+- **Tháng** (làm mới ngày 1): chơi 60 trận +300 · thắng 30 +450 · thắng 10 trận bằng bóng C/D +250 · 10 trận trực tuyến +350 · quay 10 lần +200 · mở khóa 3 quả cầu mới +300.
+- Tiến độ mới: trận trực tuyến, thắng Hỗn Chiến, mở khóa quả cầu mới. Một trận cộng cho cả ngày/tuần/tháng; nhận thưởng hiện màn chúc mừng; bản lưu cũ giữ nguyên tiến độ nhiệm vụ ngày.
+
 ## [Đấu Trường Quả Cầu Anime – chúc mừng mỗi lần nhận quà] – 2026-11-27
 - Có quà mới trong hòm thư → thông báo nổi "🎁 Bạn có quà mới!" (tên quà, số vàng, nút Mở hòm thư).
 - Nhận nhiều thư cùng lúc → màn chúc mừng hiện **từng món quà** (kèm tên thư) và tổng vàng; nhận thưởng **nhiệm vụ hằng ngày** cũng hiện màn chúc mừng.
