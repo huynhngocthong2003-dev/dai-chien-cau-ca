@@ -24,6 +24,8 @@ import {
   skillFor,
   chooseEvolution,
   totalPassive,
+  MONSTER_RESPAWN_SEC,
+  BOSS_RESPAWN_SEC,
 } from "./index.ts";
 
 function expTo(level: number): number {
@@ -511,5 +513,59 @@ describe("cân bằng theo bậc (ngân sách chỉ số có đánh đổi)", ()
     t2.state.hp = t2.state.maxHp = 1e6;
     for (let i = 0; i < 60; i++) a2.tick(1 / 60, { moveX: 0, moveY: 0, attack: true, cast: null, usePotion: false, aimX: t1.x, aimY: t1.y });
     expect(t2.dotUntil).toBeGreaterThan(a2.time);
+  });
+});
+
+describe("máy bỏ đuổi & quái hồi sinh nhanh", () => {
+  it("máy rượt người chơi quá 4 giây không tới tầm đánh thì bỏ đuổi và làm lơ một lúc", () => {
+    const a = new Arena({ seed: 33, playerName: "Tôi", heroId: "fighter", gender: "male", players: 2 });
+    for (const m of a.monsters) m.alive = false;
+    const p = a.player;
+    const bot = a.fighters[1]!;
+    // đặt máy gần, người chơi chạy thẳng ra xa nhanh hơn (dịch chuyển tay mỗi khung)
+    bot.x = p.x + 300;
+    bot.y = p.y;
+    bot.bot!.aggression = 1;
+    a.time = 900; // cuối trận: tầm săn xa
+    let chased = false;
+    let gaveUp = false;
+    for (let i = 0; i < 60 * 8; i++) {
+      const dx = p.x - bot.x;
+      const dy = p.y - bot.y;
+      const d = Math.hypot(dx, dy) || 1;
+      if (d < 420) {
+        p.x += (dx / d) * 6;
+        p.y += (dy / d) * 6;
+      }
+      a.tick(1 / 60, { moveX: 0, moveY: 0, attack: false, cast: null, usePotion: false });
+      if (bot.bot!.targetId === p.id) chased = true;
+      if ((bot.bot!.ignoreUntil?.[p.id] ?? 0) > a.time) gaveUp = true;
+      if (!p.state.alive || !bot.state.alive) break;
+    }
+    expect(chased).toBe(true);
+    expect(gaveUp).toBe(true);
+  });
+
+  it("quái bị hạ hồi sinh sau vài giây, boss lâu hơn", () => {
+    const a = new Arena({ seed: 34, playerName: "Tôi", heroId: "fighter", gender: "male", players: 2 });
+    const small = a.monsters.find((m) => !m.def.isBoss)!;
+    const boss = a.monsters.find((m) => m.def.isBoss)!;
+    const p = a.player;
+    for (const f of a.fighters.slice(1)) f.state.alive = false;
+    for (const m of [small, boss]) {
+      for (const o of a.monsters) if (o !== m) o.alive = false;
+      m.alive = true;
+      m.hp = 1;
+      m.x = p.x + 40;
+      m.y = p.y;
+      let killedAt = -1;
+      for (let i = 0; i < 120 && killedAt < 0; i++) {
+        a.tick(1 / 60, { moveX: 0, moveY: 0, attack: true, cast: null, usePotion: false, aimX: m.x, aimY: m.y });
+        if (!m.alive) killedAt = a.time;
+      }
+      expect(killedAt).toBeGreaterThan(0);
+      expect(m.respawnAt - killedAt).toBeCloseTo(m.def.isBoss ? BOSS_RESPAWN_SEC : MONSTER_RESPAWN_SEC, 1);
+    }
+    expect(MONSTER_RESPAWN_SEC).toBeLessThanOrEqual(8);
   });
 });

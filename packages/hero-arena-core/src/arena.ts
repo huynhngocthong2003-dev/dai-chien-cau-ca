@@ -39,6 +39,13 @@ export const PASSIVE_EXP_PER_SEC = 3;
 export const LOCK_RANGE = 560;
 /** Đầu trận máy không gây sự với máy (người chơi vẫn đánh được tất cả). */
 export const BOT_TRUCE_SEC = 600;
+/** Máy rượt một đối thủ quá số giây này mà chưa vào tầm đánh → bỏ đuổi. */
+export const BOT_CHASE_GIVEUP_SEC = 4;
+/** Sau khi bỏ đuổi, máy làm lơ đối thủ đó trong số giây này (trừ khi bị đánh ở cự ly gần). */
+export const BOT_CHASE_COOLDOWN_SEC = 10;
+/** Quái hồi sinh tại chỗ sau khi bị hạ (giây). */
+export const MONSTER_RESPAWN_SEC = 6;
+export const BOSS_RESPAWN_SEC = 30;
 /** Hồi sinh đầu trận: trong RESPAWN_WINDOW_SEC giây đầu, bị hạ lần đầu được hồi sinh 1 lần. */
 export const RESPAWN_WINDOW_SEC = 300;
 export const RESPAWN_DELAY_SEC = 5;
@@ -150,6 +157,11 @@ export interface BotBrain {
   /** Tính hiếu chiến (0..1): ảnh hưởng tầm săn người. */
   aggression: number;
   targetId: string | null;
+  /** Thời gian đã rượt mục tiêu hiện tại mà chưa vào tầm đánh. */
+  chaseSec?: number;
+  chaseId?: string;
+  /** Đối thủ đã bỏ đuổi → thời điểm hết làm lơ. */
+  ignoreUntil?: Record<string, number>;
 }
 
 export interface Monster {
@@ -1122,7 +1134,7 @@ export class Arena {
     if (!m.alive) return;
     m.alive = false;
     m.hp = 0;
-    m.respawnAt = this.time + (m.def.isBoss ? 120 : 35);
+    m.respawnAt = this.time + (m.def.isBoss ? BOSS_RESPAWN_SEC : MONSTER_RESPAWN_SEC);
     ev.push({ type: "monster_killed", monsterId: m.id, killerId: killer.id, isBoss: m.def.isBoss });
     ev.push({ type: "fx", kind: "death", x: m.x, y: m.y, radius: m.def.size, color: m.def.color, ownerId: killer.id });
     if (!killer.state.alive) return;
@@ -1328,13 +1340,18 @@ export class Arena {
       const attacker = this.time < f.pvpUntil && f.lastHitBy ? this.fighterById(f.lastHitBy) : undefined;
       // 7 phút đầu máy tránh đánh nhau với máy (dính đòn lan thì lùi); luôn đánh trả người chơi
       const botFeud = attacker?.isBot && this.time < BOT_TRUCE_SEC;
-      if (attacker?.state.alive && !botFeud && Math.hypot(attacker.x - f.x, attacker.y - f.y) < 600) {
+      const ign = (b.ignoreUntil ??= {});
+      const ignored = (id: string) => (ign[id] ?? 0) > this.time;
+      // đã bỏ đuổi kẻ này: chỉ đánh trả khi nó áp sát (trong tầm đánh của mình)
+      const attackerClose = attacker ? Math.hypot(attacker.x - f.x, attacker.y - f.y) < this.rangeOf(f) * 1.2 + 40 : false;
+      if (attacker?.state.alive && !botFeud && Math.hypot(attacker.x - f.x, attacker.y - f.y) < 600 && (!ignored(attacker.id) || attackerClose)) {
         b.targetId = attacker.id;
         best = -1;
       }
       for (const o of this.fighters) {
         if (o === f || !o.state.alive) continue;
         if (o.isBot && this.time < BOT_TRUCE_SEC) continue;
+        if (ignored(o.id)) continue;
         const d = Math.hypot(o.x - f.x, o.y - f.y);
         // ưu tiên đối thủ yếu máu
         const score = d * (0.6 + o.state.hp / o.state.maxHp);
@@ -1362,7 +1379,24 @@ export class Arena {
       }
     }
 
-    const targetF = b.targetId ? this.fighterById(b.targetId) : undefined;
+    let targetF = b.targetId ? this.fighterById(b.targetId) : undefined;
+    // rượt quá lâu mà không vào được tầm đánh → bỏ đuổi, làm lơ một lúc rồi đi việc khác
+    if (targetF?.state.alive) {
+      if (b.chaseId !== targetF.id) {
+        b.chaseId = targetF.id;
+        b.chaseSec = 0;
+      }
+      const d = Math.hypot(targetF.x - f.x, targetF.y - f.y);
+      if (d > this.rangeOf(f) * 1.15 + 20) b.chaseSec = (b.chaseSec ?? 0) + dt;
+      else b.chaseSec = 0;
+      if ((b.chaseSec ?? 0) > BOT_CHASE_GIVEUP_SEC) {
+        (b.ignoreUntil ??= {})[targetF.id] = this.time + BOT_CHASE_COOLDOWN_SEC;
+        b.chaseSec = 0;
+        b.targetId = null;
+        b.retarget = 0.3;
+        targetF = undefined;
+      }
+    } else b.chaseSec = 0;
     const targetM = !targetF && b.targetId ? this.monsters.find((m) => m.id === b.targetId && m.alive) : undefined;
     const tx = targetF?.state.alive ? targetF.x : targetM?.x;
     const ty = targetF?.state.alive ? targetF.y : targetM?.y;
