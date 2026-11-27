@@ -89,6 +89,77 @@ def drop_edge_fragments(im):
                 px[x, y] = (0, 0, 0, 0)
 
 
+def strip_halo(im):
+    """Bỏ quầng sáng xanh bao quanh nhân vật: loang từ vùng trong suốt vào các điểm ảnh
+    xanh lá của quầng (dừng ở đường viền tối của nhân vật), rồi xoá các mảnh rời nhỏ còn sót."""
+    import colorsys
+    W, H = im.size
+    px = im.load()
+
+    def halo(c):
+        r, g, b, a = c
+        if a == 0:
+            return False
+        h, s_, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        return 0.22 < h < 0.5 and s_ > 0.25 and 0.12 < v < 0.75
+
+    seen = bytearray(W * H)
+    q = deque()
+    for y in range(H):
+        for x in range(W):
+            if px[x, y][3] == 0:
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= nx < W and 0 <= ny < H and px[nx, ny][3] and halo(px[nx, ny]):
+                        q.append((nx, ny))
+    while q:
+        x, y = q.popleft()
+        i = y * W + x
+        if seen[i]:
+            continue
+        seen[i] = 1
+        if not halo(px[x, y]):
+            continue
+        px[x, y] = (0, 0, 0, 0)
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if 0 <= nx < W and 0 <= ny < H and not seen[ny * W + nx] and px[nx, ny][3]:
+                q.append((nx, ny))
+    keep_main(im)
+
+
+def keep_main(im, ratio=0.04):
+    """Chỉ giữ các mảnh liền khối đủ lớn (so với mảnh lớn nhất)."""
+    W, H = im.size
+    px = im.load()
+    seen = bytearray(W * H)
+    comps = []
+    for y in range(H):
+        for x in range(W):
+            if seen[y * W + x] or px[x, y][3] == 0:
+                continue
+            q = deque([(x, y)])
+            seen[y * W + x] = 1
+            pts = []
+            while q:
+                cx, cy = q.popleft()
+                pts.append((cx, cy))
+                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1), (cx + 1, cy + 1), (cx - 1, cy - 1), (cx + 1, cy - 1), (cx - 1, cy + 1)):
+                    if 0 <= nx < W and 0 <= ny < H and not seen[ny * W + nx] and px[nx, ny][3]:
+                        seen[ny * W + nx] = 1
+                        q.append((nx, ny))
+            comps.append(pts)
+    if not comps:
+        return
+    biggest = max(len(c) for c in comps)
+    for c in comps:
+        if len(c) < biggest * ratio:
+            for x, y in c:
+                px[x, y] = (0, 0, 0, 0)
+
+
+# nút cần bỏ quầng sáng bao quanh (theo góp ý chủ dự án)
+STRIP_HALO = {"helper:base"}
+
+
 def erase_label(key, rect):
     im = IMGS[key]
     bgc = im.getpixel((3, 3))
@@ -176,6 +247,9 @@ for nid, key, fb, back in NODES:
     for side, (k2, box) in (("f", (key, fb)), ("b", back)) if back else (("f", (key, fb)),):
         erase = (1040, 790, 1115, 865) if k2 == "X" else None
         c = cut(k2, box, erase)
+        if nid in STRIP_HALO:
+            strip_halo(c)
+            c = c.crop(c.getbbox())
         s = min(TARGET_H / c.height, (CW - 2) / c.width)
         c = c.resize((max(1, round(c.width * s)), max(1, round(c.height * s))), Image.BOX)
         ent[side] = len(frames)
