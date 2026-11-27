@@ -22,3 +22,8 @@ Công cụ admin (tài khoản có trong bảng `admins`, gọi trong SQL Editor
 - `select public.orb_snapshot_all('ly_do');` – chụp toàn bộ, trả về số bản.
 - `select * from public.orb_admin_backups(null, '#ABCDEF');` – xem các bản sao lưu của một người chơi (vàng, số trận, số bóng).
 - `select public.orb_admin_restore(<id bản sao lưu>);` – khôi phục (bản hiện tại được cất lại trước; máy người chơi tự tải bản mới).
+
+### Hòm thư & app quản trị Đấu Trường (`20261216000001_orb_mail_admin.sql`)
+- Bảng `orb_mail` (thư + vàng đính kèm, hạn nhận) và `orb_admin_log` (nhật ký thao tác admin). Người chơi chỉ đọc thư của mình; nhận quà qua `orb_mail_claim` – máy chủ cộng vàng vào `orb_saves` và đánh dấu đã nhận trong **cùng một giao dịch** (không nhận 2 lần; lỗi thì thư vẫn "chưa nhận").
+- **App quản trị**: `https://<tên>.github.io/dai-chien-cau-ca/dau-truong/admin.html` – đăng nhập bằng tài khoản có trong bảng `admins`. Tổng quan · tìm & xem người chơi (email, vàng, trận, bóng, bạn bè, lịch sử trận, hòm thư) · gửi thư / quà vàng cho từng người hoặc tất cả · lịch sử gửi (đã nhận bao nhiêu) · nút sao lưu toàn bộ.
+- Thêm quản trị viên: `insert into public.admins (user_id) select id from auth.users where email = '...';` (SQL Editor).

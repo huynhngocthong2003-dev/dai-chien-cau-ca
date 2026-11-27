@@ -1,5 +1,11 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Hòm thư & app quản trị] – 2026-11-27
+- **Database (`20261216000001_orb_mail_admin.sql`)**: chụp toàn bộ bản lưu trước khi nâng cấp; bảng `orb_mail`, `orb_admin_log`; hàm người chơi `orb_mail_read`, `orb_mail_hide`, `orb_mail_claim` (máy chủ cộng vàng + đánh dấu đã nhận trong 1 giao dịch, kiểm tra phiên bản bản lưu); hàm admin `orb_admin_stats`, `orb_admin_players`, `orb_admin_player`, `orb_admin_send_mail` (từng người / tất cả, ≤ 1.000.000 vàng/thư, hạn nhận), `orb_admin_mail_log`. Tất cả hàm admin kiểm tra bảng `admins` ở máy chủ.
+- **Game**: nút 📬 hòm thư ở thanh trên (số thư mới, rung nhẹ khi có thư mới), mở thư, nhận quà / nhận tất cả, đánh dấu đã đọc, xoá thư đã nhận; **màn mở quà** (nền tối, tia sáng, hộp quà mở, vàng đếm lên, "Chúc mừng", Xác nhận) – không phát lại khi mở thư đã nhận.
+- **App quản trị** `dau-truong/admin.html`: tổng quan, tìm/xem người chơi, gửi quà vàng, lịch sử gửi, sao lưu toàn bộ.
+- Kiểm thử đầu-cuối bằng supabase-js thật + SQL thật (PostgreSQL 16, RLS, vai trò authenticated/anon): người thường bị chặn khỏi app admin; admin gửi quà; người chơi nhận +500 (100 → 600), nhận lần 2 bị từ chối, tải lại vẫn 600 khớp database.
+
 ## [Đấu Trường Quả Cầu Anime – Hỗn Chiến 6 người, bắt buộc tài khoản] – 2026-11-27
 - **Hỗn Chiến**: tối đa **6 ô**, chỉ cần **2** người chơi/máy là bắt đầu được – ô trống tự bỏ qua; vị trí xuất phát chia đều theo vòng tròn (2–6 quả). Trực tuyến: chủ phòng gửi kèm danh sách ô vào trận để mọi máy khớp đúng quả bóng của mình. Các chế độ đội (1v1, 2v2, 4v4) vẫn phải đủ ô.
 - **Người chơi mới / chưa đăng nhập** (trên link GitHub): màn "Chào mừng" bắt buộc tạo tài khoản hoặc đăng nhập để sao lưu tiến độ; tiến độ đang có trên máy được giữ. Không kết nối được máy chủ → có nút chơi tạm. Link Claude không có máy chủ tài khoản nên không bắt buộc.

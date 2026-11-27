@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Quản trị Đấu Trường</title>
+<style>
+  :root { --bg: #07060d; --panel: rgba(22,18,38,.92); --panel2: rgba(34,28,58,.95); --line: rgba(255,255,255,.09); --text: #f2ecff; --muted: #a59cc4; --gold: #ffcc33; --ok: #4ade80; --bad: #f87171; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at top, rgba(124,58,237,.25), transparent 60%), var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; padding-bottom: env(safe-area-inset-bottom); }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  header { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+    background: rgba(12,9,24,.95); border-bottom: 1px solid rgba(168,85,247,.3); backdrop-filter: blur(8px); }
+  h1 { margin: 0; font-size: 18px; } h1 small { color: var(--muted); font-weight: 600; font-size: 12px; display: block; }
+  main { max-width: 1100px; margin: 0 auto; padding: 14px 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+  .box h2 { margin: 0 0 10px; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .btn { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 800; background: var(--panel2); border: 1px solid rgba(255,255,255,.1); }
+  .btn.primary { background: linear-gradient(90deg,#f97316,#ef4444); border-color: transparent; }
+  .btn.gold { background: linear-gradient(90deg,#f59e0b,#fde047); color: #1a1030; border-color: transparent; }
+  .btn.sm { padding: 6px 10px; font-size: 13px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  input, textarea, select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); background: rgba(0,0,0,.35); color: var(--text); font: inherit; }
+  textarea { resize: vertical; min-height: 80px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; font-weight: 700; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .grow { flex: 1; min-width: 160px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tabs button { border: 0; padding: 8px 14px; border-radius: 999px; background: rgba(0,0,0,.35); color: var(--muted); font-weight: 800; }
+  .tabs button.on { background: linear-gradient(90deg,#a855f7,#ec4899); color: #fff; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .stat { background: rgba(0,0,0,.25); border-radius: 12px; padding: 12px; }
+  .stat b { display: block; font-size: 22px; color: var(--gold); } .stat span { font-size: 12px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-size: 12px; }
+  tbody tr { cursor: pointer; } tbody tr:hover { background: rgba(168,85,247,.12); }
+  .tablewrap { overflow-x: auto; }
+  .id { color: #c4b5fd; font-weight: 800; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .msg { min-height: 20px; font-size: 13px; margin-top: 8px; }
+  .msg.ok { color: var(--ok); } .msg.bad { color: var(--bad); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { background: rgba(124,58,237,.25); border: 1px solid rgba(167,139,250,.4); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800; }
+  .chip button { border: 0; background: none; color: #fca5a5; margin-left: 4px; padding: 0; }
+  .detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .kv { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding: 6px 0; font-size: 14px; }
+  .kv span:first-child { color: var(--muted); }
+  .center { max-width: 420px; margin: 8vh auto; }
+  .hidden { display: none !important; }
+  @media (max-width: 640px) { .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛡 Quản trị Đấu Trường<small>Đấu Trường Quả Cầu Anime</small></h1>
+  <div class="row"><span class="muted" id="who"></span><button class="btn sm hidden" id="btnOut">Đăng xuất</button></div>
+</header>
+
+<!-- Đăng nhập -->
+<main id="loginView" class="center">
+  <div class="box">
+    <h2>Đăng nhập quản trị</h2>
+    <p class="muted">Dùng tài khoản đã có trong bảng <b>admins</b> (cùng tài khoản với game). Người không phải quản trị viên sẽ không xem được dữ liệu – máy chủ kiểm tra quyền ở mọi thao tác.</p>
+    <label for="email">Email</label><input id="email" type="email" autocomplete="email">
+    <label for="pass">Mật khẩu</label><input id="pass" type="password" autocomplete="current-password">
+    <div class="row" style="margin-top:12px"><button class="btn primary" id="btnLogin">Đăng nhập</button></div>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</main>
+
+<!-- Ứng dụng -->
+<main id="appView" class="hidden">
+  <div class="tabs" id="tabs">
+    <button data-tab="overview" class="on">📊 Tổng quan</button>
+    <button data-tab="players">👥 Người chơi</button>
+    <button data-tab="send">🎁 Gửi quà</button>
+    <button data-tab="log">📜 Lịch sử gửi</button>
+  </div>
+
+  <section data-sec="overview">
+    <div class="box"><h2>Tổng quan</h2><div class="stats" id="stats"></div>
+      <div class="row" style="margin-top:10px"><button class="btn sm" id="btnReloadStats">↻ Làm mới</button><button class="btn sm" id="btnSnapshot">💾 Sao lưu toàn bộ người chơi</button></div>
+      <div class="msg" id="ovMsg"></div></div>
+  </section>
+
+  <section data-sec="players" class="hidden">
+    <div class="box">
+      <h2>Người chơi</h2>
+      <div class="row"><input class="grow" id="q" placeholder="Tìm theo ID #XXXXXX, tên hoặc email"><button class="btn" id="btnSearch">🔍 Tìm</button></div>
+      <div class="muted" id="pCount" style="margin:8px 0"></div>
+      <div class="tablewrap"><table><thead><tr><th>ID</th><th>Tên</th><th class="hide-sm">Email</th><th>Vàng</th><th>Trận</th><th>Thắng</th><th class="hide-sm">Bóng</th><th class="hide-sm">Hoạt động</th><th>Thư chờ</th></tr></thead><tbody id="pRows"></tbody></table></div>
+    </div>
+    <div class="box hidden" id="pDetail"></div>
+  </section>
+
+  <section data-sec="send" class="hidden">
+    <div class="box">
+      <h2>Gửi thư / quà vàng</h2>
+      <label>Người nhận</label>
+      <div class="row"><label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--text)"><input type="checkbox" id="toAll" style="width:auto"> Gửi <b>TẤT CẢ</b> người chơi</label></div>
+      <div id="toBox">
+        <div class="row" style="margin-top:6px"><input class="grow" id="toInput" placeholder="Nhập ID (#XXXXXX), cách nhau bởi dấu phẩy hoặc xuống dòng"><button class="btn sm" id="btnAddTo">＋ Thêm</button></div>
+        <div class="chips" id="toChips" style="margin-top:8px"></div>
+      </div>
+      <label for="mTitle">Tiêu đề</label><input id="mTitle" maxlength="80" placeholder="Ví dụ: Quà tri ân người chơi">
+      <label for="mBody">Nội dung</label><textarea id="mBody" maxlength="1000" placeholder="Lời nhắn gửi người chơi"></textarea>
+      <div class="row">
+        <div class="grow"><label for="mGold">Vàng đính kèm (0 = chỉ gửi thư)</label><input id="mGold" type="number" min="0" max="1000000" value="100"></div>
+        <div class="grow"><label for="mDays">Hết hạn sau (ngày, 0 = không hết hạn)</label><input id="mDays" type="number" min="0" max="365" value="30"></div>
+      </div>
+      <div class="row" style="margin-top:14px"><button class="btn gold" id="btnSend">🎁 Gửi</button></div>
+      <div class="msg" id="sendMsg"></div>
+    </div>
+  </section>
+
+  <section data-sec="log" class="hidden">
+    <div class="box"><h2>Lịch sử gửi</h2>
+      <div class="tablewrap"><table><thead><tr><th>Thời gian</th><th>Tiêu đề</th><th>Vàng</th><th>Gửi tới</th><th>Đã gửi</th><th>Đã nhận</th><th class="hide-sm">Người gửi</th><th class="hide-sm">ID không có</th></tr></thead><tbody id="logRows"></tbody></table></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = (n) => Number(n || 0).toLocaleString('vi-VN');
+  const dt = (t) => (t ? new Date(t).toLocaleString('vi-VN') : '—');
+  const setMsg = (id, text, ok) => { const el = $(id); el.textContent = text; el.className = 'msg ' + (ok ? 'ok' : ok === false ? 'bad' : ''); };
+  let sb = null;
+  const to = new Set();
+
+  function load(src) { return new Promise((res) => { const s = document.createElement('script'); s.src = src; s.onload = () => res(true); s.onerror = () => res(false); document.head.appendChild(s); }); }
+  function viErr(e) {
+    const m = String((e && e.message) || e || '');
+    if (/invalid login/i.test(m)) return 'Sai email hoặc mật khẩu';
+    if (/Chỉ quản trị viên/.test(m)) return 'Tài khoản này không có quyền quản trị';
+    if (/fetch|network/i.test(m)) return 'Không kết nối được máy chủ';
+    return m;
+  }
+
+  async function boot() {
+    if (!(await load('./online-config.js')) || !window.ORB_ONLINE || !(await load('./supabase.js')) || !window.supabase) {
+      setMsg('loginMsg', 'Chưa có cấu hình máy chủ – trang quản trị chỉ chạy trên link GitHub Pages của game.', false);
+      $('btnLogin').disabled = true; return;
+    }
+    sb = window.supabase.createClient(window.ORB_ONLINE.url, window.ORB_ONLINE.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'dccc_auth' } });
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) await enter(data.session.user);
+  }
+
+  async function enter(user) {
+    const { data, error } = await sb.rpc('orb_is_admin');
+    if (error || !data) {
+      setMsg('loginMsg', error ? viErr(error) : `Tài khoản ${user.email} không có quyền quản trị.`, false);
+      $('btnOut').classList.remove('hidden'); $('who').textContent = user.email;
+      return;
+    }
+    $('who').textContent = user.email; $('btnOut').classList.remove('hidden');
+    $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
+    loadStats(); search();
+  }
+
+  $('btnLogin').onclick = async () => {
+    setMsg('loginMsg', 'Đang đăng nhập…');
+    const { data, error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pass').value });
+    if (error) return setMsg('loginMsg', viErr(error), false);
+    $('pass').value = '';
+    enter(data.user);
+  };
+  $('pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btnLogin').click(); });
+  $('btnOut').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+  $('tabs').onclick = (e) => {
+    const b = e.target.closest('[data-tab]'); if (!b) return;
+    document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('[data-sec]').forEach((s) => s.classList.toggle('hidden', s.dataset.sec !== b.dataset.tab));
+    if (b.dataset.tab === 'log') loadLog();
+    if (b.dataset.tab === 'overview') loadStats();
+  };
+
+  // ----- Tổng quan -----
+  async function loadStats() {
+    const { data, error } = await sb.rpc('orb_admin_stats');
+    if (error) return setMsg('ovMsg', viErr(error), false);
+    const s = data || {};
+    $('stats').innerHTML = [['Người chơi', s.players], ['Hoạt động 24 giờ', s.active_24h], ['Hoạt động 7 ngày', s.active_7d], ['Mới 7 ngày', s.new_7d],
+      ['Tổng vàng người chơi', s.total_gold], ['Tổng số trận', s.total_matches], ['Thư quà chưa nhận', s.mail_unclaimed], ['Vàng trong thư chưa nhận', s.gold_unclaimed]]
+      .map(([l, v]) => `<div class="stat"><b>${num(v)}</b><span>${l}</span></div>`).join('');
+  }
+  $('btnReloadStats').onclick = loadStats;
+  $('btnSnapshot').onclick = async (e) => {
+    const b = e.target;
+    if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Bấm lần nữa để sao lưu'; setTimeout(() => { delete b.dataset.armed; b.textContent = '💾 Sao lưu toàn bộ người chơi'; }, 3000); return; }
+    const { data, error } = await sb.rpc('orb_snapshot_all', { p_reason: 'admin_app' });
+    setMsg('ovMsg', error ? viErr(error) : `Đã sao lưu ${num(data)} bản lưu người chơi.`, !error);
+  };
+
+  // ----- Người chơi -----
+  async function search() {
+    const { data, error } = await sb.rpc('orb_admin_players', { p_query: $('q').value, p_limit: 300 });
+    if (error) { $('pCount').textContent = viErr(error); return; }
+    $('pCount').textContent = `${data.length} người chơi${data.length >= 300 ? ' (hiển thị 300 người mới hoạt động nhất – hãy tìm cụ thể hơn)' : ''}`;
+    $('pRows').innerHTML = data.map((p) => `<tr data-id="${esc(p.player_id)}"><td class="id">#${esc(p.player_id)}</td><td>${esc(p.name || '—')}</td><td class="hide-sm">${esc(p.email)}</td>
+      <td>${num(p.gold)}</td><td>${num(p.matches)}</td><td>${num(p.wins)}</td><td class="hide-sm">${p.owned}/30</td><td class="hide-sm">${dt(p.updated_at)}</td><td>${p.mail_unclaimed || ''}</td></tr>`).join('');
+  }
+  $('btnSearch').onclick = search;
+  $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
+  $('pRows').onclick = (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) showPlayer(tr.dataset.id); };
+
+  async function showPlayer(id) {
+    const { data: p, error } = await sb.rpc('orb_admin_player', { p_player_id: id });
+    const el = $('pDetail'); el.classList.remove('hidden');
+    if (error || !p) { el.innerHTML = `<div class="msg bad">${esc(error ? viErr(error) : 'Không tìm thấy người chơi')}</div>`; return; }
+    const kv = (k, v) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`;
+    const rate = p.matches ? Math.round((p.wins / p.matches) * 100) : 0;
+    const hist = Array.isArray(p.history) ? p.history : [];
+    el.innerHTML = `<div class="row" style="justify-content:space-between"><h2 style="margin:0">#${esc(p.player_id)} · ${esc(p.name || 'Chưa đặt tên')}</h2>
+        <div class="row"><button class="btn sm gold" data-gift="${esc(p.player_id)}">🎁 Gửi quà cho người này</button><button class="btn sm" data-close-detail>✕</button></div></div>
+      <div class="detail" style="margin-top:10px">
+        <div>${kv('Email', esc(p.email))}${kv('Đăng ký', dt(p.signed_up_at))}${kv('Đăng nhập gần nhất', dt(p.last_sign_in_at))}${kv('Lưu gần nhất', dt(p.updated_at))}${kv('Phiên bản lưu', p.version)}</div>
+        <div>${kv('Vàng', num(p.gold))}${kv('Trận / Thắng', `${num(p.matches)} / ${num(p.wins)} (${rate}%)`)}${kv('Bóng sở hữu', `${(p.unlocked || []).length}/30`)}${kv('Bóng trang bị', esc(p.main || '—'))}${kv('Số lần đổi tên', p.renames ?? 0)}${kv('Bạn bè', (p.friends || []).length)}${kv('Bản sao lưu', p.backups)}</div>
+      </div>
+      <h2 style="margin-top:14px">Bóng sở hữu</h2><div class="chips">${(p.unlocked || []).map((b) => `<span class="chip">${esc(b)}</span>`).join('') || '<span class="muted">—</span>'}</div>
+      <h2 style="margin-top:14px">Bạn bè</h2><div class="chips">${(p.friends || []).map((f) => `<span class="chip">#${esc(f.f)} ${esc(f.n)}</span>`).join('') || '<span class="muted">—</span>'}</div>
+      <h2 style="margin-top:14px">20 trận gần nhất</h2><div class="tablewrap"><table><thead><tr><th>Thời gian</th><th>Kết quả</th><th>Trận</th><th>Bóng</th><th>Vàng</th></tr></thead><tbody>
+        ${hist.map((h) => `<tr><td>${dt(h.t)}</td><td>${h.won ? '🏆 Thắng' : 'Thua'}</td><td>${esc(h.lb)}${h.on ? ' · online' : ''}</td><td>${esc(h.b)}</td><td>+${num(h.g)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">Chưa có</td></tr>'}</tbody></table></div>
+      <h2 style="margin-top:14px">Hòm thư (50 thư gần nhất)</h2><div class="tablewrap"><table><thead><tr><th>Gửi lúc</th><th>Tiêu đề</th><th>Vàng</th><th>Đã đọc</th><th>Đã nhận</th></tr></thead><tbody>
+        ${(p.mail || []).map((m) => `<tr><td>${dt(m.created_at)}</td><td>${esc(m.title)}</td><td>${num(m.gold)}</td><td>${m.read_at ? '✔' : ''}</td><td>${m.claimed_at ? dt(m.claimed_at) : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">Chưa có thư</td></tr>'}</tbody></table></div>`;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  $('pDetail').onclick = (e) => {
+    if (e.target.closest('[data-close-detail]')) $('pDetail').classList.add('hidden');
+    const g = e.target.closest('[data-gift]');
+    if (g) { $('toAll').checked = false; syncAll(); to.clear(); to.add(g.dataset.gift); renderTo(); document.querySelector('[data-tab=send]').click(); }
+  };
+
+  // ----- Gửi quà -----
+  function renderTo() { $('toChips').innerHTML = [...to].map((id) => `<span class="chip">#${esc(id)}<button data-rm="${esc(id)}" title="Bỏ">✕</button></span>`).join('') || '<span class="muted">Chưa có người nhận</span>'; }
+  function addTo() {
+    const bad = [];
+    for (const raw of $('toInput').value.split(/[\s,;]+/)) {
+      const id = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!id) continue;
+      if (/^[A-HJ-NP-Z2-9]{6}$/.test(id)) to.add(id); else bad.push(raw);
+    }
+    $('toInput').value = bad.join(', ');
+    setMsg('sendMsg', bad.length ? 'ID không hợp lệ: ' + bad.join(', ') : '', bad.length ? false : null);
+    renderTo();
+  }
+  function syncAll() { $('toBox').classList.toggle('hidden', $('toAll').checked); }
+  $('btnAddTo').onclick = addTo;
+  $('toInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTo(); } });
+  $('toChips').onclick = (e) => { const b = e.target.closest('[data-rm]'); if (b) { to.delete(b.dataset.rm); renderTo(); } };
+  $('toAll').onchange = syncAll;
+  $('btnSend').onclick = async (e) => {
+    const b = e.target;
+    const all = $('toAll').checked, gold = Math.floor(+$('mGold').value || 0), days = Math.floor(+$('mDays').value || 0);
+    const title = $('mTitle').value.trim(), body = $('mBody').value;
+    if ($('toInput').value.trim()) addTo();
+    if (!all && !to.size) return setMsg('sendMsg', 'Chưa có người nhận.', false);
+    if (!title) return setMsg('sendMsg', 'Cần nhập tiêu đề.', false);
+    if (gold < 0 || gold > 1000000) return setMsg('sendMsg', 'Vàng mỗi thư từ 0 đến 1.000.000.', false);
+    if (!b.dataset.armed) {
+      b.dataset.armed = '1';
+      b.textContent = `Xác nhận gửi ${all ? 'TẤT CẢ người chơi' : to.size + ' người'}${gold ? ` · ${num(gold)} vàng/người` : ''}`;
+      setTimeout(() => { delete b.dataset.armed; b.textContent = '🎁 Gửi'; }, 5000);
+      return;
+    }
+    delete b.dataset.armed; b.textContent = '🎁 Gửi'; b.disabled = true;
+    setMsg('sendMsg', 'Đang gửi…');
+    const { data, error } = await sb.rpc('orb_admin_send_mail', { p_player_ids: all ? null : [...to], p_all: all, p_title: title, p_body: body, p_gold: gold, p_days: days });
+    b.disabled = false;
+    if (error) return setMsg('sendMsg', viErr(error), false);
+    setMsg('sendMsg', `✔ Đã gửi ${num(data.sent)} thư.` + (data.missing && data.missing.length ? ` Không có người chơi: ${data.missing.map((x) => '#' + x).join(', ')}` : ''), true);
+    if (!all) { to.clear(); renderTo(); }
+  };
+
+  // ----- Lịch sử -----
+  async function loadLog() {
+    const { data, error } = await sb.rpc('orb_admin_mail_log', { p_limit: 100 });
+    if (error) { $('logRows').innerHTML = `<tr><td colspan="8" class="msg bad">${esc(viErr(error))}</td></tr>`; return; }
+    $('logRows').innerHTML = data.map((l) => `<tr><td>${dt(l.created_at)}</td><td>${esc(l.title)}</td><td>${num(l.gold)}</td><td>${l.is_all ? 'Tất cả' : 'Chọn lọc'}</td><td>${num(l.sent)}</td><td>${num(l.claimed)}</td>
+      <td class="hide-sm">${esc(l.admin_email || '')}</td><td class="hide-sm">${(l.missing || []).map((x) => '#' + esc(x)).join(', ')}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">Chưa gửi thư nào</td></tr>';
+  }
+
+  renderTo();
+  boot();
+})();
+</script>
+</body>
+</html>
