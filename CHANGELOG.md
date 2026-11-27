@@ -1,5 +1,8 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – quay 10 lần] – 2026-11-27
+- Vòng Quay May Mắn có nút **🎰 Quay 10 lần (1.000 Vàng)** (cũng có ở Cửa hàng): mỗi lượt theo đúng tỉ lệ cấp như quay đơn; vòng quay dừng ở phần thưởng tốt nhất rồi hiện **bảng 10 kết quả** (cấp cao trước, "MỚI!" / "+40" cho bóng trùng) và dòng tổng: số bóng mới · số bóng trùng → vàng quy đổi. Nhiệm vụ quay ngày/tuần/tháng được cộng 10 lượt.
+
 ## [Đấu Trường Quả Cầu Anime – giữ màn hình sáng] – 2026-11-27
 - Điện thoại không còn tự tắt màn hình giữa trận (trận tự đánh, người chơi không chạm): dùng **Screen Wake Lock** khi đang mở game, tự xin lại khi quay lại tab / sau lần chạm đầu. Công tắc **☀ Giữ màn hình sáng khi chơi** trong Cài đặt (mặc định bật, lưu theo tài khoản). Trình duyệt chưa hỗ trợ → hiện hướng dẫn tăng "Tự động khóa".
 

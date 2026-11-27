@@ -532,6 +532,19 @@
     #roomRole { display: none; }
     .lobbyslots .slot .lbl { font-size: 10px; }
   }
+  /* Quay 10 lần */
+  .x10btn { background: linear-gradient(90deg, #f97316, #facc15, #f472b6); }
+  .x10sum { margin: 4px 0 8px; font-size: 15px; }
+  .x10grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  @media (max-width: 520px) { .x10grid { grid-template-columns: repeat(3, 1fr); } }
+  .x10 { position: relative; border: 1px solid var(--line); border-radius: 12px; padding: 6px 4px; background: rgba(0,0,0,.3); display: flex; flex-direction: column; align-items: center; gap: 2px; animation: rvitem .4s ease both; }
+  .x10:nth-child(2) { animation-delay: .05s; } .x10:nth-child(3) { animation-delay: .1s; } .x10:nth-child(4) { animation-delay: .15s; } .x10:nth-child(5) { animation-delay: .2s; }
+  .x10:nth-child(6) { animation-delay: .25s; } .x10:nth-child(7) { animation-delay: .3s; } .x10:nth-child(8) { animation-delay: .35s; } .x10:nth-child(9) { animation-delay: .4s; } .x10:nth-child(10) { animation-delay: .45s; }
+  .x10.new { border-color: #fbbf24; box-shadow: 0 0 14px rgba(251,191,36,.45); }
+  .x10.S.new { box-shadow: 0 0 22px rgba(255,90,60,.8); } .x10.A.new { box-shadow: 0 0 18px rgba(192,132,252,.8); }
+  .x10nm { font-size: 11px; font-weight: 800; text-align: center; line-height: 1.2; }
+  .x10tag { position: absolute; top: 3px; right: 4px; font-size: 10px; font-weight: 900; color: #1a1030; background: #fde047; border-radius: 6px; padding: 0 4px; }
+  .x10tag.dup { background: rgba(255,255,255,.15); color: #fde68a; }
   .authform { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .welcome { text-align: left; font-size: 14px; line-height: 1.55; background: rgba(168,85,247,.14); border: 1px solid rgba(168,85,247,.35); border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
   .linkbtn { border: 0; background: none; color: #c4b5fd; font-size: 13px; margin-top: 10px; }
@@ -672,6 +685,7 @@
     <div id="wheelResult" class="wres"></div>
     <div class="row" style="justify-content:center;margin-top:10px">
       <button class="btn gold" id="btnSpin">🎰 Quay (100 Vàng)</button>
+      <button class="btn gold x10btn" id="btnSpin10">🎰 Quay 10 lần (1.000 Vàng)</button>
       <button class="btn" id="btnShuffle">🔀 Xáo vị trí ô</button>
       <button class="btn" id="wheelClose">Đóng</button>
     </div>
@@ -4236,11 +4250,19 @@ function spinWheel() {
   if (!Wheel.list.length) buildWheelList();
   addGold(-SPIN_COST);
   questProgress('spins');
-  // chọn cấp theo tỉ lệ, rồi chọn ngẫu nhiên một quả bóng trong cấp đó
+  spinTo(rollSlot(), finishSpin);
+}
+
+/** Chọn cấp theo tỉ lệ, rồi chọn ngẫu nhiên một ô (quả bóng) trong cấp đó. */
+function rollSlot() {
   let r = Math.random(), tier = 'D';
   for (const t of ['S', 'A', 'B', 'C', 'D']) { if (r < TIER_ODDS[t]) { tier = t; break; } r -= TIER_ODDS[t]; }
   const cands = Wheel.list.map((x, i) => (x.tier === tier ? i : -1)).filter((i) => i >= 0);
-  const idx = cands[Math.floor(Math.random() * cands.length)];
+  return cands[Math.floor(Math.random() * cands.length)];
+}
+
+/** Hiệu ứng quay tới ô idx (chậm dần rồi dừng), xong gọi done(). */
+function spinTo(idx, done, dur = 4800) {
   const s = Wheel.list[idx];
   const jitter = (Math.random() - 0.5) * s.w * 0.6;
   // tâm ô nằm dưới kim (góc -π/2) khi rot ≡ -(a0 + w/2)
@@ -4248,9 +4270,9 @@ function spinWheel() {
   const cur = ((Wheel.rot % TAU) + TAU) % TAU;
   const delta = (((base - cur) % TAU) + TAU) % TAU;
   Wheel.from = Wheel.rot; Wheel.to = Wheel.rot + delta + TAU * 6;
-  Wheel.t0 = performance.now(); Wheel.seg = idx; Wheel.spinning = true; Wheel.lastTick = -1;
+  Wheel.t0 = performance.now(); Wheel.seg = idx; Wheel.spinning = true; Wheel.lastTick = -1; Wheel.dur = dur;
   $('wheelResult').innerHTML = '<span class="hint">Đang quay…</span>';
-  $('btnShuffle').disabled = true;
+  $('btnShuffle').disabled = true; $('btnSpin').disabled = true; $('btnSpin10').disabled = true;
   renderGold();
   const tick = (now) => {
     const k = Math.min(1, (now - Wheel.t0) / Wheel.dur);
@@ -4260,14 +4282,52 @@ function spinWheel() {
     if (tk !== Wheel.lastTick) { Wheel.lastTick = tk; Sound.play('tick'); }
     drawWheel();
     if (k < 1) Wheel.raf = requestAnimationFrame(tick);
-    else finishSpin();
+    else { Wheel.spinning = false; $('btnShuffle').disabled = false; $('btnSpin').disabled = false; $('btnSpin10').disabled = false; done(); }
   };
   Wheel.raf = requestAnimationFrame(tick);
 }
 
+/** Quay 10 lần một lúc: trừ 10 lượt, vòng quay dừng ở phần thưởng tốt nhất rồi hiện cả 10 kết quả. */
+const SPIN10 = 10;
+function spinWheel10() {
+  if (Wheel.spinning) return;
+  const cost = SPIN_COST * SPIN10;
+  if (Save.gold < cost) { toast(`Cần ${cost.toLocaleString('vi-VN')} Vàng để quay 10 lần (bạn có ${Save.gold.toLocaleString('vi-VN')}).`); return; }
+  Sound.ensure();
+  if (!Wheel.list.length) buildWheelList();
+  addGold(-cost);
+  questProgress('spins', SPIN10);
+  const rolls = [...Array(SPIN10)].map(() => rollSlot());
+  const rank = (i) => TIER_ORDER.indexOf(Wheel.list[i].tier);
+  const best = rolls.reduce((a, b) => (rank(b) < rank(a) ? b : a), rolls[0]);
+  spinTo(best, () => finishSpin10(rolls), 3600);
+}
+function finishSpin10(rolls) {
+  let refund = 0, fresh = 0;
+  const items = rolls.map((i) => {
+    const d = Wheel.list[i].d;
+    if (Save.unlocked.includes(d.id)) { refund += DUP_REFUND; return { d, isNew: false }; }
+    Save.unlocked.push(d.id); fresh++; questProgress('unlocks');
+    return { d, isNew: true };
+  });
+  if (refund) addGold(refund);
+  persist();
+  drawWheel();
+  const top = items.filter((x) => x.isNew).some((x) => x.d.tier === 'S' || x.d.tier === 'A');
+  Sound.play(top ? 'jackpot' : fresh ? 'win' : 'coin');
+  // xếp kết quả: cấp cao trước
+  items.sort((a, b) => TIER_ORDER.indexOf(a.d.tier) - TIER_ORDER.indexOf(b.d.tier));
+  $('wheelResult').innerHTML = `<div class="x10sum">🎉 <b>${fresh}</b> quả bóng mới${refund ? ` · ♻ ${rolls.length - fresh} quả trùng → <b>+${refund.toLocaleString('vi-VN')} Vàng</b>` : ''}</div>
+    <div class="x10grid">${items.map(({ d, isNew }) => `<div class="x10 ${d.tier}${isNew ? ' new' : ''}" title="${d.name} – Cấp ${d.tier}">
+      ${isNew ? '<span class="x10tag">MỚI!</span>' : `<span class="x10tag dup">+${DUP_REFUND}</span>`}
+      <img src="${portraitUrl(d, 96)}" width="48" height="48" alt="">
+      <div class="x10nm"><span class="badge sm ${d.tier}">${d.tier}</span> ${d.name}</div></div>`).join('')}</div>`;
+  $('wheelResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderGold();
+  renderRoster();
+}
+
 function finishSpin() {
-  Wheel.spinning = false;
-  $('btnShuffle').disabled = false;
   const d = Wheel.list[Wheel.seg].d;
   const owned = Save.unlocked.includes(d.id);
   let msg;
@@ -6038,16 +6098,17 @@ function renderShop() {
     <div class="box shopwheel">
       <div class="swic">🎡</div>
       <div><h3 style="margin:0">Vòng Quay May Mắn</h3>
-        <div class="hint" style="text-align:left">Mỗi lượt <b>${SPIN_COST} Vàng</b> · nhận ngẫu nhiên 1 trong ${ROSTER.length} quả cầu · trùng quả đã có → hoàn <b>+${DUP_REFUND} Vàng</b>.</div>
+        <div class="hint" style="text-align:left">Mỗi lượt <b>${SPIN_COST} Vàng</b> (quay 10 lần: ${(SPIN_COST * 10).toLocaleString('vi-VN')}) · nhận ngẫu nhiên 1 trong ${ROSTER.length} quả cầu · trùng quả đã có → hoàn <b>+${DUP_REFUND} Vàng</b>.</div>
         <div class="odds" style="margin-top:6px"><span class="badge sm S">S</span> 5% · <span class="badge sm A">A</span> 10% · <span class="badge sm B">B</span> 20% · <span class="badge sm C">C</span> 30% · <span class="badge sm D">D</span> 35%</div>
       </div>
-      <button class="btn gold big" id="btnShopSpin">🎰 Quay ngay</button>
+      <div class="row" style="flex-direction:column;align-items:stretch"><button class="btn gold big" id="btnShopSpin">🎰 Quay ngay</button><button class="btn gold x10btn" id="btnShopSpin10">🎰 Quay 10 lần · ${(SPIN_COST * 10).toLocaleString('vi-VN')} Vàng</button></div>
     </div>
     <div class="box">
       <h3>💰 Vàng của bạn: ${Save.gold.toLocaleString('vi-VN')}</h3>
       <div class="hint" style="text-align:left;line-height:1.7">Cách kiếm vàng: thắng 1v1 +35 (thua +12) · 2v2 +45/15 · 4v4 +60/20 · Hỗn Chiến hạng 1 +55 · thắng “Vượt Cấp” +20 · nhiệm vụ hằng ngày.<br>Hiện cửa hàng chỉ có Vòng Quay; vật phẩm khác sẽ thêm ở bản sau.</div>
     </div>`;
   $('btnShopSpin').onclick = openWheel;
+  $('btnShopSpin10').onclick = () => { openWheel(); spinWheel10(); };
 }
 
 // ----- chuyển màn hình -----
@@ -6122,6 +6183,7 @@ $('btnSound').onclick = () => { Sound.on = !Sound.on; Save.sound = Sound.on; per
 $('speed').oninput = (e) => { G.speed = +e.target.value; $('speedVal').textContent = fmtSpeed(G.speed); if (NET.role === 'host') hostPublish(); };
 $('btnWheel2').onclick = openWheel;
 $('btnSpin').onclick = spinWheel;
+$('btnSpin10').onclick = spinWheel10;
 $('btnShuffle').onclick = shuffleWheel;
 $('wheelClose').onclick = closeWheel;
 $('wheelModal').addEventListener('click', (e) => { if (e.target === $('wheelModal')) closeWheel(); });
