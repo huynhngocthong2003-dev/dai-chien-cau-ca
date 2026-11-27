@@ -1,6 +1,6 @@
 """Dựng atlas nhân vật HERO ARENA từ ảnh pixel-art của chủ dự án.
 
-Chạy: python3 -I scripts/hero-arena-atlas.py <thư-mục-ảnh-gốc>
+Chạy: python3 -I scripts/hero-arena-atlas.py   (ảnh gốc trong apps/hero-arena/art-src/)
 Sinh: apps/hero-arena/src/assets/heroes-atlas.png + apps/hero-arena/src/spriteMap.ts
 Mỗi nút cây tiến hoá (Dạng 1 = "<lớp>:base", Dạng 2 = id nhánh, Dạng 3 = id tiến hoá) có
 khung mặt trước (và mặt sau nếu ảnh có). Nút chưa có ảnh: client tạm nhuộm màu hình gần nhất.
@@ -9,13 +9,14 @@ import sys, os
 from PIL import Image
 from collections import deque
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else "."
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "apps/hero-arena/art-src")
 FILES = {
-    "A": "2a96e30a-image.png",   # Đấu Sĩ, Trợ Thủ, Pháo Thủ, Sát Thủ, Hỗ Trợ
-    "B": "ab7eb806-image.png",   # Triệu Hồi Sư, Kiếm Khách, Pháp Sư (cũ), Tiên Tri
-    "X": "ff31f323-image.png",   # Xạ Thủ
-    "M": "5d36aeff-image.png",   # cây tiến hoá Pháp Sư
+    "A": "sheet-a.png",       # Trợ Thủ, Pháo Thủ, Sát Thủ, Hỗ Trợ (ảnh chủ dự án)
+    "B": "sheet-b.png",       # Triệu Hồi Sư, Kiếm Khách, Tiên Tri (ảnh chủ dự án)
+    "X": "marksman.png",      # Xạ Thủ (ảnh chủ dự án)
+    "M": "mage-tree.png",     # cây tiến hoá Pháp Sư (ảnh chủ dự án)
+    "F": "fighter-tree.png",  # cây tiến hoá Đấu Sĩ (tạo bằng Gemini 3 Pro Image qua ElevenLabs)
 }
 IMGS = {k: Image.open(os.path.join(SRC, v)).convert("RGBA") for k, v in FILES.items()}
 
@@ -52,8 +53,40 @@ def cut(key, box, erase_grey=None):
                 r, g, b, a = px[x, y]
                 if a and max(r, g, b) - min(r, g, b) < 28 and max(r, g, b) > 55:
                     px[x, y] = (0, 0, 0, 0)
+    drop_edge_fragments(im)
     bb = im.getbbox()
     return im.crop(bb) if bb else im
+
+
+def drop_edge_fragments(im):
+    """Xoá các mảnh nhỏ chạm mép trái/phải khung (hiệu ứng của hình bên cạnh lọt vào)."""
+    W, H = im.size
+    px = im.load()
+    seen = bytearray(W * H)
+    comps = []
+    for y in range(H):
+        for x in range(W):
+            if seen[y * W + x] or px[x, y][3] == 0:
+                continue
+            q = deque([(x, y)])
+            seen[y * W + x] = 1
+            pts = []
+            while q:
+                cx, cy = q.popleft()
+                pts.append((cx, cy))
+                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
+                    if 0 <= nx < W and 0 <= ny < H and not seen[ny * W + nx] and px[nx, ny][3]:
+                        seen[ny * W + nx] = 1
+                        q.append((nx, ny))
+            comps.append(pts)
+    if not comps:
+        return
+    biggest = max(len(c) for c in comps)
+    for c in comps:
+        touches = any(x == 0 or x == W - 1 for x, _ in c)
+        if touches and len(c) < biggest * 0.25:
+            for x, y in c:
+                px[x, y] = (0, 0, 0, 0)
 
 
 def erase_label(key, rect):
@@ -70,12 +103,20 @@ erase_label("B", (390, 62, 500, 94))
 
 # nút → (ảnh, khung trước, khung sau | None)
 NODES = [
-    # Đấu Sĩ
-    ("fighter:base", "A", (18, 110, 145, 275), None),
-    ("flame_blade", "A", (145, 108, 332, 278), ("A", (176, 282, 330, 465))),
-    ("sword_shield", "A", (17, 293, 165, 460), None),
-    ("flame_blade_def", "A", (330, 60, 548, 276), None),
-    ("sword_shield_mst", "A", (330, 282, 530, 465), None),
+    # Đấu Sĩ – cây tiến hoá đầy đủ (ảnh F)
+    ("fighter:base", "F", (615, 22, 765, 222), None),
+    ("flame_blade", "F", (175, 250, 380, 458), None),
+    ("venom_blade", "F", (590, 255, 800, 458), None),
+    ("sword_shield", "F", (1040, 250, 1240, 458), None),
+    ("flame_blade_atk", "F", (0, 505, 197, 728), None),
+    ("flame_blade_def", "F", (197, 495, 335, 728), None),
+    ("flame_blade_mst", "F", (325, 495, 500, 728), None),
+    ("venom_blade_atk", "F", (495, 530, 622, 728), None),
+    ("venom_blade_def", "F", (615, 500, 765, 728), None),
+    ("venom_blade_mst", "F", (755, 530, 925, 728), None),
+    ("sword_shield_atk", "F", (918, 535, 1068, 728), None),
+    ("sword_shield_def", "F", (1060, 495, 1212, 728), None),
+    ("sword_shield_mst", "F", (1205, 530, 1376, 728), None),
     # Trợ Thủ
     ("helper:base", "A", (595, 108, 738, 276), None),
     ("leaf_healer", "A", (752, 95, 946, 276), None),
