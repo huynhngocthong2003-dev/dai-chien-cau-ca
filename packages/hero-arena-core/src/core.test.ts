@@ -364,3 +364,59 @@ describe("tự khoá mục tiêu", () => {
     expect(e.state.hp).toBeLessThan(hp);
   });
 });
+
+describe("vật thể trên bản đồ", () => {
+  it("có cả công trình (không phá được) lẫn vật phá được; không mọc đè chỗ xuất phát", () => {
+    const a = new Arena({ seed: 51, playerName: "Tôi", heroId: "fighter", gender: "male" });
+    expect(a.props.length).toBeGreaterThan(200);
+    expect(a.props.some((p) => p.maxHp === 0)).toBe(true);
+    expect(a.props.some((p) => p.maxHp > 0)).toBe(true);
+    for (const f of a.fighters) for (const p of a.props) expect(Math.hypot(p.x - f.x, p.y - f.y)).toBeGreaterThan(p.radius + 18);
+  });
+
+  it("công trình chắn đường, không phá được; vật thường bị phá bằng đòn đánh", () => {
+    const a = new Arena({ seed: 52, playerName: "Tôi", heroId: "fighter", gender: "male", players: 2 });
+    for (const m of a.monsters) m.alive = false;
+    a.fighters[1]!.x = 100;
+    a.fighters[1]!.y = 100;
+    a.fighters[1]!.bot = null;
+    const p = a.player;
+    const house = a.props.find((x) => x.maxHp === 0 && x.solid && x.radius >= 50)!;
+    // chạy thẳng vào nhà 2 giây → không đi xuyên qua
+    p.x = house.x - house.radius - 60;
+    p.y = house.y;
+    for (let i = 0; i < 120; i++) a.tick(1 / 60, { moveX: 1, moveY: 0, attack: false, cast: null, usePotion: false });
+    expect(Math.hypot(p.x - house.x, p.y - house.y)).toBeGreaterThanOrEqual(house.radius + 17.9);
+    // chém nhà không làm gì
+    for (let i = 0; i < 120; i++) a.tick(1 / 60, { moveX: 0, moveY: 0, attack: true, cast: null, usePotion: false, aimX: house.x, aimY: house.y });
+    expect(house.alive).toBe(true);
+    // vật phá được
+    const tree = a.props.find((x) => x.maxHp > 0 && x.maxHp <= 160)!;
+    p.x = tree.x - tree.radius - 30;
+    p.y = tree.y;
+    let destroyed = false;
+    for (let i = 0; i < 600 && !destroyed; i++) {
+      const ev = a.tick(1 / 60, { moveX: 0, moveY: 0, attack: true, cast: null, usePotion: false, aimX: tree.x, aimY: tree.y });
+      destroyed = ev.some((e) => e.type === "prop_destroyed" && e.propId === tree.id);
+    }
+    expect(destroyed).toBe(true);
+    expect(tree.alive).toBe(false);
+  });
+});
+
+describe("nút đánh quái / phá vật", () => {
+  it("chế độ quái chỉ khoá quái, chế độ phá chỉ khoá vật phá được (không khoá công trình)", () => {
+    const a = new Arena({ seed: 61, playerName: "Tôi", heroId: "fighter", gender: "male", players: 2 });
+    const p = a.player;
+    const e = a.fighters[1]!;
+    e.x = p.x + 40;
+    e.y = p.y;
+    expect(a.lockTarget(p, "auto")?.id).toBe(e.id);
+    const m = a.lockTarget(p, "monster");
+    if (m) expect(a.monsters.some((x) => x.id === m.id)).toBe(true);
+    const pr = a.lockTarget(p, "prop");
+    expect(pr).not.toBeNull();
+    const prop = a.props.find((x) => x.id === pr!.id)!;
+    expect(prop.maxHp).toBeGreaterThan(0);
+  });
+});

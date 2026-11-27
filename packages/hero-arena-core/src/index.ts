@@ -10,3 +10,4 @@ export * from "./gifts.ts";
 export * from "./mailbox.ts";
 export * from "./tutorial.ts";
 export * from "./rewards.ts";
+export * from "./props.ts";

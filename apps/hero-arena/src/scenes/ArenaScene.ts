@@ -25,6 +25,8 @@ import {
   WORLD_SIZE,
   type ArenaEvent,
   type BiomeType,
+  type PropKind,
+  type TargetMode,
   type FighterInput,
   type Gender,
   type SkillSlot,
@@ -49,15 +51,6 @@ const BIOME_COLOR: Record<BiomeType, number> = {
   glacier: 0xa6c4e2,
 };
 
-const BIOME_DECO: Record<BiomeType, DecoKind[]> = {
-  forest: ["tree", "darktree", "darktree", "tree", "bush", "rock", "grave", "fire", "deadtree"],
-  ruined_temple: ["pillar", "brokenpillar", "ruin", "arch", "statue", "grave", "tree", "bush"],
-  desert: ["cactus", "cactus", "rock", "boulder", "obelisk", "deadtree", "bones"],
-  ruined_village: ["house", "ruinhouse", "well", "barrel", "rock", "deadtree", "fire", "obelisk"],
-  mountain: ["peak", "snowpine", "snowpine", "boulder", "crystal", "rock"],
-  glacier: ["crystal", "icechunk", "snowpine", "crystal", "peak", "rock"],
-};
-
 /** Chi tiết nhỏ rải trên mặt đất (vẽ hàng loạt bằng Blitter). */
 const BIOME_GROUND: Record<BiomeType, DecoKind[]> = {
   forest: ["tuft", "tuft", "flowers", "mushroom", "pebbles"],
@@ -66,6 +59,12 @@ const BIOME_GROUND: Record<BiomeType, DecoKind[]> = {
   ruined_village: ["pebbles", "tuft", "bones"],
   mountain: ["snowdrift", "pebbles"],
   glacier: ["snowdrift", "pebbles"],
+};
+
+/** Màu mảnh vỡ khi phá vật. */
+const PROP_DEBRIS: Partial<Record<PropKind, number>> = {
+  tree: 0x3a6a3a, darktree: 0x6a4a9a, deadtree: 0x5a4a3a, pine: 0x2e5a4a, snowpine: 0xe8f0ff, cactus: 0x4a9a48, bush: 0x3a7a3a,
+  barrel: 0x8a5a2a, rock: 0x7a7682, boulder: 0x6a6672, crystal: 0x8ac8f4, icechunk: 0xb8e0ff, grave: 0x8a8f98,
 };
 
 const HAZARD_TINT: Record<string, [number, number]> = {
@@ -102,7 +101,7 @@ interface FighterView {
 }
 
 interface SkillButton {
-  slot: SkillSlot | "attack" | "potion";
+  slot: SkillSlot | "attack" | "potion" | "atk_monster" | "atk_prop";
   icon: Phaser.GameObjects.Image;
   cdG: Phaser.GameObjects.Graphics;
   x: number;
@@ -148,10 +147,13 @@ export class ArenaScene extends Phaser.Scene {
   private joy = { id: -1, bx: 0, by: 0, x: 0, y: 0 };
   private joyG!: Phaser.GameObjects.Graphics;
   private attackHeld = new Set<number>();
+  /** Nút nhỏ đang giữ: chỉ đánh quái / chỉ phá vật. */
+  private modeHeld = new Map<number, TargetMode>();
   private pendingCast: SkillSlot | null = null;
   private pendingPotion = false;
   private dmgPool: Phaser.GameObjects.Text[] = [];
   private dust!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private propViews = new Map<string, Phaser.GameObjects.Image>();
   private lastStep = new Map<string, number>();
 
   constructor() {
@@ -173,6 +175,7 @@ export class ArenaScene extends Phaser.Scene {
     this.ending = false;
     this.timeScale = 1;
     this.fighterViews.clear();
+    this.propViews.clear();
     this.monsterViews.clear();
     this.skillButtons = [];
     this.feed = [];
@@ -237,20 +240,13 @@ export class ArenaScene extends Phaser.Scene {
       const a = biomeMidAngle(s.biome);
       text(this, C + Math.cos(a) * ISLAND_RADIUS * 0.96, C + Math.sin(a) * ISLAND_RADIUS * 0.96, BIOME_NAME_VI[s.biome], 30, "#ffffffaa").setOrigin(0.5).setDepth(-5);
     }
-    // trang trí lớn (sắp xếp chiều sâu theo y)
+    // vật thể lớn: lấy từ trận (va chạm & phá huỷ do lõi tính)
+    for (const pr of this.arena.props) {
+      const img = this.add.image(pr.x, pr.y, decoTexture(this, pr.kind)).setOrigin(0.5, 0.9).setDepth(pr.y).setFlipX(pr.flip);
+      this.propViews.set(pr.id, img);
+    }
     const blitters = new Map<DecoKind, Phaser.GameObjects.Blitter>();
     for (const s of BIOME_SECTORS) {
-      const kinds = BIOME_DECO[s.biome];
-      const mid = biomeMidAngle(s.biome);
-      for (let i = 0; i < 110; i++) {
-        const a = Phaser.Math.DegToRad(rng.range(s.from + 2, s.to - 2));
-        const d = rng.range(ALTAR_RADIUS + 90, ISLAND_RADIUS - 70);
-        const x = C + Math.cos(a) * d;
-        const y = C + Math.sin(a) * d;
-        if (Math.abs(Math.sin(a - mid)) * d < 80) continue; // chừa đường đá
-        const kind = rng.pick(kinds);
-        this.add.image(x, y, decoTexture(this, kind)).setOrigin(0.5, 0.9).setDepth(y).setFlipX(rng.chance(0.5));
-      }
       // chi tiết nhỏ trên mặt đất
       const ground = BIOME_GROUND[s.biome];
       for (let i = 0; i < 320; i++) {
@@ -301,6 +297,10 @@ export class ArenaScene extends Phaser.Scene {
       const zone = fixed(this.add.zone(x, y, r * 2, r * 2).setInteractive());
       zone.on("pointerdown", (p: Phaser.Input.Pointer) => {
         if (slot === "attack") this.attackHeld.add(p.id);
+        else if (slot === "atk_monster" || slot === "atk_prop") {
+          this.attackHeld.add(p.id);
+          this.modeHeld.set(p.id, slot === "atk_monster" ? "monster" : "prop");
+        }
         else if (slot === "potion") this.pendingPotion = true;
         else this.pendingCast = slot;
       });
@@ -312,6 +312,9 @@ export class ArenaScene extends Phaser.Scene {
     mk("s3", 1176, 486, 40, "R");
     mk("ult", 948, 598, 46, "F");
     mk("potion", 870, 668, 32, "H");
+    // nút nhỏ kiểu Liên Quân: chỉ đánh quái / chỉ phá vật thể
+    mk("atk_monster", 1246, 500, 26, "Z");
+    mk("atk_prop", 1246, 424, 26, "X");
     this.cameras.main.ignore(this.children.list.filter((o) => (o as unknown as { scrollFactorX: number }).scrollFactorX === 0));
     hudCam.ignore(this.children.list.filter((o) => (o as unknown as { scrollFactorX: number }).scrollFactorX !== 0));
   }
@@ -334,7 +337,7 @@ export class ArenaScene extends Phaser.Scene {
   private setupInput(): void {
     const kb = this.input.keyboard;
     if (kb) {
-      this.keys = kb.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,Q,E,R,F,H,ONE,TWO,THREE,FOUR") as Record<string, Phaser.Input.Keyboard.Key>;
+      this.keys = kb.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,Q,E,R,F,H,Z,X,ONE,TWO,THREE,FOUR") as Record<string, Phaser.Input.Keyboard.Key>;
       kb.on("keydown-Q", () => (this.pendingCast = "s1"));
       kb.on("keydown-ONE", () => (this.pendingCast = "s1"));
       kb.on("keydown-E", () => (this.pendingCast = "s2"));
@@ -358,9 +361,19 @@ export class ArenaScene extends Phaser.Scene {
     const up = (p: Phaser.Input.Pointer) => {
       if (p.id === this.joy.id) this.joy.id = -1;
       this.attackHeld.delete(p.id);
+      this.modeHeld.delete(p.id);
     };
     this.input.on("pointerup", up);
     this.input.on("pointerupoutside", up);
+  }
+
+  /** Chế độ khoá mục tiêu theo nút đang giữ (mặc định tự động). */
+  private currentMode(): TargetMode {
+    const k = this.keys;
+    if (k?.Z?.isDown) return "monster";
+    if (k?.X?.isDown) return "prop";
+    for (const m of this.modeHeld.values()) return m;
+    return "auto";
   }
 
   private readInput(): FighterInput {
@@ -383,8 +396,8 @@ export class ArenaScene extends Phaser.Scene {
         my = (dy / d) * k2;
       }
     }
-    const attack = this.attackHeld.size > 0 || !!k?.SPACE?.isDown || !!k?.J?.isDown;
-    const input: FighterInput = { moveX: mx, moveY: my, attack, cast: this.pendingCast, usePotion: this.pendingPotion };
+    const attack = this.attackHeld.size > 0 || !!k?.SPACE?.isDown || !!k?.J?.isDown || !!k?.Z?.isDown || !!k?.X?.isDown;
+    const input: FighterInput = { moveX: mx, moveY: my, attack, cast: this.pendingCast, usePotion: this.pendingPotion, targetMode: this.currentMode() };
     this.pendingCast = null;
     this.pendingPotion = false;
     return input;
@@ -449,6 +462,32 @@ export class ArenaScene extends Phaser.Scene {
           this.pushFeed(`☠ ${v?.state.name ?? "?"} ${how} (hạng ${e.placement})`, e.victimId === pid || e.killerId === pid ? "#ffb347" : "#e8d8c8");
           if (v) this.deathFx(v, true);
           if (e.victimId === pid) this.endMatch(false);
+          break;
+        }
+        case "prop_hit": {
+          const img = this.propViews.get(e.propId);
+          if (img && this.nearCamera(img.x, img.y)) {
+            img.setTintFill(0xffffff);
+            this.time.delayedCall(60, () => img.clearTint());
+            const x0 = img.x;
+            this.tweens.add({ targets: img, x: x0 + 4, duration: 40, yoyo: true, repeat: 1, onComplete: () => img.setX(x0) });
+          }
+          break;
+        }
+        case "prop_destroyed": {
+          const img = this.propViews.get(e.propId);
+          if (img) {
+            this.propViews.delete(e.propId);
+            if (this.nearCamera(e.x, e.y)) {
+              const col = PROP_DEBRIS[e.kind] ?? 0x8a7a6a;
+              const em = this.worldOnly(
+                this.add.particles(e.x, e.y - 30, "dot", { speed: { min: 80, max: 300 }, angle: { min: 200, max: 340 }, gravityY: 600, lifespan: 700, scale: { start: 0.6, end: 0.1 }, tint: [col, 0xffffff], emitting: false }),
+              ).setDepth(e.y + 1);
+              em.explode(22);
+              this.time.delayedCall(900, () => em.destroy());
+              this.tweens.add({ targets: img, scaleY: 0.2, alpha: 0, angle: (Math.random() - 0.5) * 40, duration: 260, onComplete: () => img.destroy() });
+            } else img.destroy();
+          }
           break;
         }
         case "act": {
@@ -936,7 +975,7 @@ export class ArenaScene extends Phaser.Scene {
     rg.clear();
     // vòng ngắm đỏ tại mục tiêu tự khoá
     if (a.player.state.alive && !a.player.bot) {
-      const lk = a.lockTarget(a.player);
+      const lk = a.lockTarget(a.player, this.currentMode());
       if (lk) {
         const rr = (lk.isFighter ? 46 : lk.radius * 1.6 + 16) + Math.sin(t * 8) * 4;
         rg.lineStyle(3, 0xff3a3a, 0.9).strokeEllipse(lk.x, lk.y, rr * 2, rr * 0.75);
@@ -999,6 +1038,12 @@ export class ArenaScene extends Phaser.Scene {
       b.fillStyle(0x0b0f18, 0.85).fillRect(x - 1, y - 1, w + 2, 8);
       b.fillStyle(f.id === a.playerId ? 0x5ad05a : 0xe04a3a, 1).fillRect(x, y, (w * f.state.hp) / f.state.maxHp, 6);
       if (f.shieldHp > 0) b.fillStyle(0xffffff, 0.8).fillRect(x, y - 3, Math.min(w, (w * f.shieldHp) / f.state.maxHp), 2);
+    }
+    for (const pr of a.props) {
+      if (!pr.alive || pr.maxHp === 0 || pr.hp >= pr.maxHp) continue;
+      const w = 44;
+      b.fillStyle(0x0b0f18, 0.85).fillRect(pr.x - w / 2 - 1, pr.y + 6, w + 2, 6);
+      b.fillStyle(0xd0b070, 1).fillRect(pr.x - w / 2, pr.y + 7, (w * pr.hp) / pr.maxHp, 4);
     }
     for (const m of a.monsters) {
       if (!m.alive || m.hp >= m.maxHp) continue;
@@ -1106,6 +1151,12 @@ export class ArenaScene extends Phaser.Scene {
       if (sb.slot === "attack") {
         label = "ĐÁNH";
         color = 0x8a3a2a;
+      } else if (sb.slot === "atk_monster" || sb.slot === "atk_prop") {
+        const mode: TargetMode = sb.slot === "atk_monster" ? "monster" : "prop";
+        label = mode === "monster" ? "QUÁI" : "PHÁ";
+        color = mode === "monster" ? 0x6a8a2a : 0x8a6a3a;
+        // sáng khi có mục tiêu loại đó trong tầm
+        ready = a.lockTarget(p, mode) !== null;
       } else if (sb.slot === "potion") {
         label = `🧪${p.potions}`;
         ready = p.potions > 0;
@@ -1124,7 +1175,7 @@ export class ArenaScene extends Phaser.Scene {
         }
       }
       let iconKey = sb.slot === "attack" ? skillIcon(this, "attack", 0xd06a3a) : "";
-      if (hero && sb.slot !== "attack" && sb.slot !== "potion") {
+      if (hero && sb.slot !== "attack" && sb.slot !== "potion" && sb.slot !== "atk_monster" && sb.slot !== "atk_prop") {
         const sk = skillFor(hero, s, sb.slot);
         if (sk) iconKey = skillIcon(this, sk.kind, fxColor(p));
       }
@@ -1144,7 +1195,7 @@ export class ArenaScene extends Phaser.Scene {
         cg.fillPath();
       }
       if (ready && iconFrame >= 0) sb.icon.setAlpha(0.85 + 0.15 * Math.sin(a.time * 6));
-      const cdText = ratio > 0 && sb.slot !== "attack" && sb.slot !== "potion" ? `${Math.ceil(p.cd[sb.slot as SkillSlot])}s` : "";
+      const cdText = ratio > 0 && sb.slot !== "attack" && sb.slot !== "potion" && sb.slot !== "atk_monster" && sb.slot !== "atk_prop" ? `${Math.ceil(p.cd[sb.slot as SkillSlot])}s` : "";
       sb.label.setText(cdText || (iconFrame >= 0 ? "" : label));
       sb.label.setWordWrapWidth(sb.r * 1.9).setAlign("center").setAlpha(ready || ratio > 0 ? 1 : 0.7);
     }

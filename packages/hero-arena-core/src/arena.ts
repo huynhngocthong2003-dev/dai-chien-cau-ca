@@ -13,6 +13,7 @@ import {
 } from "./progression.ts";
 import { CRAFT_RECIPES, equipmentById, equipmentScore, MONSTERS, rollLoot, type EquipmentItem, type EquipmentSlot, type MonsterDef } from "./loot.ts";
 import { Rng } from "./rng.ts";
+import { generateProps, PropGrid, type Prop, type PropKind } from "./props.ts";
 import type { Gender, HeroClassConfig, PlayerMatchState, SkillDef, SkillKind, SkillSlot } from "./types.ts";
 import {
   biomeAt,
@@ -36,13 +37,18 @@ export const MAX_POTIONS = 5;
 export const PASSIVE_EXP_PER_SEC = 3;
 /** Tầm tự khoá mục tiêu của người chơi. */
 export const LOCK_RANGE = 560;
+/** Đầu trận máy không gây sự với máy (người chơi vẫn đánh được tất cả). */
+export const BOT_TRUCE_SEC = 600;
 /** Hồi sinh đầu trận: trong RESPAWN_WINDOW_SEC giây đầu, bị hạ lần đầu được hồi sinh 1 lần. */
 export const RESPAWN_WINDOW_SEC = 300;
 export const RESPAWN_DELAY_SEC = 5;
 export const RESPAWN_PROTECT_SEC = 3;
 export const RESPAWN_POINT_COUNT = 8;
 /** Hệ số sát thương giữa các anh hùng (để giao tranh kéo dài, có thời gian phản ứng). */
-export const PVP_DAMAGE_MUL = 0.3;
+export const PVP_DAMAGE_MUL = 0.45;
+/** Kỹ năng ít bị giảm hơn đánh thường khi trúng anh hùng; chiêu tối thượng gần như nguyên vẹn. */
+export const PVP_SKILL_MUL = 0.62;
+export const PVP_ULT_MUL = 0.9;
 
 const SKILL_COOLDOWN: Record<SkillSlot, number> = { s1: 4.5, s2: 6, s3: 10, ult: 28 };
 const SKILL_MANA: Record<SkillSlot, number> = { s1: 30, s2: 15, s3: 45, ult: 90 };
@@ -55,10 +61,14 @@ export interface FighterInput {
   attack: boolean;
   cast: SkillSlot | null;
   usePotion: boolean;
+  /** Chế độ khoá mục tiêu: tự động (ưu tiên người), chỉ quái, chỉ vật phá được. */
+  targetMode?: TargetMode;
   /** Điểm ngắm (toạ độ thế giới); không có thì tự ngắm mục tiêu gần nhất. */
   aimX?: number;
   aimY?: number;
 }
+
+export type TargetMode = "auto" | "monster" | "prop";
 
 export const IDLE_INPUT: FighterInput = { moveX: 0, moveY: 0, attack: false, cast: null, usePotion: false };
 
@@ -111,6 +121,13 @@ export interface BotBrain {
   wanderX: number;
   wanderY: number;
   retarget: number;
+  /** Phát hiện kẹt vật cản: vị trí lần kiểm tra trước & thời gian né. */
+  lastX: number;
+  lastY: number;
+  stuckCheck: number;
+  sidestep: number;
+  sideX: number;
+  sideY: number;
   aimError: number;
   /** Bot "rụt rè": rút lui khi máu dưới ngưỡng này. */
   retreatAt: number;
@@ -168,6 +185,8 @@ export interface Field {
   slowPct: number;
   until: number;
   color: number;
+  /** Hệ số khi vùng hiệu ứng trúng anh hùng. */
+  pvpMul: number;
 }
 
 export type ArenaEvent =
@@ -185,6 +204,8 @@ export type ArenaEvent =
   | { type: "downed"; victimId: string; killerId: string | null; respawnAt: number }
   | { type: "respawned"; fighterId: string; x: number; y: number }
   | { type: "victory"; winnerId: string }
+  | { type: "prop_hit"; propId: string; sourceId: string }
+  | { type: "prop_destroyed"; propId: string; kind: PropKind; x: number; y: number; sourceId: string }
   /** Hành động của đấu thủ (để client chạy hoạt ảnh): đánh thường / tung chiêu / chiêu tối thượng. */
   | { type: "act"; fighterId: string; action: "attack" | "cast" | "ult"; melee: boolean; dirX: number; dirY: number; color: number };
 
@@ -229,6 +250,9 @@ export class Arena {
   readonly monsters: Monster[] = [];
   readonly projectiles: Projectile[] = [];
   readonly fields: Field[] = [];
+  /** Vật thể trên bản đồ (công trình & vật phá được). */
+  readonly props: Prop[] = [];
+  private propGrid: PropGrid = new PropGrid([]);
   /** Điểm hồi sinh – mỗi trận một bộ vị trí ngẫu nhiên theo seed. */
   readonly respawnPoints: Array<{ x: number; y: number }> = [];
   readonly playerId = "p0";
@@ -253,6 +277,10 @@ export class Arena {
     this.aliveCount = this.fighters.length;
     this.spawnMonsters();
     this.pickRespawnPoints();
+    // vật thể: chừa chỗ xuất phát, điểm hồi sinh, ổ quái
+    const clear = [...this.fighters.map((f) => ({ x: f.x, y: f.y })), ...this.respawnPoints, ...this.monsters.map((m) => ({ x: m.homeX, y: m.homeY }))];
+    this.props.push(...generateProps(this.rng, clear));
+    this.propGrid = new PropGrid(this.props);
   }
 
   get player(): Fighter {
@@ -298,7 +326,7 @@ export class Arena {
       protectUntil: 0,
       lostPotions: 0,
       bot: isBot
-        ? { wanderX: WORLD_CENTER, wanderY: WORLD_CENTER, retarget: 0, aimError: this.rng.range(0.05, 0.3), retreatAt: this.rng.range(0.3, 0.5), aggression: this.rng.range(0.2, 1), targetId: null }
+        ? { wanderX: WORLD_CENTER, wanderY: WORLD_CENTER, retarget: 0, lastX: 0, lastY: 0, stuckCheck: 1, sidestep: 0, sideX: 0, sideY: 0, aimError: this.rng.range(0.05, 0.3), retreatAt: this.rng.range(0.3, 0.5), aggression: this.rng.range(0.2, 1), targetId: null }
         : null,
     };
     this.fighters.push(f);
@@ -419,7 +447,7 @@ export class Arena {
   /** Bật/tắt tự động chơi cho người chơi (máy điều khiển thay). */
   setAutopilot(on: boolean): void {
     const p = this.player;
-    p.bot = on ? { wanderX: WORLD_CENTER, wanderY: WORLD_CENTER, retarget: 0, aimError: 0.05, retreatAt: 0.3, aggression: 0.6, targetId: null } : null;
+    p.bot = on ? { wanderX: WORLD_CENTER, wanderY: WORLD_CENTER, retarget: 0, lastX: 0, lastY: 0, stuckCheck: 1, sidestep: 0, sideX: 0, sideY: 0, aimError: 0.05, retreatAt: 0.3, aggression: 0.6, targetId: null } : null;
   }
 
   /** Người chơi đang phải chọn (nhánh hoặc thẻ) → client tạm dừng trận. */
@@ -514,7 +542,7 @@ export class Arena {
     if (this.time > f.shieldUntil) f.shieldHp = 0;
 
     // tự khoá mục tiêu (người chơi): ưu tiên đối thủ, rồi tới quái
-    const lock = f.bot ? null : this.lockTarget(f);
+    const lock = f.bot ? null : this.lockTarget(f, input.targetMode ?? "auto");
     // di chuyển
     const hz = HAZARD_EFFECTS[s.activeHazard];
     let mx = input.moveX;
@@ -551,6 +579,7 @@ export class Arena {
     f.x += f.vx * dt;
     f.y += f.vy * dt;
     this.clampToIsland(f);
+    this.collideProps(f, FIGHTER_RADIUS);
 
     // vòng bo & môi trường
     const outside = isOutsideZone(this.zone, f.x, f.y);
@@ -608,26 +637,87 @@ export class Arena {
     }
   }
 
-  /** Mục tiêu tự khoá: đối thủ gần nhất trong LOCK_RANGE, không có thì quái gần nhất. */
-  lockTarget(f: Fighter): { x: number; y: number; id: string; radius: number; isFighter: boolean } | null {
-    let best: { x: number; y: number; id: string; radius: number; isFighter: boolean } | null = null;
-    let bd = LOCK_RANGE;
-    for (const o of this.fighters) {
-      if (o === f || !o.state.alive) continue;
-      const d = Math.hypot(o.x - f.x, o.y - f.y);
-      if (d < bd) {
-        bd = d;
-        best = { x: o.x, y: o.y, id: o.id, radius: FIGHTER_RADIUS, isFighter: true };
+  /** Đẩy vòng tròn (x, y, r) ra khỏi vật thể rắn – trượt dọc theo mép vật. */
+  collideProps(o: { x: number; y: number; vx?: number; vy?: number }, r: number): boolean {
+    let hit = false;
+    for (const pr of this.propGrid.near(o.x, o.y, r)) {
+      if (!pr.solid) continue;
+      const dx = o.x - pr.x;
+      const dy = o.y - pr.y;
+      const d = Math.hypot(dx, dy);
+      const min = pr.radius + r;
+      if (d >= min) continue;
+      hit = true;
+      const nx = d > 0.01 ? dx / d : 1;
+      const ny = d > 0.01 ? dy / d : 0;
+      o.x = pr.x + nx * min;
+      o.y = pr.y + ny * min;
+      // bỏ thành phần vận tốc đâm vào vật → trượt theo mép
+      if (o.vx !== undefined && o.vy !== undefined) {
+        const vn = o.vx * nx + o.vy * ny;
+        if (vn < 0) {
+          o.vx -= vn * nx;
+          o.vy -= vn * ny;
+        }
       }
     }
-    if (best) return best;
-    bd = LOCK_RANGE * 0.8;
-    for (const m of this.monsters) {
-      if (!m.alive) continue;
-      const d = Math.hypot(m.x - f.x, m.y - f.y) - m.def.size;
+    return hit;
+  }
+
+  /** Gây sát thương lên vật phá được; vỡ thì rơi vàng/kinh nghiệm, đôi khi bình máu. */
+  private hitProp(src: Fighter, pr: Prop, dmg: number, ev: ArenaEvent[]): void {
+    if (!pr.alive || pr.maxHp === 0) return;
+    pr.hp -= dmg;
+    ev.push({ type: "prop_hit", propId: pr.id, sourceId: src.id });
+    if (pr.hp > 0) return;
+    pr.alive = false;
+    pr.hp = 0;
+    ev.push({ type: "prop_destroyed", propId: pr.id, kind: pr.kind, x: pr.x, y: pr.y, sourceId: src.id });
+    if (!src.state.alive) return;
+    src.gold += 3;
+    gainExpEv(this, src, 12, ev);
+    if (this.rng.chance(pr.kind === "barrel" ? 0.4 : 0.1) && src.potions < MAX_POTIONS) {
+      src.potions += 1;
+      ev.push({ type: "loot", fighterId: src.id, text: "+1 Bình máu" });
+    }
+  }
+
+  /**
+   * Mục tiêu tự khoá trong LOCK_RANGE:
+   * "auto" = đối thủ gần nhất, không có thì quái; "monster" = chỉ quái; "prop" = chỉ vật phá được.
+   */
+  lockTarget(f: Fighter, mode: TargetMode = "auto"): { x: number; y: number; id: string; radius: number; isFighter: boolean } | null {
+    let best: { x: number; y: number; id: string; radius: number; isFighter: boolean } | null = null;
+    let bd = LOCK_RANGE;
+    if (mode === "auto") {
+      for (const o of this.fighters) {
+        if (o === f || !o.state.alive) continue;
+        const d = Math.hypot(o.x - f.x, o.y - f.y);
+        if (d < bd) {
+          bd = d;
+          best = { x: o.x, y: o.y, id: o.id, radius: FIGHTER_RADIUS, isFighter: true };
+        }
+      }
+      if (best) return best;
+      bd = LOCK_RANGE * 0.8;
+    }
+    if (mode === "auto" || mode === "monster") {
+      for (const m of this.monsters) {
+        if (!m.alive) continue;
+        const d = Math.hypot(m.x - f.x, m.y - f.y) - m.def.size;
+        if (d < bd) {
+          bd = d;
+          best = { x: m.x, y: m.y, id: m.id, radius: m.def.size, isFighter: false };
+        }
+      }
+      return best;
+    }
+    for (const pr of this.propGrid.near(f.x, f.y, LOCK_RANGE)) {
+      if (pr.maxHp === 0) continue; // công trình không phá được
+      const d = Math.hypot(pr.x - f.x, pr.y - f.y) - pr.radius;
       if (d < bd) {
         bd = d;
-        best = { x: m.x, y: m.y, id: m.id, radius: m.def.size, isFighter: false };
+        best = { x: pr.x, y: pr.y, id: pr.id, radius: pr.radius, isFighter: false };
       }
     }
     return best;
@@ -661,7 +751,7 @@ export class Arena {
     if (!hero) return;
     const pas = totalPassive(f.state);
     f.attackCd = ATTACK_INTERVAL / (1 + pas.attackSpeedPct) * (f.isBot ? 1.25 : 1);
-    const dmg = this.attackOf(f) * 0.55;
+    const dmg = this.attackOf(f) * 0.6;
     const { dx, dy } = dir(f.x, f.y, ax, ay, f);
     f.faceX = dx;
     f.faceY = dy;
@@ -706,13 +796,13 @@ export class Arena {
     ev.push({ type: "act", fighterId: f.id, action: slot === "ult" ? "ult" : "cast", melee: skill.kind === "cleave", dirX: dx, dirY: dy, color });
     switch (skill.kind) {
       case "bolt": {
-        this.spawnProjectile(f, dx, dy, 760, this.rangeOf(f) * 1.35 + 60, atk * 1.7, 16, true, color, true);
+        this.spawnProjectile(f, dx, dy, 760, this.rangeOf(f) * 1.35 + 60, atk * 2.6, 16, true, color, true);
         ev.push({ type: "fx", kind: "bolt", x: f.x, y: f.y, radius: 16, color, ownerId: f.id, toX: f.x + dx * 300, toY: f.y + dy * 300 });
         break;
       }
       case "cleave": {
         const r = this.rangeOf(f) + 60;
-        this.meleeArc(f, dx, dy, r, 2.2, atk * 1.8, ev, true);
+        this.meleeArc(f, dx, dy, r, 2.2, atk * 2.8, ev, true);
         ev.push({ type: "fx", kind: "cleave", x: f.x + dx * 50, y: f.y + dy * 50, radius: r, color, ownerId: f.id });
         break;
       }
@@ -725,7 +815,7 @@ export class Arena {
         break;
       }
       case "nova": {
-        this.aoe(f, f.x, f.y, 160, atk * 1.5, ev, true);
+        this.aoe(f, f.x, f.y, 160, atk * 2.4, ev, true);
         ev.push({ type: "fx", kind: "nova", x: f.x, y: f.y, radius: 160, color, ownerId: f.id });
         break;
       }
@@ -737,7 +827,7 @@ export class Arena {
       }
       case "heal": {
         f.state.hp = Math.min(f.state.maxHp, f.state.hp + f.state.maxHp * 0.25);
-        this.aoe(f, f.x, f.y, 120, atk * 0.8, ev, true);
+        this.aoe(f, f.x, f.y, 120, atk * 1.3, ev, true);
         ev.push({ type: "fx", kind: "heal", x: f.x, y: f.y, radius: 120, color, ownerId: f.id });
         break;
       }
@@ -745,18 +835,18 @@ export class Arena {
         const d = Math.min(dist, this.rangeOf(f) + 120);
         const x = f.x + dx * d;
         const y = f.y + dy * d;
-        this.fields.push({ id: this.nextId++, ownerId: f.id, x, y, radius: 110, dps: atk * 0.7, slowPct: 0.35, until: this.time + 3.5, color });
+        this.fields.push({ id: this.nextId++, ownerId: f.id, x, y, radius: 110, dps: atk * 1.1, slowPct: 0.35, until: this.time + 3.5, color, pvpMul: PVP_SKILL_MUL });
         ev.push({ type: "fx", kind: "trap", x, y, radius: 110, color, ownerId: f.id });
         break;
       }
       case "storm": {
-        const mul = awakened ? 1.6 : 1;
+        const mul = awakened ? 1.8 : 1;
         const radius = (hero.ranged ? 210 : 240) * (awakened ? 1.2 : 1);
         const d = hero.ranged ? Math.min(dist, this.rangeOf(f) + 100) : 0;
         const x = f.x + dx * d;
         const y = f.y + dy * d;
-        this.aoe(f, x, y, radius, atk * 3.6 * mul, ev, true);
-        this.fields.push({ id: this.nextId++, ownerId: f.id, x, y, radius, dps: atk * 0.5 * mul, slowPct: 0.25, until: this.time + 2.5, color });
+        this.aoe(f, x, y, radius, atk * 7.5 * mul, ev, "ult");
+        this.fields.push({ id: this.nextId++, ownerId: f.id, x, y, radius, dps: atk * 0.9 * mul, slowPct: 0.25, until: this.time + 2.5, color, pvpMul: PVP_ULT_MUL });
         ev.push({ type: "fx", kind: "storm", x, y, radius, color, ownerId: f.id });
         break;
       }
@@ -772,7 +862,7 @@ export class Arena {
     });
   }
 
-  private meleeArc(f: Fighter, dx: number, dy: number, range: number, arc: number, damage: number, ev: ArenaEvent[], isSkill: boolean): void {
+  private meleeArc(f: Fighter, dx: number, dy: number, range: number, arc: number, damage: number, ev: ArenaEvent[], isSkill: boolean | "ult"): void {
     const half = arc / 2;
     const inArc = (x: number, y: number, extra: number) => {
       const ox = x - f.x;
@@ -790,15 +880,21 @@ export class Arena {
     for (const m of this.monsters) {
       if (m.alive && inArc(m.x, m.y, m.def.size)) this.hitMonster(f, m, damage, ev);
     }
+    for (const pr of this.propGrid.near(f.x, f.y, range + 60)) {
+      if (pr.maxHp > 0 && inArc(pr.x, pr.y, pr.radius)) this.hitProp(f, pr, damage, ev);
+    }
   }
 
-  private aoe(f: Fighter, x: number, y: number, radius: number, damage: number, ev: ArenaEvent[], isSkill: boolean): void {
+  private aoe(f: Fighter, x: number, y: number, radius: number, damage: number, ev: ArenaEvent[], isSkill: boolean | "ult"): void {
     for (const o of this.fighters) {
       if (o === f || !o.state.alive) continue;
       if (Math.hypot(o.x - x, o.y - y) <= radius + FIGHTER_RADIUS) this.hitFighter(f, o, damage, ev, false, isSkill);
     }
     for (const m of this.monsters) {
       if (m.alive && Math.hypot(m.x - x, m.y - y) <= radius + m.def.size) this.hitMonster(f, m, damage, ev);
+    }
+    for (const pr of this.propGrid.near(x, y, radius)) {
+      if (pr.maxHp > 0 && Math.hypot(pr.x - x, pr.y - y) <= radius + pr.radius) this.hitProp(f, pr, damage, ev);
     }
   }
 
@@ -827,8 +923,9 @@ export class Arena {
     }
   }
 
-  private hitFighter(src: Fighter, target: Fighter, base: number, ev: ArenaEvent[], melee: boolean, _isSkill: boolean): void {
-    const { dmg, crit } = this.rollCrit(src, base * PVP_DAMAGE_MUL);
+  private hitFighter(src: Fighter, target: Fighter, base: number, ev: ArenaEvent[], melee: boolean, isSkill: boolean | "ult"): void {
+    const pvp = isSkill === "ult" ? PVP_ULT_MUL : isSkill ? PVP_SKILL_MUL : PVP_DAMAGE_MUL;
+    const { dmg, crit } = this.rollCrit(src, base * pvp);
     const dealt = this.damageFighter(target, dmg, src, ev, "fighter", crit, false);
     this.applyOnHit(src, target);
     const pas = totalPassive(src.state);
@@ -1018,6 +1115,15 @@ export class Arena {
       p.life -= dt;
       const owner = this.fighterById(p.ownerId);
       let dead = p.life <= 0 || !owner;
+      // vật thể chắn đạn (vật phá được thì bị trúng)
+      if (!dead && owner) {
+        for (const pr of this.propGrid.near(p.x, p.y, p.radius)) {
+          if (!pr.solid || Math.hypot(pr.x - p.x, pr.y - p.y) > pr.radius + p.radius) continue;
+          if (pr.maxHp > 0) this.hitProp(owner, pr, p.damage, ev);
+          dead = true;
+          break;
+        }
+      }
       if (!dead && owner) {
         for (const o of this.fighters) {
           if (o === owner || !o.state.alive || p.hit.has(o.id)) continue;
@@ -1060,7 +1166,7 @@ export class Arena {
       for (const o of this.fighters) {
         if (o === owner || !o.state.alive) continue;
         if (Math.hypot(o.x - fl.x, o.y - fl.y) <= fl.radius) {
-          this.damageFighter(o, fl.dps * PVP_DAMAGE_MUL * dt, owner, ev, "fighter", false, true);
+          this.damageFighter(o, fl.dps * fl.pvpMul * dt, owner, ev, "fighter", false, true);
           o.slowPct = Math.max(this.time < o.slowUntil ? o.slowPct : 0, fl.slowPct);
           o.slowUntil = this.time + 0.3;
         }
@@ -1103,15 +1209,18 @@ export class Arena {
       let best = Infinity;
       // không có thời gian hoà bình: luôn có thể giao tranh. Tầm săn người tăng dần theo thời gian
       // (đầu trận chỉ đánh kẻ ở gần, cuối trận truy đuổi xa) và theo tính hiếu chiến của từng máy.
-      const huntRange = (180 + Math.min(1, this.time / 900) * 320) * (0.6 + b.aggression * 0.6);
+      const huntRange = (40 + Math.pow(Math.min(1, this.time / 960), 1.6) * 460) * (0.6 + b.aggression * 0.6);
       // bị đánh → luôn đánh trả kẻ đã đánh mình
       const attacker = this.time < f.pvpUntil && f.lastHitBy ? this.fighterById(f.lastHitBy) : undefined;
-      if (attacker?.state.alive && Math.hypot(attacker.x - f.x, attacker.y - f.y) < 600) {
+      // 7 phút đầu máy tránh đánh nhau với máy (dính đòn lan thì lùi); luôn đánh trả người chơi
+      const botFeud = attacker?.isBot && this.time < BOT_TRUCE_SEC;
+      if (attacker?.state.alive && !botFeud && Math.hypot(attacker.x - f.x, attacker.y - f.y) < 600) {
         b.targetId = attacker.id;
         best = -1;
       }
       for (const o of this.fighters) {
         if (o === f || !o.state.alive) continue;
+        if (o.isBot && this.time < BOT_TRUCE_SEC) continue;
         const d = Math.hypot(o.x - f.x, o.y - f.y);
         // ưu tiên đối thủ yếu máu
         const score = d * (0.6 + o.state.hp / o.state.maxHp);
@@ -1149,6 +1258,12 @@ export class Arena {
     if (needZone) {
       mvx = goalX - f.x;
       mvy = goalY - f.y;
+    } else if (this.time < BOT_TRUCE_SEC && this.time < f.pvpUntil && f.lastHitBy && this.fighterById(f.lastHitBy)?.isBot) {
+      const o = this.fighterById(f.lastHitBy);
+      if (o) {
+        mvx = f.x - o.x;
+        mvy = f.y - o.y;
+      }
     } else if (hpRatio < b.retreatAt && targetF?.state.alive) {
       mvx = f.x - targetF.x;
       mvy = f.y - targetF.y;
@@ -1170,6 +1285,25 @@ export class Arena {
     if (ml > 1) {
       input.moveX = mvx / ml;
       input.moveY = mvy / ml;
+    }
+    // kẹt vật cản: muốn đi mà gần như không nhúc nhích → né ngang một lúc
+    b.stuckCheck -= dt;
+    if (b.stuckCheck <= 0) {
+      b.stuckCheck = 0.7;
+      const moved = Math.hypot(f.x - b.lastX, f.y - b.lastY);
+      if (ml > 1 && moved < 25) {
+        const side = this.rng.chance(0.5) ? 1 : -1;
+        b.sideX = -input.moveY * side;
+        b.sideY = input.moveX * side;
+        b.sidestep = 0.8;
+      }
+      b.lastX = f.x;
+      b.lastY = f.y;
+    }
+    if (b.sidestep > 0) {
+      b.sidestep -= dt;
+      input.moveX = b.sideX;
+      input.moveY = b.sideY;
     }
 
     if (tx !== undefined && ty !== undefined) {
