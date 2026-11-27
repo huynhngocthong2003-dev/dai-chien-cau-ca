@@ -123,9 +123,9 @@ interface FighterView {
 
 type CastAim = { dx: number; dy: number; dist: number };
 /** Kéo dưới ngưỡng này = chạm nhanh (tự ngắm). */
-const AIM_DEAD = 22;
+const AIM_DEAD = 46;
 /** Kéo hết cỡ (đơn vị màn hình) = tầm tối đa với chiêu chọn điểm rơi. */
-const AIM_MAX = 120;
+const AIM_MAX = 140;
 /** Ô "Hủy chiêu" (toạ độ thiết kế, neo góc dưới-phải). */
 const CANCEL_X = 1000;
 const CANCEL_Y = 404;
@@ -551,7 +551,7 @@ export class ArenaScene extends Phaser.Scene {
     const shape = a.aimShape(p, am.slot);
     if (!shape) return;
     const col = fxColor(p);
-    const aim = this.currentAim();
+    let aim = this.currentAim();
     if (shape.shape === "self") {
       g.fillStyle(col, 0.18).fillCircle(p.x, p.y, shape.radius);
       g.lineStyle(3, col, 0.85).strokeCircle(p.x, p.y, shape.radius);
@@ -560,8 +560,22 @@ export class ArenaScene extends Phaser.Scene {
     // vòng tầm tối đa
     g.lineStyle(2, 0xffffff, 0.35).strokeCircle(p.x, p.y, shape.range);
     if (!aim) {
-      g.fillStyle(0xffffff, 0.05).fillCircle(p.x, p.y, shape.range);
-      return;
+      // chưa kéo: chiêu tự ghim vào mục tiêu đang khoá (ưu tiên người chơi) – hiện luôn hướng sẽ bắn
+      const lk = a.lockTarget(p, this.currentMode());
+      if (!lk) {
+        g.fillStyle(0xffffff, 0.05).fillCircle(p.x, p.y, shape.range);
+        return;
+      }
+      const dx = lk.x - p.x;
+      const dy = lk.y - p.y;
+      const d = Math.hypot(dx, dy) || 1;
+      aim = { dx: dx / d, dy: dy / d, dist: Math.min(d, shape.range) };
+      // dấu ghim trên mục tiêu
+      const rr = (lk.isFighter ? 40 : lk.radius * 1.4 + 12) + Math.sin(a.time * 10) * 3;
+      g.lineStyle(4, 0xffe14a, 0.95).strokeCircle(lk.x, lk.y - 20, rr);
+      g.lineStyle(2, 0xffe14a, 0.95);
+      for (const [sx, sy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const)
+        g.lineBetween(lk.x + sx * (rr - 8), lk.y - 20 + sy * (rr - 8), lk.x + sx * (rr + 10), lk.y - 20 + sy * (rr + 10));
     }
     const ang = Math.atan2(aim.dy, aim.dx);
     if (shape.shape === "line") {
