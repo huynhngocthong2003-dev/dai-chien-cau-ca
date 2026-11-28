@@ -1491,12 +1491,8 @@ const ROSTER = [
         }
       }
     },
+    drawOver(o) { drawGadgetBubbles(o); },
     drawFx(o) {
-      const g = o.data.gadget;
-      if (g && G.time < g.until) {
-        ctx.save(); ctx.font = `${Math.round(o.r * 0.7)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(g.icon, o.x + Math.sin(G.time * 4) * 4, o.y - o.r - 18 + Math.sin(G.time * 6) * 3); ctx.restore();
-      }
       if (G.time < (o.data.cloakUntil || 0)) {
         ctx.save(); ctx.strokeStyle = 'rgba(248,113,113,0.85)'; ctx.lineWidth = 4; ctx.setLineDash([12, 8]); ctx.lineDashOffset = G.time * 60;
         ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 12, 0, TAU); ctx.stroke(); ctx.restore();
@@ -1527,27 +1523,15 @@ const ROSTER = [
   },
   {
     id: 'slimeking', tier: 'S', toon: true, power: true, name: 'Vua Slime Phân Tách', inspire: 'Slime (hoạt hình)', glyph: '◕', color: '#34d399', color2: '#065f46',
-    hp: 300, atk: 12, spd: 240, cd: 5.5, ult: 'Tái Sinh Tách Đôi',
-    skill: 'Ném <b>cục nhầy</b> 12 sát thương + làm chậm 1,5 giây. Khi hết HP: <b>tách đôi tái sinh</b> – nhỏ lại, hồi 30% HP (lần 2: 18%) và sinh 2 slime con quấy địch 5 giây. <b>Tối đa 2 lần tách</b>.',
+    hp: 300, atk: 12, spd: 240, cd: 5.5, ult: 'Phân Tách Vô Tận',
+    splitOnHit: true,
+    skill: '<b>Phân Tách Vô Tận</b>: mỗi lần nhận sát thương, slime <b>tách làm đôi</b> – mỗi nửa mang <b>một nửa số máu</b> hiện có, nhỏ lại và văng ra hai phía; mỗi slime con bị đánh lại tách đôi tiếp… liên tục <b>không giới hạn số đời</b>, cho tới khi không thể tách nữa (slime còn dưới 8 máu). Mỗi slime con <b>giữ nguyên sát thương</b> của bản thể → mỗi lần tách, <b>tổng sát thương cả bầy nhân đôi</b>. Chiêu: mọi slime đều ném <b>cục nhầy</b> 12 sát thương + làm chậm 1,5 giây.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
-      fireProjectile(o, t, { kind: 'slime', r: 11, speed: 560, dmg: 12, color: '#6ee7b7', life: 1.2, slow: 1.5 });
+      fireProjectile(o, t, { kind: 'slime', r: Math.max(6, 11 - 1.5 * (o.gen || 0)), speed: 560, dmg: 12, color: '#6ee7b7', life: 1.2, slow: 1.5 });
       if (srnd() < 0.3) announce(o, 'Cục Nhầy', true);
       Sound.play('cast');
     },
-    onLethal(o) {
-      o.data.splits = o.data.splits || 0;
-      if (o.data.splits >= 2) return false;
-      o.data.splits++;
-      o.hp = o.maxHp * (o.data.splits === 1 ? 0.3 : 0.18);
-      o.baseR *= 0.82;
-      spawnMinions(o, 2, 5, { dmg: 5, speed: 290, color: '#6ee7b7', scale: 0.5 });
-      burst(o.x, o.y, '#6ee7b7', 50, 320); ringFx(o.x, o.y, 120, '#34d399', 0.6, 8);
-      floatText(o.x, o.y - o.r - 20, `PHÂN TÁCH ${o.data.splits}/2!`, '#6ee7b7', 24);
-      shake(8); Sound.play('grow');
-      return true;
-    },
-    update(o, dt) { stepMinions(o, dt); },
   },
   // ===== CẤP A =====
   {
@@ -2735,6 +2719,7 @@ function dealDamage(t, amount, src, kind = 'normal', opts = {}) {
     floatText(t.x + rand(-10, 10), t.y - t.r, (kind === 'crit' ? '💥' : '') + Math.max(1, Math.round(dmg)), col, size);
   }
   if (t.hp <= 0.001 && t.def.onLethal && t.def.onLethal(t, src)) return dmg;
+  if (t.def.splitOnHit && t.hp > 0.001 && NET.role !== 'client') splitSlime(t);
   if (t.hp <= 0.001) kill(t, src);
   return dmg;
 }
@@ -2833,6 +2818,105 @@ function fireProjectileDir(o, dx, dy, p) {
   });
 }
 function addField(f) { G.fields.push(f); }
+/** Vua Slime: tách làm đôi khi nhận sát thương – mỗi nửa mang nửa số máu hiện có. */
+// không giới hạn số đời: tách tới khi không thể tách (còn dưới SLIME_MIN_HP máu)
+const SLIME_MIN_HP = 8, SLIME_MIN_R = 9;
+const canSplitSlime = (t) => t.hp >= SLIME_MIN_HP && G.time >= (t.splitReady || 0);
+function splitSlime(t) {
+  if (!canSplitSlime(t)) return;
+  const half = t.hp / 2;
+  t.gen = (t.gen || 0) + 1;
+  t.hp = half; t.maxHp = t.maxHp / 2;
+  t.baseR = Math.max(SLIME_MIN_R, t.baseR * 0.8); t.splitReady = G.time + 0.5;
+  const a = srand(0, TAU), nx = Math.cos(a), ny = Math.sin(a);
+  const c = makeOrb(t.def, clamp(t.x - nx * t.r * 0.6, PAD + t.baseR, W - PAD - t.baseR), clamp(t.y - ny * t.r * 0.6, PAD + t.baseR, H - PAD - t.baseR), G.orbs.length, t.team);
+  Object.assign(c, { hp: half, maxHp: t.maxHp, gen: t.gen, baseR: t.baseR, r: t.baseR, splitReady: G.time + 0.5, family: t.family || t, owner: '', cd: t.cd + srand(0.5, 1.5) });
+  t.x = clamp(t.x + nx * t.r * 0.6, PAD + t.baseR, W - PAD - t.baseR); t.y = clamp(t.y + ny * t.r * 0.6, PAD + t.baseR, H - PAD - t.baseR);
+  const sp = Math.max(220, Math.hypot(t.vx, t.vy));
+  t.vx = nx * sp; t.vy = ny * sp; c.vx = -nx * sp; c.vy = -ny * sp;
+  G.orbs.push(c);
+  burst(t.x, t.y, '#6ee7b7', 24, 240); ringFx((t.x + c.x) / 2, (t.y + c.y) / 2, 50, '#34d399', 0.35, 5);
+  floatText((t.x + c.x) / 2, t.y - t.r - 16, 'TÁCH ĐÔI!', '#6ee7b7', 17); Sound.play('grow');
+}
+/** Hiện hình bảo bối cạnh bóng (tối đa 2 món khi túi quá tải). */
+function showGadget(o, k) {
+  const list = (o.data.gadgets || []).filter((g) => G.time < g.until && g.k !== k);
+  list.push({ k, t0: G.time, until: G.time + 2.4 });
+  o.data.gadgets = list.slice(-2);
+}
+const GADGET_NAMES = ['Cánh Cửa Thần Kỳ', 'Chong Chóng Tre', 'Đèn Pin Thu Nhỏ', 'Súng Không Khí', 'Áo Choàng Đảo Ngược', 'Máy Thời Gian'];
+/** Vẽ hình từng bảo bối (tự vẽ bằng Canvas, tâm x,y, cỡ s). */
+const GADGET_ART = [
+  (c, x, y, s) => { // cửa hồng
+    c.fillStyle = '#f472b6'; c.strokeStyle = '#831843'; c.lineWidth = 2;
+    c.beginPath(); c.roundRect(x - s * 0.36, y - s * 0.52, s * 0.72, s * 1.04, 3); c.fill(); c.stroke();
+    c.strokeStyle = 'rgba(131,24,67,0.55)'; c.strokeRect(x - s * 0.26, y - s * 0.42, s * 0.52, s * 0.38); c.strokeRect(x - s * 0.26, y + s * 0.02, s * 0.52, s * 0.38);
+    c.fillStyle = '#fde047'; c.beginPath(); c.arc(x + s * 0.22, y + s * 0.02, s * 0.06, 0, TAU); c.fill();
+  },
+  (c, x, y, s) => { // chong chóng tre (cánh quay)
+    const a = G.time * 22;
+    c.strokeStyle = '#a16207'; c.lineWidth = Math.max(2, s * 0.08); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x, y - s * 0.1); c.lineTo(x, y + s * 0.4); c.stroke();
+    c.fillStyle = '#fbbf24'; c.beginPath(); c.ellipse(x, y + s * 0.44, s * 0.16, s * 0.07, 0, 0, TAU); c.fill();
+    c.save(); c.translate(x, y - s * 0.12); c.scale(1, 0.35); c.rotate(a);
+    c.fillStyle = '#facc15'; c.strokeStyle = '#a16207'; c.lineWidth = 1.5;
+    c.beginPath(); c.ellipse(0, 0, s * 0.5, s * 0.12, 0, 0, TAU); c.fill(); c.stroke(); c.restore();
+  },
+  (c, x, y, s) => { // đèn pin + tia sáng
+    c.save(); c.translate(x, y); c.rotate(-0.5);
+    c.fillStyle = 'rgba(253,224,71,0.45)'; c.beginPath(); c.moveTo(s * 0.18, -s * 0.12); c.lineTo(s * 0.62, -s * 0.32); c.lineTo(s * 0.62, s * 0.32); c.lineTo(s * 0.18, s * 0.12); c.fill();
+    c.fillStyle = '#64748b'; c.fillRect(-s * 0.5, -s * 0.1, s * 0.5, s * 0.2);
+    c.fillStyle = '#e2e8f0'; c.beginPath(); c.moveTo(0, -s * 0.12); c.lineTo(s * 0.2, -s * 0.18); c.lineTo(s * 0.2, s * 0.18); c.lineTo(0, s * 0.12); c.fill();
+    c.restore();
+  },
+  (c, x, y, s) => { // ống súng khí đeo tay + vòng khí
+    c.fillStyle = '#94a3b8'; c.strokeStyle = '#334155'; c.lineWidth = 2;
+    c.beginPath(); c.roundRect(x - s * 0.48, y - s * 0.18, s * 0.6, s * 0.36, 6); c.fill(); c.stroke();
+    c.fillStyle = '#cbd5e1'; c.beginPath(); c.ellipse(x + s * 0.12, y, s * 0.08, s * 0.2, 0, 0, TAU); c.fill(); c.stroke();
+    c.strokeStyle = 'rgba(186,230,253,0.95)'; c.lineWidth = 2;
+    for (let i = 0; i < 2; i++) { const p = (G.time * 2 + i * 0.5) % 1; c.globalAlpha = 1 - p; c.beginPath(); c.ellipse(x + s * (0.25 + p * 0.35), y, s * 0.06 + p * s * 0.08, s * 0.16 + p * s * 0.14, 0, 0, TAU); c.stroke(); }
+    c.globalAlpha = 1;
+  },
+  (c, x, y, s) => { // áo choàng đỏ bay
+    const w = Math.sin(G.time * 8) * s * 0.06;
+    c.fillStyle = '#dc2626'; c.strokeStyle = '#7f1d1d'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(x - s * 0.18, y - s * 0.45); c.lineTo(x + s * 0.18, y - s * 0.45);
+    c.quadraticCurveTo(x + s * 0.5 + w, y, x + s * 0.4 + w, y + s * 0.5); c.lineTo(x - s * 0.4 - w, y + s * 0.5);
+    c.quadraticCurveTo(x - s * 0.5 - w, y, x - s * 0.18, y - s * 0.45); c.fill(); c.stroke();
+    c.fillStyle = '#fca5a5'; c.fillRect(x - s * 0.2, y - s * 0.5, s * 0.4, s * 0.1);
+  },
+  (c, x, y, s) => { // máy thời gian: đồng hồ quay ngược
+    c.fillStyle = '#ede9fe'; c.strokeStyle = '#6d28d9'; c.lineWidth = 3;
+    c.beginPath(); c.arc(x, y, s * 0.42, 0, TAU); c.fill(); c.stroke();
+    c.lineWidth = 2; c.lineCap = 'round';
+    const a = -G.time * 6;
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * s * 0.3, y + Math.sin(a) * s * 0.3); c.stroke();
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a / 12) * s * 0.2, y + Math.sin(a / 12) * s * 0.2); c.stroke();
+    c.strokeStyle = '#a78bfa'; c.beginPath(); c.arc(x, y, s * 0.56, -0.4, -2.2, true); c.stroke();
+    c.fillStyle = '#a78bfa'; c.beginPath(); c.moveTo(x + Math.cos(-2.2) * s * 0.56 - 5, y + Math.sin(-2.2) * s * 0.56); c.lineTo(x + Math.cos(-2.2) * s * 0.56 + 4, y + Math.sin(-2.2) * s * 0.56 - 6); c.lineTo(x + Math.cos(-2.2) * s * 0.56 + 4, y + Math.sin(-2.2) * s * 0.56 + 6); c.fill();
+  },
+];
+/** Bong bóng bảo bối cạnh Mèo Máy: hình bảo bối + tên, bật ra rồi mờ dần. */
+function drawGadgetBubbles(o) {
+  const list = (o.data.gadgets || []).filter((g) => G.time < g.until);
+  const side = o.x > W - 220 ? -1 : 1;
+  list.forEach((g, i) => {
+    const age = G.time - g.t0, left = g.until - G.time;
+    const pop = Math.min(1, age / 0.18), sc = pop < 1 ? 0.6 + 0.5 * pop : 1 + 0.04 * Math.sin(G.time * 6);
+    const s = Math.max(58, o.r * 1.5) * sc;
+    const bx = o.x + side * (o.r + s * 0.75 + 8), by = o.y - o.r * 0.5 - i * (s * 1.65) + Math.sin(G.time * 4 + i) * 3;
+    ctx.save(); ctx.globalAlpha = Math.min(1, left / 0.35, pop);
+    ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(bx, by, s * 0.62, 0, TAU); ctx.fill(); ctx.stroke();
+    // đuôi bong bóng chỉ về bóng
+    ctx.beginPath(); ctx.moveTo(bx - side * s * 0.5, by + s * 0.25); ctx.lineTo(o.x + side * o.r * 0.8, o.y - o.r * 0.1); ctx.lineTo(bx - side * s * 0.3, by + s * 0.48); ctx.fill();
+    GADGET_ART[g.k](ctx, bx, by, s * 0.9);
+    ctx.font = '800 19px "Segoe UI", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.strokeText(GADGET_NAMES[g.k], bx, by + s * 0.66);
+    ctx.fillStyle = '#e0f2fe'; ctx.fillText(GADGET_NAMES[g.k], bx, by + s * 0.66);
+    ctx.restore();
+  });
+}
 /** Túi bảo bối của Mèo Máy (6 món). */
 const GADGETS = [
   (o) => { // Cánh Cửa Thần Kỳ
@@ -2841,29 +2925,29 @@ const GADGETS = [
     burst(o.x, o.y, '#f9a8d4', 24, 200); ringFx(o.x, o.y, 60, '#f472b6', 0.4, 6);
     o.x = clamp(t.x + Math.cos(a) * (t.r + o.r + 8), PAD + o.r, W - PAD - o.r); o.y = clamp(t.y + Math.sin(a) * (t.r + o.r + 8), PAD + o.r, H - PAD - o.r);
     ringFx(o.x, o.y, 70, '#f472b6', 0.4, 6); dash(o, t, 680, 0.35, 20);
-    o.data.gadget = { icon: '🚪', until: G.time + 1 }; announce(o, 'Cánh Cửa Thần Kỳ'); Sound.play('dodge');
+    showGadget(o, 0); announce(o, 'Cánh Cửa Thần Kỳ'); Sound.play('dodge');
   },
   (o) => { // Chong Chóng Tre
     o.boostUntil = G.time + 3; o.dodgeUntil = G.time + 3;
-    burst(o.x, o.y, '#fde68a', 20, 220); o.data.gadget = { icon: '🚁', until: G.time + 3 };
+    burst(o.x, o.y, '#fde68a', 20, 220); showGadget(o, 1);
     announce(o, 'Chong Chóng Tre'); Sound.play('sonic');
   },
   (o) => { // Đèn Pin Thu Nhỏ
     const t = nearestEnemy(o); if (!t) return;
     t.shrinkUntil = G.time + 3.5; t.slowUntil = Math.max(t.slowUntil, G.time + 3.5);
     boltFx(o.x, o.y, t.x, t.y, '#fde047'); ringFx(t.x, t.y, t.r + 20, '#fde047', 0.5, 5);
-    floatText(t.x, t.y - t.r - 18, 'THU NHỎ!', '#fde047', 18); o.data.gadget = { icon: '🔦', until: G.time + 1.2 };
+    floatText(t.x, t.y - t.r - 18, 'THU NHỎ!', '#fde047', 18); showGadget(o, 2);
     announce(o, 'Đèn Pin Thu Nhỏ'); Sound.play('cast');
   },
   (o) => { // Súng Không Khí
     const t = nearestEnemy(o); if (!t) return;
     const a = Math.atan2(t.y - o.y, t.x - o.x);
     for (const d of [-0.3, 0, 0.3]) fireProjectileDir(o, Math.cos(a + d), Math.sin(a + d), { kind: 'ring', r: 12, speed: 660, dmg: 11, color: '#bae6fd', life: 1.1, knock: 560, target: t, homing: 2.2 });
-    o.data.gadget = { icon: '💨', until: G.time + 1 }; announce(o, 'Súng Không Khí'); Sound.play('boom');
+    showGadget(o, 3); announce(o, 'Súng Không Khí'); Sound.play('boom');
   },
   (o) => { // Áo Choàng Đảo Ngược
     o.data.cloakUntil = G.time + 3; setShield(o, 0.75, 3, 'reflect');
-    o.data.gadget = { icon: '🧣', until: G.time + 3 }; ringFx(o.x, o.y, o.r + 24, '#f87171', 0.4, 6);
+    showGadget(o, 4); ringFx(o.x, o.y, o.r + 24, '#f87171', 0.4, 6);
     announce(o, 'Áo Choàng Đảo Ngược'); Sound.play('shield');
   },
   (o) => { // Máy Thời Gian: tua ngược vị trí & máu về ~3 giây trước
@@ -2872,7 +2956,7 @@ const GADGETS = [
     o.x = h.x; o.y = h.y;
     if (h.hp > o.hp) heal(o, Math.min(80, h.hp - o.hp));
     ringFx(o.x, o.y, 90, '#a5f3fc', 0.6, 8); burst(o.x, o.y, '#e0f2fe', 26, 240);
-    o.data.gadget = { icon: '⏳', until: G.time + 1.2 }; announce(o, 'Máy Thời Gian'); Sound.play('purple');
+    showGadget(o, 5); announce(o, 'Máy Thời Gian'); Sound.play('purple');
   },
 ];
 /** Phân thân / slime con: bám đuổi địch gần nhất, chạm thì gây sát thương (Tề Thiên, Vua Slime). */
@@ -3626,6 +3710,7 @@ function drawOrb(o) {
   // vòng máu nhỏ quanh thân
   ctx.strokeStyle = o.hp / o.maxHp > 0.3 ? 'rgba(74,222,128,0.9)' : 'rgba(248,113,113,0.95)'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 9, -Math.PI / 2, -Math.PI / 2 + TAU * (o.hp / o.maxHp)); ctx.stroke();
+  if (d.drawOver) d.drawOver(o);
 
   // nhấp nháy khi trúng đòn
   if (o.hitFlash > 0) { ctx.fillStyle = `rgba(255,255,255,${o.hitFlash * 4})`; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, TAU); ctx.fill(); }
@@ -4582,13 +4667,18 @@ function updateHud() {
   G.orbs.forEach((o, i) => {
     const h = hudEls[i];
     if (!h) return;
-    const pct = (o.hp / o.maxHp) * 100;
+    // cả đàn (Vua Slime): cộng máu mọi slime cùng gốc
+    const fam = o.def.splitOnHit ? G.orbs.filter((x) => (x.family || x) === o && x.alive) : null;
+    const hpNow = fam ? fam.reduce((a, x) => a + x.hp, 0) : o.hp, hpMax = fam ? o.def.hp : o.maxHp;
+    const famAlive = fam ? fam.length > 0 : o.alive;
+    const pct = (hpNow / hpMax) * 100;
     h.fill.style.width = pct + '%';
     h.ghost.style.width = pct + '%';
-    h.val.textContent = `${Math.ceil(o.hp)} / ${o.maxHp}` + (o.barrier > 0 ? ` (+${Math.ceil(o.barrier)}🛡)` : '');
-    h.root.classList.toggle('dead', !o.alive);
+    h.val.textContent = `${Math.ceil(hpNow)} / ${hpMax}` + (fam && fam.length > 1 ? ` · ×${fam.length}` : '') + (o.barrier > 0 ? ` (+${Math.ceil(o.barrier)}🛡)` : '');
+    h.root.classList.toggle('dead', !famAlive);
     const s = [];
-    if (!o.alive) s.push('💀 Bị hạ gục');
+    if (!famAlive) s.push('💀 Bị hạ gục');
+    else if (!o.alive) s.push(`🟢 Còn ${fam.length} slime`);
     else {
       if (G.time < o.shieldUntil) s.push('🛡 Khiên');
       if (G.time < o.frozenUntil) s.push('🧊 Bất động');
@@ -4617,8 +4707,11 @@ function computeReward() {
   const myTeam = my[0].team;
   let gold = 0, label = '', won = false;
   if (G.mode === 'ffa') {
-    const ranked = [...G.orbs].sort((a, b) => (b.alive - a.alive) || (b.deathT - a.deathT));
-    const rank = ranked.indexOf(my[0]) + 1;
+    const teams = [...new Set(G.orbs.map((o) => o.team))].map((tm) => {
+      const m = G.orbs.filter((o) => o.team === tm);
+      return { tm, alive: m.some((o) => o.alive) ? 1 : 0, death: Math.max(...m.map((o) => o.deathT || 0)) };
+    }).sort((a, b) => (b.alive - a.alive) || (b.death - a.death));
+    const rank = teams.findIndex((x) => x.tm === myTeam) + 1;
     gold = REWARD.ffa[Math.min(rank, 4) - 1];
     won = rank === 1;
     label = `Hạng ${rank} Hỗn Chiến`;
@@ -5506,6 +5599,9 @@ function encodeSnap() {
       r1(o.x), r1(o.y), r1(o.vx), r1(o.vy), r1(o.hp), o.alive ? 1 : 0, r1(o.cd),
       r1(o.shieldUntil), r1(o.frozenUntil), r1(o.slowUntil), r1(o.giantUntil), r1(o.chargeUntil),
       Math.round(o.stats.dmg), o.stats.skills, o.stats.kos, o.lastHitBy ? o.lastHitBy.idx : -1, r1(o.barrier),
+      o.def.id, o.team, r1(o.baseR), r1(o.maxHp), o.gen || 0, o.family ? o.family.idx : -1,
+      // bảo bối Mèo Máy đang hiện: [số thứ tự, bắt đầu, kết thúc]
+      o.data.gadgets ? o.data.gadgets.filter((g) => G.time < g.until).map((g) => [g.k, r1(g.t0), r1(g.until)]) : 0,
     ]),
   };
 }
@@ -5513,8 +5609,17 @@ function applySnap(sn) {
   if (!sn || !Array.isArray(sn.o) || G.phase !== 'run') return;
   if (Math.abs(G.time - sn.t) > 0.25) G.time = sn.t;
   sn.o.forEach((a, i) => {
+    if (!Array.isArray(a)) return;
+    // quả bóng mới sinh giữa trận (Vua Slime tách đôi) → dựng theo chủ phòng
+    if (!G.orbs[i] && DEF_BY_ID[a[17]] && i === G.orbs.length) {
+      const c = makeOrb(DEF_BY_ID[a[17]], a[0], a[1], i, a[18]);
+      Object.assign(c, { baseR: a[19], r: a[19], maxHp: a[20], gen: a[21], family: G.orbs[a[22]] || null, owner: '' });
+      G.orbs.push(c);
+    }
     const o = G.orbs[i];
-    if (!o || !Array.isArray(a)) return;
+    if (!o) return;
+    if (a[19]) { o.baseR = a[19]; o.maxHp = a[20] || o.maxHp; o.gen = a[21] || 0; }
+    if (Array.isArray(a[23])) o.data.gadgets = a[23].filter((g) => Array.isArray(g) && g[0] >= 0 && g[0] < 6).map(([k, t0, until]) => ({ k, t0, until }));
     const [x, y, vx, vy, hp, alive, cd, sh, fr, sl, gi, ch, dmg, sk, kos, lh, bar] = a;
     const dist = Math.hypot(x - o.x, y - o.y);
     if (dist > 60) { o.x = x; o.y = y; } else { o.x += (x - o.x) * 0.5; o.y += (y - o.y) * 0.5; }
@@ -6909,7 +7014,7 @@ $('chkWake').onchange = (e) => {
   if (Save.wake) wakeOn(); else wakeOff();
   toast(Save.wake ? '☀ Đã bật giữ màn hình sáng' : 'Đã tắt giữ màn hình sáng');
 };
-window.__orbGame = { openRestore, exportCode, parseCode, WAKE, _step: (dt) => step(dt), _beginRun: () => beginRun(), MAIL, loadMail, claimMail, openMailbox, ACC, getSb, pushNow, signOutAcc, MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
+window.__orbGame = { encodeSnap, applySnap, openRestore, exportCode, parseCode, WAKE, _step: (dt) => step(dt), _beginRun: () => beginRun(), MAIL, loadMail, claimMail, openMailbox, ACC, getSb, pushNow, signOutAcc, MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
 </script>
 </body>
 </html>

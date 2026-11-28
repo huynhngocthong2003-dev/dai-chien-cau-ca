@@ -1,5 +1,10 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Vua Slime tách đôi vô hạn & hình bảo bối Mèo Máy] – 2026-11-28
+- Vua Slime: mỗi lần nhận sát thương tách làm đôi, mỗi nửa mang nửa số máu hiện có; không giới hạn số đời, chỉ dừng khi slime còn dưới 8 máu. Mỗi slime con giữ nguyên sát thương (tổng sát thương cả bầy nhân đôi mỗi lần tách). Cân bằng ~57% thắng trước bậc S.
+- Thanh máu gộp cả bầy slime (×n), đồng bộ slime mới sinh trong trận online.
+- Mèo Máy Bảo Bối: mỗi lần rút bảo bối hiện bong bóng có hình vẽ bảo bối + tên cạnh bóng (2 món khi túi quá tải), đồng bộ cho người chơi online.
+
 ## [Đấu Trường Quả Cầu Anime – Mèo Máy Bảo Bối biến ảo hơn] – 2026-11-28
 - **Mèo Máy Bảo Bối** (trước: 0/60 trận thắng trước 10 quả cấp S) → **Túi Bảo Bối 6 món**, rút mỗi 4,3 giây, 20% **túi quá tải** rút 2 món: Cánh Cửa Thần Kỳ (dịch chuyển sau lưng địch, lao +20) · Chong Chóng Tre (bay tăng tốc + **né 40% va chạm** 3 giây) · Đèn Pin Thu Nhỏ (địch nhỏ & chậm & **−30% sát thương va chạm**) · **Súng Không Khí** (3 viên khí tự đuổi, đẩy văng) · **Áo Choàng Đảo Ngược** (bật ngược đạn địch thành đạn của mình + phản 50% sát thương, 3 giây) · **Máy Thời Gian** (tua ngược vị trí & máu về ~3 giây trước, hồi tối đa 80). Biểu tượng bảo bối hiện trên đầu khi dùng.
 - Đo mô phỏng: thắng **56%** (45/80) trước 10 quả cấp S khác.
