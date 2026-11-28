@@ -17,6 +17,8 @@ nên các migration của Đấu Trường cần chạy tay trong Supabase (gi�
 5. **Bật Đấu Xếp Hạng** (sau bước 2): New query → chép toàn bộ file **`supabase/dau-truong-xep-hang.sql`** → **Run**.
    (Giống file gốc `supabase/migrations/20261217000001_orb_ranked.sql`; tự chụp bản sao lưu tất cả người chơi trước khi chạy.)
    Tạo bảng hạng `orb_rank`, trận `orb_ranked_matches`, lịch sử `orb_rank_history`, cấu hình `orb_ranked_config` và các hàm tính điểm.
+   File đã gồm cả phần đối thủ máy (`20261218000001_orb_ranked_bot.sql`); đã chạy bản cũ thì chỉ cần **chạy lại cả file** (an toàn khi chạy lại).
+   Chỉnh trận máy: `update public.orb_ranked_config set bot_mul = 0.6, bot_daily_max = 10, bot_min_seconds = 12;`
    Kiểm tra: mở game → ⚔ Phòng đấu → thẻ **🏆 Đấu Xếp Hạng** hiện "Đang phân hạng · 0 RP" (thay vì "Máy chủ chưa bật Xếp Hạng").
 
 ### Chỉnh Đấu Xếp Hạng (tuỳ chọn, trong SQL Editor)

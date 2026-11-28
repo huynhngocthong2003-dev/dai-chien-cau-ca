@@ -1,5 +1,10 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Xếp Hạng: đối thủ máy sau 10 giây · Móc Câu nhanh hơn] – 2026-11-28
+- Đấu Xếp Hạng: tìm người 10 giây, không có thì vào trận với đối thủ máy cùng hạng (tên người chơi ngẫu nhiên). Máy mạnh dần theo hạng: Tân Binh/Đồng dùng bóng A (+5%/+7% máu & sát thương), từ Bạc dùng bóng S (+0…8%). Đo mô phỏng với người cầm bóng S: ~77% thắng ở Tân Binh → ~52% ở Bạc → ~20–27% ở Cao Thủ/Thách Đấu.
+- Máy chủ (`orb_ranked_bot_*`): trận máy tính 60% điểm, tối đa 10 trận có điểm / 24 giờ, trận phải kéo dài ≥ 12 giây, bỏ trận giữa chừng tính thua; mỗi trận chỉ tính một lần. Cần chạy lại `supabase/dau-truong-xep-hang.sql`.
+- **Móc Câu Nảy Tường**: hồi chiêu 7 → 5,5 giây (đo mô phỏng: 37% → 65% thắng trước bậc S).
+
 ## [Đấu Trường Quả Cầu Anime – Đấu Xếp Hạng (bản đầu)] – 2026-11-28
 - **🏆 Đấu Xếp Hạng** trên trang ⚔ Phòng đấu: 1 đấu 1 với người thật (không có máy), ghép đối thủ gần trình độ (MMR, khoảng ghép nới dần theo thời gian chờ), phòng xếp hạng tự vào trận khi cả hai sẵn sàng.
 - **RP / MMR tính trên máy chủ** (Supabase `orb_ranked_*`): chỉ cộng/trừ khi hai bên báo cùng người thắng; một bên thoát giữa trận → bên còn lại được tính thắng sau 90 giây (chỉ khi cả hai đã xác nhận vào trận – không thể bịa trận với ID bất kỳ); kết quả lệch nhau → không tính điểm. Mỗi trận chỉ tính một lần.

@@ -1716,7 +1716,7 @@ const ROSTER = [
   // ===== CẤP S =====
   {
     id: 'hook', tier: 'S', mech: true, power: true, name: 'Móc Câu Nảy Tường', inspire: 'Ricochet Hook', glyph: '⚓', color: '#94a3b8', color2: '#0f172a',
-    hp: 320, atk: 14, spd: 252, cd: 7, ult: 'Móc Câu Phản Xạ',
+    hp: 320, atk: 14, spd: 252, cd: 5.5, ult: 'Móc Câu Phản Xạ',
     skill: '<b>GĐ1</b>: đứng yên hoàn toàn, bắn đầu móc có dây. <b>GĐ2</b>: móc bay thẳng, chạm tường thì <b>bật phản xạ & ghi nhớ điểm chạm</b> (tối đa 5 lần; hết lượt mà trượt thì thu dây). <b>GĐ3</b>: trúng địch → khoá chặt và <b>kéo địch ngược lại qua từng điểm nảy</b> về đập vào Móc Câu: 26 sát thương + choáng 0,8 giây.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -2692,7 +2692,7 @@ function heal(o, amount, silent = false) {
  */
 function dealDamage(t, amount, src, kind = 'normal', opts = {}) {
   if (!t.alive || amount <= 0) return 0;
-  let dmg = amount;
+  let dmg = amount * (src && src.powMul ? src.powMul : 1);
   if (G.time < t.shieldUntil) dmg *= t.shieldMul;
   if (G.time < t.corrodeUntil) dmg *= 1.15;          // bị axit ăn mòn giáp
   if (t.barrier > 0) {                                // lá chắn hấp thụ (Siêu Tân Tinh)
@@ -2844,7 +2844,7 @@ function splitSlime(t) {
   t.baseR = Math.max(SLIME_MIN_R, t.baseR * 0.8); t.splitReady = G.time + 0.5;
   const a = srand(0, TAU), nx = Math.cos(a), ny = Math.sin(a);
   const c = makeOrb(t.def, clamp(t.x - nx * t.r * 0.6, PAD + t.baseR, W - PAD - t.baseR), clamp(t.y - ny * t.r * 0.6, PAD + t.baseR, H - PAD - t.baseR), G.orbs.length, t.team);
-  Object.assign(c, { hp: half, maxHp: t.maxHp, gen: t.gen, baseR: t.baseR, r: t.baseR, r0: t.r0, growAt: t.growAt, splitReady: G.time + 0.5, family: t.family || t, owner: '', cd: t.cd + srand(0.5, 1.5) });
+  Object.assign(c, { hp: half, maxHp: t.maxHp, gen: t.gen, baseR: t.baseR, r: t.baseR, r0: t.r0, growAt: t.growAt, splitReady: G.time + 0.5, family: t.family || t, owner: t.owner || '', powMul: t.powMul, cd: t.cd + srand(0.5, 1.5) });
   t.x = clamp(t.x + nx * t.r * 0.6, PAD + t.baseR, W - PAD - t.baseR); t.y = clamp(t.y + ny * t.r * 0.6, PAD + t.baseR, H - PAD - t.baseR);
   const sp = Math.max(220, Math.hypot(t.vx, t.vy));
   t.vx = nx * sp; t.vy = ny * sp; c.vx = -nx * sp; c.vy = -ny * sp;
@@ -7138,6 +7138,7 @@ function renderRankCard() {
   if (UI.page === 'battle') renderBattle();
   else if (UI.page === 'profile') renderProfile();
 }
+const RANK_BOT_AFTER = 10000; // tìm người 10 giây, không có → đấu máy cùng hạng
 const rankWindow = () => Math.min(1000, 100 + Math.floor((Date.now() - RANK.t0) / 1000) * 20);
 function lastMatchLine() {
   const c = RANK.cur;
@@ -7159,7 +7160,7 @@ function rankCardHtml() {
   const plc = s.placement < s.placement_games;
   const inRankedRoom = NET.room && NET.lob && NET.lob.ranked;
   const btn = RANK.searching
-    ? `<div class="mmstat">🔎 Đang tìm đối thủ (MMR ±${rankWindow()})… ${Math.floor((Date.now() - RANK.t0) / 1000)}s <button class="btn sm" data-rk="cancel">Huỷ</button></div>`
+    ? `<div class="mmstat">🔎 Đang tìm đối thủ cùng trình độ… ${Math.floor((Date.now() - RANK.t0) / 1000)}s <button class="btn sm" data-rk="cancel">Huỷ</button></div>`
     : inRankedRoom ? '<button class="btn gold" data-go="lobby">🏟 Về phòng xếp hạng</button>'
       : `<button class="btn gold" data-rk="find" ${s.block || !HALL.room ? 'disabled' : ''}>⚔ Tìm trận xếp hạng</button>`;
   return `<div class="box rkcard">${head}
@@ -7172,7 +7173,7 @@ function rankCardHtml() {
     ${s.block ? `<div class="warn">🔒 ${escapeHtml(s.block)}</div>` : ''}
     ${HALL.room ? '' : '<div class="hint">⚠ Cần kết nối máy chủ trực tuyến.</div>'}
     <div class="row">${btn}<button class="btn sm" data-rk="board">📊 Bảng xếp hạng</button><button class="btn sm" data-rk="hist">📜 Lịch sử</button></div>
-    <div class="fst">1 đấu 1 với người thật, không có máy. Thắng ~+25 RP, thua ~−20 RP (tuỳ chênh lệch trình độ). Ghép đối thủ gần trình độ (MMR) với bạn.</div>
+    <div class="fst">1 đấu 1, ghép đối thủ gần trình độ (MMR). Thắng ~+15…35 RP, thua ~−12…25 RP tuỳ chênh lệch trình độ. Hạng càng cao đối thủ càng mạnh.</div>
   </div>`;
 }
 
@@ -7184,7 +7185,7 @@ function startRanked() {
   if (!HALL.room) { toast('Đấu Xếp Hạng cần kết nối máy chủ trực tuyến.'); return; }
   if (NET.room) leaveRoom('hall');
   stopMatchmaking();
-  Object.assign(RANK, { searching: true, t0: Date.now(), wait: 3000 + Math.random() * 4000 });
+  Object.assign(RANK, { searching: true, t0: Date.now(), wait: 2000 + Math.random() * 3000 });
   clearInterval(RANK.timer);
   RANK.timer = setInterval(rankTick, 500);
   rankTick();
@@ -7207,6 +7208,8 @@ function rankTick() {
   const hosting = NET.room && NET.role === 'host' && NET.lob && NET.lob.ranked;
   if (hosting) {
     if (NET.ph !== 'lobby' || NET.lob.seats.some((s) => s.p && s.p !== NET.me)) return; // đã có đối thủ
+    if (Date.now() - RANK.t0 >= RANK_BOT_AFTER) { leaveRoom('hall'); startRankedBot(); return; }
+    $('roomRole').innerHTML = `🏆 <b>PHÒNG XẾP HẠNG</b> · đang tìm đối thủ… <b>${Math.floor((Date.now() - RANK.t0) / 1000)}s</b>`;
     // phòng xếp hạng khác hợp trình độ & mã nhỏ hơn → gộp sang đó (tránh 2 người cùng chờ ở 2 phòng)
     const other = rankedRooms().filter((p) => +p.pub.c < +NET.code && Math.abs(p.pub.r - my) <= win)[0];
     if (other) { leaveRoom('hall'); joinRanked(other); }
@@ -7215,6 +7218,7 @@ function rankTick() {
   if (!RANK.searching) { if (!NET.room && !RANK.joinAt) stopRanked(); return; }
   const cand = rankedRooms().filter((p) => Math.abs(p.pub.r - my) <= win).sort((a, b) => Math.abs(a.pub.r - my) - Math.abs(b.pub.r - my))[0];
   if (cand) { joinRanked(cand); return; }
+  if (Date.now() - RANK.t0 >= RANK_BOT_AFTER) { stopRanked(); startRankedBot(); return; }
   if (Date.now() - RANK.t0 > RANK.wait) { RANK.searching = false; hostRankedRoom(); return; }
   if (UI.view === 'hall' && UI.page === 'battle') renderBattle();
 }
@@ -7243,6 +7247,58 @@ function checkRankedLobby() {
   if (why) { toast('🔒 Đây là phòng Xếp Hạng: ' + escapeHtml(why)); leaveRoom('hall'); }
 }
 
+// ----- đấu xếp hạng với máy cùng hạng (máy mạnh dần theo bậc) -----
+/** Máy theo bậc hạng của người chơi: [cấp bóng, hệ số máu & sát thương]. */
+// đo mô phỏng (người cầm bóng S): Tân Binh ~77% thắng · Đồng ~63% · Bạc ~52% · Vàng/Bạch Kim ~38% · Kim Cương ~32% · Cao Thủ/Thách Đấu ~20–27%
+const RANK_BOT_POWER = [['A', 1.05], ['A', 1.07], ['S', 1], ['S', 1.02], ['S', 1.03], ['S', 1.04], ['S', 1.06], ['S', 1.08]];
+/** Tên ngẫu nhiên vui nhộn cho đối thủ máy (trông như người chơi thật). */
+const BOT_NAMES = ['Bánh Bao Chiên', 'Mèo Ú Lì Đòn', 'Trùm Cuối Xóm', 'Gà Rán Giòn', 'Hổ Báo Mẫu Giáo', 'Bé Na Lì Lợm', 'Thánh Né Đòn',
+  'Cá Mập Sông Hàn', 'Lẩu Thái Cay', 'Tí Nị Siêu Quậy', 'Chú Ba Lúa', 'Kẹo Mút Thép', 'Bún Đậu Mắm Tôm', 'Trà Sữa Full Topping',
+  'Gấu Trúc Ngủ Gật', 'Xoài Lắc Muối Ớt', 'Mì Tôm Hai Trứng', 'Vịt Bầu Lì Đòn', 'Rồng Con Ham Chơi', 'Đậu Hũ Chiên Giòn',
+  'Bò Bía Ngọt', 'Ốc Len Xào Dừa', 'Nem Chua Rán', 'Cơm Tấm Sườn Bì', 'Bánh Tráng Trộn', 'Heo Con Bay Lượn', 'Khoai Lang Nướng',
+  'Sữa Chua Nếp Cẩm', 'Chè Ba Màu', 'Bắp Xào Bơ', 'Tôm Hùm Đất', 'Cua Gạch Son', 'Mực Một Nắng', 'Dưa Hấu Không Hạt',
+  'Ông Hoàng Né Chiêu', 'Vua Lăn Bóng', 'Thánh Ăn Hành', 'Sát Thủ Đầu Mưng Mủ', 'Siêu Nhân Gà Mờ', 'Pháp Sư Ăn Vặt',
+  'Kỵ Sĩ Xe Đạp', 'Ninja Lùn', 'Cao Thủ Ngủ Nướng', 'Bé Mập Bá Đạo', 'Tiểu Long Nữ Xóm Trọ', 'Lão Đại Bàn Phím', 'Hạt Tiêu Cay Xè'];
+function botName() {
+  let n = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+  const r = Math.random();
+  if (r < 0.25) n += ' ' + (Math.floor(Math.random() * 90) + 10);
+  else if (r < 0.35) n += ' 2k' + (Math.floor(Math.random() * 9) + 1);
+  return n.slice(0, 20);
+}
+async function startRankedBot() {
+  stopRanked();
+  if (NET.room) leaveRoom('hall');
+  let r;
+  const fakeName = botName();
+  try { r = await rankRpc('orb_ranked_bot_begin', { p_name: fakeName }); } catch (e) { toast('⚠ ' + escapeHtml(rankErr(e))); renderRankCard(); return; }
+  if (!r || !r.ok) { toast('🔒 ' + escapeHtml((r && r.reason) || 'Chưa đấu với máy được')); return; }
+  const s = RANK.st;
+  const ri = rankInfo(r.rp, s && s.challenger);
+  const [tier, mul] = RANK_BOT_POWER[ri.tier] || RANK_BOT_POWER[0];
+  const pool = ROSTER.filter((d) => d.tier === tier);
+  const bot = pool[Math.floor(Math.random() * pool.length)] || ROSTER[0];
+  Sound.ensure();
+  setMode('v1');
+  UI.kinds = ['me', 'bot'];
+  UI.slots = [isUnlocked(UI.myBall) ? UI.myBall : unlockedIds()[0], bot.id];
+  UI.mePicked = true; UI.meReady = true;
+  $('victory').classList.remove('show');
+  showView('arena');
+  startLocal();
+  const o = G.orbs[1];
+  if (o) {
+    o.powMul = mul; o.maxHp = Math.round(o.maxHp * mul); o.hp = o.maxHp;
+    o.owner = r.bot_name || fakeName;
+    const me = G.orbs[0]; // máy nhắm thẳng vào bạn khi xuất phát
+    if (me) G.dirs[1] = [me.x - o.x, me.y - o.y];
+  }
+  G.rankedId = r.id;
+  RANK.cur = { id: r.id, bot: true, oppName: r.bot_name || fakeName, opp: '', fids: [], ok: true, reported: false, res: null,
+    before: s ? { rp: s.rp, ch: !!s.challenger, plc: s.placement < s.placement_games } : null };
+  toast(`⚔ Đã tìm thấy đối thủ: <b>${escapeHtml(r.bot_name || fakeName)}</b> – chọn hướng xuất phát!`);
+}
+
 // ----- trong trận -----
 async function rankedBegin(spec) {
   const id = `R${NET.code}-${spec.seed}`;
@@ -7250,7 +7306,8 @@ async function rankedBegin(spec) {
   if (RANK.cur && RANK.cur.id === id) return;
   stopRanked();
   const opp = (spec.fids || []).find((f) => f && f !== Save.fid) || '';
-  const c = { id, opp, fids: spec.fids || [], ok: null, reported: false, res: null, before: RANK.st ? { rp: RANK.st.rp, ch: !!RANK.st.challenger, plc: RANK.st.placement < RANK.st.placement_games } : null };
+  const oi = (spec.fids || []).indexOf(opp);
+  const c = { id, opp, oppName: oi >= 0 && spec.owners ? spec.owners[oi] : '', fids: spec.fids || [], ok: null, reported: false, res: null, before: RANK.st ? { rp: RANK.st.rp, ch: !!RANK.st.challenger, plc: RANK.st.placement < RANK.st.placement_games } : null };
   RANK.cur = c;
   if (rankedWhyNot() || !opp) { c.ok = false; c.err = rankedWhyNot() || 'Không xác định được đối thủ'; return; }
   try {
@@ -7273,6 +7330,16 @@ async function rankedReport(winFid) {
   c.win = winFid || rankedWinnerFid();
   for (let i = 0; i < 40 && c.ok === null; i++) await new Promise((r) => setTimeout(r, 250));
   if (c.ok === false) { c.res = { err: 'Trận không tính điểm: ' + (c.err || '') }; renderRankRes(); return; }
+  if (c.bot) {
+    try {
+      const won = G.mine.some((i) => G.orbs[i] && G.orbs[i].team === G.winTeam);
+      const r = await rankRpc('orb_ranked_bot_report', { p_match: c.id, p_won: won });
+      if (r && r.status) { RANK.st = r.status; RANK.at = Date.now(); }
+      c.res = r && r.ok ? { delta: r.delta, won: r.won, reason: r.reason } : { err: (r && r.reason) || 'Không gửi được kết quả' };
+    } catch (e) { c.res = { err: rankErr(e) }; }
+    renderRankRes(); HALL.lastPres = ''; hallPresence();
+    return;
+  }
   if (!c.win) { c.res = { err: 'Không xác định được người thắng' }; renderRankRes(); return; }
   let tries = 0;
   const poll = async () => {
@@ -7308,7 +7375,7 @@ function rankResHtml() {
     ${!c.res.won && c.res.delta === 0 && c.before && c.before.plc ? '<div class="fst">Thua trận phân hạng không bị trừ điểm.</div>' : ''}
     <div><b>${plc ? `Phân hạng ${a.placement}/${a.placement_games}` : after.name}</b> · ${a.rp} RP</div>
     ${done ? `<div class="rkpromo">🎖 Hoàn thành phân hạng: ${after.name}!</div>` : up ? `<div class="rkpromo">🎉 THĂNG HẠNG: ${after.name}!</div>` : down ? `<div class="rkdemo">⬇ Xuống ${after.name}</div>` : ''}
-    <div class="fst">${escapeHtml(c.res.reason || '')}</div></div></div>`;
+    <div class="fst">${c.oppName ? `vs ${escapeHtml(c.oppName)} · ` : ''}${escapeHtml(c.res.reason || '')}</div></div></div>`;
 }
 function renderRankRes() {
   const el = $('rkRes');
