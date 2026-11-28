@@ -1,5 +1,10 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Slime lớn lại & Slime Con tách thật] – 2026-11-28
+- **Vua Slime (S)**: slime con nào sống sót 3 giây không bị giết sẽ **lớn lại thành Vua Slime ban đầu** (đủ máu, đủ cỡ) – tối đa 2 lần mỗi trận, tối đa 4 slime cùng lúc; có vòng đếm ngược quanh slime con. Chỉ số gốc 160 máu / 10 sát thương để cân bằng (~61% thắng trước bậc S).
+- **Slime Con Tách Đôi (D)**: trước chỉ "sống thêm" 5 giây, nay **tách đôi thật** khi nhận sát thương (tới khi còn dưới 80 máu); ~59% thắng trước bậc D.
+- Thanh máu cả bầy slime tính cả slime đã lớn lại; đồng bộ vòng đếm ngược cho người chơi online.
+
 ## [Đấu Trường Quả Cầu Anime – Vua Slime tách đôi vô hạn & hình bảo bối Mèo Máy] – 2026-11-28
 - Vua Slime: mỗi lần nhận sát thương tách làm đôi, mỗi nửa mang nửa số máu hiện có; không giới hạn số đời, chỉ dừng khi slime còn dưới 8 máu. Mỗi slime con giữ nguyên sát thương (tổng sát thương cả bầy nhân đôi mỗi lần tách). Cân bằng ~57% thắng trước bậc S.
 - Thanh máu gộp cả bầy slime (×n), đồng bộ slime mới sinh trong trận online.

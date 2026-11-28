@@ -1,6 +1,8 @@
 -- ĐẤU TRƯỜNG QUẢ CẦU ANIME – ĐẤU XẾP HẠNG (Ranked) bản đầu.
 -- RP / MMR do MÁY CHỦ tính; trình duyệt chỉ báo "ai thắng trận có mã X". Chỉ cộng/trừ khi HAI người chơi báo khớp
 -- (hoặc sau 90 giây mà chỉ một bên báo – bên kia đã thoát trận). Mỗi mã trận chỉ được tính một lần.
+-- Một bên báo một mình chỉ được tính khi CẢ HAI đã "vào trận" (orb_ranked_begin) với cùng mã trận – không thể
+-- tự bịa trận với một ID bất kỳ để lấy điểm.
 -- Giới hạn: hai người thông đồng vẫn có thể dàn xếp kết quả – chặn hẳn cần máy chủ làm trọng tài (giai đoạn 2).
 
 select public.orb_snapshot_all('truoc_20261217_ranked');
@@ -51,6 +53,8 @@ create table if not exists public.orb_ranked_matches (
   season int not null,
   p1 uuid not null references auth.users (id) on delete cascade,
   p2 uuid not null references auth.users (id) on delete cascade,
+  begun1 boolean not null default false, -- p1 đã xác nhận vào trận
+  begun2 boolean not null default false, -- p2 đã xác nhận vào trận
   report1 uuid,            -- người thắng theo p1
   report2 uuid,            -- người thắng theo p2
   winner uuid,
@@ -185,15 +189,18 @@ begin
 end $$;
 revoke all on function public.orb_ranked_apply(public.orb_ranked_matches, uuid, text) from public, anon, authenticated;
 
-/** Chốt các trận chỉ có 1 bên báo quá 90 giây (bên kia đã thoát). */
+/** Chốt trận treo: một bên báo (cả hai đã vào trận) quá 90 giây → tính theo bên đã báo; quá 15 phút không ai báo → huỷ. */
 create or replace function public.orb_ranked_settle_stale() returns void
 language plpgsql security definer set search_path = public as $$
 declare m public.orb_ranked_matches;
 begin
-  for m in select * from public.orb_ranked_matches where not settled and created_at < now() - interval '90 seconds'
+  for m in select * from public.orb_ranked_matches where not settled and begun1 and begun2
+           and created_at < now() - interval '90 seconds'
            and ((report1 is null) <> (report2 is null)) for update skip locked loop
     perform public.orb_ranked_apply(m, coalesce(m.report1, m.report2), 'một bên rời trận');
   end loop;
+  update public.orb_ranked_matches set settled = true, settled_at = now(), reason = 'trận bị huỷ – không tính điểm'
+   where not settled and created_at < now() - interval '15 minutes';
 end $$;
 revoke all on function public.orb_ranked_settle_stale() from public, anon, authenticated;
 
@@ -214,6 +221,29 @@ begin
     'challenger', (r.rp >= 2100 and pos <= cfg.challenger_top));
 end $$;
 
+/** Xác nhận vào trận xếp hạng (gọi lúc trận bắt đầu ở cả hai máy). */
+create or replace function public.orb_ranked_begin(p_match text, p_opponent text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); opp uuid; cfg public.orb_ranked_config; m public.orb_ranked_matches; blk text;
+begin
+  if uid is null then raise exception 'Chưa đăng nhập'; end if;
+  select * into cfg from public.orb_ranked_config where id = 1;
+  if char_length(coalesce(p_match, '')) not between 6 and 64 then return jsonb_build_object('ok', false, 'reason', 'Mã trận không hợp lệ'); end if;
+  select user_id into opp from public.orb_saves where player_id = upper(replace(coalesce(p_opponent, ''), '#', ''));
+  if opp is null then return jsonb_build_object('ok', false, 'reason', 'Đối thủ không có tài khoản'); end if;
+  if opp = uid then return jsonb_build_object('ok', false, 'reason', 'Không thể tự đấu với chính mình'); end if;
+  blk := public.orb_ranked_block(uid);
+  if blk is not null then return jsonb_build_object('ok', false, 'reason', blk); end if;
+  perform public.orb_rank_row(uid); perform public.orb_rank_row(opp);
+  insert into public.orb_ranked_matches (id, season, p1, p2) values (p_match, cfg.season, uid, opp) on conflict (id) do nothing;
+  select * into m from public.orb_ranked_matches where id = p_match for update;
+  if not (uid in (m.p1, m.p2) and opp in (m.p1, m.p2)) then return jsonb_build_object('ok', false, 'reason', 'Mã trận không khớp người chơi'); end if;
+  if m.settled then return jsonb_build_object('ok', false, 'reason', 'Trận đã kết thúc'); end if;
+  if uid = m.p1 then update public.orb_ranked_matches set begun1 = true where id = m.id;
+  else update public.orb_ranked_matches set begun2 = true where id = m.id; end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
 /**
  * Báo kết quả trận xếp hạng. p_match: mã trận (giống nhau ở cả hai máy), p_opponent: ID #XXXXXX đối thủ,
  * p_winner: ID người thắng. Máy chủ tự tính điểm khi hai bên báo khớp.
@@ -221,21 +251,18 @@ end $$;
 create or replace function public.orb_ranked_report(p_match text, p_opponent text, p_winner text)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
-  uid uuid := auth.uid(); opp uuid; win uuid; cfg public.orb_ranked_config; m public.orb_ranked_matches; myfid text; blk text;
+  uid uuid := auth.uid(); opp uuid; win uuid; cfg public.orb_ranked_config; m public.orb_ranked_matches; blk text;
 begin
   if uid is null then raise exception 'Chưa đăng nhập'; end if;
   select * into cfg from public.orb_ranked_config where id = 1;
-  select player_id into myfid from public.orb_saves where user_id = uid;
+  if char_length(coalesce(p_match, '')) not between 6 and 64 then return jsonb_build_object('ok', false, 'reason', 'Mã trận không hợp lệ'); end if;
   select user_id into opp from public.orb_saves where player_id = upper(replace(coalesce(p_opponent, ''), '#', ''));
   if opp is null then return jsonb_build_object('ok', false, 'reason', 'Đối thủ không có tài khoản'); end if;
   if opp = uid then return jsonb_build_object('ok', false, 'reason', 'Không thể tự đấu với chính mình'); end if;
   blk := public.orb_ranked_block(uid);
   if blk is not null then return jsonb_build_object('ok', false, 'reason', blk); end if;
-  win := case when upper(replace(p_winner, '#', '')) = myfid then uid when upper(replace(p_winner, '#', '')) = p_opponent then opp else null end;
-  if win is null then
-    select user_id into win from public.orb_saves where player_id = upper(replace(coalesce(p_winner, ''), '#', ''));
-    if win is null or win not in (uid, opp) then return jsonb_build_object('ok', false, 'reason', 'Người thắng không hợp lệ'); end if;
-  end if;
+  select user_id into win from public.orb_saves where player_id = upper(replace(coalesce(p_winner, ''), '#', ''));
+  if win is null or win not in (uid, opp) then return jsonb_build_object('ok', false, 'reason', 'Người thắng không hợp lệ'); end if;
   perform public.orb_rank_row(uid); perform public.orb_rank_row(opp);
   insert into public.orb_ranked_matches (id, season, p1, p2) values (p_match, cfg.season, uid, opp) on conflict (id) do nothing;
   select * into m from public.orb_ranked_matches where id = p_match for update;
@@ -275,6 +302,6 @@ returns setof public.orb_rank_history language sql stable security definer set s
   select * from public.orb_rank_history where user_id = auth.uid() order by created_at desc limit greatest(1, least(coalesce(p_limit, 20), 100));
 $$;
 
-revoke all on function public.orb_ranked_status(), public.orb_ranked_report(text, text, text), public.orb_ranked_board(text[], int, int), public.orb_ranked_history(int) from public, anon;
-grant execute on function public.orb_ranked_status(), public.orb_ranked_report(text, text, text), public.orb_ranked_board(text[], int, int), public.orb_ranked_history(int) to authenticated;
+revoke all on function public.orb_ranked_status(), public.orb_ranked_begin(text, text), public.orb_ranked_report(text, text, text), public.orb_ranked_board(text[], int, int), public.orb_ranked_history(int) from public, anon;
+grant execute on function public.orb_ranked_status(), public.orb_ranked_begin(text, text), public.orb_ranked_report(text, text, text), public.orb_ranked_board(text[], int, int), public.orb_ranked_history(int) to authenticated;
 grant execute on function public.orb_rank_tier(int), public.orb_rank_floor(int) to authenticated;
