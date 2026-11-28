@@ -1,5 +1,11 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Sức mạnh chiêu bậc thấp · Slime lớn lại vô hạn · Thánh Hỏa Thanh Tẩy] – 2026-11-28
+- **⚡ Sức mạnh chiêu** (bậc B, C, D): máu & sát thương va chạm kéo về gần mức gốc (tối đa +20%, trừ vài quả bù nhẹ), thay vào đó tăng **sức mạnh chiêu** từng quả (×0,8 – ×2,5): nhân sát thương chiêu, hồi máu từ chiêu và phần thưởng va chạm do chiêu tạo ra; mô tả chiêu tự cập nhật số và có nhãn "⚡ Chiêu cường hoá ×…". Tỉ lệ thắng trong bậc: B 35–65% · C 38–65% · D 29–61%; đấu chéo: B thắng A 33% · C thắng B 27% · D thắng C 33%. Trận ngắn hơn (trung vị 30–38 giây).
+- Làm lại chiêu 6 quả có chiêu gần như không gây sát thương: Sóng Âm Chấn Động (tầm 300px + dư âm), Con Lắc Thời Gian (lao vào / xung thời gian), Nét Vẽ Bút Chì (sóng rộng hơn + phóng nét vẽ), Hồi Phục Nhẹ (bắn hạt mầm), Thiết Giáp Nặng (dậm đất, nhanh hơn), Cao Su Tích Lực (bật lao); Tia Sáng Cơ Bản nay nhắm vào địch gần nhất.
+- **Vua Slime**: slime con sống sót 3 giây lớn lại thành Vua Slime gốc **không giới hạn số lần** (tối đa 12 slime cùng lúc – giới hạn kỹ thuật). Hỗn Chiến 6 người: về nhất 0% → ~17–28%. Đấu 1–1 rất mạnh (~88% trong bậc S) – có khắc tinh mới:
+- **✚ Thánh Hỏa Thanh Tẩy** (S, quả thứ 64): mọi đòn gắn Ấn Thanh Tẩy 4 giây (không hồi máu, không phân tách, slime con không lớn lại); chiêu sóng lửa thánh khắp sân 16 sát thương. Thắng Vua Slime 20/20 trận, ~54% trong bậc S.
+
 ## [Đấu Trường Quả Cầu Anime – Gọn trang Phòng đấu] – 2026-11-28
 - Trang ⚔ Phòng đấu chỉ còn: 🏆 Đấu Xếp Hạng · 🏟 Tạo phòng · 🔑 Vào phòng bằng mã. Bỏ thẻ "Ghép trận ngẫu nhiên" và "Đấu với máy" (vẫn đấu với máy bằng nút 🤖 ĐẤU VỚI MÁY ở Sảnh, hoặc thêm máy trong Phòng Chờ); bỏ dòng "Phòng công khai đang chờ ghép" ở Sảnh.
 
