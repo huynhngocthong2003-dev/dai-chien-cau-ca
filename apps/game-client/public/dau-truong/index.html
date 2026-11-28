@@ -1014,12 +1014,12 @@ const ROSTER = [
   // ===== CẤP S =====
   {
     id: 'gojo', tier: 'S', name: 'Lục Nhãn Vô Hạ Hạn', inspire: 'Gojo', glyph: '∞', color: '#7dd3fc', color2: '#a78bfa',
-    hp: 335, atk: 15, spd: 262, cd: 8.5, ult: 'Hư Thức: Tử',
-    skill: 'Bật khiên <b>Vô Hạ Hạn</b> giảm 60% sát thương nhận vào trong 3 giây và phóng cầu tím <b>Hư Thức: Tử</b> xuyên thấu, nghiền nát HP và xoá đạn địch trên đường bay.',
+    hp: 335, atk: 15, spd: 262, cd: 8, ult: 'Hư Thức: Tử',
+    skill: 'Bật khiên <b>Vô Hạ Hạn</b> giảm 60% sát thương nhận vào trong 3 giây và phóng cầu tím <b>Hư Thức: Tử</b> <b>tự truy đuổi kẻ địch</b>: xuyên thấu 30 sát thương, xoá đạn địch trên đường bay. Hồi chiêu 8 giây.',
     cast(o) {
       setShield(o, 0.4, 3, 'infinity');
       const t = nearestEnemy(o);
-      if (t) fireProjectile(o, t, { kind: 'purple', r: 30, speed: 360, dmg: 44, pierce: true, color: '#a855f7', eatsProj: true, life: 3.2 });
+      if (t) fireProjectile(o, t, { kind: 'purple', r: 30, speed: 380, dmg: 30, pierce: true, color: '#a855f7', eatsProj: true, life: 3.2, homing: 0.8 });
       announce(o, 'Hư Thức: Tử'); Sound.play('purple'); shake(8);
     },
   },
@@ -1514,7 +1514,7 @@ const ROSTER = [
   {
     id: 'slimeking', tier: 'S', toon: true, power: true, name: 'Vua Slime Phân Tách', inspire: 'Slime (hoạt hình)', glyph: '◕', color: '#34d399', color2: '#065f46',
     hp: 300, atk: 12, spd: 240, cd: 5.5, ult: 'Tái Sinh Tách Đôi',
-    skill: 'Ném <b>cục nhầy</b> 12 sát thương + làm chậm 1,5 giây. Khi hết HP: <b>tách đôi tái sinh</b> – nhỏ lại, hồi 45% HP (lần 2: 25%) và sinh 2 slime con quấy địch 6 giây. <b>Tối đa 2 lần tách</b>.',
+    skill: 'Ném <b>cục nhầy</b> 12 sát thương + làm chậm 1,5 giây. Khi hết HP: <b>tách đôi tái sinh</b> – nhỏ lại, hồi 30% HP (lần 2: 18%) và sinh 2 slime con quấy địch 5 giây. <b>Tối đa 2 lần tách</b>.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
       fireProjectile(o, t, { kind: 'slime', r: 11, speed: 560, dmg: 12, color: '#6ee7b7', life: 1.2, slow: 1.5 });
@@ -1525,9 +1525,9 @@ const ROSTER = [
       o.data.splits = o.data.splits || 0;
       if (o.data.splits >= 2) return false;
       o.data.splits++;
-      o.hp = o.maxHp * (o.data.splits === 1 ? 0.45 : 0.25);
+      o.hp = o.maxHp * (o.data.splits === 1 ? 0.3 : 0.18);
       o.baseR *= 0.82;
-      spawnMinions(o, 2, 6, { dmg: 6, speed: 300, color: '#6ee7b7', scale: 0.5 });
+      spawnMinions(o, 2, 5, { dmg: 5, speed: 290, color: '#6ee7b7', scale: 0.5 });
       burst(o.x, o.y, '#6ee7b7', 50, 320); ringFx(o.x, o.y, 120, '#34d399', 0.6, 8);
       floatText(o.x, o.y - o.r - 20, `PHÂN TÁCH ${o.data.splits}/2!`, '#6ee7b7', 24);
       shake(8); Sound.play('grow');
@@ -2370,14 +2370,16 @@ function makeOrb(def, x, y, idx, team) {
   };
 }
 
-function fireProjectile(o, t, p) { fireProjectileDir(o, t.x - o.x, t.y - o.y, p); }
+function fireProjectile(o, t, p) { fireProjectileDir(o, t.x - o.x, t.y - o.y, { target: t, ...p }); }
 function fireProjectileDir(o, dx, dy, p) {
   const a = Math.atan2(dy, dx);
   G.projectiles.push({
     owner: o, x: o.x + Math.cos(a) * (o.r + 4), y: o.y + Math.sin(a) * (o.r + 4),
     vx: Math.cos(a) * p.speed, vy: Math.sin(a) * p.speed, ang: a,
     r: p.r, dmg: p.dmg, kind: p.kind, color: p.color, pierce: !!p.pierce, knock: p.knock || 120,
-    bounces: p.bounces || 0, burn: p.burn || null, slow: p.slow || 0, eatsProj: !!p.eatsProj, life: p.life || 3, hit: new Set(), alive: true, puddle: !!p.puddle,
+    bounces: p.bounces || 0, burn: p.burn || null, slow: p.slow || 0,
+    // tự truy đuổi kẻ địch: tốc độ bẻ lái (rad/giây); 0 = bay thẳng
+    target: p.target || null, homing: p.homing === undefined ? 2.4 : p.homing, eatsProj: !!p.eatsProj, life: p.life || 3, hit: new Set(), alive: true, puddle: !!p.puddle,
   });
 }
 function addField(f) { G.fields.push(f); }
@@ -2537,6 +2539,22 @@ function hitOnCollision(src, t, impact) {
 function stepProjectiles(dt) {
   for (const p of G.projectiles) {
     if (!p.alive) continue;
+    // bẻ hướng về mục tiêu (mục tiêu đã hạ / chưa có → địch gần nhất chưa trúng)
+    if (p.homing > 0) {
+      let t = p.target && p.target.alive && !p.hit.has(p.target) ? p.target : null;
+      if (!t) {
+        let bd = Infinity;
+        for (const e of G.orbs) { if (!e.alive || e.team === p.owner.team || p.hit.has(e)) continue; const d = Math.hypot(e.x - p.x, e.y - p.y); if (d < bd) { bd = d; t = e; } }
+        p.target = t;
+      }
+      if (t) {
+        const sp = Math.hypot(p.vx, p.vy) || 1;
+        const cur = Math.atan2(p.vy, p.vx), want = Math.atan2(t.y - p.y, t.x - p.x);
+        let da = want - cur; while (da > Math.PI) da -= TAU; while (da < -Math.PI) da += TAU;
+        const turn = clamp(da, -p.homing * dt, p.homing * dt);
+        p.vx = Math.cos(cur + turn) * sp; p.vy = Math.sin(cur + turn) * sp;
+      }
+    }
     p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
     if (p.life <= 0) { p.alive = false; continue; }
     // tường: nảy (Hỏa Quyền) hoặc biến mất

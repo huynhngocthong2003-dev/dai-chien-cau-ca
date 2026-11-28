@@ -1,5 +1,10 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – đạn tự truy đuổi, cân bằng Lục Nhãn & Vua Slime] – 2026-11-28
+- **Đạn chiêu tự truy đuổi kẻ địch**: mọi đạn bắn ra tự bẻ hướng về mục tiêu (mặc định 2,4 rad/giây – vẫn né được khi chạy nhanh); mục tiêu bị hạ → chuyển sang địch gần nhất chưa trúng. Tính toán theo thời gian mô phỏng nên vẫn đồng bộ khi chơi trực tuyến.
+- **Lục Nhãn Vô Hạ Hạn** mạnh hơn: Hư Thức: Tử tự truy đuổi (bám nhẹ), bay nhanh hơn (360 → 380), hồi chiêu 8,5 → 8 giây; sát thương 44 → 30 để bù cho việc gần như luôn trúng. Đo mô phỏng: đấu 1-1 với 8 quả cấp S thắng ~82% (trước ~69%), Hỗn Chiến 6 quả S đứng nhất ~25% (trước ~19%).
+- **Vua Slime Phân Tách** giảm: tách đôi hồi 30% / 18% HP (trước 45% / 25%), slime con 5 sát thương, 5 giây – trước đó thắng 9/16 trận Hỗn Chiến cấp S.
+
 ## [Đấu Trường Quả Cầu Anime – khôi phục dữ liệu] – 2026-11-27
 - Hồ sơ → **🛟 Khôi phục dữ liệu**: liệt kê mọi bản sao tìm được – tiến độ Khách & bản sao trên máy này, bản sao lưu trên tài khoản (orb_save_backups, chỉ của chính mình) – kèm tên, vàng, số trận, số bóng, thời gian; bấm 2 lần để khôi phục (bản đang dùng được cất lại để hoàn tác; giữ tài khoản & ID).
 - **Mã chuyển dữ liệu** (DTQC1:…): sao chép ở nơi có dữ liệu cũ (vd. link Claude, trình duyệt khác) → dán ở nơi mới → khôi phục và lưu lên tài khoản.
