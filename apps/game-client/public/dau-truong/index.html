@@ -1257,8 +1257,8 @@ const ROSTER = [
   },
   {
     id: 'naofumi', tier: 'D', name: 'Tân Binh Khiên Chắn', inspire: 'Naofumi', glyph: '盾', color: '#a3a3a3', color2: '#4d7c0f',
-    hp: 192, atk: 9, spd: 200, cd: 6.5, ult: 'Khiên Phản Đòn',
-    skill: 'HP nhỉnh hơn cấp D. Bật <b>Khiên Phản Đòn</b> 3 giây: giảm 50% sát thương, <b>phản lại 50%</b> cho kẻ tấn công và hồi 4 HP/giây.',
+    hp: 192, atk: 9, spd: 200, cd: 6.5, ult: 'Khiên Phản Đòn', reflectMul: 0.5, reflectCap: 7,
+    skill: 'HP nhỉnh hơn cấp D. Bật <b>Khiên Phản Đòn</b> 3 giây: giảm 50% sát thương, <b>phản lại 50%</b> cho kẻ tấn công (tối đa 7 mỗi đòn) và hồi 4 HP/giây.',
     cast(o) {
       setShield(o, 0.5, 3, 'reflect');
       announce(o, 'Khiên Phản Đòn'); Sound.play('shield');
@@ -2957,7 +2957,7 @@ function dealDamage(t, amount, src, kind = 'normal', opts = {}) {
   if (t.def.onHurt && !opts.reflected) t.def.onHurt(t, dmg, src, kind);
   // Khiên Phản Đòn: phản 50% sát thương gốc (không phản sát thương thiêu đốt)
   if (t.shieldKind === 'reflect' && G.time < t.shieldUntil && src && src.alive && src !== t && kind !== 'burn' && !opts.reflected) {
-    dealDamage(src, amount * 0.5, t, 'normal', { reflected: true });
+    dealDamage(src, Math.min(amount * (t.def.reflectMul || 0.5), t.def.reflectCap || Infinity), t, 'normal', { reflected: true });
     ringFx(t.x, t.y, t.r + 14, '#e5e7eb', 0.25, 3);
   }
   if (kind === 'burn') {

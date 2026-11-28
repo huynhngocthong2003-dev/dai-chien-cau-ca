@@ -1,5 +1,8 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Sửa Tân Binh Khiên Chắn] – 2026-11-28
+- **Tân Binh Khiên Chắn** (D): khiên phản lại 50% sát thương nhưng **tối đa 7 mỗi đòn** – trước đây đối thủ càng mạnh càng bị phản đau, khiến quả bậc D này thắng bậc A ~34% (ngang khi gặp bậc D). Nay: thắng S ~6% · A ~14% · B ~11% · C ~28% · D ~25%. (Áo Choàng Đảo Ngược của Mèo Máy không đổi.)
+
 ## [Đấu Trường Quả Cầu Anime – Chỉnh Vua Slime & Thánh Hỏa] – 2026-11-28
 - Vua Slime: bỏ chiêu ném cục nhầy (mọi chế độ); đấu đơn/đội cần sống sót **4 giây** để lớn lại (Hỗn Chiến vẫn 2 giây); máu Hỗn Chiến ×1,5 → ×1,1 (198). Mô phỏng: 1–1 trong bậc S ~85%, Hỗn Chiến về nhất ~47%.
 - Thánh Hỏa Thanh Tẩy: Ấn Thanh Tẩy (8 giây) chỉ chặn hồi máu và tạm dừng lớn lại, **không chặn tách đôi** nữa. Vua Slime thắng Thánh Hỏa ~23–30% (trước 0%); Thánh Hỏa vẫn ~53% trong bậc S.
