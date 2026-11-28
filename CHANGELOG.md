@@ -1,5 +1,22 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Cân bằng bậc S] – 2026-11-28
+- Đấu vòng tròn mô phỏng 17 quả bậc S (mỗi cặp 10 trận, đổi bên): trước cân bằng tỉ lệ thắng trải từ 19% đến 82%; sau cân bằng **42%–59%**. Chỉ tăng sức mạnh (không giảm quả nào):
+  - Thái Dương Bùng Nổ: máu 325→410, sát thương 15→19, hồi chiêu 6→5 giây
+  - Ký Sinh Trùng: máu 272→300, sát thương 12→14, hồi chiêu 8.5→7 giây
+  - Bản Năng Vô Cực: máu 322→355, sát thương 15→17, hồi chiêu 10→8.5 giây
+  - Kiến Tạo Tường Băng: máu 310→350, sát thương 13→14, hồi chiêu 5.5→5 giây
+  - Vua Nguyền Hồn: máu 345→390, sát thương 16→18, hồi chiêu 12→10.5 giây
+  - Bão Tố Lốc Xoáy: máu 320→350, sát thương 13→14, hồi chiêu 7.5→7 giây
+  - Đảo Nghịch Quy Luật: máu 310→345, sát thương 13→15, hồi chiêu 7→6.5 giây
+  - Vua Slime Phân Tách: máu 160→180, sát thương 10→11
+  - Đổi Trọng Lực: máu 305→325, sát thương 13→14
+  - Tinh Vân Hủy Diệt: máu 340→360, sát thương 15→16, hồi chiêu 10→9 giây
+  - Nhật Thực Thiên Thạch: máu 315→335, sát thương 13→14, hồi chiêu 7→6.5 giây
+  - Mèo Máy Bảo Bối: máu 340→365, sát thương 14→15
+  - Nghịch Đảo Nhân Quả: máu 330→355, sát thương 14→16
+  - Móc Câu Nảy Tường: máu 320→340, sát thương 14→15
+
 ## [Đấu Trường Quả Cầu Anime – 8 bóng Thiên Địa & 5 bản đồ mới] – 2026-11-28
 - **8 quả bóng 🌍 Thiên Địa** (tổng 63 quả; có bộ lọc "🌍 Thiên địa" trong Bộ sưu tập), engine thêm môi trường toàn sân (nhật thực, gió bão, trọng lực, đảo nghịch), ranh giới sân thu hẹp và tường chắn bóng/đạn:
   - S **Nhật Thực Thiên Thạch** – sân tối sầm có quầng sáng, 5 thiên thạch rơi (55% thắng trước bậc S).

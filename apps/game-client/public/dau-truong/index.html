@@ -1030,7 +1030,7 @@ const ROSTER = [
   },
   {
     id: 'sukuna', tier: 'S', name: 'Vua Nguyền Hồn', inspire: 'Sukuna', glyph: '呪', color: '#dc2626', color2: '#1f0a0a',
-    hp: 345, atk: 16, spd: 258, cd: 12, ult: 'Bành Trướng Lãnh Địa: Phục Ma Ngự Trù Tử',
+    hp: 390, atk: 18, spd: 258, cd: 10.5, ult: 'Bành Trướng Lãnh Địa: Phục Ma Ngự Trù Tử',
     skill: 'Mở <b>Bành Trướng Lãnh Địa</b> bán kính lớn trong 4 giây, liên tục bắn mưa trảm kích vô hình (Giải & Bát) chém mọi kẻ địch trong phạm vi.',
     cast(o) {
       addField({ kind: 'domain', follow: o, owner: o, r: 230, until: G.time + 4, tick: 0 });
@@ -1039,7 +1039,7 @@ const ROSTER = [
   },
   {
     id: 'goku', tier: 'S', name: 'Bản Năng Vô Cực', inspire: 'Goku UI', glyph: '悟', color: '#cbd5ff', color2: '#60a5fa',
-    hp: 322, atk: 15, spd: 280, cd: 10, ult: 'Kamehameha', dodge: 0.3,
+    hp: 355, atk: 17, spd: 280, cd: 8.5, ult: 'Kamehameha', dodge: 0.3,
     skill: 'Nội tại: <b>30% né tránh</b> va chạm (để lại dư ảnh). Tụ khí 0,5 giây rồi bắn chưởng <b>Kamehameha</b> xuyên thấu toàn bản đồ.',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1272,7 +1272,7 @@ const ROSTER = [
   // ===== CẤP S =====
   {
     id: 'nebula', tier: 'S', power: true, name: 'Tinh Vân Hủy Diệt', inspire: 'Nebula Sovereign', glyph: '✺', color: '#8b5cf6', color2: '#1e1b4b',
-    hp: 340, atk: 15, spd: 250, cd: 10, ult: 'Xoáy Tinh Vân',
+    hp: 360, atk: 16, spd: 250, cd: 9, ult: 'Xoáy Tinh Vân',
     skill: 'Tạo <b>vùng xoáy tinh vân</b> 5 giây kéo mọi quả bóng địch về tâm; cứ 1,2 giây <b>nổ xung kích</b> năng lượng tím 14 sát thương diện rộng.',
     cast(o) {
       addField({ kind: 'vortex', x: o.x, y: o.y, r: 270, owner: o, until: G.time + 5, tick: 1.2 });
@@ -1281,7 +1281,7 @@ const ROSTER = [
   },
   {
     id: 'karma', tier: 'S', power: true, name: 'Nghịch Đảo Nhân Quả', inspire: 'Karma Paradox', glyph: '☯', color: '#e5e7eb', color2: '#111827',
-    hp: 330, atk: 14, spd: 255, cd: 3, ult: 'Tia Nghịch Đảo',
+    hp: 355, atk: 16, spd: 255, cd: 3, ult: 'Tia Nghịch Đảo',
     skill: 'Lưu lại sát thương nhận vào; mỗi 3 giây phóng <b>tia sáng nghịch đảo</b> trả lại 70% lượng đó cho kẻ địch trên đường thẳng và làm <b>choáng 0,6 giây</b>.',
     onHurt(o, dmg) { o.data.store = (o.data.store || 0) + dmg; },
     cast(o) {
@@ -1296,8 +1296,8 @@ const ROSTER = [
   },
   {
     id: 'solar', tier: 'S', power: true, name: 'Thái Dương Bùng Nổ', inspire: 'Solar Flare Core', glyph: '☀', color: '#fbbf24', color2: '#c2410c',
-    hp: 325, atk: 15, spd: 258, cd: 6, ult: 'Siêu Tân Tinh',
-    skill: 'Hào quang nhiệt <b>liên tục đốt</b> kẻ địch ở gần (6 HP/giây), mỗi 6 giây phun lửa mặt trời. Khi HP dưới 30%: <b>bùng nổ siêu tân tinh</b> đẩy lùi cực mạnh, 25 sát thương và nhận <b>lá chắn 60</b>.',
+    hp: 410, atk: 19, spd: 258, cd: 5, ult: 'Siêu Tân Tinh',
+    skill: 'Hào quang nhiệt <b>liên tục đốt</b> kẻ địch ở gần (6 HP/giây), mỗi 5 giây phun lửa mặt trời. Khi HP dưới 30%: <b>bùng nổ siêu tân tinh</b> đẩy lùi cực mạnh, 25 sát thương và nhận <b>lá chắn 60</b>.',
     update(o, dt) {
       for (const e of enemiesInRange(o, o.x, o.y, o.r + 70)) dealDamage(e, 6 * dt, o, 'burn');
       if (!o.data.nova && o.alive && o.hp < o.maxHp * 0.3) {
@@ -1474,7 +1474,7 @@ const ROSTER = [
   // ===== CẤP S =====
   {
     id: 'gadget', tier: 'S', toon: true, name: 'Mèo Máy Bảo Bối', inspire: 'Doraemon', glyph: '🔔', color: '#38bdf8', color2: '#ef4444', body: '#38bdf8',
-    hp: 340, atk: 14, spd: 258, cd: 4.3, ult: 'Túi Bảo Bối Thần Kỳ',
+    hp: 365, atk: 15, spd: 258, cd: 4.3, ult: 'Túi Bảo Bối Thần Kỳ',
     skill: 'Cứ 4,3 giây rút ngẫu nhiên 1 trong 6 <b>bảo bối</b> (20% <b>túi quá tải</b> rút 2 món): <b>Cánh Cửa Thần Kỳ</b> (dịch chuyển ra sau lưng địch, lao vào +20) · <b>Chong Chóng Tre</b> (bay ×1,6, <b>né 40% va chạm</b> 3 giây) · <b>Đèn Pin Thu Nhỏ</b> (địch nhỏ 30%, chậm, <b>giảm 30% sát thương va chạm</b> 3,5 giây) · <b>Súng Không Khí</b> (3 viên khí tự đuổi, đẩy văng) · <b>Áo Choàng Đảo Ngược</b> (3 giây <b>bật ngược đạn địch</b> thành đạn của mình & phản 50% sát thương) · <b>Máy Thời Gian</b> (<b>tua ngược vị trí và máu</b> về 3 giây trước).',
     cast(o) {
       const n = srnd() < 0.2 ? 2 : 1;
@@ -1528,7 +1528,7 @@ const ROSTER = [
   },
   {
     id: 'slimeking', tier: 'S', toon: true, power: true, name: 'Vua Slime Phân Tách', inspire: 'Slime (hoạt hình)', glyph: '◕', color: '#34d399', color2: '#065f46',
-    hp: 160, atk: 10, spd: 240, cd: 5.5, ult: 'Phân Tách Vô Tận',
+    hp: 180, atk: 11, spd: 240, cd: 5.5, ult: 'Phân Tách Vô Tận',
     splitOnHit: true, regrow: true,
     drawFx(o) { // vòng đếm ngược lớn lại
       if (!o.gen || !o.growAt) return;
@@ -1721,7 +1721,7 @@ const ROSTER = [
   // ===== CẤP S =====
   {
     id: 'hook', tier: 'S', mech: true, power: true, name: 'Móc Câu Nảy Tường', inspire: 'Ricochet Hook', glyph: '⚓', color: '#94a3b8', color2: '#0f172a',
-    hp: 320, atk: 14, spd: 252, cd: 5.5, ult: 'Móc Câu Phản Xạ',
+    hp: 340, atk: 15, spd: 252, cd: 5.5, ult: 'Móc Câu Phản Xạ',
     skill: '<b>GĐ1</b>: đứng yên hoàn toàn, bắn đầu móc có dây. <b>GĐ2</b>: móc bay thẳng, chạm tường thì <b>bật phản xạ & ghi nhớ điểm chạm</b> (tối đa 5 lần; hết lượt mà trượt thì thu dây). <b>GĐ3</b>: trúng địch → khoá chặt và <b>kéo địch ngược lại qua từng điểm nảy</b> về đập vào Móc Câu: 26 sát thương + choáng 0,8 giây.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -1791,7 +1791,7 @@ const ROSTER = [
   },
   {
     id: 'parasite', tier: 'S', mech: true, power: true, name: 'Ký Sinh Trùng', inspire: 'Parasite Host', glyph: '☣', color: '#a3e635', color2: '#581c87',
-    hp: 272, atk: 12, spd: 246, cd: 8.5, ult: 'Kén Ký Sinh',
+    hp: 300, atk: 14, spd: 246, cd: 7, ult: 'Kén Ký Sinh',
     skill: 'Phóng <b>kén ký sinh</b> bám lên địch 4,5 giây: cứ 0,5 giây <b>rút 2 HP hồi thẳng cho Ký Sinh Trùng</b>, làm địch <b>chậm 25%</b>; hết giờ kén <b>phát nổ từ bên trong</b> thêm 8 sát thương.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -2100,7 +2100,7 @@ const ROSTER = [
   // =====================================================================
   {
     id: 'eclipse', tier: 'S', env: true, power: true, name: 'Nhật Thực Thiên Thạch', inspire: 'Eclipse Meteor', glyph: '☀', color: '#f59e0b', color2: '#1c1917',
-    hp: 315, atk: 13, spd: 245, cd: 7, ult: 'Nhật Thực Toàn Phần',
+    hp: 335, atk: 14, spd: 245, cd: 6.5, ult: 'Nhật Thực Toàn Phần',
     skill: '<b>Nhật Thực Toàn Phần</b>: đấu trường <b>tối sầm 5 giây</b>, mặt trời bị che chỉ còn quầng sáng rực rỡ; <b>5 thiên thạch</b> lần lượt rơi xuống (nhắm vị trí địch, có vòng cảnh báo) – mỗi viên 16 sát thương diện rộng + đẩy văng. Trong nhật thực, va chạm của bóng mạnh hơn 15%.',
     cast(o) {
       G.env.eclipse = { until: G.time + 5, owner: o, t0: G.time };
@@ -2132,7 +2132,7 @@ const ROSTER = [
   },
   {
     id: 'invert', tier: 'S', env: true, power: true, name: 'Đảo Nghịch Quy Luật', inspire: 'Inversion Law', glyph: '⇅', color: '#a855f7', color2: '#0f766e',
-    hp: 310, atk: 13, spd: 255, cd: 7, ult: 'Đảo Nghịch',
+    hp: 345, atk: 15, spd: 255, cd: 6.5, ult: 'Đảo Nghịch',
     skill: 'Kích hoạt <b>Đảo Nghịch</b> 4 giây: mọi địch bị <b>rối loạn hướng di chuyển</b> (cứ ~0,55 giây bị bẻ sang hướng ngẫu nhiên); còn bản thân thì mọi pha <b>va chạm / nảy tường</b> đều có lợi – mỗi lần được <b>tăng tốc</b> 0,8 giây, <b>hồi 7 máu</b> và va chạm mạnh hơn 20%; địch rối loạn đập tường mất 6 máu.',
     cast(o) {
       o.data.invUntil = G.time + 4;
@@ -2157,7 +2157,7 @@ const ROSTER = [
   },
   {
     id: 'storm', tier: 'S', env: true, power: true, name: 'Bão Tố Lốc Xoáy', inspire: 'Tempest', glyph: '🌪', color: '#38bdf8', color2: '#1e293b',
-    hp: 320, atk: 13, spd: 250, cd: 7.5, ult: 'Cuồng Phong Lôi Bạo',
+    hp: 350, atk: 14, spd: 250, cd: 7, ult: 'Cuồng Phong Lôi Bạo',
     skill: 'Gọi <b>bão tố</b> 5 giây: gió mạnh đổi hướng liên tục <b>thổi lệch quỹ đạo</b> mọi quả bóng địch; 2 <b>cột lốc xoáy</b> trôi khắp sân hút & cuốn địch (6 sát thương/giây); 4 <b>tia sét</b> giáng xuống vị trí địch (có cảnh báo) – mỗi tia 12 sát thương + choáng 0,4 giây.',
     cast(o) {
       G.env.wind = { until: G.time + 5, owner: o, ang: srand(0, TAU), force: 320, t0: G.time };
@@ -2177,7 +2177,7 @@ const ROSTER = [
   },
   {
     id: 'icewall', tier: 'S', env: true, power: true, name: 'Kiến Tạo Tường Băng', inspire: 'Ice Architect', glyph: '❄', color: '#7dd3fc', color2: '#0c4a6e',
-    hp: 310, atk: 13, spd: 245, cd: 5.5, ult: 'Tường Băng Vĩnh Cửu',
+    hp: 350, atk: 14, spd: 245, cd: 5, ult: 'Tường Băng Vĩnh Cửu',
     skill: 'Dựng <b>2 bức tường băng</b> trong 4 giây: một bức chắn ngay trước hướng lao của địch gần nhất, một bức chắn sau lưng địch. Tường <b>chặn mọi quả bóng</b> và làm <b>mặt nảy cho đạn</b>; địch đâm vào tường mất 14 máu và bị chậm 1 giây; bản thân nảy vào tường được tăng tốc.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -2196,7 +2196,7 @@ const ROSTER = [
   },
   {
     id: 'gravity', tier: 'S', env: true, power: true, name: 'Đổi Trọng Lực', inspire: 'Gravity Shift', glyph: '⇣', color: '#818cf8', color2: '#1e1b4b',
-    hp: 305, atk: 13, spd: 250, cd: 5, ult: 'Đảo Trọng Trường',
+    hp: 325, atk: 14, spd: 250, cd: 5, ult: 'Đảo Trọng Trường',
     skill: 'Đổi trọng lực đấu trường 4 giây, luân phiên 2 kiểu: <b>Trôi Lướt</b> – địch mất ma sát, lướt dài không kiểm soát, va chạm yếu đi 45% và mỗi lần đập tường mất 10 máu; <b>Hố Trọng Lực</b> – kéo dồn quỹ đạo địch về tâm sân, địch ở gần tâm bị nghiền 12 máu/giây. Bản thân không bị ảnh hưởng.',
     cast(o) {
       o.data.gm = o.data.gm === 'slide' ? 'center' : 'slide';
