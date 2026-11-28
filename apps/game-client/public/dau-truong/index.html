@@ -1538,7 +1538,7 @@ const ROSTER = [
   {
     id: 'slimeking', tier: 'S', toon: true, power: true, name: 'Vua Slime Phân Tách', inspire: 'Slime (hoạt hình)', glyph: '◕', color: '#34d399', color2: '#065f46',
     hp: 180, atk: 11, spd: 240, cd: 5.5, ult: 'Phân Tách Vô Tận',
-    splitOnHit: true, regrow: true, ffaHpMul: 1.5,
+    splitOnHit: true, regrow: true, ffaHpMul: 1.1,
     drawFx(o) { // vòng đếm ngược lớn lại
       if (!o.gen || !o.growAt) return;
       const p = clamp(1 - (o.growAt - G.time) / slimeRegrow(), 0, 1);
@@ -1547,13 +1547,8 @@ const ROSTER = [
       if (p > 0.75) { ctx.globalAlpha = (p - 0.75) * 2; ctx.fillStyle = '#6ee7b7'; ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 6 + Math.sin(G.time * 30) * 3, 0, TAU); ctx.fill(); }
       ctx.restore();
     },
-    skill: '<b>Phân Tách Vô Tận</b>: mỗi lần nhận sát thương, slime <b>tách làm đôi</b> – mỗi nửa mang <b>một nửa số máu</b> hiện có, nhỏ lại và văng ra hai phía; mỗi slime con bị đánh lại tách đôi tiếp… liên tục <b>không giới hạn số đời</b>, cho tới khi không thể tách nữa (slime còn dưới 8 máu). Trong <b>Hỗn Chiến</b>: máu ban đầu ×1,5 và slime con chỉ cần 2 giây để lớn lại. Slime con nào <b>sống sót 3 giây</b> (Hỗn Chiến: <b>2 giây</b>) không bị giết sẽ <b>lớn lại thành Vua Slime ban đầu</b> (đủ máu, đủ cỡ) – <b>không giới hạn số lần</b> (tối đa 12 slime cùng lúc trên sân). Mỗi slime con <b>giữ nguyên sát thương</b> của bản thể → mỗi lần tách, <b>tổng sát thương cả bầy nhân đôi</b>. Chiêu: mọi slime đều ném <b>cục nhầy</b> 12 sát thương + làm chậm 1,5 giây.',
-    cast(o) {
-      const t = nearestEnemy(o); if (!t) return;
-      fireProjectile(o, t, { kind: 'slime', r: Math.max(6, 11 - 1.5 * (o.gen || 0)), speed: 560, dmg: 12, color: '#6ee7b7', life: 1.2, slow: 1.5 });
-      if (srnd() < 0.3) announce(o, 'Cục Nhầy', true);
-      Sound.play('cast');
-    },
+    skill: '<b>Phân Tách Vô Tận</b>: mỗi lần nhận sát thương, slime <b>tách làm đôi</b> – mỗi nửa mang <b>một nửa số máu</b> hiện có, nhỏ lại và văng ra hai phía; mỗi slime con bị đánh lại tách đôi tiếp… liên tục <b>không giới hạn số đời</b>, cho tới khi không thể tách nữa (slime còn dưới 8 máu). Trong <b>Hỗn Chiến</b>: máu ban đầu ×1,1 và slime con chỉ cần 2 giây để lớn lại. Slime con nào <b>sống sót 4 giây</b> (Hỗn Chiến: <b>2 giây</b>) không bị giết sẽ <b>lớn lại thành Vua Slime ban đầu</b> (đủ máu, đủ cỡ) – <b>không giới hạn số lần</b> (tối đa 12 slime cùng lúc trên sân). Mỗi slime con <b>giữ nguyên sát thương</b> của bản thể → mỗi lần tách, <b>tổng sát thương cả bầy nhân đôi</b>.',
+    cast() { /* không còn chiêu bắn từ xa – sức mạnh nằm ở tách đôi & lớn lại */ },
   },
   // ===== CẤP A =====
   {
@@ -2252,7 +2247,7 @@ const ROSTER = [
   {
     id: 'purifier', tier: 'S', power: true, name: 'Thánh Hỏa Thanh Tẩy', inspire: 'Purifying Flame', glyph: '✚', color: '#fbbf24', color2: '#7c2d12',
     hp: 370, atk: 16, spd: 252, cd: 4, ult: 'Lửa Thanh Tẩy', purges: true,
-    skill: 'Mọi đòn của bóng (va chạm & chiêu) gắn <b>Ấn Thanh Tẩy</b> 8 giây: địch bị ấn <b>không thể hồi máu, không thể phân tách</b> (vẫn tách được ở đòn gắn ấn) và slime con <b>tạm dừng lớn lại</b> cho tới khi hết ấn. Chiêu: <b>sóng lửa thánh</b> lan khắp sân – mọi địch nhận 16 sát thương và bị gắn Ấn. <i>Khắc tinh của Vua Slime và các bóng hồi máu.</i>',
+    skill: 'Mọi đòn của bóng (va chạm & chiêu) gắn <b>Ấn Thanh Tẩy</b> 8 giây: địch bị ấn <b>không thể hồi máu</b> và slime con <b>tạm dừng lớn lại</b> cho tới khi hết ấn. Chiêu: <b>sóng lửa thánh</b> lan khắp sân – mọi địch nhận 16 sát thương và bị gắn Ấn. <i>Khắc tinh của Vua Slime và các bóng hồi máu.</i>',
     cast(o) {
       for (const e of enemiesOf(o)) { dealDamage(e, 16, o, 'skill'); burst(e.x, e.y, '#fde68a', 10, 180); }
       ringFx(o.x, o.y, 620, '#fbbf24', 0.7, 14); ringFx(o.x, o.y, 420, '#fef3c7', 0.5, 6); G.flash = Math.max(G.flash, 0.25);
@@ -3078,11 +3073,11 @@ function addField(f) { G.fields.push(f); }
 /** Vua Slime: tách làm đôi khi nhận sát thương – mỗi nửa mang nửa số máu hiện có. */
 // không giới hạn số đời: tách tới khi không thể tách (còn dưới SLIME_MIN_HP máu)
 const SLIME_MIN_HP = 8, SLIME_MIN_R = 9;
-/** Thời gian sống sót để lớn lại: Hỗn Chiến 2 giây, các chế độ khác 3 giây. */
-const slimeRegrow = () => (G.mode === 'ffa' ? 2 : 3);
+/** Thời gian sống sót để lớn lại: Hỗn Chiến 2 giây, các chế độ khác 4 giây. */
+const slimeRegrow = () => (G.mode === 'ffa' ? 2 : 4);
 const SLIME_CAP = 12, SLIME_REGROW_MAX = Infinity; // giây sống sót để lớn lại · số slime tối đa cùng lúc (giới hạn kỹ thuật cho máy yếu) · lớn lại không giới hạn
 const slimeFamily = (t) => G.orbs.filter((x) => x.alive && (x.family || x) === (t.family || t));
-const canSplitSlime = (t) => t.hp >= (t.def.splitMinHp || SLIME_MIN_HP) && G.time >= (t.splitReady || 0) && G.time >= (t.purgeUntil || 0)
+const canSplitSlime = (t) => t.hp >= (t.def.splitMinHp || SLIME_MIN_HP) && G.time >= (t.splitReady || 0)
   && (!t.def.regrow || slimeFamily(t).length < SLIME_CAP);
 /** Slime con sống sót đủ SLIME_REGROW giây kể từ lần tách gần nhất → lớn lại thành slime ban đầu (đủ máu, đủ cỡ). */
 function regrowSlime(o, dt = 0) {

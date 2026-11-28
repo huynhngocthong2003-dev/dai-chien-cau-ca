@@ -1,5 +1,9 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Chỉnh Vua Slime & Thánh Hỏa] – 2026-11-28
+- Vua Slime: bỏ chiêu ném cục nhầy (mọi chế độ); đấu đơn/đội cần sống sót **4 giây** để lớn lại (Hỗn Chiến vẫn 2 giây); máu Hỗn Chiến ×1,5 → ×1,1 (198). Mô phỏng: 1–1 trong bậc S ~85%, Hỗn Chiến về nhất ~47%.
+- Thánh Hỏa Thanh Tẩy: Ấn Thanh Tẩy (8 giây) chỉ chặn hồi máu và tạm dừng lớn lại, **không chặn tách đôi** nữa. Vua Slime thắng Thánh Hỏa ~23–30% (trước 0%); Thánh Hỏa vẫn ~53% trong bậc S.
+
 ## [Đấu Trường Quả Cầu Anime – Vua Slime mạnh hơn trong Hỗn Chiến] – 2026-11-28
 - Vua Slime: trong **Hỗn Chiến**, slime con chỉ cần sống sót **2 giây** để lớn lại (các chế độ khác vẫn 3 giây). Mô phỏng Hỗn Chiến 6 người: về nhất 3% → 33% (trung bình 17%); đấu 1–1 không đổi.
 - Vua Slime trong **Hỗn Chiến**: máu ban đầu ×1,5 (180 → 270; slime con lớn lại cũng về 270). Về nhất ~36% → ~44%.
