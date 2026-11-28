@@ -1059,7 +1059,7 @@ const ROSTER = [
   // ===== CẤP A =====
   {
     id: 'tanjiro', tier: 'A', name: 'Kiếm Sĩ Nhật Luân', inspire: 'Tanjiro / Yoriichi', glyph: '日', color: '#f97316', color2: '#7f1d1d',
-    hp: 272, atk: 13, spd: 250, cd: 7, ult: 'Hơi Thở Mặt Trời',
+    hp: 350, atk: 16.5, spd: 250, cd: 7.0, ult: 'Hơi Thở Mặt Trời',
     skill: '<b>Hơi Thở Mặt Trời</b>: chém vòng lửa 360° quanh thân (20 sát thương + thiêu đốt), sau đó để lại vệt lửa cháy trên đường chạy trong 3 giây.',
     cast(o) {
       for (const e of enemiesInRange(o, o.x, o.y, 130)) { dealDamage(e, 20, o, 'skill'); addBurn(e, 5, 4, o); knock(e, o.x, o.y, 300); }
@@ -1079,7 +1079,7 @@ const ROSTER = [
   },
   {
     id: 'ichigo', tier: 'A', name: 'Tử Thần Hắc Nguyệt', inspire: 'Ichigo', glyph: '月', color: '#27272a', color2: '#ef4444',
-    hp: 268, atk: 13, spd: 255, cd: 6, ult: 'Getsuga Tenshou',
+    hp: 269, atk: 13.0, spd: 255, cd: 6.0, ult: 'Getsuga Tenshou',
     skill: 'Phóng sóng kiếm khí <b>Getsuga Tenshou</b> đen viền đỏ khổng lồ: 30 sát thương, xuyên thấu và <b>đẩy lùi cực mạnh</b>.',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1089,7 +1089,7 @@ const ROSTER = [
   },
   {
     id: 'itachi', tier: 'A', name: 'Huyết Nhãn Mangekyo', inspire: 'Itachi / Sasuke', glyph: '写', color: '#b91c1c', color2: '#0b0b0b',
-    hp: 262, atk: 12, spd: 245, cd: 5.5, ult: 'Amaterasu & Susanoo',
+    hp: 253, atk: 11.5, spd: 245, cd: 5.5, ult: 'Amaterasu & Susanoo',
     skill: 'Luân phiên: <b>Amaterasu</b> – lửa đen bám theo đốt 7 HP/giây trong 5 giây; và <b>Susanoo</b> – giáp xương giảm 50% sát thương 4 giây, hồi 14 HP.',
     cast(o) {
       o.data.n = (o.data.n || 0) + 1;
@@ -1108,7 +1108,7 @@ const ROSTER = [
   // ===== CẤP B =====
   {
     id: 'ace', tier: 'B', name: 'Hỏa Quyền Đế Vương', inspire: 'Ace / Natsu', glyph: '火', color: '#fb923c', color2: '#b91c1c',
-    hp: 222, atk: 11, spd: 235, cd: 3.2, ult: 'Hỏa Quyền',
+    hp: 192, atk: 9.5, spd: 235, cd: 3.2, ult: 'Hỏa Quyền',
     skill: 'Bắn đạn lửa <b>Hỏa Quyền</b> nảy tường 3 lần (14 sát thương + thiêu đốt). Nội tại: <b>máu càng thấp chạy càng nhanh</b> (tối đa +90%).',
     speedMul(o) { return 1 + (1 - o.hp / o.maxHp) * 0.9; },
     cast(o) {
@@ -1119,7 +1119,7 @@ const ROSTER = [
   },
   {
     id: 'naruto', tier: 'B', name: 'Lôi Ảnh Nhẫn Giả', inspire: 'Naruto / Kakashi', glyph: '忍', color: '#f59e0b', color2: '#1e3a8a',
-    hp: 225, atk: 10.5, spd: 238, cd: 5.5, ult: 'Rasengan / Chidori',
+    hp: 312, atk: 14.5, spd: 238, cd: 5.5, ult: 'Rasengan / Chidori',
     skill: 'Triệu hồi 2 <b>Ảnh Phân Thân</b> bay quanh hỗ trợ đánh trong 8 giây và lao tới bằng <b>Rasengan / Chidori</b> (+20 sát thương ở cú va kế tiếp).',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1150,7 +1150,7 @@ const ROSTER = [
   },
   {
     id: 'esdeath', tier: 'B', name: 'Nữ Hoàng Băng Tuyết', inspire: 'Esdeath / Toshiro', glyph: '氷', color: '#93c5fd', color2: '#1e40af',
-    hp: 215, atk: 10, spd: 230, cd: 8.5, ult: 'Băng Ngục',
+    hp: 379, atk: 17.5, spd: 230, cd: 8.5, ult: 'Băng Ngục',
     skill: 'Tạo <b>Băng Ngục</b> quanh mục tiêu: làm chậm 50% diện rộng trong 3 giây và <b>đóng băng hoàn toàn 1,5 giây</b> kẻ địch ở tâm (12 sát thương).',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1167,7 +1167,7 @@ const ROSTER = [
   // ===== CẤP C =====
   {
     id: 'luffy', tier: 'C', name: 'Vua Hải Tặc Cao Su', inspire: 'Luffy', glyph: '海', color: '#ef4444', color2: '#facc15',
-    hp: 188, atk: 9.5, spd: 222, cd: 9, ult: 'Gear 3',
+    hp: 331, atk: 17.0, spd: 222, cd: 9.0, ult: 'Gear 3',
     skill: '<b>Gear 3</b>: hoá khổng lồ trong 4 giây – kích thước ×1,8, <b>sát thương va chạm ×1,8</b> và nảy văng đối thủ cực mạnh.',
     cast(o) {
       o.giantUntil = G.time + 4;
@@ -1177,7 +1177,7 @@ const ROSTER = [
   },
   {
     id: 'zoro', tier: 'C', name: 'Kiếm Sĩ Tam Kiếm', inspire: 'Zoro', glyph: '剣', color: '#16a34a', color2: '#052e16',
-    hp: 182, atk: 9, spd: 218, cd: 6, ult: 'Tam Thiên Thế Giới',
+    hp: 313, atk: 15.5, spd: 218, cd: 6.0, ult: 'Tam Thiên Thế Giới',
     skill: 'Nội tại: 3 thanh kiếm khí xoay quanh thân chém kẻ áp sát. Khi địch ở gần: lao tới thi triển <b>Tam Thiên Thế Giới</b> chém liên hoàn 3 nhát × 9.',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1208,7 +1208,7 @@ const ROSTER = [
   },
   {
     id: 'zenitsu', tier: 'C', name: 'Thợ Săn Sấm Sét', inspire: 'Zenitsu', glyph: '雷', color: '#facc15', color2: '#a16207',
-    hp: 176, atk: 9, spd: 215, cd: 4.8, ult: 'Phích Lịch Nhất Thiểm',
+    hp: 295, atk: 15.0, spd: 215, cd: 4.8, ult: 'Phích Lịch Nhất Thiểm',
     skill: 'Đứng yên tụ điện 0,6 giây rồi lao đi với tốc độ cực đại qua <b>Phích Lịch Nhất Thiểm</b> (+26 sát thương ở cú va, để lại vệt sét).',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1234,7 +1234,7 @@ const ROSTER = [
   // ===== CẤP D =====
   {
     id: 'frieren', tier: 'D', name: 'Học Viên Pháp Sư', inspire: 'Frieren', glyph: '魔', color: '#e5e7eb', color2: '#10b981',
-    hp: 138, atk: 7.5, spd: 205, cd: 2.0, ult: 'Zoltraak',
+    hp: 123, atk: 6.0, spd: 205, cd: 2.0, ult: 'Zoltraak',
     skill: 'Đều đặn mỗi 2 giây bắn tia ma pháp cơ bản <b>Zoltraak</b> tốc độ cao (10 sát thương).',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1245,7 +1245,7 @@ const ROSTER = [
   },
   {
     id: 'lee', tier: 'D', name: 'Võ Sĩ Nắm Đấm Thép', inspire: 'Rock Lee', glyph: '拳', color: '#22c55e', color2: '#f97316',
-    hp: 142, atk: 8, spd: 268, cd: 4, ult: 'Liên Hoàn Quyền', meleeMul: 1.35,
+    hp: 182, atk: 18.0, spd: 268, cd: 4.0, ult: 'Liên Hoàn Quyền', meleeMul: 1.35,
     skill: 'Tốc độ di chuyển rất cao, va chạm <b>+35% sát thương</b>. Mỗi 4 giây bung cửa tăng tốc ×1,6 và lao vào áp sát đánh liên hoàn.',
     cast(o) {
       o.boostUntil = G.time + 2.2;
@@ -1256,7 +1256,7 @@ const ROSTER = [
   },
   {
     id: 'naofumi', tier: 'D', name: 'Tân Binh Khiên Chắn', inspire: 'Naofumi', glyph: '盾', color: '#a3a3a3', color2: '#4d7c0f',
-    hp: 160, atk: 7, spd: 200, cd: 6.5, ult: 'Khiên Phản Đòn',
+    hp: 185, atk: 11.5, spd: 200, cd: 6.5, ult: 'Khiên Phản Đòn',
     skill: 'HP nhỉnh hơn cấp D. Bật <b>Khiên Phản Đòn</b> 3 giây: giảm 50% sát thương, <b>phản lại 50%</b> cho kẻ tấn công và hồi 4 HP/giây.',
     cast(o) {
       setShield(o, 0.5, 3, 'reflect');
@@ -1317,7 +1317,7 @@ const ROSTER = [
   // ===== CẤP A =====
   {
     id: 'singularity', tier: 'A', power: true, name: 'Lỗ Đen Trọng Lực', inspire: 'Singularity Orb', glyph: '●', color: '#4338ca', color2: '#020617',
-    hp: 272, atk: 13, spd: 240, cd: 8, ult: 'Điểm Kỳ Dị',
+    hp: 290, atk: 14.0, spd: 240, cd: 8.0, ult: 'Điểm Kỳ Dị',
     skill: 'Sinh ra <b>điểm kỳ dị</b> 5 giây tại vị trí đối thủ: hút lệch và nuốt đạn năng lượng địch, <b>bẻ cong quỹ đạo</b> quả bóng đi ngang qua và nghiền 9 HP/giây ở lõi.',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1328,7 +1328,7 @@ const ROSTER = [
   },
   {
     id: 'magnetron', tier: 'A', power: true, name: 'Từ Trường Cực Đại', inspire: 'Magnetron Pulse', glyph: '⊕', color: '#ef4444', color2: '#2563eb',
-    hp: 276, atk: 12.5, spd: 245, cd: 3, ult: 'Đổi Cực Từ Trường',
+    hp: 372, atk: 17.0, spd: 245, cd: 3.0, ult: 'Đổi Cực Từ Trường',
     skill: 'Đổi cực liên tục: pha <b>Hút</b> kéo đối thủ lại gần để dồn va chạm; pha <b>Đẩy</b> hất văng đối thủ (8 sát thương) – <b>đập vào tường</b> nhận thêm 10.',
     cast(o) {
       o.data.pull = !o.data.pull;
@@ -1349,7 +1349,7 @@ const ROSTER = [
   },
   {
     id: 'phantom', tier: 'A', power: true, name: 'Hư Ảnh Phân Thân', inspire: 'Phantom Mirage', glyph: '◐', color: '#a5b4fc', color2: '#4338ca',
-    hp: 262, atk: 12, spd: 256, cd: 9, ult: 'Ảo Ảnh Song Sinh',
+    hp: 410, atk: 19.0, spd: 256, cd: 9.0, ult: 'Ảo Ảnh Song Sinh',
     skill: 'Tạo <b>2 bản sao bóng mờ</b> bán trong suốt bay khắp đấu trường 7 giây để đánh lạc hướng; mỗi lần chạm địch gây 6 sát thương phụ.',
     cast(o) {
       o.data.ghosts = [0, 1].map(() => { const a = srand(0, TAU); return { x: o.x, y: o.y, vx: Math.cos(a) * 290, vy: Math.sin(a) * 290, cd: 0 }; });
@@ -1372,7 +1372,7 @@ const ROSTER = [
   // ===== CẤP B =====
   {
     id: 'venom', tier: 'B', power: true, name: 'Axit Ăn Mòn', inspire: 'Corrosive Venom', glyph: '☣', color: '#84cc16', color2: '#365314',
-    hp: 220, atk: 10.5, spd: 232, cd: 3.4, ult: 'Giọt Axit',
+    hp: 265, atk: 12.5, spd: 232, cd: 3.4, ult: 'Giọt Axit',
     skill: 'Phun <b>giọt axit</b> nảy trên sân (10 sát thương), vỡ ra thành <b>vũng độc</b> 5 giây: đốt 5 HP/giây và <b>ăn mòn giáp</b> (nhận thêm 15% sát thương).',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1382,7 +1382,7 @@ const ROSTER = [
   },
   {
     id: 'sonic', tier: 'B', power: true, name: 'Sóng Âm Chấn Động', inspire: 'Sonic Boom', glyph: '◎', color: '#22d3ee', color2: '#0e7490',
-    hp: 225, atk: 10.5, spd: 238, cd: 4, ult: 'Vòng Sóng Âm',
+    hp: 455, atk: 21.0, spd: 238, cd: 4.0, ult: 'Vòng Sóng Âm',
     skill: 'Mỗi 4 giây phát <b>vòng sóng âm</b> lan rộng: 7 sát thương, <b>đẩy lùi</b> quả bóng lân cận và làm chậm 50% trong 1,5 giây.',
     cast(o) {
       for (const e of enemiesInRange(o, o.x, o.y, 230)) { dealDamage(e, 7, o, 'skill'); knock(e, o.x, o.y, 520); e.slowUntil = Math.max(e.slowUntil, G.time + 1.5); }
@@ -1392,7 +1392,7 @@ const ROSTER = [
   },
   {
     id: 'chain', tier: 'B', power: true, name: 'Lôi Điện Liên Hoàn', inspire: 'Chain Arc', glyph: 'ϟ', color: '#818cf8', color2: '#1e1b4b',
-    hp: 215, atk: 10.5, spd: 236, cd: 4.5, ult: 'Hồ Quang Liên Hoàn',
+    hp: 314, atk: 15.0, spd: 236, cd: 4.5, ult: 'Hồ Quang Liên Hoàn',
     skill: 'Tung <b>hồ quang điện</b> giật nảy qua tối đa 3 mục tiêu gần nhau (12 → 9 → 7). Mỗi cú va chạm cũng phóng tia giật phụ (6 → 5, hồi 1,5 giây).',
     cast(o) { chainLightning(o, [12, 9, 7]); announce(o, 'Hồ Quang Liên Hoàn'); Sound.play('thunder'); },
     onCollide(o, t) {
@@ -1404,7 +1404,7 @@ const ROSTER = [
   // ===== CẤP C =====
   {
     id: 'chrono', tier: 'C', power: true, name: 'Con Lắc Thời Gian', inspire: 'Chrono Pendulum', glyph: '⧗', color: '#eab308', color2: '#713f12',
-    hp: 182, atk: 9, spd: 220, cd: 3.5, ult: 'Đảo Nhịp Thời Gian',
+    hp: 390, atk: 19.5, spd: 220, cd: 3.5, ult: 'Đảo Nhịp Thời Gian',
     skill: 'Xen kẽ <b>Tăng Tốc</b> (nhanh ×1,45, va chạm +20%) và <b>Làm Chậm</b> (chậm ×0,7 nhưng khối lượng ×2, gần như <b>không bị đẩy lùi</b>).',
     speedMul(o) { return o.data.haste ? 1.45 : o.data.anchor ? 0.7 : 1; },
     massMul(o) { return o.data.anchor ? 2 : 1; },
@@ -1419,7 +1419,7 @@ const ROSTER = [
   },
   {
     id: 'prism', tier: 'C', power: true, name: 'Khiên Kính Phản Xạ', inspire: 'Prism Aegis', glyph: '◇', color: '#a5f3fc', color2: '#7c3aed',
-    hp: 185, atk: 9, spd: 218, cd: 7, ult: 'Màng Pha Lê', collideTakenMul: 0.7,
+    hp: 315, atk: 15.5, spd: 218, cd: 7.0, ult: 'Màng Pha Lê', collideTakenMul: 0.7,
     skill: 'Màng pha lê xoay quanh: <b>giảm 30% sát thương va chạm</b>; mỗi khi bị đánh trúng bắn <b>tia sáng phản công</b> (5 sát thương). Mỗi 7 giây cường hoá màng: giảm thêm 40% trong 2 giây.',
     onHurt(o, dmg, src, kind) {
       if (!src || src === o || kind === 'burn' || !src.alive || G.time < (o.data.rayCd || 0)) return;
@@ -1430,7 +1430,7 @@ const ROSTER = [
   },
   {
     id: 'mine', tier: 'C', power: true, name: 'Bẫy Nổ Xung Kích', inspire: 'Mine Layer', glyph: '✹', color: '#f43f5e', color2: '#4c0519',
-    hp: 178, atk: 9, spd: 222, cd: 3.8, ult: 'Thả Mìn',
+    hp: 320, atk: 16.5, spd: 222, cd: 3.8, ult: 'Thả Mìn',
     skill: 'Định kỳ thả <b>1–2 quả mìn năng lượng</b>; sau 4 giây hoặc khi quả bóng địch chạm vào sẽ <b>phát nổ</b> 18 sát thương khu vực và đẩy lùi.',
     cast(o) {
       const n = srnd() < 0.5 ? 1 : 2;
@@ -1443,14 +1443,14 @@ const ROSTER = [
   // ===== CẤP D =====
   {
     id: 'ironclad', tier: 'D', power: true, name: 'Thiết Giáp Nặng', inspire: 'Ironclad Ball', glyph: '⬢', color: '#71717a', color2: '#27272a',
-    hp: 168, atk: 8, spd: 172, cd: 7, ult: 'Giáp Thép', meleeMul: 1.2,
+    hp: 245, atk: 26.5, spd: 172, cd: 7.0, ult: 'Giáp Thép', meleeMul: 1.2,
     massMul() { return 2.3; }, knockRes() { return 0.4; },
     skill: 'Khối lượng cực lớn, HP nhỉnh nhất cấp D: <b>va chạm nặng nề</b> (+20%), khó bị đẩy lùi nhưng chạy chậm. Mỗi 7 giây bật <b>Giáp Thép</b> giảm 40% sát thương trong 2,5 giây.',
     cast(o) { setShield(o, 0.6, 2.5, 'iron'); announce(o, 'Giáp Thép', true); Sound.play('shield'); },
   },
   {
     id: 'pulse', tier: 'D', power: true, name: 'Tia Sáng Cơ Bản', inspire: 'Pulse Ray', glyph: '➤', color: '#38bdf8', color2: '#0c4a6e',
-    hp: 140, atk: 7.5, spd: 210, cd: 2.3, ult: 'Tia Xung',
+    hp: 210, atk: 27.0, spd: 210, cd: 2.3, ult: 'Tia Xung',
     skill: 'Định kỳ bắn <b>tia năng lượng thẳng theo hướng đang di chuyển</b>: 11 sát thương ổn định ở tầm trung.',
     cast(o) {
       const sp = Math.hypot(o.vx, o.vy) || 1;
@@ -1461,7 +1461,7 @@ const ROSTER = [
   },
   {
     id: 'vitality', tier: 'D', power: true, name: 'Hồi Phục Nhẹ', inspire: 'Vitality Seed', glyph: '❀', color: '#4ade80', color2: '#166534',
-    hp: 150, atk: 7, spd: 205, cd: 4, ult: 'Hạt Mầm Sự Sống',
+    hp: 217, atk: 22.5, spd: 205, cd: 4.0, ult: 'Hạt Mầm Sự Sống',
     skill: 'Cứ mỗi 4 giây <b>tự hồi 9 HP</b> (hạt sáng xanh), giúp trụ vững lâu hơn trong các pha trao đổi chiêu thức.',
     cast(o) {
       heal(o, 9); burst(o.x, o.y, '#86efac', 18, 140); ringFx(o.x, o.y, o.r + 30, '#4ade80', 0.5, 4);
@@ -1549,7 +1549,7 @@ const ROSTER = [
   // ===== CẤP A =====
   {
     id: 'gomu', tier: 'A', toon: true, name: 'Nắm Đấm Co Giãn', inspire: 'Luffy (Gomu Gomu)', glyph: '拳', color: '#ef4444', color2: '#fde047',
-    hp: 268, atk: 12, spd: 250, cd: 3.2, ult: 'Gomu Gomu Pistol',
+    hp: 330, atk: 15.0, spd: 250, cd: 3.2, ult: 'Gomu Gomu Pistol',
     skill: 'Vung <b>cánh tay co giãn</b> đấm xa tới địch gần nhất: 15 sát thương, đẩy lùi mạnh. Thân cao su: mỗi cú va chạm <b>bật nảy địch văng xa</b> hơn.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -1561,7 +1561,7 @@ const ROSTER = [
   },
   {
     id: 'saitama', tier: 'A', toon: true, name: 'Đấm Một Phát', inspire: 'Saitama', glyph: '拳', color: '#facc15', color2: '#ffffff',
-    hp: 262, atk: 13, spd: 245, cd: 6, ult: 'Cú Đấm Nghiêm Túc',
+    hp: 277, atk: 13.5, spd: 245, cd: 6.0, ult: 'Cú Đấm Nghiêm Túc',
     skill: 'Dồn lực 0,7 giây rồi <b>lao thẳng vào địch gần nhất</b>: cú đấm +34 sát thương và <b>đẩy lùi cực mạnh</b> (đập tường còn mất thêm máu).',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -1583,7 +1583,7 @@ const ROSTER = [
   },
   {
     id: 'meteor', tier: 'A', toon: true, power: true, name: 'Thiên Thạch Hủy Diệt', inspire: 'Meteor Strike', glyph: '☄', color: '#f97316', color2: '#451a03',
-    hp: 255, atk: 11.5, spd: 240, cd: 5, ult: 'Mưa Thiên Thạch',
+    hp: 328, atk: 15.0, spd: 240, cd: 5.0, ult: 'Mưa Thiên Thạch',
     skill: 'Đánh dấu vị trí địch rồi sau 0,9 giây <b>thiên thạch giáng xuống</b>: 22 sát thương trong 95px, đẩy lùi và <b>rung lắc đấu trường</b>. Có vòng cảnh báo đỏ để né.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -1595,7 +1595,7 @@ const ROSTER = [
   // ===== CẤP B =====
   {
     id: 'nobita', tier: 'B', toon: true, name: 'Xạ Thủ Ngủ Gật', inspire: 'Nobita', glyph: '🎯', color: '#facc15', color2: '#1d4ed8',
-    hp: 200, atk: 8.5, spd: 226, cd: 2.6, ult: 'Phát Bắn Thần Sầu',
+    hp: 222, atk: 9.5, spd: 226, cd: 2.6, ult: 'Phát Bắn Thần Sầu',
     skill: 'Bắn <b>đạn chính xác</b> vào địch gần nhất (10 sát thương). 25% cơ hội <b>bùng nổ chí mạng bất ngờ</b>: đạn xuyên thấu 26 sát thương.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -1610,7 +1610,7 @@ const ROSTER = [
   },
   {
     id: 'shin', tier: 'B', toon: true, name: 'Nhóc Bút Chì Lém Lỉnh', inspire: 'Shin – Cậu bé bút chì', glyph: '✏', color: '#ef4444', color2: '#fde047',
-    hp: 210, atk: 9, spd: 238, cd: 4.5, ult: 'Nhảy Tưng Mông Voi',
+    hp: 357, atk: 15.5, spd: 238, cd: 4.5, ult: 'Nhảy Tưng Mông Voi',
     skill: '<b>Nhảy tưng tưng</b> lao về phía địch (+9 khi trúng), khi tiếp đất tạo chấn động 110px: 9 sát thương và <b>choáng nhẹ 0,6 giây</b>.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -1630,7 +1630,7 @@ const ROSTER = [
   },
   {
     id: 'kicker', tier: 'B', toon: true, name: 'Thám Tử Sút Bóng', inspire: 'Thám tử lừng danh (Power Kick)', glyph: '⚽', color: '#1d4ed8', color2: '#dc2626',
-    hp: 205, atk: 9.5, spd: 240, cd: 3.6, ult: 'Cú Sút Tăng Lực',
+    hp: 303, atk: 14.0, spd: 240, cd: 3.6, ult: 'Cú Sút Tăng Lực',
     skill: '<b>Sút quả bóng năng lượng</b> tốc độ cao, nảy tường 4 lần: 11 sát thương mỗi lần trúng và <b>làm chậm địch 1 giây</b> (phá nhịp di chuyển).',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -1642,7 +1642,7 @@ const ROSTER = [
   // ===== CẤP C =====
   {
     id: 'thunder', tier: 'C', toon: true, power: true, name: 'Tia Sét Vàng', inspire: 'Thunder Shock', glyph: 'ϟ', color: '#fde047', color2: '#ca8a04',
-    hp: 192, atk: 9, spd: 240, cd: 3.4, ult: 'Điện Giật Vòng Quanh',
+    hp: 393, atk: 18.5, spd: 240, cd: 3.4, ult: 'Điện Giật Vòng Quanh',
     skill: 'Phóng <b>tia điện giật</b> mọi địch trong 140px (11 sát thương). Mỗi lần va chạm được <b>tăng tốc ×1,6 trong 1,5 giây</b>.',
     cast(o) {
       const vs = enemiesInRange(o, o.x, o.y, 140);
@@ -1655,7 +1655,7 @@ const ROSTER = [
   },
   {
     id: 'starpull', tier: 'C', toon: true, power: true, name: 'Ngôi Sao Hút Lực', inspire: 'Star Suction', glyph: '★', color: '#f9a8d4', color2: '#9d174d',
-    hp: 190, atk: 8, spd: 228, cd: 4.2, ult: 'Hút Sao',
+    hp: 323, atk: 14.0, spd: 228, cd: 4.2, ult: 'Hút Sao',
     skill: '<b>Kéo nhẹ</b> địch gần nhất (trong 380px) về phía mình rồi phóng <b>sóng sao</b> tầm trung: 11 sát thương.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -1667,7 +1667,7 @@ const ROSTER = [
   },
   {
     id: 'chase', tier: 'C', toon: true, power: true, name: 'Rượt Đuổi Liên Hoàn', inspire: 'Chase Bounce', glyph: '»', color: '#22d3ee', color2: '#7c3aed',
-    hp: 182, atk: 8.5, spd: 250, cd: 3.5, ult: 'Lao – Nảy',
+    hp: 354, atk: 17.0, spd: 250, cd: 3.5, ult: 'Lao – Nảy',
     skill: 'Xen kẽ: <b>Lao Nhanh</b> thẳng vào địch gần nhất (+8 khi trúng) và <b>Nảy Bật</b> – tăng tốc ×1,6 & va chạm +25% sát thương trong 2,5 giây.',
     cast(o) {
       o.data.turn = (o.data.turn || 0) + 1;
@@ -1681,7 +1681,7 @@ const ROSTER = [
   // ===== CẤP D =====
   {
     id: 'slimekid', tier: 'D', toon: true, power: true, name: 'Slime Con Tách Đôi', inspire: 'Slime (hoạt hình)', glyph: '◔', color: '#86efac', color2: '#15803d',
-    hp: 145, atk: 7, spd: 212, cd: 4, ult: 'Tách Đôi Cuối',
+    hp: 180, atk: 14.5, spd: 212, cd: 4.0, ult: 'Tách Đôi Cuối',
     splitOnHit: true, splitMinHp: 80,
     skill: 'Mỗi lần nhận sát thương, slime <b>tách làm đôi</b> – mỗi nửa mang <b>một nửa số máu</b> hiện có, nhỏ lại và văng ra hai phía; slime con bị đánh lại tách tiếp cho tới khi còn dưới 80 máu (không thể tách nữa). Mỗi slime con giữ nguyên sát thương. Chiêu: bắn <b>giọt nhầy</b> 7 sát thương + làm chậm 0,8 giây.',
     cast(o) {
@@ -1692,7 +1692,7 @@ const ROSTER = [
   },
   {
     id: 'rubber', tier: 'D', toon: true, power: true, name: 'Cao Su Tích Lực', inspire: 'Rubber Charge', glyph: '◍', color: '#fb7185', color2: '#9f1239',
-    hp: 150, atk: 7.5, spd: 215, cd: 5, ult: 'Tích Lực',
+    hp: 221, atk: 25.5, spd: 215, cd: 5.0, ult: 'Tích Lực',
     skill: 'Mỗi lần <b>nảy tường / chạm bóng</b> tích 1 tầng lực (tối đa 5): cú va chạm kế tiếp mạnh hơn <b>+10% mỗi tầng</b> rồi xả hết. Chiêu: tích ngay 2 tầng.',
     cast(o) { o.data.stk = Math.min(5, (o.data.stk || 0) + 2); ringFx(o.x, o.y, o.r + 18, '#fb7185', 0.4, 4); announce(o, `Tích Lực ×${o.data.stk}`, true); Sound.play('grow'); },
     update(o) {
@@ -1706,7 +1706,7 @@ const ROSTER = [
   },
   {
     id: 'pencil', tier: 'D', toon: true, power: true, name: 'Nét Vẽ Bút Chì', inspire: 'Pencil Sketch', glyph: '✎', color: '#e7e5e4', color2: '#57534e',
-    hp: 148, atk: 7.5, spd: 210, cd: 3.2, ult: 'Sóng Nét Vẽ',
+    hp: 231, atk: 30.0, spd: 210, cd: 3.2, ult: 'Sóng Nét Vẽ',
     skill: 'Đều đặn tạo <b>sóng xung kích</b> quanh thân 105px: 9 sát thương và đẩy nhẹ địch. Đơn giản, dễ dùng – hợp người mới.',
     cast(o) {
       for (const e of enemiesInRange(o, o.x, o.y, 105)) { dealDamage(e, 9, o, 'skill'); knock(e, o.x, o.y, 260); }
@@ -1838,7 +1838,7 @@ const ROSTER = [
   // ===== CẤP A =====
   {
     id: 'portal', tier: 'A', mech: true, power: true, name: 'Cổng Dịch Chuyển', inspire: 'Portal Link', glyph: '◎', color: '#38bdf8', color2: '#f97316',
-    hp: 300, atk: 15, spd: 260, cd: 5.5, ult: 'Cổng Xanh – Cổng Cam',
+    hp: 366, atk: 18.5, spd: 260, cd: 5.5, ult: 'Cổng Xanh – Cổng Cam',
     skill: 'Đặt <b>Cổng Xanh</b> (ngẫu nhiên quanh kẻ địch) & <b>Cổng Cam</b> (ngẫu nhiên trên sân) trong 6 giây. Mọi quả bóng hoặc đạn đi vào cổng này <b>xuất hiện ở cổng kia, giữ nguyên vận tốc</b> (mỗi vật hồi 0,8 giây). Địch đi qua cổng bị <b>xé không gian</b> 18 sát thương & chậm 1,2 giây; Cổng Dịch Chuyển đi qua thì được tăng tốc và va chạm kế tiếp +12.',
     cast(o) {
       // Cổng Xanh: ngẫu nhiên quanh kẻ địch gần nhất; Cổng Cam: ngẫu nhiên trên sân
@@ -1886,7 +1886,7 @@ const ROSTER = [
   },
   {
     id: 'boomerang', tier: 'A', mech: true, power: true, name: 'Bumerang Xoáy', inspire: 'Boomerang Blade', glyph: '☾', color: '#fbbf24', color2: '#7c2d12',
-    hp: 278, atk: 12.5, spd: 252, cd: 3.8, ult: 'Lưỡi Hái Hồi Hướng',
+    hp: 329, atk: 15.0, spd: 252, cd: 3.8, ult: 'Lưỡi Hái Hồi Hướng',
     skill: 'Ném <b>lưỡi hái năng lượng</b> bay vòng cung, nảy tường rồi <b>tự quay về tay</b>. Trúng địch cả lượt đi (20) lẫn lượt về (18); lượt về <b>kéo địch theo hướng bay</b>.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -1931,7 +1931,7 @@ const ROSTER = [
   },
   {
     id: 'puppet', tier: 'A', mech: true, power: true, name: 'Giật Dây Rối', inspire: 'Puppet Strings', glyph: '✣', color: '#f0abfc', color2: '#701a75',
-    hp: 270, atk: 12.5, spd: 258, cd: 5.5, ult: 'Sợi Chỉ Điều Khiển',
+    hp: 283, atk: 13.0, spd: 258, cd: 5.5, ult: 'Sợi Chỉ Điều Khiển',
     skill: 'Nối <b>sợi chỉ năng lượng</b> vào địch trong tầm 420px suốt 3,5 giây: Giật Dây Rối đi hướng nào, địch <b>bị kéo lệch quỹ đạo theo hướng đó</b>; mỗi lần Giật Dây đổi hướng gắt (nảy tường/va chạm), địch bị <b>giật mạnh</b> chịu 12 sát thương (nối dây gây ngay 10).',
     cast(o) {
       const t = nearestEnemy(o);
@@ -1968,7 +1968,7 @@ const ROSTER = [
   // ===== CẤP B =====
   {
     id: 'anchor', tier: 'B', mech: true, power: true, name: 'Xích Neo Đậu', inspire: 'Anchor Chain', glyph: '⚓', color: '#64748b', color2: '#1e293b',
-    hp: 225, atk: 10, spd: 238, cd: 5.5, ult: 'Thả Neo',
+    hp: 302, atk: 13.5, spd: 238, cd: 5.5, ult: 'Thả Neo',
     skill: '<b>Cắm neo</b> xuống sân và xích địch gần nhất (tầm 450px) trong 3,5 giây: địch chỉ di chuyển được trong <b>bán kính 170px quanh neo</b>, kéo căng xích là <b>bị giật lùi</b> (6 sát thương mỗi lần giật).',
     cast(o) {
       const t = nearestEnemy(o);
@@ -2005,7 +2005,7 @@ const ROSTER = [
   },
   {
     id: 'web', tier: 'B', mech: true, power: true, name: 'Bẫy Tơ Nhện', inspire: 'Spider Web', glyph: '✳', color: '#e5e7eb', color2: '#4c1d95',
-    hp: 225, atk: 10, spd: 244, cd: 5.5, ult: 'Dệt Mạng Nhện',
+    hp: 350, atk: 15.5, spd: 244, cd: 5.5, ult: 'Dệt Mạng Nhện',
     skill: 'Dệt <b>mạng nhện</b> bán kính 130px ngay quanh địch trong 6 giây: địch đi vào <b>chậm 60%</b> và dính tơ 3 sát thương/giây; Bẫy Tơ Nhện đi vào được <b>tăng tốc</b> và <b>lao tới cắn</b> địch đang mắc lưới (+14, hồi 10 HP).',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -2016,7 +2016,7 @@ const ROSTER = [
   },
   {
     id: 'swap', tier: 'B', mech: true, power: true, name: 'Hoán Đổi Vị Trí', inspire: 'Swap Trickster', glyph: '⇄', color: '#a78bfa', color2: '#0e7490',
-    hp: 208, atk: 9.5, spd: 242, cd: 5, ult: 'Tia Hoán Vị',
+    hp: 292, atk: 13.5, spd: 242, cd: 5.0, ult: 'Tia Hoán Vị',
     skill: 'Bắn <b>tia đánh dấu</b>; trúng địch thì <b>hoán đổi vị trí tức thời</b> giữa hai quả bóng và tạo <b>sóng xung kích</b> ở cả hai đầu (12 sát thương, đẩy lùi).',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -2038,7 +2038,7 @@ const ROSTER = [
   // ===== CẤP C =====
   {
     id: 'magnet', tier: 'C', mech: true, power: true, name: 'Nam Châm Hút', inspire: 'Magnetic Core', glyph: '∩', color: '#ef4444', color2: '#1d4ed8',
-    hp: 200, atk: 9, spd: 234, cd: 5, ult: 'Từ Trường Hút',
+    hp: 316, atk: 14.0, spd: 234, cd: 5.0, ult: 'Từ Trường Hút',
     skill: 'Bật <b>từ trường</b> 3 giây kéo mọi quả bóng khác (tầm 420px) và đạn địch lướt về phía mình để <b>ép va chạm liên hoàn</b>; trong lúc hút được <b>giáp giảm 30%</b> sát thương và va chạm <b>mạnh hơn 35%</b>.',
     cast(o) {
       o.data.magUntil = G.time + 3; setShield(o, 0.7, 3, 'magnet');
@@ -2073,7 +2073,7 @@ const ROSTER = [
   // ===== CẤP D =====
   {
     id: 'turret', tier: 'D', mech: true, power: true, name: 'Bắn Tỉa Đứng Yên', inspire: 'Turret Ball', glyph: '⌖', color: '#a8a29e', color2: '#292524',
-    hp: 148, atk: 7, spd: 206, cd: 3.8, ult: 'Ngắm Bắn',
+    hp: 145, atk: 7.0, spd: 206, cd: 3.8, ult: 'Ngắm Bắn',
     skill: '<b>Đứng yên 0,8 giây</b> tụ năng lượng ngắm chuẩn (tia ngắm đỏ) rồi bắn <b>đạn tốc độ cao</b> 15 sát thương, nảy tường 1 lần.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
@@ -2207,7 +2207,7 @@ const ROSTER = [
   },
   {
     id: 'starfall', tier: 'A', env: true, power: true, name: 'Mưa Sao Băng', inspire: 'Starfall', glyph: '✦', color: '#fde68a', color2: '#312e81',
-    hp: 270, atk: 12, spd: 252, cd: 6.5, ult: 'Mưa Sao Băng',
+    hp: 323, atk: 14.5, spd: 252, cd: 6.5, ult: 'Mưa Sao Băng',
     skill: 'Gọi <b>5 vệt sao băng</b> bay chéo qua đấu trường, mỗi vệt <b>nổ nhẹ</b> tại điểm chạm (7 sát thương diện rộng, nhắm vị trí địch) và để lại <b>vệt sáng lấp lánh</b> 2,5 giây – địch đi qua mất 2,5 máu/giây.',
     cast(o) {
       const dir = srnd() < 0.5 ? 1 : -1;
@@ -2225,7 +2225,7 @@ const ROSTER = [
   },
   {
     id: 'station', tier: 'A', env: true, power: true, name: 'Dựng Trạm Năng Lượng', inspire: 'Power Station', glyph: '⚡', color: '#22d3ee', color2: '#164e63',
-    hp: 285, atk: 12, spd: 248, cd: 7, ult: 'Trạm Năng Lượng',
+    hp: 326, atk: 13.5, spd: 248, cd: 7.0, ult: 'Trạm Năng Lượng',
     skill: 'Đặt <b>2 trạm năng lượng</b> tồn tại 6 giây: <b>Trạm Tiếp Sức</b> – bản thân lướt qua được tăng tốc và hồi 3 máu/giây; <b>Trạm Xung Kích</b> – cứ 1 giây bắn tia xung kích 6 sát thương vào địch trong bán kính 240.',
     cast(o) {
       const sp = Math.hypot(o.vx, o.vy) || 1;
@@ -2895,9 +2895,12 @@ function heal(o, amount, silent = false) {
  * Gây sát thương. kind: 'normal' | 'crit' | 'skill' | 'burn'.
  * Áp dụng khiên, phản đòn, thống kê, số bay lên và kết liễu.
  */
+const SUDDEN_AT = 90;
 function dealDamage(t, amount, src, kind = 'normal', opts = {}) {
   if (!t.alive || amount <= 0) return 0;
   let dmg = amount * (src && src.powMul ? src.powMul : 1);
+  // ⚡ Đột Tử: sau SUDDEN_AT giây, mọi sát thương tăng dần để trận luôn kết thúc
+  if (G.time > SUDDEN_AT) dmg *= 1 + (G.time - SUDDEN_AT) * 0.05;
   if (G.time < t.shieldUntil) dmg *= t.shieldMul;
   if (G.time < t.corrodeUntil) dmg *= 1.15;          // bị axit ăn mòn giáp
   if (t.barrier > 0) {                                // lá chắn hấp thụ (Siêu Tân Tinh)
@@ -4593,6 +4596,12 @@ function render(realT) {
   ctx.drawImage(bgCache[G.arena], 0, 0);
   drawDynamicBg(realT);
   drawEnv(realT);
+  if (G.phase === 'run' && G.time > SUDDEN_AT) {
+    const k = 0.35 + 0.25 * Math.sin(realT * 6);
+    ctx.save(); ctx.strokeStyle = `rgba(239,68,68,${k})`; ctx.lineWidth = 10; ctx.strokeRect(PAD - 10, PAD - 10, W - 2 * PAD + 20, H - 2 * PAD + 20);
+    ctx.font = '900 22px "Segoe UI", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(254,202,202,${0.6 + k})`;
+    ctx.fillText(`⚡ ĐỘT TỬ · sát thương ×${(1 + (G.time - SUDDEN_AT) * 0.05).toFixed(1)}`, W / 2, PAD + 26); ctx.restore();
+  }
   drawFields();
   for (const o of G.orbs) if (o.alive) drawOrb(o);
   drawBeams();
