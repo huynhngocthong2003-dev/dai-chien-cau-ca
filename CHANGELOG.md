@@ -5,6 +5,7 @@
 - **RP / MMR tính trên máy chủ** (Supabase `orb_ranked_*`): chỉ cộng/trừ khi hai bên báo cùng người thắng; một bên thoát giữa trận → bên còn lại được tính thắng sau 90 giây (chỉ khi cả hai đã xác nhận vào trận – không thể bịa trận với ID bất kỳ); kết quả lệch nhau → không tính điểm. Mỗi trận chỉ tính một lần.
 - 8 bậc với huy hiệu tự vẽ: Tân Binh · Đồng · Bạc · Vàng · Bạch Kim · Kim Cương (mỗi bậc 4 cấp IV→I, 100 RP/cấp) · Cao Thủ (≥ 2100 RP) · Thách Đấu (Cao Thủ trong top 100). 5 trận phân hạng (điểm ×2, thua không trừ), 3 trận chống tụt bậc ngay sau khi lên bậc, giảm điểm khi đấu lặp lại cùng một người trong ngày.
 - Màn kết quả trận có ô RP (thắng/thua, thăng hạng có hiệu ứng), 📊 Bảng xếp hạng (toàn máy chủ / bạn bè), 📜 Lịch sử, ô hạng trong Hồ sơ và huy hiệu hạng cạnh tên trong danh sách bạn bè / hồ sơ người chơi.
+- Đếm ngược chọn hướng xuất phát trước trận: **3 → 5 giây**.
 - Cần chạy `supabase/dau-truong-xep-hang.sql` trên Supabase (xem `docs/DAU_TRUONG_SETUP.md`, bước 5). Trên link Claude: thẻ Xếp Hạng hiện khoá kèm lý do.
 
 ## [Đấu Trường Quả Cầu Anime – Slime lớn lại & Slime Con tách thật] – 2026-11-28

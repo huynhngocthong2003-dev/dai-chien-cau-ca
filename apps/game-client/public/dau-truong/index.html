@@ -689,7 +689,7 @@
       <h3>Cách chơi</h3>
       <div class="hint" style="text-align:left;line-height:1.6">
         1. Ở Phòng Chờ: chọn 1 quả bóng → bấm <b>✅ Sẵn sàng</b> → chủ phòng bấm <b>Bắt đầu trận</b>.<br>
-        2. Đếm ngược 3 giây: bóng đứng yên; kéo từ quả bóng có mũi tên <b>BẠN</b> hoặc bấm <b>WASD / ← ↑ → ↓</b> để chọn hướng xuất phát. Hết giờ, mọi quả bóng cùng lao đi.<br>
+        2. Đếm ngược 5 giây: bóng đứng yên; kéo từ quả bóng có mũi tên <b>BẠN</b> hoặc bấm <b>WASD / ← ↑ → ↓</b> để chọn hướng xuất phát. Hết giờ, mọi quả bóng cùng lao đi.<br>
         3. Quả cầu tự va chạm & tung chiêu. Còn một đội / một quả bóng là thắng.<br>
         4. Thắng nhận Vàng → quay <b>Vòng May Mắn</b> mở khóa quả bóng mới.
       </div>
@@ -3942,11 +3942,12 @@ function drawAimArrows() {
 // 11. VÒNG LẶP CHÍNH (bước cố định 1/120 giây)
 // ---------------------------------------------------------------------
 const FIXED = 1 / 120;
+const COUNT_MS = 5000; // thời gian chọn hướng xuất phát trước trận
 let acc = 0, lastT = performance.now(), hudTimer = 0, lastCountN = 0;
 function frame(now) {
   const realDt = Math.min(0.05, (now - lastT) / 1000);
   lastT = now;
-  // đếm ngược 3 giây rồi cùng xuất phát
+  // đếm ngược 5 giây (chọn hướng) rồi cùng xuất phát
   if (G.phase === 'count') {
     const left = (G.countEnd - now) / 1000;
     const n = Math.ceil(left);
@@ -4478,11 +4479,11 @@ function startLocal() {
   startCount();
 }
 
-/** Đếm ngược 3 giây: bóng đứng yên (không di chuyển, không sát thương, không tung chiêu),
+/** Đếm ngược 5 giây: bóng đứng yên (không di chuyển, không sát thương, không tung chiêu),
  *  người chơi chỉ được chỉnh hướng xuất phát của quả bóng mình. */
 function startCount() {
   G.phase = 'count';
-  G.countEnd = performance.now() + 3000;
+  G.countEnd = performance.now() + COUNT_MS;
   lastCountN = 0;
   $('aimBar').hidden = true;
   syncButtons();
