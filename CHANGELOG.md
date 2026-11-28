@@ -1,5 +1,18 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – 8 bóng Thiên Địa & 5 bản đồ mới] – 2026-11-28
+- **8 quả bóng 🌍 Thiên Địa** (tổng 63 quả; có bộ lọc "🌍 Thiên địa" trong Bộ sưu tập), engine thêm môi trường toàn sân (nhật thực, gió bão, trọng lực, đảo nghịch), ranh giới sân thu hẹp và tường chắn bóng/đạn:
+  - S **Nhật Thực Thiên Thạch** – sân tối sầm có quầng sáng, 5 thiên thạch rơi (55% thắng trước bậc S).
+  - S **Thu Hẹp Lãnh Địa** – vòng ranh giới co lại dồn mọi bóng vào giữa sân, hết giờ bùng nổ đẩy văng (62%).
+  - S **Đảo Nghịch Quy Luật** – 4 giây địch rối loạn hướng, va chạm/nảy của bản thân thành tăng tốc + hồi máu (47%).
+  - S **Bão Tố Lốc Xoáy** – gió thổi lệch quỹ đạo, 2 cột lốc xoáy, 4 tia sét (48%).
+  - S **Kiến Tạo Tường Băng** – 2 tường băng chặn bóng & làm mặt nảy cho đạn (55%; nâng từ A vì mạnh vượt bậc A).
+  - S **Đổi Trọng Lực** – luân phiên Trôi Lướt (địch mất bám) / Hố Trọng Lực kéo về tâm (56%; nâng từ A).
+  - A **Mưa Sao Băng** – 5 vệt sao băng bay chéo, nổ nhẹ, để lại vệt sáng lấp lánh (47% trước bậc A).
+  - A **Dựng Trạm Năng Lượng** – trạm tiếp sức (tăng tốc + hồi máu) và trạm xung kích bắn địch lại gần (60%).
+- **5 bản đồ mới** (chọn trong Phòng Chờ, đồng bộ khi chơi online): 🌸 Rừng Anh Đào (cánh hoa rơi), 🌋 Lõi Núi Lửa (vết nứt dung nham, tàn lửa), ❄ Băng Nguyên Cực Quang (cực quang, tuyết), 🌃 Thành Phố Neon (lưới neon, tia quét, mưa đêm), 🌊 Đáy Đại Dương (ánh nước, tia nắng, bong bóng, san hô).
+- Sửa lỗi: hiệu ứng toàn sân của trận trước không còn sót sang trận sau.
+
 ## [Đấu Trường Quả Cầu Anime – Xếp Hạng: đối thủ máy sau 10 giây · Móc Câu nhanh hơn] – 2026-11-28
 - Đấu Xếp Hạng: tìm người 10 giây, không có thì vào trận với đối thủ máy cùng hạng (tên người chơi ngẫu nhiên). Máy mạnh dần theo hạng: Tân Binh/Đồng dùng bóng A (+5%/+7% máu & sát thương), từ Bạc dùng bóng S (+0…8%). Đo mô phỏng với người cầm bóng S: ~77% thắng ở Tân Binh → ~52% ở Bạc → ~20–27% ở Cao Thủ/Thách Đấu.
 - Máy chủ (`orb_ranked_bot_*`): trận máy tính 60% điểm, tối đa 10 trận có điểm / 24 giờ, trận phải kéo dài ≥ 12 giây, bỏ trận giữa chừng tính thua; mỗi trận chỉ tính một lần. Cần chạy lại `supabase/dau-truong-xep-hang.sql`.
