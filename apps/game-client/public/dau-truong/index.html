@@ -1538,7 +1538,7 @@ const ROSTER = [
   {
     id: 'slimeking', tier: 'S', toon: true, power: true, name: 'Vua Slime Phân Tách', inspire: 'Slime (hoạt hình)', glyph: '◕', color: '#34d399', color2: '#065f46',
     hp: 180, atk: 11, spd: 240, cd: 5.5, ult: 'Phân Tách Vô Tận',
-    splitOnHit: true, regrow: true,
+    splitOnHit: true, regrow: true, ffaHpMul: 1.5,
     drawFx(o) { // vòng đếm ngược lớn lại
       if (!o.gen || !o.growAt) return;
       const p = clamp(1 - (o.growAt - G.time) / slimeRegrow(), 0, 1);
@@ -1547,7 +1547,7 @@ const ROSTER = [
       if (p > 0.75) { ctx.globalAlpha = (p - 0.75) * 2; ctx.fillStyle = '#6ee7b7'; ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 6 + Math.sin(G.time * 30) * 3, 0, TAU); ctx.fill(); }
       ctx.restore();
     },
-    skill: '<b>Phân Tách Vô Tận</b>: mỗi lần nhận sát thương, slime <b>tách làm đôi</b> – mỗi nửa mang <b>một nửa số máu</b> hiện có, nhỏ lại và văng ra hai phía; mỗi slime con bị đánh lại tách đôi tiếp… liên tục <b>không giới hạn số đời</b>, cho tới khi không thể tách nữa (slime còn dưới 8 máu). Slime con nào <b>sống sót 3 giây</b> (Hỗn Chiến: <b>2 giây</b>) không bị giết sẽ <b>lớn lại thành Vua Slime ban đầu</b> (đủ máu, đủ cỡ) – <b>không giới hạn số lần</b> (tối đa 12 slime cùng lúc trên sân). Mỗi slime con <b>giữ nguyên sát thương</b> của bản thể → mỗi lần tách, <b>tổng sát thương cả bầy nhân đôi</b>. Chiêu: mọi slime đều ném <b>cục nhầy</b> 12 sát thương + làm chậm 1,5 giây.',
+    skill: '<b>Phân Tách Vô Tận</b>: mỗi lần nhận sát thương, slime <b>tách làm đôi</b> – mỗi nửa mang <b>một nửa số máu</b> hiện có, nhỏ lại và văng ra hai phía; mỗi slime con bị đánh lại tách đôi tiếp… liên tục <b>không giới hạn số đời</b>, cho tới khi không thể tách nữa (slime còn dưới 8 máu). Trong <b>Hỗn Chiến</b>: máu ban đầu ×1,5 và slime con chỉ cần 2 giây để lớn lại. Slime con nào <b>sống sót 3 giây</b> (Hỗn Chiến: <b>2 giây</b>) không bị giết sẽ <b>lớn lại thành Vua Slime ban đầu</b> (đủ máu, đủ cỡ) – <b>không giới hạn số lần</b> (tối đa 12 slime cùng lúc trên sân). Mỗi slime con <b>giữ nguyên sát thương</b> của bản thể → mỗi lần tách, <b>tổng sát thương cả bầy nhân đôi</b>. Chiêu: mọi slime đều ném <b>cục nhầy</b> 12 sát thương + làm chậm 1,5 giây.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
       fireProjectile(o, t, { kind: 'slime', r: Math.max(6, 11 - 1.5 * (o.gen || 0)), speed: 560, dmg: 12, color: '#6ee7b7', life: 1.2, slow: 1.5 });
@@ -3044,12 +3044,14 @@ function slashFx(x, y, ang, len, color) { G.slashes.push({ x, y, ang, len, life:
 // ---------------------------------------------------------------------
 // 8. TẠO ĐẤU SĨ, ĐẠN, VÙNG HIỆU ỨNG
 // ---------------------------------------------------------------------
+/** Máu ban đầu theo chế độ (vd Vua Slime nhiều máu hơn trong Hỗn Chiến). */
+function baseHpOf(def) { return Math.round(def.hp * (G.mode === 'ffa' && def.ffaHpMul ? def.ffaHpMul : 1)); }
 function makeOrb(def, x, y, idx, team) {
   const t = TIERS[def.tier];
   const r = t.r * G.sizeMul;
   return {
     def, idx, team, x, y, vx: 0, vy: 0, owner: '',
-    r, baseR: r, hp: def.hp, maxHp: def.hp, alive: true,
+    r, baseR: r, hp: baseHpOf(def), maxHp: baseHpOf(def), alive: true,
     cd: def.cd * srand(0.35, 0.65),                 // chiêu đầu ra sớm hơn
     shieldMul: 1, shieldUntil: 0, shieldKind: null,
     frozenUntil: 0, slowUntil: 0, chargeUntil: 0, dashUntil: 0, dashBonus: 0, boostUntil: 0, giantUntil: 0,
@@ -3089,7 +3091,7 @@ function regrowSlime(o, dt = 0) {
   const root = o.family || o;
   if ((root.regrows || 0) >= SLIME_REGROW_MAX) { o.growAt = 0; return; }
   root.regrows = (root.regrows || 0) + 1;
-  o.gen = 0; o.growAt = 0; o.maxHp = o.def.hp; o.hp = o.def.hp; o.baseR = o.r0 || o.baseR;
+  o.gen = 0; o.growAt = 0; o.maxHp = baseHpOf(o.def); o.hp = o.maxHp; o.baseR = o.r0 || o.baseR;
   burst(o.x, o.y, '#34d399', 30, 260); ringFx(o.x, o.y, o.baseR + 30, '#6ee7b7', 0.5, 6);
   floatText(o.x, o.y - o.baseR - 18, 'LỚN LẠI!', '#6ee7b7', 20); Sound.play('grow');
 }
@@ -5486,7 +5488,7 @@ function updateHud() {
     if (!h) return;
     // cả đàn (Vua Slime): cộng máu mọi slime cùng gốc
     const fam = o.def.splitOnHit ? G.orbs.filter((x) => (x.family || x) === o && x.alive) : null;
-    const hpNow = fam ? fam.reduce((a, x) => a + x.hp, 0) : o.hp, hpMax = fam ? Math.max(o.def.hp, Math.round(fam.reduce((a, x) => a + x.maxHp, 0))) : o.maxHp;
+    const hpNow = fam ? fam.reduce((a, x) => a + x.hp, 0) : o.hp, hpMax = fam ? Math.max(baseHpOf(o.def), Math.round(fam.reduce((a, x) => a + x.maxHp, 0))) : o.maxHp;
     const famAlive = fam ? fam.length > 0 : o.alive;
     const pct = Math.min(100, (hpNow / hpMax) * 100);
     h.fill.style.width = pct + '%';

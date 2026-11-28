@@ -2,6 +2,7 @@
 
 ## [Đấu Trường Quả Cầu Anime – Vua Slime mạnh hơn trong Hỗn Chiến] – 2026-11-28
 - Vua Slime: trong **Hỗn Chiến**, slime con chỉ cần sống sót **2 giây** để lớn lại (các chế độ khác vẫn 3 giây). Mô phỏng Hỗn Chiến 6 người: về nhất 3% → 33% (trung bình 17%); đấu 1–1 không đổi.
+- Vua Slime trong **Hỗn Chiến**: máu ban đầu ×1,5 (180 → 270; slime con lớn lại cũng về 270). Về nhất ~36% → ~44%.
 
 ## [Đấu Trường Quả Cầu Anime – Sức mạnh chiêu bậc thấp · Slime lớn lại vô hạn · Thánh Hỏa Thanh Tẩy] – 2026-11-28
 - **⚡ Sức mạnh chiêu** (bậc B, C, D): máu & sát thương va chạm kéo về gần mức gốc (tối đa +20%, trừ vài quả bù nhẹ), thay vào đó tăng **sức mạnh chiêu** từng quả (×0,8 – ×2,5): nhân sát thương chiêu, hồi máu từ chiêu và phần thưởng va chạm do chiêu tạo ra; mô tả chiêu tự cập nhật số và có nhãn "⚡ Chiêu cường hoá ×…". Tỉ lệ thắng trong bậc: B 35–65% · C 38–65% · D 29–61%; đấu chéo: B thắng A 33% · C thắng B 27% · D thắng C 33%. Trận ngắn hơn (trung vị 30–38 giây).
