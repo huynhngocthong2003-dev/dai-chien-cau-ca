@@ -14,6 +14,16 @@ nên các migration của Đấu Trường cần chạy tay trong Supabase (gi�
    ```
 4. Kiểm tra: mở game `/dau-truong/`, đăng nhập → biểu tượng ☁ cạnh ID; mở `/dau-truong/admin.html` → đăng nhập bằng tài khoản admin.
 
+5. **Bật Đấu Xếp Hạng** (sau bước 2): New query → chép toàn bộ file **`supabase/dau-truong-xep-hang.sql`** → **Run**.
+   (Giống file gốc `supabase/migrations/20261217000001_orb_ranked.sql`; tự chụp bản sao lưu tất cả người chơi trước khi chạy.)
+   Tạo bảng hạng `orb_rank`, trận `orb_ranked_matches`, lịch sử `orb_rank_history`, cấu hình `orb_ranked_config` và các hàm tính điểm.
+   Kiểm tra: mở game → ⚔ Phòng đấu → thẻ **🏆 Đấu Xếp Hạng** hiện "Đang phân hạng · 0 RP" (thay vì "Máy chủ chưa bật Xếp Hạng").
+
+### Chỉnh Đấu Xếp Hạng (tuỳ chọn, trong SQL Editor)
+- Đổi mùa: `update public.orb_ranked_config set season = 2, season_name = 'Mùa 2';` (mọi người bắt đầu lại 0 RP, bảng mùa cũ vẫn giữ).
+- Điều kiện mở (mặc định cấp 5, 5 quả cầu, 10 trận): `update public.orb_ranked_config set min_level = 3, min_owned = 3, min_matches = 5;`
+- Điểm thắng/thua: các cột `win_even` (25), `loss_even` (20), `placement_games` (5), `tier_shield` (3).
+
 Không file nào ở trên sửa hay xoá bảng của game câu cá.
 
 **Tự động hoá (tuỳ chọn)**: thêm 2 khóa ở GitHub → Settings → Secrets and variables → Actions → *Secrets*:

@@ -4126,7 +4126,8 @@ function renderSlots() {
     if (s.kind === 'empty') {
       const acts = NET.room && NET.role === 'client'
         ? `<button class="mini" data-act="sit">🪑 Ngồi vào ô này</button>`
-        : `<button class="mini inv" data-act="inv">＋ Mời người chơi</button><button class="mini" data-act="bot">🤖 Thêm máy</button>`;
+        : NET.lob && NET.lob.ranked ? '<span class="fst">🏆 Phòng Xếp Hạng – chờ đối thủ là người thật…</span>'
+          : `<button class="mini inv" data-act="inv">＋ Mời người chơi</button><button class="mini" data-act="bot">🤖 Thêm máy</button>`;
       return `<div class="slot empty" data-i="${i}" style="${border}"><div class="plus">＋</div><div style="min-width:0"><div class="lbl">${label}</div><div class="who">Ô trống – đang chờ người chơi</div><div class="acts">${acts}</div></div></div>`;
     }
     const d = DEF_BY_ID[s.b];
@@ -4163,6 +4164,7 @@ function renderSlots() {
 function setSeatBot(i, on) {
   if (NET.room) {
     if (NET.role !== 'host') return;
+    if (NET.lob.ranked && on) { toast('Đấu Xếp Hạng không có máy – chờ đối thủ là người thật.'); return; }
     const st = NET.lob.seats[i];
     if (!st || st.p) return;
     st.e = on ? 0 : 1; if (on) st.b = randomBall();
@@ -4433,6 +4435,7 @@ function clearWorld() {
 /** Dựng trận từ "bản mô tả": cùng spec + cùng hạt giống → mọi máy ra cùng một trận. */
 function setupMatch(spec) {
   clearWorld();
+  G.rankedId = '';
   G.mode = spec.mode;
   G.sizeMul = MODES[spec.mode].size;
   G.rng = mulberry32(spec.seed);
@@ -4564,6 +4567,10 @@ function syncLobbyButtons() {
   const en = $('btnEnter');
   if (NET.role === 'client') { en.disabled = true; en.textContent = '⏳ Chờ chủ phòng bắt đầu'; }
   else { en.disabled = !!why; en.textContent = '⚔ Bắt đầu trận'; }
+  // phòng Xếp Hạng: ghép ngẫu nhiên, không mời bạn, tự vào trận khi cả hai sẵn sàng
+  const ranked = !!(NET.room && NET.lob && NET.lob.ranked);
+  $('btnCopy').hidden = ranked; $('btnInvite').hidden = ranked;
+  if (ranked) { en.disabled = true; en.textContent = '🏆 Tự vào trận khi cả hai sẵn sàng'; }
   const emptyN = lobbySeats().filter((x) => x.kind === 'empty').length;
   const skip = emptyN && MODES[NET.room && NET.lob ? NET.lob.mode : G.mode].minStart ? ` (${emptyN} ô trống sẽ bỏ qua – trận ${lobbySeats().length - emptyN} người)` : '';
   $('startHint').textContent = why || (NET.role === 'client' ? '' : 'Tất cả đã sẵn sàng – bấm Bắt đầu trận!' + skip);
@@ -4573,6 +4580,7 @@ function syncLobbyButtons() {
 function startBlocker() {
   if (NET.room) {
     if (!NET.lob) return 'Đang nhận thông tin phòng…';
+    if (NET.lob.ranked && NET.lob.seats.some((s) => !s.p || !s.f)) return 'Đấu Xếp Hạng: đang chờ đối thủ (người thật, có tài khoản) vào phòng…';
     const emp = NET.lob.seats.filter((s) => !s.p && s.e).length;
     const minS = MODES[NET.lob.mode].minStart;
     if (minS) { if (NET.lob.seats.length - emp < minS) return `Hỗn Chiến cần ít nhất ${minS} người chơi hoặc máy.`; }
@@ -4778,9 +4786,11 @@ function showVictory() {
       <div class="total">Tổng nhận: <b>+${rw.gold} Vàng</b> · Hiện có ${Save.gold.toLocaleString('vi-VN')} Vàng</div>
     </div>` : '';
   const isClient = NET.role === 'client';
+  const ranked = isRankedMatch();
   const el = $('victory');
   el.innerHTML = `<div class="victory">
     <div class="crown">${title}</div>
+    ${ranked ? `<div class="rkres" id="rkRes">${rankResHtml()}</div>` : ''}
     <div class="hero">${orbIconHtml(d, true)}</div>
     <h2 style="color:${rgba(d.color, 1, 1.3)}">${m.teams ? '⭐ ' : ''}${d.name}</h2>
     <div class="meta"><span class="badge sm ${d.tier}">${d.tier}</span> ${m.teams ? 'Người hùng trận đấu · ' : ''}Cấp ${d.tier} – ${t.label} · Tuyệt kỹ: ${d.ult} · Thời gian trận: ${G.time.toFixed(1)} giây</div>
@@ -4790,17 +4800,18 @@ function showVictory() {
       <tbody>${rows}</tbody>
     </table>
     <div class="row">
-      ${isClient ? '<span class="hint">Chờ chủ phòng bắt đầu ván mới…</span>' : `<button class="btn primary" id="vAgain">↺ ${NET.role === 'host' ? 'Ván Mới' : 'Chơi Lại'}</button>`}
-      <button class="btn purple" id="vLobby">🏟 Về Phòng Chờ</button>
-      ${NET.role === 'client' ? '' : '<button class="btn" id="vHall">🏠 Sảnh</button>'}
+      ${ranked ? '<button class="btn gold" data-rk="again">🏆 Trận xếp hạng mới</button>' : isClient ? '<span class="hint">Chờ chủ phòng bắt đầu ván mới…</span>' : `<button class="btn primary" id="vAgain">↺ ${NET.role === 'host' ? 'Ván Mới' : 'Chơi Lại'}</button>`}
+      ${ranked ? '' : '<button class="btn purple" id="vLobby">🏟 Về Phòng Chờ</button>'}
+      ${NET.role === 'client' && !ranked ? '' : '<button class="btn" id="vHall">🏠 Sảnh</button>'}
       <button class="btn gold" id="vWheel">🎡 Vòng Quay</button>
       <button class="btn" id="vClose">✕ Đóng</button>
     </div>
   </div>`;
   el.classList.add('show');
+  if (ranked) rankedReport();
   if ($('vAgain')) $('vAgain').onclick = () => onRestart();
-  $('vLobby').onclick = () => goLobby();
-  if ($('vHall')) $('vHall').onclick = () => goHall();
+  if ($('vLobby')) $('vLobby').onclick = () => goLobby();
+  if ($('vHall')) $('vHall').onclick = () => (ranked ? (leaveRoom('hall'), goPage('battle')) : goHall());
   $('vWheel').onclick = () => openWheel();
   $('vClose').onclick = () => el.classList.remove('show');
   Sound.play('win');
@@ -5152,7 +5163,8 @@ async function getSb() {
   if (SB !== undefined) return SB;
   SB_LOADING = SB_LOADING || (async () => {
     if (!/^https?:$/.test(location.protocol)) return null;
-    try { if (new URLSearchParams(location.search).has('mockroom')) return null; } catch { /* bỏ qua */ }
+    // ?mockroom: phòng chơi giả để kiểm thử – kèm ?mocksb thì vẫn dùng máy chủ tài khoản (kiểm thử Xếp Hạng)
+    try { const q = new URLSearchParams(location.search); if (q.has('mockroom') && !q.has('mocksb')) return null; } catch { /* bỏ qua */ }
     // trang trên claude.ai: không có máy chủ tài khoản (dùng phòng chơi của Claude)
     if (window.claude && window.claude.use) return null;
     if (!(await loadScript('./online-config.js'))) return null;
@@ -5324,6 +5336,7 @@ async function signUpAcc(email, password, name) {
   return '';
 }
 async function signOutAcc() {
+  Object.assign(RANK, { st: null, at: 0, err: '', cur: null }); stopRanked();
   if (ACC.dirty) await pushNow();
   const sb = await getSb();
   try { await sb.auth.signOut(); } catch { /* bỏ qua */ }
@@ -5567,6 +5580,7 @@ function hostTick() {
       if (s2.k !== k || s2.r !== r) { s2.k = k; s2.r = r; changed = true; }
     }
     if (changed) { renderOnline(); renderSlots(); }
+    if (lob.ranked && !startBlocker()) { hostStartMatch(true); return; }
   }
   hostPublish();
 }
@@ -5591,6 +5605,7 @@ function hostStartCount() {
   NET.spec = {
     mode: lob.mode, arena: lob.arena, seed: (Math.random() * 2 ** 31) | 0, seats,
     balls: seats.map((i) => lob.seats[i].b), owners: seats.map((i) => lob.seats[i].n || ''), dirs,
+    rk: lob.ranked ? 1 : 0, fids: seats.map((i) => lob.seats[i].f || ''),
   };
   NET.ph = 'count'; NET.sq++;
   enterCountFromSpec(NET.spec);
@@ -5658,6 +5673,7 @@ function onPeers(peers) {
   const host = NET.peers.find((p) => !p.isMe && p.presence && p.presence.h === 1);
   if (!host) {
     if (performance.now() - NET.hostLost > 6000) $('netStatus').textContent = '⚠ Không thấy chủ phòng (sai mã hoặc chủ phòng đã rời).';
+    rankHostGone();
     return;
   }
   NET.hostLost = performance.now();
@@ -5670,6 +5686,7 @@ function onPeers(peers) {
     if (hp.lob.arena && hp.lob.arena !== G.arena) setArena(hp.lob.arena, true);
     renderOnline();
     renderSlots();
+    checkRankedLobby();
   }
   syncLobbyButtons();
   if (Number.isFinite(hp.sp)) { G.speed = clamp(hp.sp, 0.5, 3); $('speed').value = G.speed; $('speedVal').textContent = fmtSpeed(G.speed); }
@@ -5704,6 +5721,7 @@ function enterCountFromSpec(spec) {
   // chỉ số quả bóng trong trận ↔ chỉ số ô trong phòng
   const mine = Array.isArray(spec.seats) ? spec.seats.map((si, oi) => (my.includes(si) ? oi : -1)).filter((oi) => oi >= 0) : my;
   setupMatch({ ...spec, mine });
+  if (spec.rk) rankedBegin(spec);
   startCount();
 }
 
@@ -5718,6 +5736,7 @@ function renderOnline() {
     return;
   }
   $('roomRole').innerHTML = NET.role === 'host' ? '🟢 Phòng trực tuyến đang mở · <b>Bạn là chủ phòng</b>' : '🟢 Đã vào phòng trực tuyến';
+  if (NET.lob && NET.lob.ranked) $('roomRole').innerHTML = '🏆 <b>PHÒNG XẾP HẠNG</b> · 1 đấu 1 · chọn bóng rồi bấm ✅ Sẵn sàng';
   const lob = NET.lob;
   if (!lob) { $('netStatus').textContent = 'Đang nhận thông tin phòng…'; return; }
   const m = MODES[lob.mode];
@@ -6059,7 +6078,9 @@ const titleName = (id) => TITLES[id] || TITLES[''];
 
 /** Hồ sơ rút gọn gửi kèm trạng thái online (để người khác xem hồ sơ của mình). */
 function myProfileCard() {
-  return { lv: levelInfo().lv, m: Save.matches, w: Save.wins, t: myTitleId(), mb: UI.myBall, fv: Save.fav.slice(0, 3), o: ownedCount() };
+  const s = RANK.st;
+  const rk = s && s.wins + s.losses > 0 && s.placement >= s.placement_games ? [rankInfo(s.rp, s.challenger).tier, s.rp] : null;
+  return { lv: levelInfo().lv, m: Save.matches, w: Save.wins, t: myTitleId(), mb: UI.myBall, fv: Save.fav.slice(0, 3), o: ownedCount(), ...(rk ? { rk } : {}) };
 }
 function cleanProfile(pf) {
   if (!pf || typeof pf !== 'object') return null;
@@ -6067,6 +6088,7 @@ function cleanProfile(pf) {
   return {
     lv: n(pf.lv, 99) || 1, m: n(pf.m, 1e6), w: n(pf.w, 1e6), o: n(pf.o, ROSTER.length),
     t: TITLES[pf.t] ? pf.t : '', mb: DEF_BY_ID[pf.mb] ? pf.mb : '', fv: Array.isArray(pf.fv) ? pf.fv.filter((id) => DEF_BY_ID[id]).slice(0, 3) : [],
+    rk: Array.isArray(pf.rk) && Number.isFinite(pf.rk[0]) && Number.isFinite(pf.rk[1]) ? [clamp(Math.floor(pf.rk[0]), 0, 7), clamp(Math.floor(pf.rk[1]), 0, 99999)] : null,
   };
 }
 
@@ -6097,7 +6119,7 @@ function hallPresence() {
   // phòng công khai đang chờ ghép trận
   if (MM.public && NET.role === 'host' && NET.lob && NET.ph === 'lobby') {
     const e = NET.lob.seats.filter((s) => !s.p && s.e).length;
-    if (e > 0) p.pub = { c: NET.code, m: NET.lob.mode, e };
+    if (e > 0) p.pub = { c: NET.code, m: NET.lob.mode, e, ...(NET.lob.ranked ? { rk: 1, r: RANK.st ? RANK.st.mmr : 1000 } : {}) };
   }
   const j = JSON.stringify(p);
   if (j === HALL.lastPres) return;
@@ -6113,7 +6135,7 @@ function onHallPeers(peers) {
     const pr = p && p.presence;
     if (!pr || p.isMe || !fidOk(pr.f) || pr.f === Save.fid || seen.has(pr.f)) continue;
     seen.add(pr.f);
-    const pub = pr.pub && typeof pr.pub === 'object' && roomCodeOk(pr.pub.c) && MODE_KEYS.includes(pr.pub.m) && Number.isFinite(pr.pub.e) ? { c: String(pr.pub.c), m: pr.pub.m, e: pr.pub.e | 0 } : null;
+    const pub = pr.pub && typeof pr.pub === 'object' && roomCodeOk(pr.pub.c) && MODE_KEYS.includes(pr.pub.m) && Number.isFinite(pr.pub.e) ? { c: String(pr.pub.c), m: pr.pub.m, e: pr.pub.e | 0, rk: pr.pub.rk === 1 ? 1 : 0, r: Number.isFinite(pr.pub.r) ? pr.pub.r : 1000 } : null;
     HALL.peers.push({
       f: pr.f, n: cleanName(pr.n) || 'Đấu Sĩ', rc: roomCodeOk(pr.rc) ? String(pr.rc) : '',
       fr: strArr(pr.fr), ac: strArr(pr.ac), iv: pr.iv && typeof pr.iv === 'object' ? pr.iv : {},
@@ -6479,7 +6501,7 @@ function questListHtml(p = UI.qtab || 'daily') {
 }
 function renderHome() {
   const sc = showcaseList();
-  const pubs = HALL.peers.filter((p) => p.pub).length;
+  const pubs = HALL.peers.filter((p) => p.pub && !p.pub.rk).length;
   const nFriendsOn = Save.friends.filter((x) => hallPeer(x.f)).length;
   $('pg-home').innerHTML = `
     <div class="hero box">
@@ -6524,6 +6546,7 @@ function renderBattle() {
     <h2 class="pgtitle">⚔ Phòng đấu</h2>
     ${NET.room ? `<div class="box roomnow"><div>🟢 Bạn đang ở <b>${roomLabel()}</b> · ${NET.role === 'host' ? 'chủ phòng' : 'người chơi'}${MM.public ? ' · phòng công khai' : ''}</div>
       <div class="row"><button class="btn primary sm" data-go="lobby">🏟 Về Phòng Chờ</button><button class="btn sm" data-leave="1">🚪 Rời phòng</button></div></div>` : ''}
+    ${rankCardHtml()}
     <div class="bgrid">
       <div class="box bcard"><div class="bhead"><span class="bic">🏟</span><h3>Tạo phòng</h3></div><p class="hint">Mở Phòng Chờ, mời bạn bè bằng mã phòng hoặc thêm máy vào ô trống.</p>
         ${modeSel('create', UI.bm.create)}<button class="btn primary" data-create="1">Tạo phòng</button></div>
@@ -6577,7 +6600,7 @@ async function startMatchmaking(mode) {
 function stopMatchmaking() { MM.searching = false; clearInterval(MM.timer); renderPage(); }
 function mmTick() {
   if (!MM.searching) return;
-  const cand = HALL.peers.filter((p) => p.pub && p.pub.e > 0 && (MM.mode === 'any' || p.pub.m === MM.mode)).sort((a, b) => +a.pub.c - +b.pub.c)[0];
+  const cand = HALL.peers.filter((p) => p.pub && !p.pub.rk && p.pub.e > 0 && (MM.mode === 'any' || p.pub.m === MM.mode)).sort((a, b) => +a.pub.c - +b.pub.c)[0];
   if (cand) {
     stopMatchmaking();
     if (MODES[cand.pub.m]) setMode(cand.pub.m);
@@ -6617,7 +6640,7 @@ function friendListHtml(compact) {
     const acts = (p ? `<button class="btn sm purple" data-fa="inv" data-f="${x.f}">${inv ? '✔ Đã mời' : '📨 Mời'}</button>` : '')
       + (!compact && p && p.rc && p.rc !== NET.code ? `<button class="btn sm" data-fa="join" data-c="${p.rc}">🚪 Vào cùng</button>` : '')
       + (!compact ? `<button class="btn sm" data-fa="view" data-f="${x.f}">👤</button><button class="btn sm ghost" data-fa="rm" data-f="${x.f}" title="Huỷ kết bạn">Huỷ</button>` : '');
-    return friendRow(`${dot(!!p)}<div class="fname"><b>${escapeHtml(x.n)}</b> ${emo(p)}<span class="fcode">#${x.f}</span><div class="fst">${statusOf(p)}</div></div>`, acts);
+    return friendRow(`${dot(!!p)}<div class="fname"><b>${escapeHtml(x.n)}</b> ${emo(p)}<span class="fcode">#${x.f}</span>${rkChip((p && p.pf) || x.pf)}<div class="fst">${statusOf(p)}</div></div>`, acts);
   }).join('');
 }
 function renderInviteFriends() { $('inviteFriends').innerHTML = Save.friends.length ? friendListHtml(true) : '<div class="hint">Chưa có bạn bè – kết bạn ở mục <b>👥 Bạn bè</b>.</div>'; }
@@ -6667,7 +6690,7 @@ function playerCardHtml(f, n, pf, withActions, peer) {
   const mb = DEF_BY_ID[pf.mb];
   return `<div class="pcard">
     <div class="pchead">${mb ? `<img src="${portraitUrl(mb, 96)}" width="56" height="56" alt="">` : ''}<div><b style="font-size:17px">${escapeHtml(n)}</b> <span class="fcode">#${f}</span>
-      <div class="fst">Lv.${pf.lv} · 🎖 ${titleName(pf.t)}${peer ? ' · ' + statusOf(peer) : ''}</div></div></div>
+      <div class="fst">Lv.${pf.lv} · 🎖 ${titleName(pf.t)}${rkChip(pf)}${peer ? ' · ' + statusOf(peer) : ''}</div></div></div>
     <div class="pstats3"><div><b>${pf.m}</b><span>Trận</span></div><div><b>${pf.w}</b><span>Thắng</span></div><div><b>${rate}%</b><span>Tỷ lệ</span></div><div><b>${pf.o}</b><span>Bóng</span></div></div>
     ${pf.fv.length ? `<div class="hint" style="text-align:left">Bóng yêu thích:</div><div class="minis">${sc.ids.map((id) => `<span><img src="${portraitUrl(DEF_BY_ID[id], 64)}" width="34" height="34" alt="">${DEF_BY_ID[id].name}</span>`).join('')}</div>` : ''}
     ${withActions && !isFriend(f) && f !== Save.fid ? `<div class="row" style="margin-top:8px">${isSent(f) ? '<span class="fst">⏳ Đã gửi lời mời</span>' : `<button class="btn sm primary" data-fa="add" data-f="${f}">➕ Kết bạn</button>`}</div>` : ''}
@@ -6810,6 +6833,7 @@ function renderProfile() {
         <div class="fst">${li.cur}/${li.need} KN tới Lv.${li.lv + 1} · mỗi trận +20 KN, thắng thêm +30 KN</div>
       </div>
     </div>
+    ${rankProfileHtml()}
     <div class="statgrid">
       <div class="box"><b>${Save.matches}</b><span>Tổng trận</span></div>
       <div class="box"><b>${Save.wins}</b><span>Thắng</span></div>
@@ -7031,7 +7055,370 @@ $('chkWake').onchange = (e) => {
   if (Save.wake) wakeOn(); else wakeOff();
   toast(Save.wake ? '☀ Đã bật giữ màn hình sáng' : 'Đã tắt giữ màn hình sáng');
 };
-window.__orbGame = { encodeSnap, applySnap, openRestore, exportCode, parseCode, WAKE, _step: (dt) => step(dt), _beginRun: () => beginRun(), MAIL, loadMail, claimMail, openMailbox, ACC, getSb, pushNow, signOutAcc, MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
+// ---------------------------------------------------------------------
+// ĐẤU XẾP HẠNG (Ranked) – 1 đấu 1 với người thật, RP / MMR do MÁY CHỦ tính
+// (Supabase: supabase/dau-truong-xep-hang.sql). Trình duyệt chỉ báo "ai thắng trận có mã X".
+// ---------------------------------------------------------------------
+const RANK_TIERS = [
+  { name: 'Tân Binh', c1: '#e2e8f0', c2: '#475569', gem: '#cbd5e1' },
+  { name: 'Đồng', c1: '#f5c08f', c2: '#7c3f16', gem: '#fb923c' },
+  { name: 'Bạc', c1: '#f8fafc', c2: '#64748b', gem: '#cbd5e1' },
+  { name: 'Vàng', c1: '#fef08a', c2: '#a16207', gem: '#facc15' },
+  { name: 'Bạch Kim', c1: '#99f6e4', c2: '#0f766e', gem: '#2dd4bf' },
+  { name: 'Kim Cương', c1: '#c7d2fe', c2: '#3730a3', gem: '#60a5fa' },
+  { name: 'Cao Thủ', c1: '#f5d0fe', c2: '#7e22ce', gem: '#e879f9' },
+  { name: 'Thách Đấu', c1: '#fef3c7', c2: '#b91c1c', gem: '#fbbf24' },
+];
+const DIVS = ['IV', 'III', 'II', 'I'];
+/** Bậc + cấp từ RP (khớp hàm orb_rank_tier trên máy chủ): Tân Binh < 100 · Đồng→Kim Cương mỗi bậc 4 cấp × 100 RP · Cao Thủ ≥ 2100. */
+function rankInfo(rp, challenger) {
+  rp = Math.max(0, Math.floor(Number(rp) || 0));
+  if (rp >= 2100) { const tier = challenger ? 7 : 6; return { tier, div: '', name: RANK_TIERS[tier].name, rp, pct: 100, toNext: 0, nextName: '' }; }
+  if (rp < 100) return { tier: 0, div: '', name: 'Tân Binh', rp, pct: rp, toNext: 100 - rp, nextName: 'Đồng IV' };
+  const tier = 1 + Math.floor((rp - 100) / 400), inTier = (rp - 100) % 400, d = Math.floor(inTier / 100);
+  const nextName = d < 3 ? `${RANK_TIERS[tier].name} ${DIVS[d + 1]}` : tier === 5 ? 'Cao Thủ' : `${RANK_TIERS[tier + 1].name} IV`;
+  return { tier, div: DIVS[d], name: `${RANK_TIERS[tier].name} ${DIVS[d]}`, rp, pct: inTier % 100, toNext: 100 - (inTier % 100), nextName };
+}
+/** Huy hiệu bậc (SVG tự vẽ): khiên + đá quý; bậc càng cao càng nhiều cánh, Cao Thủ / Thách Đấu có vương miện. */
+let rkSvgSeq = 0;
+function rankEmblem(tier, size = 56) {
+  const t = RANK_TIERS[tier] || RANK_TIERS[0];
+  const id = 'rke' + (++rkSvgSeq);
+  const nW = tier >= 5 ? 3 : tier >= 3 ? 2 : tier >= 1 ? 1 : 0;
+  let wings = '';
+  for (const s of [-1, 1]) {
+    for (let k = nW - 1; k >= 0; k--) {
+      const y = 30 + k * 14, len = 26 - k * 6, x0 = 50 + s * 18;
+      wings += `<path d="M${x0} ${y - 5} Q${50 + s * (26 + len * 0.6)} ${y - 12 + k * 2} ${50 + s * (24 + len)} ${y - 8 + k * 3} Q${50 + s * (22 + len * 0.75)} ${y + 2} ${50 + s * (20 + len * 0.55)} ${y + 9} L${x0} ${y + 10} Z" fill="url(#${id}w)" stroke="#120a22" stroke-width="2" stroke-linejoin="round"/>`;
+    }
+  }
+  const crown = tier >= 6 ? `<path d="M36 17 L40 5 L46 13 L50 2 L54 13 L60 5 L64 17 Z" fill="${t.gem}" stroke="#120a22" stroke-width="2" stroke-linejoin="round"/>` : '';
+  const flare = tier === 7 ? `<circle cx="50" cy="52" r="46" fill="none" stroke="${t.gem}" stroke-width="2" stroke-dasharray="4 6" opacity=".8"/>` : '';
+  return `<svg class="rkem" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="${t.name}">
+    <defs><linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.c1}"/><stop offset="1" stop-color="${t.c2}"/></linearGradient>
+    <linearGradient id="${id}w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.c1}"/><stop offset="1" stop-color="${t.c2}"/></linearGradient>
+    <radialGradient id="${id}g" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="${t.gem}"/><stop offset="1" stop-color="${t.c2}"/></radialGradient></defs>
+    ${flare}${wings}
+    <path d="M50 14 L74 23 L72 56 Q68 75 50 89 Q32 75 28 56 L26 23 Z" fill="url(#${id}a)" stroke="#120a22" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M50 22 L67 29 L65 55 Q62 69 50 80 Q38 69 35 55 L33 29 Z" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2"/>
+    <path d="M50 35 L61 50 L50 66 L39 50 Z" fill="url(#${id}g)" stroke="#120a22" stroke-width="2" stroke-linejoin="round"/>
+    ${crown}</svg>`;
+}
+const rkChip = (pf) => (pf && pf.rk ? `<span class="rkchip">${rankEmblem(pf.rk[0], 16)}${escapeHtml(rankInfo(pf.rk[1], pf.rk[0] === 7).name)}</span>` : '');
+
+const RANK = { st: null, err: '', loading: false, at: 0, searching: false, t0: 0, wait: 0, timer: 0, cur: null, btab: 'all' };
+const rankedWhyNot = () => (window.claude ? 'Đấu Xếp Hạng chỉ có trên bản chơi online (link GitHub) – cần tài khoản để lưu điểm trên máy chủ.'
+  : !ACC.user ? 'Đăng nhập tài khoản (Hồ sơ → Tài khoản) để đấu Xếp Hạng – điểm được lưu trên máy chủ.' : '');
+async function rankRpc(fn, args) {
+  const sb = await getSb();
+  if (!sb) throw new Error('Chưa kết nối máy chủ');
+  const { data, error } = await sb.rpc(fn, args || {});
+  if (error) throw error;
+  return data;
+}
+const rankErr = (e) => {
+  const m = String((e && e.message) || e || '');
+  return /orb_ranked|does not exist|PGRST202|schema cache/i.test(m) ? 'Máy chủ chưa bật Xếp Hạng – chủ game cần chạy file dau-truong-xep-hang.sql trên Supabase.' : viErr(m);
+};
+/** Tải hạng của mình (tối đa 1 lần / 30 giây trừ khi ép). */
+async function loadRank(force) {
+  if (rankedWhyNot() || RANK.loading || ACC.ver === null || (!force && Date.now() - RANK.at < 30000)) return;
+  RANK.loading = true; RANK.at = Date.now();
+  try {
+    await pushNow(); // máy chủ đọc điều kiện mở khoá từ bản lưu tài khoản
+    RANK.st = await rankRpc('orb_ranked_status'); RANK.err = '';
+  } catch (e) { RANK.err = rankErr(e); }
+  RANK.loading = false;
+  HALL.lastPres = ''; hallPresence();
+  renderRankCard();
+}
+function renderRankCard() {
+  if (UI.view !== 'hall') return;
+  if (UI.page === 'battle') renderBattle();
+  else if (UI.page === 'profile') renderProfile();
+}
+const rankWindow = () => Math.min(1000, 100 + Math.floor((Date.now() - RANK.t0) / 1000) * 20);
+function lastMatchLine() {
+  const c = RANK.cur;
+  if (!c || !c.res) return '';
+  if (c.res.wait) return '<div class="fst">Trận vừa rồi: ⏳ đang chờ máy chủ xác nhận…</div>';
+  if (c.res.err) return `<div class="fst">Trận vừa rồi: ⚠ ${escapeHtml(c.res.err)}</div>`;
+  if (c.res.delta == null) return `<div class="fst">Trận vừa rồi: ⚖ ${escapeHtml(c.res.reason || 'không tính điểm')}</div>`;
+  return `<div class="fst">Trận vừa rồi: <b class="${c.res.delta >= 0 ? 'rkup' : 'rkdown'}">${c.res.delta >= 0 ? '+' : ''}${c.res.delta} RP</b></div>`;
+}
+function rankCardHtml() {
+  loadRank();
+  const why = rankedWhyNot();
+  const head = `<div class="bhead"><span class="bic">🏆</span><h3>Đấu Xếp Hạng</h3>${RANK.st ? `<span class="rkseason">${escapeHtml(RANK.st.season_name || '')}</span>` : ''}</div>`;
+  if (why) return `<div class="box rkcard locked">${head}<div class="rkrow">${rankEmblem(0, 64)}<div><b>🔒 Chưa mở</b><div class="fst">${why}</div></div></div></div>`;
+  if (!RANK.st) {
+    return `<div class="box rkcard">${head}<div class="hint" style="text-align:left">${RANK.err ? `<div class="warn">⚠ ${escapeHtml(RANK.err)}</div><button class="btn sm" data-rk="reload">↻ Thử lại</button>` : '⏳ Đang tải hạng của bạn…'}</div></div>`;
+  }
+  const s = RANK.st, ri = rankInfo(s.rp, s.challenger), tot = s.wins + s.losses, wr = tot ? Math.round((s.wins / tot) * 100) : 0;
+  const plc = s.placement < s.placement_games;
+  const inRankedRoom = NET.room && NET.lob && NET.lob.ranked;
+  const btn = RANK.searching
+    ? `<div class="mmstat">🔎 Đang tìm đối thủ (MMR ±${rankWindow()})… ${Math.floor((Date.now() - RANK.t0) / 1000)}s <button class="btn sm" data-rk="cancel">Huỷ</button></div>`
+    : inRankedRoom ? '<button class="btn gold" data-go="lobby">🏟 Về phòng xếp hạng</button>'
+      : `<button class="btn gold" data-rk="find" ${s.block || !HALL.room ? 'disabled' : ''}>⚔ Tìm trận xếp hạng</button>`;
+  return `<div class="box rkcard">${head}
+    <div class="rkrow">${rankEmblem(ri.tier, 78)}<div class="rkinfo">
+      <div class="rkname" style="color:${RANK_TIERS[ri.tier].c1}">${plc ? 'Đang phân hạng' : ri.name}</div>
+      <div class="fst"><b>${s.rp} RP</b>${!plc && ri.toNext ? ` · còn ${ri.toNext} RP lên ${ri.nextName}` : ''}${s.shield > 0 ? ` · 🛡 chống tụt bậc ${s.shield} trận` : ''}</div>
+      ${ri.tier < 6 ? `<div class="xpbar rkbar"><i style="width:${ri.pct}%"></i></div>` : ''}
+      <div class="fst">${plc ? `Phân hạng ${s.placement}/${s.placement_games} – điểm ×2, thua không trừ` : `🏅 Hạng #${s.position} máy chủ`} · ${s.wins}T ${s.losses}B · ${wr}%</div>
+      ${lastMatchLine()}</div></div>
+    ${s.block ? `<div class="warn">🔒 ${escapeHtml(s.block)}</div>` : ''}
+    ${HALL.room ? '' : '<div class="hint">⚠ Cần kết nối máy chủ trực tuyến.</div>'}
+    <div class="row">${btn}<button class="btn sm" data-rk="board">📊 Bảng xếp hạng</button><button class="btn sm" data-rk="hist">📜 Lịch sử</button></div>
+    <div class="fst">1 đấu 1 với người thật, không có máy. Thắng ~+25 RP, thua ~−20 RP (tuỳ chênh lệch trình độ). Ghép đối thủ gần trình độ (MMR) với bạn.</div>
+  </div>`;
+}
+
+// ----- ghép trận xếp hạng (qua Sảnh Chính: phòng công khai có cờ rk + MMR chủ phòng) -----
+function startRanked() {
+  const why = rankedWhyNot();
+  if (why) { toast(why); return; }
+  if (!RANK.st || RANK.st.block) { toast(RANK.st ? escapeHtml(RANK.st.block) : 'Đang tải hạng…'); return; }
+  if (!HALL.room) { toast('Đấu Xếp Hạng cần kết nối máy chủ trực tuyến.'); return; }
+  if (NET.room) leaveRoom('hall');
+  stopMatchmaking();
+  Object.assign(RANK, { searching: true, t0: Date.now(), wait: 3000 + Math.random() * 4000 });
+  clearInterval(RANK.timer);
+  RANK.timer = setInterval(rankTick, 500);
+  rankTick();
+}
+function stopRanked() { RANK.searching = false; RANK.joinAt = 0; clearInterval(RANK.timer); RANK.timer = 0; }
+const rankedRooms = () => HALL.peers.filter((p) => p.pub && p.pub.rk && p.pub.e > 0);
+function rankTick() {
+  if (RANK.hosting) return; // đang mở phòng
+  const my = RANK.st ? RANK.st.mmr : 1000, win = rankWindow();
+  // vừa vào phòng người khác: chủ phòng không trả lời (phòng đã đóng – trạng thái Sảnh chậm vài giây) → tìm tiếp
+  if (RANK.joinAt && NET.room && NET.role === 'client') {
+    if (NET.lob) { RANK.joinAt = 0; return; }
+    if (Date.now() - RANK.joinAt < 6000) return;
+    RANK.joinAt = 0;
+    leaveRoom('hall'); goPage('battle');
+    Object.assign(RANK, { searching: true, wait: Date.now() - RANK.t0 + 2000 + Math.random() * 3000 });
+    toast('Phòng vừa đóng – đang tìm đối thủ khác…');
+    return;
+  }
+  const hosting = NET.room && NET.role === 'host' && NET.lob && NET.lob.ranked;
+  if (hosting) {
+    if (NET.ph !== 'lobby' || NET.lob.seats.some((s) => s.p && s.p !== NET.me)) return; // đã có đối thủ
+    // phòng xếp hạng khác hợp trình độ & mã nhỏ hơn → gộp sang đó (tránh 2 người cùng chờ ở 2 phòng)
+    const other = rankedRooms().filter((p) => +p.pub.c < +NET.code && Math.abs(p.pub.r - my) <= win)[0];
+    if (other) { leaveRoom('hall'); joinRanked(other); }
+    return;
+  }
+  if (!RANK.searching) { if (!NET.room && !RANK.joinAt) stopRanked(); return; }
+  const cand = rankedRooms().filter((p) => Math.abs(p.pub.r - my) <= win).sort((a, b) => Math.abs(a.pub.r - my) - Math.abs(b.pub.r - my))[0];
+  if (cand) { joinRanked(cand); return; }
+  if (Date.now() - RANK.t0 > RANK.wait) { RANK.searching = false; hostRankedRoom(); return; }
+  if (UI.view === 'hall' && UI.page === 'battle') renderBattle();
+}
+function joinRanked(p) {
+  RANK.searching = false; RANK.joinAt = Date.now();
+  setMode('v1');
+  joinRoom(p.pub.c).then(() => toast('⚔ Đã tìm thấy đối thủ xếp hạng – chọn bóng rồi bấm Sẵn sàng!'));
+}
+async function hostRankedRoom() {
+  setMode('v1');
+  enterLobby();
+  RANK.hosting = true;
+  try { await createRoom(); } finally { RANK.hosting = false; }
+  if (!NET.room) { stopRanked(); return; }
+  NET.lob.ranked = 1;
+  for (const s of NET.lob.seats) if (!s.p) s.e = 1;
+  MM.public = true;
+  hostPublish(); HALL.lastPres = ''; hallPresence();
+  renderOnline(); renderSlots();
+  toast('🏆 Đang chờ đối thủ xếp hạng vào phòng – chọn bóng trước nhé!');
+}
+/** Người chơi vào nhầm phòng xếp hạng mà chưa đủ điều kiện → rời phòng. */
+function checkRankedLobby() {
+  if (!NET.lob || !NET.lob.ranked || NET.role !== 'client') return;
+  const why = rankedWhyNot() || (RANK.st && RANK.st.block);
+  if (why) { toast('🔒 Đây là phòng Xếp Hạng: ' + escapeHtml(why)); leaveRoom('hall'); }
+}
+
+// ----- trong trận -----
+async function rankedBegin(spec) {
+  const id = `R${NET.code}-${spec.seed}`;
+  G.rankedId = id;
+  if (RANK.cur && RANK.cur.id === id) return;
+  stopRanked();
+  const opp = (spec.fids || []).find((f) => f && f !== Save.fid) || '';
+  const c = { id, opp, fids: spec.fids || [], ok: null, reported: false, res: null, before: RANK.st ? { rp: RANK.st.rp, ch: !!RANK.st.challenger, plc: RANK.st.placement < RANK.st.placement_games } : null };
+  RANK.cur = c;
+  if (rankedWhyNot() || !opp) { c.ok = false; c.err = rankedWhyNot() || 'Không xác định được đối thủ'; return; }
+  try {
+    const r = await rankRpc('orb_ranked_begin', { p_match: id, p_opponent: opp });
+    c.ok = !!(r && r.ok);
+    if (!c.ok) { c.err = (r && r.reason) || 'Máy chủ từ chối'; toast('⚠ Trận này không tính điểm xếp hạng: ' + escapeHtml(c.err)); }
+  } catch (e) { c.ok = false; c.err = rankErr(e); toast('⚠ ' + escapeHtml(c.err)); }
+}
+const isRankedMatch = () => !!(G.rankedId && RANK.cur && RANK.cur.id === G.rankedId);
+function rankedWinnerFid() {
+  const w = G.winner;
+  if (!w || !RANK.cur) return '';
+  return RANK.cur.fids[(w.family || w).idx] || '';
+}
+/** Gửi kết quả (người thắng) lên máy chủ, rồi hỏi lại tới khi máy chủ chốt điểm. */
+async function rankedReport(winFid) {
+  const c = RANK.cur;
+  if (!c || c.reported) return;
+  c.reported = true;
+  c.win = winFid || rankedWinnerFid();
+  for (let i = 0; i < 40 && c.ok === null; i++) await new Promise((r) => setTimeout(r, 250));
+  if (c.ok === false) { c.res = { err: 'Trận không tính điểm: ' + (c.err || '') }; renderRankRes(); return; }
+  if (!c.win) { c.res = { err: 'Không xác định được người thắng' }; renderRankRes(); return; }
+  let tries = 0;
+  const poll = async () => {
+    if (RANK.cur !== c) return;
+    try {
+      const r = await rankRpc('orb_ranked_report', { p_match: c.id, p_opponent: c.opp, p_winner: c.win });
+      if (r && r.status) { RANK.st = r.status; RANK.at = Date.now(); }
+      if (!r || !r.ok) { c.res = { err: (r && r.reason) || 'Không gửi được kết quả' }; renderRankRes(); return; }
+      if (r.settled) { c.res = { delta: r.delta, won: r.won, reason: r.reason }; renderRankRes(); HALL.lastPres = ''; hallPresence(); return; }
+      c.res = { wait: true };
+    } catch (e) { c.res = { err: rankErr(e) }; }
+    renderRankRes();
+    if (++tries < 32) setTimeout(poll, 4000);
+    else { c.res = { err: 'Chưa có xác nhận – điểm sẽ được chốt sau (xem 📜 Lịch sử).' }; renderRankRes(); }
+  };
+  poll();
+}
+function rankResHtml() {
+  const c = RANK.cur;
+  if (!c) return '';
+  if (!c.res) return c.ok === false ? `⚠ Trận không tính điểm: ${escapeHtml(c.err || '')}` : '⏳ Đang gửi kết quả xếp hạng…';
+  if (c.res.wait) return '⏳ Đang chờ đối thủ xác nhận kết quả… (tối đa ~90 giây)';
+  if (c.res.err) return '⚠ ' + escapeHtml(c.res.err);
+  if (c.res.delta == null || !RANK.st) return `⚖ ${escapeHtml(c.res.reason || 'Không tính điểm')}`;
+  const a = RANK.st, after = rankInfo(a.rp, a.challenger);
+  const bef = c.before ? rankInfo(c.before.rp, c.before.ch) : after;
+  const score = (x) => x.tier * 10 + (x.div ? DIVS.indexOf(x.div) : 0);
+  const plc = a.placement < a.placement_games;
+  const up = !plc && score(after) > score(bef), down = !plc && score(after) < score(bef);
+  const done = c.before && c.before.plc && !plc;
+  return `<div class="rkrow">${rankEmblem(after.tier, 64)}<div>
+    <div class="rkdelta ${c.res.won ? 'rkup' : 'rkdown'}">${c.res.won ? 'THẮNG' : 'THUA'} · ${c.res.delta >= 0 ? '+' : ''}${c.res.delta} RP</div>
+    ${!c.res.won && c.res.delta === 0 && c.before && c.before.plc ? '<div class="fst">Thua trận phân hạng không bị trừ điểm.</div>' : ''}
+    <div><b>${plc ? `Phân hạng ${a.placement}/${a.placement_games}` : after.name}</b> · ${a.rp} RP</div>
+    ${done ? `<div class="rkpromo">🎖 Hoàn thành phân hạng: ${after.name}!</div>` : up ? `<div class="rkpromo">🎉 THĂNG HẠNG: ${after.name}!</div>` : down ? `<div class="rkdemo">⬇ Xuống ${after.name}</div>` : ''}
+    <div class="fst">${escapeHtml(c.res.reason || '')}</div></div></div>`;
+}
+function renderRankRes() {
+  const el = $('rkRes');
+  if (el) el.innerHTML = rankResHtml();
+  if (UI.view === 'hall') renderRankCard();
+}
+/** Chủ phòng biến mất giữa trận xếp hạng → người còn lại báo mình thắng (máy chủ chốt sau 90 giây nếu không có báo ngược lại). */
+function rankHostGone() {
+  if (!isRankedMatch() || RANK.cur.reported || G.phase !== 'run' || NET.role !== 'client') return;
+  setTimeout(() => {
+    if (!isRankedMatch() || RANK.cur.reported || !NET.room) return;
+    if (NET.peers.some((p) => !p.isMe && p.presence && p.presence.h === 1)) return;
+    rankedReport(Save.fid);
+    toast('🏃 Đối thủ đã rời trận xếp hạng – bạn được tính thắng (chờ máy chủ xác nhận).');
+    leaveRoom('hall'); goPage('battle');
+  }, 5000);
+}
+
+// ----- bảng xếp hạng / lịch sử -----
+const rkModal = document.createElement('div');
+rkModal.className = 'modal'; rkModal.id = 'rankModal'; rkModal.style.zIndex = '24';
+rkModal.innerHTML = `<div class="sheet" style="width:min(100%,560px);text-align:left">
+  <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:nowrap"><h2 style="margin:0" id="rkMTitle"></h2><button class="btn sm" data-close="rankModal">✕</button></div>
+  <div id="rkMBody"></div></div>`;
+document.body.appendChild(rkModal);
+rkModal.addEventListener('click', (e) => { if (e.target === rkModal) rkModal.classList.remove('show'); });
+async function openRankBoard(tab) {
+  RANK.btab = tab || RANK.btab;
+  $('rkMTitle').textContent = '📊 Bảng xếp hạng';
+  rkModal.classList.add('show');
+  const tabs = `<div class="tabs">${[['all', '🌐 Toàn máy chủ'], ['friends', '👥 Bạn bè']].map(([k, l]) => `<button data-rk="board:${k}" class="${RANK.btab === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  $('rkMBody').innerHTML = tabs + '<div class="empty">⏳ Đang tải…</div>';
+  let body;
+  try {
+    const fids = RANK.btab === 'friends' ? [Save.fid, ...Save.friends.map((x) => x.f)] : null;
+    const rows = await rankRpc('orb_ranked_board', { p_fids: fids, p_limit: 100 });
+    const top = (RANK.st && RANK.st.challenger_top) || 100;
+    body = (rows || []).length ? rows.map((r) => {
+      const ri = rankInfo(r.rp, RANK.btab === 'all' && r.rp >= 2100 && r.pos <= top);
+      return `<div class="rkb${r.player_id === Save.fid ? ' me' : ''}"><span class="pos">${r.pos <= 3 ? ['🥇', '🥈', '🥉'][r.pos - 1] : r.pos}</span>${rankEmblem(ri.tier, 34)}
+        <div class="fname"><b>${escapeHtml(r.name || 'Đấu Sĩ')}</b>${r.player_id === Save.fid ? ' <span class="fchip">Bạn</span>' : ''} <span class="fcode">#${escapeHtml(r.player_id)}</span><div class="fst">${ri.name} · ${r.wins}T ${r.losses}B</div></div>
+        <span class="rp">${r.rp} RP</span></div>`;
+    }).join('') : '<div class="empty">Chưa có ai đấu xếp hạng mùa này – hãy là người đầu tiên!</div>';
+  } catch (e) { body = `<div class="warn">⚠ ${escapeHtml(rankErr(e))}</div>`; }
+  if (rkModal.classList.contains('show')) $('rkMBody').innerHTML = tabs + body;
+}
+async function openRankHistory() {
+  $('rkMTitle').textContent = '📜 Lịch sử xếp hạng';
+  rkModal.classList.add('show');
+  $('rkMBody').innerHTML = '<div class="empty">⏳ Đang tải…</div>';
+  let body;
+  try {
+    const rows = await rankRpc('orb_ranked_history', { p_limit: 30 });
+    body = (rows || []).length ? rows.map((r) => `<div class="rkh"><div><b class="${r.result === 'win' ? 'rkup' : 'rkdown'}">${r.result === 'win' ? 'THẮNG' : 'THUA'}</b> vs ${escapeHtml(r.opponent_name || 'Đấu Sĩ')}
+        <div class="fst">${new Date(r.created_at).toLocaleString('vi-VN')} · ${escapeHtml(r.reason || '')}</div></div>
+        <div style="text-align:right"><b class="${r.delta >= 0 ? 'rkup' : 'rkdown'}">${r.delta >= 0 ? '+' : ''}${r.delta} RP</b><div class="fst">${r.rp_before} → ${r.rp_after}</div></div></div>`).join('')
+      : '<div class="empty">Chưa có trận xếp hạng nào.</div>';
+  } catch (e) { body = `<div class="warn">⚠ ${escapeHtml(rankErr(e))}</div>`; }
+  $('rkMBody').innerHTML = body;
+}
+/** Ô hạng trong trang Hồ sơ. */
+function rankProfileHtml() {
+  const why = rankedWhyNot();
+  if (why) return `<div class="box rbox"><div class="rkrow" style="margin:0">${rankEmblem(0, 44)}<div><b>🏆 Xếp Hạng</b><div class="fst">${why}</div></div></div></div>`;
+  loadRank();
+  const s = RANK.st;
+  if (!s) return `<div class="box rbox"><div><b>🏆 Xếp Hạng</b><div class="fst">${RANK.err ? '⚠ ' + escapeHtml(RANK.err) : '⏳ Đang tải…'}</div></div></div>`;
+  const ri = rankInfo(s.rp, s.challenger), peak = rankInfo(s.peak_rp, false);
+  return `<div class="box rbox"><div class="rkrow" style="margin:0">${rankEmblem(ri.tier, 56)}<div><b>🏆 ${s.placement < s.placement_games ? 'Đang phân hạng' : ri.name}</b> · ${s.rp} RP
+    <div class="fst">${escapeHtml(s.season_name || '')} · cao nhất ${peak.name} · ${s.wins}T ${s.losses}B</div></div></div>
+    <div class="row"><button class="btn sm" data-rk="board">📊 BXH</button><button class="btn sm" data-rk="hist">📜</button></div></div>`;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-rk]');
+  if (!b) return;
+  const [k, arg] = b.dataset.rk.split(':');
+  if (k === 'find') { startRanked(); renderBattle(); }
+  else if (k === 'cancel') { stopRanked(); renderBattle(); }
+  else if (k === 'reload') loadRank(true);
+  else if (k === 'board') openRankBoard(arg);
+  else if (k === 'hist') openRankHistory();
+  else if (k === 'again') { $('victory').classList.remove('show'); leaveRoom('hall'); goPage('battle'); startRanked(); }
+});
+{
+  const st = document.createElement('style');
+  st.textContent = `
+  .rkcard{border:1px solid rgba(251,191,36,.38);background:linear-gradient(135deg,rgba(91,33,182,.38),rgba(22,18,38,.88));margin-bottom:12px}
+  .rkcard.locked{opacity:.88}
+  .rkseason{margin-left:auto;font-size:12px;color:#fde68a;font-weight:800}
+  .rkrow{display:flex;gap:12px;align-items:center;margin:6px 0}
+  .rkinfo{min-width:0;flex:1}
+  .rkname{font-weight:900;font-size:21px;letter-spacing:.5px;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+  .rkbar{margin:4px 0}
+  .rkbar i{background:linear-gradient(90deg,#fbbf24,#f472b6)!important}
+  .rkem{flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.55))}
+  .rkres{margin:10px auto;padding:10px 12px;border-radius:12px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.35);max-width:440px;text-align:left}
+  .rkdelta{font-weight:900;font-size:24px}
+  .rkup{color:#4ade80}.rkdown{color:#f87171}
+  .rkpromo{color:#fde047;font-weight:900;font-size:17px;animation:rkpop .9s ease-out}
+  .rkdemo{color:#f87171;font-weight:800}
+  @keyframes rkpop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.25);opacity:1}100%{transform:scale(1)}}
+  .rkchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:1px 7px 1px 3px;border-radius:999px;background:rgba(255,255,255,.08);vertical-align:middle;margin-left:4px}
+  .rkb{display:grid;grid-template-columns:30px 34px 1fr auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--line)}
+  .rkb.me{background:rgba(251,191,36,.12);border-radius:8px}
+  .rkb .pos{font-weight:900;text-align:center;color:var(--muted)}
+  .rkb .rp{font-weight:900;color:#fde68a}
+  .rkh{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}`;
+  document.head.appendChild(st);
+}
+
+window.__orbGame = { RANK, rankInfo, rankEmblem, startRanked, loadRank, openRankBoard, openRankHistory, encodeSnap, applySnap, openRestore, exportCode, parseCode, WAKE, _step: (dt) => step(dt), _beginRun: () => beginRun(), MAIL, loadMail, claimMail, openMailbox, ACC, getSb, pushNow, signOutAcc, MM, goPage, quickBot, startMatchmaking, createBattleRoom, viewPlayer, removeFriend, G, NET, Save, UI, HALL, setMode, startLocal, toggleLobbyReady, spinWheel, openWheel, addGold, onEnter, goLobby, goHall, enterLobby, openInvite, sendFriendRequest, inviteFriend, openCollection, claimQuest };
 </script>
 </body>
 </html>
