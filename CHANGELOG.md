@@ -1,5 +1,9 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Mèo Máy Bảo Bối biến ảo hơn] – 2026-11-28
+- **Mèo Máy Bảo Bối** (trước: 0/60 trận thắng trước 10 quả cấp S) → **Túi Bảo Bối 6 món**, rút mỗi 4,3 giây, 20% **túi quá tải** rút 2 món: Cánh Cửa Thần Kỳ (dịch chuyển sau lưng địch, lao +20) · Chong Chóng Tre (bay tăng tốc + **né 40% va chạm** 3 giây) · Đèn Pin Thu Nhỏ (địch nhỏ & chậm & **−30% sát thương va chạm**) · **Súng Không Khí** (3 viên khí tự đuổi, đẩy văng) · **Áo Choàng Đảo Ngược** (bật ngược đạn địch thành đạn của mình + phản 50% sát thương, 3 giây) · **Máy Thời Gian** (tua ngược vị trí & máu về ~3 giây trước, hồi tối đa 80). Biểu tượng bảo bối hiện trên đầu khi dùng.
+- Đo mô phỏng: thắng **56%** (45/80) trước 10 quả cấp S khác.
+
 ## [Đấu Trường Quả Cầu Anime – 10 bóng cơ học đặc biệt] – 2026-11-28
 - **10 quả bóng ⚙ Cơ học** (tổng **55 quả**), lập trình theo từng giai đoạn:
   - S **Móc Câu Nảy Tường**: GĐ1 đứng yên hoàn toàn + bắn móc có dây; GĐ2 móc nảy tường & ghi nhớ điểm chạm (≤ 5 lần, trượt thì thu dây); GĐ3 trúng địch → kéo ngược qua từng điểm nảy về đập vào Móc Câu (26 + choáng 0,8 giây).

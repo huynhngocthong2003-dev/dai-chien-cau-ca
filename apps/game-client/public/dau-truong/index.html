@@ -1469,28 +1469,42 @@ const ROSTER = [
   // ===== CẤP S =====
   {
     id: 'gadget', tier: 'S', toon: true, name: 'Mèo Máy Bảo Bối', inspire: 'Doraemon', glyph: '🔔', color: '#38bdf8', color2: '#ef4444', body: '#38bdf8',
-    hp: 330, atk: 14, spd: 255, cd: 5, ult: 'Bảo Bối Thần Kỳ',
-    skill: 'Cứ 5 giây lấy ngẫu nhiên 1 <b>bảo bối</b>: <b>Cánh Cửa Thần Kỳ</b> (dịch chuyển áp sát sau lưng địch + đòn lao +14), <b>Chong Chóng Tre</b> (bay tăng tốc ×1,6 trong 3 giây) hoặc <b>Đèn Pin Thu Nhỏ</b> (địch gần nhất bị thu nhỏ 30% & chậm trong 3 giây).',
+    hp: 340, atk: 14, spd: 258, cd: 4.3, ult: 'Túi Bảo Bối Thần Kỳ',
+    skill: 'Cứ 4,3 giây rút ngẫu nhiên 1 trong 6 <b>bảo bối</b> (20% <b>túi quá tải</b> rút 2 món): <b>Cánh Cửa Thần Kỳ</b> (dịch chuyển ra sau lưng địch, lao vào +20) · <b>Chong Chóng Tre</b> (bay ×1,6, <b>né 40% va chạm</b> 3 giây) · <b>Đèn Pin Thu Nhỏ</b> (địch nhỏ 30%, chậm, <b>giảm 30% sát thương va chạm</b> 3,5 giây) · <b>Súng Không Khí</b> (3 viên khí tự đuổi, đẩy văng) · <b>Áo Choàng Đảo Ngược</b> (3 giây <b>bật ngược đạn địch</b> thành đạn của mình & phản 50% sát thương) · <b>Máy Thời Gian</b> (<b>tua ngược vị trí và máu</b> về 3 giây trước).',
     cast(o) {
-      const t = nearestEnemy(o);
-      const pick = Math.floor(srand(0, 3));
-      if (pick === 0 && t) {
-        const a = Math.atan2(t.vy, t.vx) + Math.PI;
-        burst(o.x, o.y, '#f9a8d4', 24, 200);
-        o.x = clamp(t.x + Math.cos(a) * (t.r + o.r + 8), PAD + o.r, W - PAD - o.r);
-        o.y = clamp(t.y + Math.sin(a) * (t.r + o.r + 8), PAD + o.r, H - PAD - o.r);
-        ringFx(o.x, o.y, 70, '#f472b6', 0.4, 6);
-        dash(o, t, 620, 0.35, 14);
-        announce(o, 'Cánh Cửa Thần Kỳ'); Sound.play('dodge');
-      } else if (pick === 1 || !t) {
-        o.boostUntil = G.time + 3;
-        burst(o.x, o.y, '#fde68a', 20, 220);
-        announce(o, 'Chong Chóng Tre'); Sound.play('sonic');
-      } else {
-        t.shrinkUntil = G.time + 3; t.slowUntil = Math.max(t.slowUntil, G.time + 3);
-        boltFx(o.x, o.y, t.x, t.y, '#fde047'); ringFx(t.x, t.y, t.r + 20, '#fde047', 0.5, 5);
-        floatText(t.x, t.y - t.r - 18, 'THU NHỎ!', '#fde047', 18);
-        announce(o, 'Đèn Pin Thu Nhỏ'); Sound.play('cast');
+      const n = srnd() < 0.2 ? 2 : 1;
+      const picks = [];
+      while (picks.length < n) { const k = Math.floor(srand(0, 6)); if (!picks.includes(k)) picks.push(k); }
+      if (n === 2) floatText(o.x, o.y - o.r - 46, 'TÚI QUÁ TẢI!', '#fde047', 22);
+      for (const k of picks) GADGETS[k](o);
+    },
+    update(o, dt) {
+      // ghi lại vị trí & máu để Máy Thời Gian tua ngược
+      o.data.histT = (o.data.histT || 0) - dt;
+      if (o.data.histT <= 0) { o.data.histT = 0.25; (o.data.hist = o.data.hist || []).push({ x: o.x, y: o.y, hp: o.hp }); if (o.data.hist.length > 13) o.data.hist.shift(); }
+      // Áo Choàng Đảo Ngược: bật ngược đạn địch
+      if (G.time < (o.data.cloakUntil || 0)) for (const q of G.projectiles) {
+        if (!q.alive || q.owner.team === o.team) continue;
+        if (Math.hypot(q.x - o.x, q.y - o.y) < o.r + q.r + 14) {
+          q.vx = -q.vx; q.vy = -q.vy; q.owner = o; q.hit = new Set(); q.target = null; q.life = Math.max(q.life, 1.2);
+          burst(q.x, q.y, '#f87171', 10, 160); Sound.play('shield');
+        }
+      }
+    },
+    drawFx(o) {
+      const g = o.data.gadget;
+      if (g && G.time < g.until) {
+        ctx.save(); ctx.font = `${Math.round(o.r * 0.7)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(g.icon, o.x + Math.sin(G.time * 4) * 4, o.y - o.r - 18 + Math.sin(G.time * 6) * 3); ctx.restore();
+      }
+      if (G.time < (o.data.cloakUntil || 0)) {
+        ctx.save(); ctx.strokeStyle = 'rgba(248,113,113,0.85)'; ctx.lineWidth = 4; ctx.setLineDash([12, 8]); ctx.lineDashOffset = G.time * 60;
+        ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 12, 0, TAU); ctx.stroke(); ctx.restore();
+      }
+      if (G.time < (o.dodgeUntil || 0)) {
+        ctx.save(); ctx.strokeStyle = 'rgba(253,230,138,0.9)'; ctx.lineWidth = 3;
+        for (let k = 0; k < 2; k++) { const a = G.time * 25 + k * Math.PI; ctx.beginPath(); ctx.moveTo(o.x, o.y - o.r - 6); ctx.lineTo(o.x + Math.cos(a) * 22, o.y - o.r - 6 + Math.sin(a) * 5); ctx.stroke(); }
+        ctx.restore();
       }
     },
   },
@@ -2819,6 +2833,48 @@ function fireProjectileDir(o, dx, dy, p) {
   });
 }
 function addField(f) { G.fields.push(f); }
+/** Túi bảo bối của Mèo Máy (6 món). */
+const GADGETS = [
+  (o) => { // Cánh Cửa Thần Kỳ
+    const t = nearestEnemy(o); if (!t) return;
+    const a = Math.atan2(t.vy, t.vx) + Math.PI;
+    burst(o.x, o.y, '#f9a8d4', 24, 200); ringFx(o.x, o.y, 60, '#f472b6', 0.4, 6);
+    o.x = clamp(t.x + Math.cos(a) * (t.r + o.r + 8), PAD + o.r, W - PAD - o.r); o.y = clamp(t.y + Math.sin(a) * (t.r + o.r + 8), PAD + o.r, H - PAD - o.r);
+    ringFx(o.x, o.y, 70, '#f472b6', 0.4, 6); dash(o, t, 680, 0.35, 20);
+    o.data.gadget = { icon: '🚪', until: G.time + 1 }; announce(o, 'Cánh Cửa Thần Kỳ'); Sound.play('dodge');
+  },
+  (o) => { // Chong Chóng Tre
+    o.boostUntil = G.time + 3; o.dodgeUntil = G.time + 3;
+    burst(o.x, o.y, '#fde68a', 20, 220); o.data.gadget = { icon: '🚁', until: G.time + 3 };
+    announce(o, 'Chong Chóng Tre'); Sound.play('sonic');
+  },
+  (o) => { // Đèn Pin Thu Nhỏ
+    const t = nearestEnemy(o); if (!t) return;
+    t.shrinkUntil = G.time + 3.5; t.slowUntil = Math.max(t.slowUntil, G.time + 3.5);
+    boltFx(o.x, o.y, t.x, t.y, '#fde047'); ringFx(t.x, t.y, t.r + 20, '#fde047', 0.5, 5);
+    floatText(t.x, t.y - t.r - 18, 'THU NHỎ!', '#fde047', 18); o.data.gadget = { icon: '🔦', until: G.time + 1.2 };
+    announce(o, 'Đèn Pin Thu Nhỏ'); Sound.play('cast');
+  },
+  (o) => { // Súng Không Khí
+    const t = nearestEnemy(o); if (!t) return;
+    const a = Math.atan2(t.y - o.y, t.x - o.x);
+    for (const d of [-0.3, 0, 0.3]) fireProjectileDir(o, Math.cos(a + d), Math.sin(a + d), { kind: 'ring', r: 12, speed: 660, dmg: 11, color: '#bae6fd', life: 1.1, knock: 560, target: t, homing: 2.2 });
+    o.data.gadget = { icon: '💨', until: G.time + 1 }; announce(o, 'Súng Không Khí'); Sound.play('boom');
+  },
+  (o) => { // Áo Choàng Đảo Ngược
+    o.data.cloakUntil = G.time + 3; setShield(o, 0.75, 3, 'reflect');
+    o.data.gadget = { icon: '🧣', until: G.time + 3 }; ringFx(o.x, o.y, o.r + 24, '#f87171', 0.4, 6);
+    announce(o, 'Áo Choàng Đảo Ngược'); Sound.play('shield');
+  },
+  (o) => { // Máy Thời Gian: tua ngược vị trí & máu về ~3 giây trước
+    const h = o.data.hist && o.data.hist[0]; if (!h) return;
+    G.particles.push({ x: o.x, y: o.y, r: o.r, life: 0.6, max: 0.6, color: o.def.color, kind: 'after' });
+    o.x = h.x; o.y = h.y;
+    if (h.hp > o.hp) heal(o, Math.min(80, h.hp - o.hp));
+    ringFx(o.x, o.y, 90, '#a5f3fc', 0.6, 8); burst(o.x, o.y, '#e0f2fe', 26, 240);
+    o.data.gadget = { icon: '⏳', until: G.time + 1.2 }; announce(o, 'Máy Thời Gian'); Sound.play('purple');
+  },
+];
 /** Phân thân / slime con: bám đuổi địch gần nhất, chạm thì gây sát thương (Tề Thiên, Vua Slime). */
 function spawnMinions(o, n, sec, opt) {
   const list = o.data.minions = (o.data.minions || []).filter((m) => G.time < m.until);
@@ -2953,7 +3009,7 @@ function collide(a, b) {
 function hitOnCollision(src, t, impact) {
   if (!src.alive || !t.alive) return;
   // Bản Năng Vô Cực: né tránh tự động + dư ảnh
-  if (t.def.dodge && srnd() < t.def.dodge) {
+  if ((t.def.dodge && srnd() < t.def.dodge) || (G.time < (t.dodgeUntil || 0) && srnd() < 0.4)) {
     floatText(t.x, t.y - t.r, 'NÉ!', '#bfdbfe', 18);
     G.particles.push({ x: t.x, y: t.y, r: t.r, life: 0.45, max: 0.45, color: t.def.color, kind: 'after' });
     t.x += srand(-18, 18); t.y += srand(-18, 18);
@@ -2962,6 +3018,7 @@ function hitOnCollision(src, t, impact) {
   }
   let dmg = src.def.atk * (0.45 + impact / 520);
   if (src.def.meleeMul) dmg *= src.def.meleeMul;
+  if (G.time < (src.shrinkUntil || 0)) dmg *= 0.7; // bị Đèn Pin Thu Nhỏ
   if (src.def.meleeMulFn) dmg *= src.def.meleeMulFn(src);
   if (t.def.collideTakenMul) dmg *= t.def.collideTakenMul;
   if (G.time < src.giantUntil) dmg *= 1.8;
