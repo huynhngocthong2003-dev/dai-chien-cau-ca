@@ -1257,8 +1257,8 @@ const ROSTER = [
   },
   {
     id: 'naofumi', tier: 'D', name: 'Tân Binh Khiên Chắn', inspire: 'Naofumi', glyph: '盾', color: '#a3a3a3', color2: '#4d7c0f',
-    hp: 192, atk: 9, spd: 200, cd: 6.5, ult: 'Khiên Phản Đòn', reflectMul: 0.5, reflectCap: 7,
-    skill: 'HP nhỉnh hơn cấp D. Bật <b>Khiên Phản Đòn</b> 3 giây: giảm 50% sát thương, <b>phản lại 50%</b> cho kẻ tấn công (tối đa 7 mỗi đòn) và hồi 4 HP/giây.',
+    hp: 192, atk: 9, spd: 200, cd: 6.5, ult: 'Khiên Phản Đòn', reflectMul: 0.8, reflectCap: 7, shieldAbsorbCap: 6,
+    skill: 'HP nhỉnh hơn cấp D. Bật <b>Khiên Phản Đòn</b> 3 giây: giảm 50% sát thương (chặn tối đa 6 mỗi đòn), <b>phản lại 80%</b> cho kẻ tấn công (tối đa 7 mỗi đòn) và hồi 4 HP/giây.',
     cast(o) {
       setShield(o, 0.5, 3, 'reflect');
       announce(o, 'Khiên Phản Đòn'); Sound.play('shield');
@@ -2256,7 +2256,7 @@ const ROSTER = [
   },
 ];
 // ⚡ SỨC MẠNH CHIÊU (cân bằng bậc thấp): nhân sát thương chiêu, hồi máu từ chiêu và phần thưởng va chạm do chiêu tạo ra.
-const SKILL_MUL = {"ace": 0.99, "naruto": 1.35, "esdeath": 2.5, "venom": 0.99, "sonic": 2.41, "chain": 1.77, "nobita": 1.05, "shin": 2.5, "kicker": 1.51, "anchor": 1.18, "web": 1.72, "swap": 1.36, "luffy": 2.5, "zoro": 1.85, "zenitsu": 1.54, "chrono": 2.5, "prism": 2.02, "mine": 2.4, "thunder": 2.5, "starpull": 1.78, "chase": 2.5, "magnet": 1.66, "frieren": 1.55, "lee": 2.5, "naofumi": 1.79, "ironclad": 2.5, "pulse": 1.16, "vitality": 1, "slimekid": 1.95, "rubber": 2.5, "pencil": 1.71, "turret": 1.69};
+const SKILL_MUL = {"ace": 0.99, "naruto": 1.35, "esdeath": 2.5, "venom": 0.99, "sonic": 2.41, "chain": 1.77, "nobita": 1.05, "shin": 2.5, "kicker": 1.51, "anchor": 1.18, "web": 1.72, "swap": 1.36, "luffy": 2.5, "zoro": 1.85, "zenitsu": 1.54, "chrono": 2.5, "prism": 2.02, "mine": 2.4, "thunder": 2.5, "starpull": 1.78, "chase": 2.5, "magnet": 1.66, "frieren": 1.55, "lee": 2.5, "naofumi": 2, "ironclad": 2.5, "pulse": 1.16, "vitality": 1, "slimekid": 1.95, "rubber": 2.5, "pencil": 1.71, "turret": 1.69};
 /** Cập nhật số liệu trong mô tả chiêu theo hệ số (vd 9 sát thương → 14 sát thương, +20% → +30%). */
 function scaleSkillText(txt, s) {
   const num = (v) => { const r = v >= 10 ? Math.round(v) : Math.round(v * 2) / 2; return String(r).replace('.', ','); };
@@ -2943,7 +2943,7 @@ function dealDamage(t, amount, src, kind = 'normal', opts = {}) {
   if (src && src.def.skillMul && (kind === 'skill' || kind === 'burn') && !opts.reflected) dmg *= src.def.skillMul;
   // ⚡ Đột Tử: sau SUDDEN_AT giây, mọi sát thương tăng dần để trận luôn kết thúc
   if (G.time > SUDDEN_AT) dmg *= 1 + (G.time - SUDDEN_AT) * 0.05;
-  if (G.time < t.shieldUntil) dmg *= t.shieldMul;
+  if (G.time < t.shieldUntil) dmg -= Math.min(dmg * (1 - t.shieldMul), t.def.shieldAbsorbCap || Infinity); // khiên (có thể giới hạn lượng chặn mỗi đòn)
   if (G.time < t.corrodeUntil) dmg *= 1.15;          // bị axit ăn mòn giáp
   if (t.barrier > 0) {                                // lá chắn hấp thụ (Siêu Tân Tinh)
     const ab = Math.min(t.barrier, dmg);

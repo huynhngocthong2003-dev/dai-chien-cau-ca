@@ -1,5 +1,8 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Cân bằng Tân Binh Khiên Chắn] – 2026-11-28
+- **Tân Binh Khiên Chắn** (D): khiên giảm 50% sát thương nhưng **chặn tối đa 6 mỗi đòn**, phản lại **80%** (tối đa 7 mỗi đòn), hồi 8 HP/giây khi bật khiên. Mạnh với đòn nhẹ của bậc D, đòn nặng của bậc cao xuyên qua. Mô phỏng: D ~42% · C ~25% · B ~28% · A ~20% · S ~5%.
+
 ## [Đấu Trường Quả Cầu Anime – Đèn Pin Thu Nhỏ & Hồi Phục Nhẹ] – 2026-11-28
 - **Mèo Máy Bảo Bối – Đèn Pin Thu Nhỏ**: đối thủ bị thu nhỏ còn **mất 25% máu tối đa** trong 3,5 giây (thanh máu ngắn lại); hết hiệu lực được trả lại nếu còn sống.
 - **Hồi Phục Nhẹ** (D): tự hồi 9 → 7 HP mỗi 4 giây, bỏ hệ số chiêu – trước đây vượt bậc (thắng bậc A ~35%); nay A ~14% · B ~6% · C ~38% · D ~26%.
