@@ -1470,9 +1470,9 @@ const ROSTER = [
   {
     id: 'vitality', tier: 'D', power: true, name: 'Hồi Phục Nhẹ', inspire: 'Vitality Seed', glyph: '❀', color: '#4ade80', color2: '#166534',
     hp: 187, atk: 9, spd: 205, cd: 4.0, ult: 'Hạt Mầm Sự Sống',
-    skill: 'Cứ mỗi 4 giây <b>tự hồi 9 HP</b> và <b>bắn hạt mầm</b> tự đuổi vào địch gần nhất: 9 sát thương, trúng thì hồi thêm 4 HP.',
+    skill: 'Cứ mỗi 4 giây <b>tự hồi 7 HP</b> và <b>bắn hạt mầm</b> tự đuổi vào địch gần nhất: 9 sát thương, trúng thì hồi thêm 4 HP.',
     cast(o) {
-      heal(o, 9); burst(o.x, o.y, '#86efac', 18, 140); ringFx(o.x, o.y, o.r + 30, '#4ade80', 0.5, 4);
+      heal(o, 7); burst(o.x, o.y, '#86efac', 18, 140); ringFx(o.x, o.y, o.r + 30, '#4ade80', 0.5, 4);
       { const t = nearestEnemy(o); if (t) fireProjectile(o, t, { kind: 'slime', r: 8, speed: 640, dmg: 9, color: '#86efac', life: 1.4, homing: 2.2, onHit: () => heal(o, 4) }); }
       if (Math.random() < 0.3) announce(o, 'Hạt Mầm Sự Sống', true);
     },
@@ -1484,7 +1484,7 @@ const ROSTER = [
   {
     id: 'gadget', tier: 'S', toon: true, name: 'Mèo Máy Bảo Bối', inspire: 'Doraemon', glyph: '🔔', color: '#38bdf8', color2: '#ef4444', body: '#38bdf8',
     hp: 365, atk: 15, spd: 258, cd: 4.3, ult: 'Túi Bảo Bối Thần Kỳ',
-    skill: 'Cứ 4,3 giây rút ngẫu nhiên 1 trong 6 <b>bảo bối</b> (20% <b>túi quá tải</b> rút 2 món): <b>Cánh Cửa Thần Kỳ</b> (dịch chuyển ra sau lưng địch, lao vào +20) · <b>Chong Chóng Tre</b> (bay ×1,6, <b>né 40% va chạm</b> 3 giây) · <b>Đèn Pin Thu Nhỏ</b> (địch nhỏ 30%, chậm, <b>giảm 30% sát thương va chạm</b> 3,5 giây) · <b>Súng Không Khí</b> (3 viên khí tự đuổi, đẩy văng) · <b>Áo Choàng Đảo Ngược</b> (3 giây <b>bật ngược đạn địch</b> thành đạn của mình & phản 50% sát thương) · <b>Máy Thời Gian</b> (<b>tua ngược vị trí và máu</b> về 3 giây trước).',
+    skill: 'Cứ 4,3 giây rút ngẫu nhiên 1 trong 6 <b>bảo bối</b> (20% <b>túi quá tải</b> rút 2 món): <b>Cánh Cửa Thần Kỳ</b> (dịch chuyển ra sau lưng địch, lao vào +20) · <b>Chong Chóng Tre</b> (bay ×1,6, <b>né 40% va chạm</b> 3 giây) · <b>Đèn Pin Thu Nhỏ</b> (địch nhỏ 30%, chậm, <b>giảm 30% sát thương va chạm</b> và <b>mất 25% máu</b> trong 3,5 giây bị thu nhỏ) · <b>Súng Không Khí</b> (3 viên khí tự đuổi, đẩy văng) · <b>Áo Choàng Đảo Ngược</b> (3 giây <b>bật ngược đạn địch</b> thành đạn của mình & phản 50% sát thương) · <b>Máy Thời Gian</b> (<b>tua ngược vị trí và máu</b> về 3 giây trước).',
     cast(o) {
       const n = srnd() < 0.2 ? 2 : 1;
       const picks = [];
@@ -2256,7 +2256,7 @@ const ROSTER = [
   },
 ];
 // ⚡ SỨC MẠNH CHIÊU (cân bằng bậc thấp): nhân sát thương chiêu, hồi máu từ chiêu và phần thưởng va chạm do chiêu tạo ra.
-const SKILL_MUL = {"ace": 0.99, "naruto": 1.35, "esdeath": 2.5, "venom": 0.99, "sonic": 2.41, "chain": 1.77, "nobita": 1.05, "shin": 2.5, "kicker": 1.51, "anchor": 1.18, "web": 1.72, "swap": 1.36, "luffy": 2.5, "zoro": 1.85, "zenitsu": 1.54, "chrono": 2.5, "prism": 2.02, "mine": 2.4, "thunder": 2.5, "starpull": 1.78, "chase": 2.5, "magnet": 1.66, "frieren": 1.55, "lee": 2.5, "naofumi": 1.79, "ironclad": 2.5, "pulse": 1.16, "vitality": 1.05, "slimekid": 1.95, "rubber": 2.5, "pencil": 1.71, "turret": 1.69};
+const SKILL_MUL = {"ace": 0.99, "naruto": 1.35, "esdeath": 2.5, "venom": 0.99, "sonic": 2.41, "chain": 1.77, "nobita": 1.05, "shin": 2.5, "kicker": 1.51, "anchor": 1.18, "web": 1.72, "swap": 1.36, "luffy": 2.5, "zoro": 1.85, "zenitsu": 1.54, "chrono": 2.5, "prism": 2.02, "mine": 2.4, "thunder": 2.5, "starpull": 1.78, "chase": 2.5, "magnet": 1.66, "frieren": 1.55, "lee": 2.5, "naofumi": 1.79, "ironclad": 2.5, "pulse": 1.16, "vitality": 1, "slimekid": 1.95, "rubber": 2.5, "pencil": 1.71, "turret": 1.69};
 /** Cập nhật số liệu trong mô tả chiêu theo hệ số (vd 9 sát thương → 14 sát thương, +20% → +30%). */
 function scaleSkillText(txt, s) {
   const num = (v) => { const r = v >= 10 ? Math.round(v) : Math.round(v * 2) / 2; return String(r).replace('.', ','); };
@@ -3205,6 +3205,8 @@ const GADGETS = [
   (o) => { // Đèn Pin Thu Nhỏ
     const t = nearestEnemy(o); if (!t) return;
     t.shrinkUntil = G.time + 3.5; t.slowUntil = Math.max(t.slowUntil, G.time + 3.5);
+    // thu nhỏ cả máu: mất 25% máu tối đa trong lúc bị thu nhỏ (hết hiệu lực thì trả lại)
+    if (!t.shrinkCut) { const cut = Math.round(t.maxHp * 0.25); t.shrinkCut = cut; t.maxHp -= cut; t.hp = Math.max(1, t.hp - cut); floatText(t.x + 20, t.y - t.r - 36, `−${cut} máu`, '#fca5a5', 16); }
     boltFx(o.x, o.y, t.x, t.y, '#fde047'); ringFx(t.x, t.y, t.r + 20, '#fde047', 0.5, 5);
     floatText(t.x, t.y - t.r - 18, 'THU NHỎ!', '#fde047', 18); showGadget(o, 2);
     announce(o, 'Đèn Pin Thu Nhỏ'); Sound.play('cast');
@@ -3480,6 +3482,8 @@ function stepOrb(o, dt) {
 
   // --- kích thước (Gear 3) ---
   const targetR = (G.time < o.giantUntil ? o.baseR * 1.8 : o.baseR) * (G.time < (o.shrinkUntil || 0) ? 0.7 : 1);
+  // hết Đèn Pin Thu Nhỏ: trả lại phần máu bị thu nhỏ
+  if (o.shrinkCut && G.time >= (o.shrinkUntil || 0)) { o.maxHp += o.shrinkCut; o.hp = Math.min(o.maxHp, o.hp + o.shrinkCut); o.shrinkCut = 0; }
   o.r = lerp(o.r, targetR, Math.min(1, dt * 6));
 
   // --- vận tốc ---
