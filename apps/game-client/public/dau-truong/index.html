@@ -2252,7 +2252,7 @@ const ROSTER = [
   {
     id: 'purifier', tier: 'S', power: true, name: 'Thánh Hỏa Thanh Tẩy', inspire: 'Purifying Flame', glyph: '✚', color: '#fbbf24', color2: '#7c2d12',
     hp: 370, atk: 16, spd: 252, cd: 4, ult: 'Lửa Thanh Tẩy', purges: true,
-    skill: 'Mọi đòn của bóng (va chạm & chiêu) gắn <b>Ấn Thanh Tẩy</b> 4 giây: địch bị ấn <b>không thể hồi máu, không thể phân tách</b> và slime con <b>không thể lớn lại</b>. Chiêu: <b>sóng lửa thánh</b> lan khắp sân – mọi địch nhận 16 sát thương và bị gắn Ấn. <i>Khắc tinh của Vua Slime và các bóng hồi máu.</i>',
+    skill: 'Mọi đòn của bóng (va chạm & chiêu) gắn <b>Ấn Thanh Tẩy</b> 8 giây: địch bị ấn <b>không thể hồi máu, không thể phân tách</b> (vẫn tách được ở đòn gắn ấn) và slime con <b>tạm dừng lớn lại</b> cho tới khi hết ấn. Chiêu: <b>sóng lửa thánh</b> lan khắp sân – mọi địch nhận 16 sát thương và bị gắn Ấn. <i>Khắc tinh của Vua Slime và các bóng hồi máu.</i>',
     cast(o) {
       for (const e of enemiesOf(o)) { dealDamage(e, 16, o, 'skill'); burst(e.x, e.y, '#fde68a', 10, 180); }
       ringFx(o.x, o.y, 620, '#fbbf24', 0.7, 14); ringFx(o.x, o.y, 420, '#fef3c7', 0.5, 6); G.flash = Math.max(G.flash, 0.25);
@@ -2941,6 +2941,7 @@ function heal(o, amount, silent = false) {
  * Áp dụng khiên, phản đòn, thống kê, số bay lên và kết liễu.
  */
 const SUDDEN_AT = 90;
+const PURGE_SEC = 8; // thời gian Ấn Thanh Tẩy
 function dealDamage(t, amount, src, kind = 'normal', opts = {}) {
   if (!t.alive || amount <= 0) return 0;
   let dmg = amount * (src && src.powMul ? src.powMul : 1);
@@ -2972,8 +2973,8 @@ function dealDamage(t, amount, src, kind = 'normal', opts = {}) {
     floatText(t.x + rand(-10, 10), t.y - t.r, (kind === 'crit' ? '💥' : '') + Math.max(1, Math.round(dmg)), col, size);
   }
   if (t.hp <= 0.001 && t.def.onLethal && t.def.onLethal(t, src)) return dmg;
-  if (src && src.def.purges && src !== t) t.purgeUntil = G.time + 4; // Ấn Thanh Tẩy
   if (t.def.splitOnHit && t.hp > 0.001 && NET.role !== 'client') splitSlime(t);
+  if (src && src.def.purges && src !== t) t.purgeUntil = G.time + PURGE_SEC; // Ấn Thanh Tẩy (gắn sau khi tách)
   if (t.hp <= 0.001) kill(t, src);
   return dmg;
 }
@@ -3080,8 +3081,8 @@ const slimeFamily = (t) => G.orbs.filter((x) => x.alive && (x.family || x) === (
 const canSplitSlime = (t) => t.hp >= (t.def.splitMinHp || SLIME_MIN_HP) && G.time >= (t.splitReady || 0) && G.time >= (t.purgeUntil || 0)
   && (!t.def.regrow || slimeFamily(t).length < SLIME_CAP);
 /** Slime con sống sót đủ SLIME_REGROW giây kể từ lần tách gần nhất → lớn lại thành slime ban đầu (đủ máu, đủ cỡ). */
-function regrowSlime(o) {
-  if (o.def.regrow && o.gen && o.growAt && G.time < (o.purgeUntil || 0)) { o.growAt = Math.max(o.growAt, G.time + SLIME_REGROW); return; } // bị Ấn Thanh Tẩy: dừng lớn lại
+function regrowSlime(o, dt = 0) {
+  if (o.def.regrow && o.gen && o.growAt && G.time < (o.purgeUntil || 0)) { o.growAt += dt; return; } // bị Ấn Thanh Tẩy: tạm dừng đồng hồ lớn lại
   if (!o.def.regrow || !o.gen || !o.growAt || G.time < o.growAt || NET.role === 'client') return;
   const root = o.family || o;
   if ((root.regrows || 0) >= SLIME_REGROW_MAX) { o.growAt = 0; return; }
@@ -3526,7 +3527,7 @@ function stepOrb(o, dt) {
     if (o.cd <= 0 && !charging && enemiesOf(o).length) { o.cd = o.def.cd * srand(0.9, 1.1); o.stats.skills++; o.def.cast(o); }
   }
   if (o.def.update) o.def.update(o, dt);
-  if (o.def.regrow) regrowSlime(o);
+  if (o.def.regrow) regrowSlime(o, dt);
   o.hitFlash = Math.max(0, o.hitFlash - dt);
 }
 
