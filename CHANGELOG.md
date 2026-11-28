@@ -1,5 +1,15 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – 10 bóng cơ học đặc biệt] – 2026-11-28
+- **10 quả bóng ⚙ Cơ học** (tổng **55 quả**), lập trình theo từng giai đoạn:
+  - S **Móc Câu Nảy Tường**: GĐ1 đứng yên hoàn toàn + bắn móc có dây; GĐ2 móc nảy tường & ghi nhớ điểm chạm (≤ 5 lần, trượt thì thu dây); GĐ3 trúng địch → kéo ngược qua từng điểm nảy về đập vào Móc Câu (26 + choáng 0,8 giây).
+  - S **Ký Sinh Trùng**: kén bám 4,5 giây (vẽ xúc tu), rút 2 HP/0,5 giây hồi cho bản thân, chậm 25%, hết giờ nổ thêm 8.
+  - A **Cổng Dịch Chuyển** (Cổng Xanh ngẫu nhiên quanh địch, Cổng Cam ngẫu nhiên; bóng & đạn qua cổng giữ vận tốc, hồi 0,8 giây) · **Bumerang Xoáy** (vòng cung, nảy tường, tự quay về; trúng cả đi lẫn về, lượt về kéo địch) · **Giật Dây Rối** (sợi chỉ 3,5 giây kéo lệch quỹ đạo địch theo hướng mình, đổi hướng gắt → giật mạnh).
+  - B **Xích Neo Đậu** (địch bị giới hạn bán kính 170px quanh neo, căng xích bị giật lùi) · **Bẫy Tơ Nhện** (lưới 6 giây: địch chậm 60%, chủ lưới tăng tốc & lao tới cắn hút máu) · **Hoán Đổi Vị Trí** (tia đánh dấu → đổi chỗ tức thời + sóng xung kích hai đầu).
+  - C **Nam Châm Hút** (từ trường 3 giây hút bóng & đạn địch, giáp −30%, va chạm +35%). D **Bắn Tỉa Đứng Yên** (đứng yên 0,8 giây có tia ngắm rồi bắn đạn nhanh nảy 1 lần).
+- Lõi trận đấu: đứng yên hoàn toàn, chậm 25% / 60%, đạn có hàm khi trúng, mỗi quả bóng tự vẽ hiệu ứng riêng (dây, xích, cổng, lưới…). Nguồn gốc mới **⚙ Cơ học** trong Bộ sưu tập; Vòng Quay đủ 55 ô.
+- Cân bằng bằng mô phỏng (12 trận/quả với 3 bóng cùng cấp): đa số thắng 4–8/12.
+
 ## [Đấu Trường Quả Cầu Anime – đạn tự truy đuổi, cân bằng Lục Nhãn & Vua Slime] – 2026-11-28
 - **Đạn chiêu tự truy đuổi kẻ địch**: mọi đạn bắn ra tự bẻ hướng về mục tiêu (mặc định 2,4 rad/giây – vẫn né được khi chạy nhanh); mục tiêu bị hạ → chuyển sang địch gần nhất chưa trúng. Tính toán theo thời gian mô phỏng nên vẫn đồng bộ khi chơi trực tuyến.
 - **Lục Nhãn Vô Hạ Hạn** mạnh hơn: Hư Thức: Tử tự truy đuổi (bám nhẹ), bay nhanh hơn (360 → 380), hồi chiêu 8,5 → 8 giây; sát thương 44 → 30 để bù cho việc gần như luôn trúng. Đo mô phỏng: đấu 1-1 với 8 quả cấp S thắng ~82% (trước ~69%), Hỗn Chiến 6 quả S đứng nhất ~25% (trước ~19%).
