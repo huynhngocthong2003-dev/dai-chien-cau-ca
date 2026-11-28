@@ -1541,13 +1541,13 @@ const ROSTER = [
     splitOnHit: true, regrow: true,
     drawFx(o) { // vòng đếm ngược lớn lại
       if (!o.gen || !o.growAt) return;
-      const p = clamp(1 - (o.growAt - G.time) / SLIME_REGROW, 0, 1);
+      const p = clamp(1 - (o.growAt - G.time) / slimeRegrow(), 0, 1);
       ctx.save(); ctx.strokeStyle = 'rgba(110,231,183,0.9)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 14, -Math.PI / 2, -Math.PI / 2 + TAU * p); ctx.stroke();
       if (p > 0.75) { ctx.globalAlpha = (p - 0.75) * 2; ctx.fillStyle = '#6ee7b7'; ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 6 + Math.sin(G.time * 30) * 3, 0, TAU); ctx.fill(); }
       ctx.restore();
     },
-    skill: '<b>Phân Tách Vô Tận</b>: mỗi lần nhận sát thương, slime <b>tách làm đôi</b> – mỗi nửa mang <b>một nửa số máu</b> hiện có, nhỏ lại và văng ra hai phía; mỗi slime con bị đánh lại tách đôi tiếp… liên tục <b>không giới hạn số đời</b>, cho tới khi không thể tách nữa (slime còn dưới 8 máu). Slime con nào <b>sống sót 3 giây</b> không bị giết sẽ <b>lớn lại thành Vua Slime ban đầu</b> (đủ máu, đủ cỡ) – <b>không giới hạn số lần</b> (tối đa 12 slime cùng lúc trên sân). Mỗi slime con <b>giữ nguyên sát thương</b> của bản thể → mỗi lần tách, <b>tổng sát thương cả bầy nhân đôi</b>. Chiêu: mọi slime đều ném <b>cục nhầy</b> 12 sát thương + làm chậm 1,5 giây.',
+    skill: '<b>Phân Tách Vô Tận</b>: mỗi lần nhận sát thương, slime <b>tách làm đôi</b> – mỗi nửa mang <b>một nửa số máu</b> hiện có, nhỏ lại và văng ra hai phía; mỗi slime con bị đánh lại tách đôi tiếp… liên tục <b>không giới hạn số đời</b>, cho tới khi không thể tách nữa (slime còn dưới 8 máu). Slime con nào <b>sống sót 3 giây</b> (Hỗn Chiến: <b>2 giây</b>) không bị giết sẽ <b>lớn lại thành Vua Slime ban đầu</b> (đủ máu, đủ cỡ) – <b>không giới hạn số lần</b> (tối đa 12 slime cùng lúc trên sân). Mỗi slime con <b>giữ nguyên sát thương</b> của bản thể → mỗi lần tách, <b>tổng sát thương cả bầy nhân đôi</b>. Chiêu: mọi slime đều ném <b>cục nhầy</b> 12 sát thương + làm chậm 1,5 giây.',
     cast(o) {
       const t = nearestEnemy(o); if (!t) return;
       fireProjectile(o, t, { kind: 'slime', r: Math.max(6, 11 - 1.5 * (o.gen || 0)), speed: 560, dmg: 12, color: '#6ee7b7', life: 1.2, slow: 1.5 });
@@ -3076,7 +3076,9 @@ function addField(f) { G.fields.push(f); }
 /** Vua Slime: tách làm đôi khi nhận sát thương – mỗi nửa mang nửa số máu hiện có. */
 // không giới hạn số đời: tách tới khi không thể tách (còn dưới SLIME_MIN_HP máu)
 const SLIME_MIN_HP = 8, SLIME_MIN_R = 9;
-const SLIME_REGROW = 3, SLIME_CAP = 12, SLIME_REGROW_MAX = Infinity; // giây sống sót để lớn lại · số slime tối đa cùng lúc (giới hạn kỹ thuật cho máy yếu) · lớn lại không giới hạn
+/** Thời gian sống sót để lớn lại: Hỗn Chiến 2 giây, các chế độ khác 3 giây. */
+const slimeRegrow = () => (G.mode === 'ffa' ? 2 : 3);
+const SLIME_CAP = 12, SLIME_REGROW_MAX = Infinity; // giây sống sót để lớn lại · số slime tối đa cùng lúc (giới hạn kỹ thuật cho máy yếu) · lớn lại không giới hạn
 const slimeFamily = (t) => G.orbs.filter((x) => x.alive && (x.family || x) === (t.family || t));
 const canSplitSlime = (t) => t.hp >= (t.def.splitMinHp || SLIME_MIN_HP) && G.time >= (t.splitReady || 0) && G.time >= (t.purgeUntil || 0)
   && (!t.def.regrow || slimeFamily(t).length < SLIME_CAP);
@@ -3096,7 +3098,7 @@ function splitSlime(t) {
   const half = t.hp / 2;
   if (!t.r0) t.r0 = t.baseR;
   t.gen = (t.gen || 0) + 1;
-  if (t.def.regrow && ((t.family || t).regrows || 0) < SLIME_REGROW_MAX) t.growAt = G.time + SLIME_REGROW; else t.growAt = 0;
+  if (t.def.regrow && ((t.family || t).regrows || 0) < SLIME_REGROW_MAX) t.growAt = G.time + slimeRegrow(); else t.growAt = 0;
   t.hp = half; t.maxHp = t.maxHp / 2;
   t.baseR = Math.max(SLIME_MIN_R, t.baseR * 0.8); t.splitReady = G.time + 0.5;
   const a = srand(0, TAU), nx = Math.cos(a), ny = Math.sin(a);
