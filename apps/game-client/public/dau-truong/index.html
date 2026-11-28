@@ -7237,7 +7237,6 @@ function questListHtml(p = UI.qtab || 'daily') {
 }
 function renderHome() {
   const sc = showcaseList();
-  const pubs = HALL.peers.filter((p) => p.pub && !p.pub.rk).length;
   const nFriendsOn = Save.friends.filter((x) => hallPeer(x.f)).length;
   $('pg-home').innerHTML = `
     <div class="hero box">
@@ -7265,7 +7264,6 @@ function renderHome() {
     <div class="box">
       <h3>🎪 Đang diễn ra</h3>
       <div class="evrow"><span>🌐 Người chơi đang online</span><b>${HALL.room ? HALL.peers.length + 1 : '—'}</b></div>
-      <div class="evrow"><span>⚡ Phòng công khai đang chờ ghép</span><b>${HALL.room ? pubs : '—'}</b>${pubs ? '<button class="btn sm gold" data-mm="any">Ghép ngay</button>' : ''}</div>
       <div class="evrow"><span>🎡 Vòng Quay: tỉ lệ S 5% · A 10% · B 20% · C 30% · D 35%</span><button class="btn sm" data-go="shop">Quay</button></div>
       ${HALL.room ? '' : '<div class="warn">⚠ Chưa kết nối máy chủ trực tuyến – vẫn đấu với máy, sưu tập & làm nhiệm vụ bình thường.</div>'}
       <div class="hint" style="text-align:left">Chưa có sự kiện giới hạn thời gian.</div>
@@ -7276,11 +7274,9 @@ function renderHome() {
 const modeSel = (id, cur = 'v1') => `<div class="seg mini" data-modesel="${id}">${MODE_KEYS.map((k) => `<button data-m="${k}" class="${k === cur ? 'on' : ''}">${MODES[k].label}</button>`).join('')}</div>`;
 UI.bm = { create: 'v1', mm: 'v1', bot: 'v1' };
 function renderBattle() {
-  const online = !!HALL.room;
-  const mmTxt = MM.searching ? `<div class="mmstat">🔎 Đang tìm trận ${MODES[MM.mode].label}… ${Math.floor((Date.now() - MM.t0) / 1000)}s <button class="btn sm" data-mmcancel="1">Huỷ</button></div>` : '';
   $('pg-battle').innerHTML = `
     <h2 class="pgtitle">⚔ Phòng đấu</h2>
-    ${NET.room ? `<div class="box roomnow"><div>🟢 Bạn đang ở <b>${roomLabel()}</b> · ${NET.role === 'host' ? 'chủ phòng' : 'người chơi'}${MM.public ? ' · phòng công khai' : ''}</div>
+    ${NET.room ? `<div class="box roomnow"><div>🟢 Bạn đang ở <b>${roomLabel()}</b> · ${NET.role === 'host' ? 'chủ phòng' : 'người chơi'}${NET.lob && NET.lob.ranked ? ' · 🏆 phòng xếp hạng' : ''}</div>
       <div class="row"><button class="btn primary sm" data-go="lobby">🏟 Về Phòng Chờ</button><button class="btn sm" data-leave="1">🚪 Rời phòng</button></div></div>` : ''}
     ${rankCardHtml()}
     <div class="bgrid">
@@ -7289,11 +7285,6 @@ function renderBattle() {
       <div class="box bcard"><div class="bhead"><span class="bic">🔑</span><h3>Vào phòng bằng mã</h3></div><p class="hint">Nhập mã bạn bè gửi, ví dụ PHÒNG-123.</p>
         <div class="joinrow"><input class="text" id="hallCode" maxlength="12" placeholder="PHÒNG-123" inputmode="numeric"><button class="btn" id="btnHallJoin">Vào</button></div>
         <div class="hint" id="hallMsg" style="text-align:left"></div></div>
-      <div class="box bcard"><div class="bhead"><span class="bic">⚡</span><h3>Ghép trận ngẫu nhiên</h3></div><p class="hint">Vào phòng công khai đang chờ; nếu chưa có, tự mở phòng công khai để người khác ghép vào.</p>
-        ${modeSel('mm', UI.bm.mm)}${mmTxt || `<button class="btn gold" data-mm="1" ${online ? '' : 'disabled'}>Tìm trận</button>`}
-        ${online ? '' : '<div class="hint">⚠ Cần kết nối máy chủ trực tuyến.</div>'}</div>
-      <div class="box bcard"><div class="bhead"><span class="bic">🤖</span><h3>Đấu với máy</h3></div><p class="hint">Vào trận ngay với quả cầu đang trang bị, các ô còn lại là máy.</p>
-        ${modeSel('bot', UI.bm.bot)}<button class="btn purple" data-quick="sel">Đấu ngay</button></div>
     </div>`;
   $('btnHallJoin').onclick = hallJoin;
   $('hallCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); hallJoin(); } });

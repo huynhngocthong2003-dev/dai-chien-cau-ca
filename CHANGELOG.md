@@ -1,5 +1,8 @@
 # Changelog
 
+## [Đấu Trường Quả Cầu Anime – Gọn trang Phòng đấu] – 2026-11-28
+- Trang ⚔ Phòng đấu chỉ còn: 🏆 Đấu Xếp Hạng · 🏟 Tạo phòng · 🔑 Vào phòng bằng mã. Bỏ thẻ "Ghép trận ngẫu nhiên" và "Đấu với máy" (vẫn đấu với máy bằng nút 🤖 ĐẤU VỚI MÁY ở Sảnh, hoặc thêm máy trong Phòng Chờ); bỏ dòng "Phòng công khai đang chờ ghép" ở Sảnh.
+
 ## [Đấu Trường Quả Cầu Anime – Cân bằng bậc A, B, C, D · Đột Tử] – 2026-11-28
 - Đấu vòng tròn mô phỏng từng bậc (máu & sát thương được chỉnh tự động qua nhiều vòng). Tỉ lệ thắng trong bậc: A 3–92% → **36–62%** · B 2–100% → **41–73%** · C 4–91% → **31–56%** · D 0–100% → **37–54%**.
 - Giữ thứ tự bậc (đấu chéo bậc liền kề): A thắng S 11% · B thắng A 30% · C thắng B 30% · D thắng C 18%.
